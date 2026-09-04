@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta name="description"
+          content="Tajik Opportunities — новости, возможности, образование, работа, мероприятия и полезная информация для Таджикистана.">
+
+    <title>Tajik Opportunities — Новости и возможности Таджикистана</title>
+
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+<header class="header">
+    <div class="container nav-container">
+
+        <a href="/" class="logo">
+            <span class="logo-main">TAJIK</span>
+            <span class="logo-sub">OPPORTUNITIES</span>
+        </a>
+
+        <button class="menu-toggle" id="menuToggle" aria-label="Открыть меню">
+            ☰
+        </button>
+
+        <nav class="nav" id="mainNav">
+            <a href="/" class="active">Главная</a>
+            <a href="#news">Новости</a>
+            <a href="#opportunities">Возможности</a>
+            <a href="#categories">Категории</a>
+            <a href="/add.html" class="nav-add">＋ Добавить</a>
+        </nav>
+
+    </div>
+</header>
+
+
+<main>
+
+    <!-- HERO -->
+
+    <section class="hero">
+        <div class="container hero-content">
+
+            <div class="hero-text">
+
+                <span class="badge">🇹🇯 Платформа для Таджикистана</span>
+
+                <h1>
+                    Новости и возможности
+                    <span>для Таджикистана</span>
+                </h1>
+
+                <p>
+                    Новости, образование, работа, гранты, мероприятия,
+                    волонтёрство, технологии и другие полезные возможности
+                    для жителей Таджикистана.
+                </p>
+
+                <div class="hero-buttons">
+                    <a href="#news" class="btn btn-primary">
+                        Смотреть публикации
+                    </a>
+
+                    <a href="/add.html" class="btn btn-outline">
+                        ＋ Добавить публикацию
+                    </a>
+                </div>
+
+            </div>
+
+            <div class="hero-card">
+
+                <div class="hero-card-icon">🇹🇯</div>
+
+                <h3>Есть чем поделиться?</h3>
+
+                <p>
+                    Любой участник может предложить новость,
+                    возможность или полезную информацию.
+                </p>
+
+                <a href="/add.html" class="card-link">
+                    Добавить публикацию →
+                </a>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- SEARCH -->
+
+    <section class="search-section">
+        <div class="container">
+
+            <div class="search-box">
+
+                <span class="search-icon">🔎</span>
+
+                <input
+                    type="search"
+                    id="searchInput"
+                    placeholder="Поиск публикаций..."
+                    autocomplete="off"
+                >
+
+                <button id="clearSearch" class="search-clear">
+                    ×
+                </button>
+
+            </div>
+
+        </div>
+    </section>
+
+
+    <!-- NEWS -->
+
+    <section class="section" id="news">
+
+        <div class="container">
+
+            <div class="section-heading">
+
+                <div>
+                    <span class="section-label">ПОСЛЕДНЕЕ</span>
+                    <h2>Новости и публикации</h2>
+                </div>
+
+                <button class="filter-button" id="refreshPosts">
+                    ↻ Обновить
+                </button>
+
+            </div>
+
+
+            <div class="category-filters" id="categoryFilters">
+
+                <button class="filter active" data-category="all">
+                    Все
+                </button>
+
+                <button class="filter" data-category="news">
+                    📰 Новости
+                </button>
+
+                <button class="filter" data-category="education">
+                    🎓 Образование
+                </button>
+
+                <button class="filter" data-category="work">
+                    💼 Работа
+                </button>
+
+                <button class="filter" data-category="opportunity">
+                    🚀 Возможности
+                </button>
+
+                <button class="filter" data-category="events">
+                    📅 Мероприятия
+                </button>
+
+            </div>
+
+
+            <div id="postsContainer" class="posts-grid">
+
+                <div class="loading-card">
+                    <div class="spinner"></div>
+                    <p>Загрузка публикаций...</p>
+                </div>
+
+            </div>
+
+
+            <div id="emptyPosts" class="empty-state hidden">
+
+                <div class="empty-icon">📭</div>
+
+                <h3>Публикаций пока нет</h3>
+
+                <p>
+                    Попробуйте изменить поиск или станьте первым,
+                    кто добавит публикацию.
+                </p>
+
+                <a href="/add.html" class="btn btn-primary">
+                    ＋ Добавить публикацию
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- OPPORTUNITIES -->
+
+    <section class="section section-light" id="opportunities">
+
+        <div class="container">
+
+            <div class="section-heading">
+                <div>
+                    <span class="section-label">ВОЗМОЖНОСТИ</span>
+                    <h2>Что можно найти</h2>
+                </div>
+            </div>
+
+
+            <div class="feature-grid">
+
+                <a href="/?category=education" class="feature-card">
+                    <div class="feature-icon">🎓</div>
+                    <h3>Образование</h3>
+                    <p>
+                        Стипендии, гранты, курсы, олимпиады,
+                        конкурсы и исследовательские программы.
+                    </p>
+                </a>
+
+
+                <a href="/?category=work" class="feature-card">
+                    <div class="feature-icon">💼</div>
+                    <h3>Работа</h3>
+                    <p>
+                        Вакансии, стажировки, удалённая работа
+                        и карьерные возможности.
+                    </p>
+                </a>
+
+
+                <a href="/?category=opportunity" class="feature-card">
+                    <div class="feature-icon">🚀</div>
+                    <h3>Возможности</h3>
+                    <p>
+                        Гранты, программы, проекты,
+                        конкурсы и другие возможности.
+                    </p>
+                </a>
+
+
+                <a href="/?category=events" class="feature-card">
+                    <div class="feature-icon">📅</div>
+                    <h3>Мероприятия</h3>
+                    <p>
+                        Конференции, встречи, форумы,
+                        лекции и мероприятия.
+                    </p>
+                </a>
+
+
+                <a href="/?category=volunteer" class="feature-card">
+                    <div class="feature-icon">🤝</div>
+                    <h3>Волонтёрство</h3>
+                    <p>
+                        Волонтёрские проекты и общественные инициативы.
+                    </p>
+                </a>
+
+
+                <a href="/?category=technology" class="feature-card">
+                    <div class="feature-icon">💻</div>
+                    <h3>Технологии</h3>
+                    <p>
+                        IT, искусственный интеллект,
+                        цифровые сервисы и технологии.
+                    </p>
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- CATEGORIES -->
+
+    <section class="section" id="categories">
+
+        <div class="container">
+
+            <div class="section-heading">
+                <div>
+                    <span class="section-label">РАЗДЕЛЫ</span>
+                    <h2>Категории</h2>
+                </div>
+            </div>
+
+
+            <div class="categories-grid">
+
+                <button class="category-card" data-category="news">
+                    <span>📰</span>
+                    <strong>Новости</strong>
+                    <small>Актуальные события</small>
+                </button>
+
+                <button class="category-card" data-category="education">
+                    <span>🎓</span>
+                    <strong>Образование</strong>
+                    <small>Учёба и исследования</small>
+                </button>
+
+                <button class="category-card" data-category="work">
+                    <span>💼</span>
+                    <strong>Работа</strong>
+                    <small>Вакансии и карьера</small>
+                </button>
+
+                <button class="category-card" data-category="opportunity">
+                    <span>🚀</span>
+                    <strong>Возможности</strong>
+                    <small>Гранты и программы</small>
+                </button>
+
+                <button class="category-card" data-category="events">
+                    <span>📅</span>
+                    <strong>Мероприятия</strong>
+                    <small>События и встречи</small>
+                </button>
+
+                <button class="category-card" data-category="volunteer">
+                    <span>🤝</span>
+                    <strong>Волонтёрство</strong>
+                    <small>Добрые инициативы</small>
+                </button>
+
+                <button class="category-card" data-category="technology">
+                    <span>💻</span>
+                    <strong>Технологии</strong>
+                    <small>IT и цифровизация</small>
+                </button>
+
+                <button class="category-card" data-category="other">
+                    <span>📌</span>
+                    <strong>Другое</strong>
+                    <small>Другие публикации</small>
+                </button>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- ADD CTA -->
+
+    <section class="submit-section">
+
+        <div class="container">
+
+            <div class="submit-box">
+
+                <div>
+                    <span class="section-label">УЧАСТВУЙТЕ</span>
+
+                    <h2>
+                        Поделитесь возможностью
+                        с другими
+                    </h2>
+
+                    <p>
+                        Нашли полезную программу, вакансию,
+                        мероприятие или новость?
+                        Отправьте её нам.
+                    </p>
+                </div>
+
+                <a href="/add.html" class="btn btn-white">
+                    ＋ Добавить публикацию
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- STATUS -->
+
+    <section class="status-section">
+
+        <div class="container">
+
+            <div class="status-box">
+
+                <div class="status-icon">🔎</div>
+
+                <div>
+                    <h3>Уже отправили публикацию?</h3>
+                    <p>
+                        Проверьте её статус с помощью кода,
+                        который вы получили после отправки.
+                    </p>
+                </div>
+
+                <a href="/status.html" class="btn btn-outline">
+                    Проверить статус
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer class="footer">
+
+    <div class="container footer-grid">
+
+        <div>
+            <a href="/" class="logo footer-logo">
+                <span class="logo-main">TAJIK</span>
+                <span class="logo-sub">OPPORTUNITIES</span>
+            </a>
+
+            <p>
+                Новости, связи и возможности
+                для Таджикистана.
+            </p>
+        </div>
+
+
+        <div>
+            <h4>Платформа</h4>
+
+            <a href="/">Главная</a>
+            <a href="#news">Новости</a>
+            <a href="#opportunities">Возможности</a>
+            <a href="/add.html">Добавить публикацию</a>
+            <a href="/status.html">Проверить статус</a>
+        </div>
+
+
+        <div>
+            <h4>Категории</h4>
+
+            <a href="/?category=education">Образование</a>
+            <a href="/?category=work">Работа</a>
+            <a href="/?category=opportunity">Возможности</a>
+            <a href="/?category=events">Мероприятия</a>
+            <a href="/?category=technology">Технологии</a>
+        </div>
+
+
+        <div>
+            <h4>Связь</h4>
+
+            <a href="https://t.me/Tajik_Opportunities" target="_blank" rel="noopener">
+                Telegram
+            </a>
+
+            <a href="/add.html">
+                Предложить публикацию
+            </a>
+        </div>
+
+    </div>
+
+
+    <div class="footer-bottom">
+        <div class="container">
+            © <span id="currentYear"></span> Tajik Opportunities
+        </div>
+    </div>
+
+</footer>
+
+
+<div id="toast" class="toast"></div>
+
+<script src="/js/script.js"></script>
+
+</body>
+  </html>
