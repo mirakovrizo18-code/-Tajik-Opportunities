@@ -1,0 +1,1073 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <!-- ============================================================
+    МЕТАДАННЫЕ
+    ============================================================ -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <meta name="robots" content="noindex, nofollow, noarchive">
+    <meta name="theme-color" content="#0A2463">
+    
+    <meta name="description" content="Добавьте публикацию на Tajik Opportunities. Новости, работа, образование, мероприятия и возможности в Таджикистане.">
+    
+    <title>Добавить публикацию — Tajik Opportunities</title>
+    
+    <!-- Иконки -->
+    <link rel="icon" href="/favicon.ico" sizes="any">
+    
+    <!-- Стили -->
+    <link rel="stylesheet" href="/css/style.css">
+    
+    <!-- Дополнительные стили для страницы добавления -->
+    <style>
+        /* ============================================================
+        СТИЛИ СТРАНИЦЫ ДОБАВЛЕНИЯ
+        ============================================================ */
+        
+        .add-page {
+            background: linear-gradient(135deg, #f8fafc 0%, #eef2f7 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .add-container {
+            flex: 1;
+            max-width: 720px;
+            margin: 0 auto;
+            padding: 32px 24px 60px;
+            width: 100%;
+        }
+        
+        /* ===== ЗАГОЛОВОК ===== */
+        .add-header {
+            text-align: center;
+            margin-bottom: 32px;
+            animation: fadeInDown 0.5s ease;
+        }
+        
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .add-header .eyebrow {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #3b82f6;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            background: #eff6ff;
+            padding: 4px 16px;
+            border-radius: 20px;
+            margin-bottom: 12px;
+        }
+        
+        .add-header h1 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0 0 8px;
+        }
+        
+        .add-header .subtitle {
+            color: #64748b;
+            font-size: 16px;
+            margin: 0;
+            max-width: 460px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        /* ===== ИНФОРМАЦИОННЫЙ БЛОК ===== */
+        .info-box {
+            background: #f0f9ff;
+            border: 2px solid #bae6fd;
+            border-radius: 14px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            margin-bottom: 28px;
+            color: #0369a1;
+            font-size: 14px;
+            animation: fadeInUp 0.5s ease 0.1s both;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .info-box .info-icon {
+            font-size: 24px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        .info-box .info-content b {
+            font-weight: 600;
+        }
+        
+        .info-box .info-content {
+            line-height: 1.5;
+        }
+        
+        /* ===== ФОРМА ===== */
+        .add-form {
+            background: white;
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.03);
+            animation: fadeInUp 0.5s ease 0.2s both;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            font-size: 14px;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 6px;
+        }
+        
+        .form-group label .required {
+            color: #ef4444;
+            margin-left: 2px;
+        }
+        
+        .form-group label .optional {
+            color: #94a3b8;
+            font-weight: 400;
+            font-size: 13px;
+            margin-left: 4px;
+        }
+        
+        .form-group .form-hint {
+            display: block;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+            font-weight: 400;
+        }
+        
+        .form-group .form-hint.error-hint {
+            color: #ef4444;
+        }
+        
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 15px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            background: #fafbfc;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #0f172a;
+        }
+        
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 4px rgba(59,130,246,0.1);
+            background: white;
+        }
+        
+        .form-group input:disabled,
+        .form-group select:disabled,
+        .form-group textarea:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        
+        .form-group input.error,
+        .form-group select.error,
+        .form-group textarea.error {
+            border-color: #ef4444;
+        }
+        
+        .form-group input.success,
+        .form-group select.success,
+        .form-group textarea.success {
+            border-color: #22c55e;
+        }
+        
+        .form-group textarea {
+            resize: vertical;
+            min-height: 120px;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+        }
+        
+        .form-group select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2394a3b8' stroke-width='2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 16px center;
+            padding-right: 40px;
+            cursor: pointer;
+        }
+        
+        .form-group select:invalid {
+            color: #94a3b8;
+        }
+        
+        .form-group select option {
+            color: #0f172a;
+        }
+        
+        /* ===== ДВЕ КОЛОНКИ ===== */
+        .two-columns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        /* ===== КНОПКИ ===== */
+        .form-actions {
+            margin-top: 8px;
+        }
+        
+        .btn.full {
+            width: 100%;
+            justify-content: center;
+            padding: 16px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        
+        /* ===== РЕЗУЛЬТАТ ===== */
+        #result {
+            margin-top: 20px;
+            min-height: 40px;
+        }
+        
+        /* Сообщение об успехе */
+        .result-success {
+            background: #f0fdf4;
+            border: 2px solid #86efac;
+            border-radius: 12px;
+            padding: 20px 24px;
+            animation: fadeInUp 0.4s ease;
+        }
+        
+        .result-success .success-icon {
+            font-size: 32px;
+            display: block;
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .result-success h3 {
+            color: #166534;
+            font-size: 18px;
+            margin: 0 0 4px;
+            text-align: center;
+        }
+        
+        .result-success p {
+            color: #15803d;
+            margin: 4px 0;
+            text-align: center;
+        }
+        
+        .result-success .tracking-code {
+            display: inline-block;
+            background: #dcfce7;
+            padding: 8px 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #166534;
+            margin: 8px 0 4px;
+            border: 1px solid #86efac;
+        }
+        
+        .result-success .success-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+        
+        .result-success .success-actions .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+        
+        /* Сообщение об ошибке */
+        .result-error {
+            background: #fef2f2;
+            border: 2px solid #fca5a5;
+            border-radius: 12px;
+            padding: 16px 20px;
+            color: #dc2626;
+            font-size: 15px;
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            animation: fadeInUp 0.4s ease;
+        }
+        
+        .result-error .error-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+        
+        /* Загрузка */
+        .result-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 20px;
+            color: #64748b;
+            font-size: 15px;
+        }
+        
+        .result-loading .spinner {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            flex-shrink: 0;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* ===== СЧЁТЧИК СИМВОЛОВ ===== */
+        .char-counter {
+            display: flex;
+            justify-content: flex-end;
+            font-size: 12px;
+            color: #94a3b8;
+            margin-top: 4px;
+            gap: 4px;
+        }
+        
+        .char-counter .count-warning {
+            color: #f59e0b;
+        }
+        
+        .char-counter .count-danger {
+            color: #ef4444;
+        }
+        
+        /* ===== ТЕГИ / КАТЕГОРИИ С ИКОНКАМИ ===== */
+        .category-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        /* ===== ПРОГРЕСС-БАР ===== */
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background: #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+        
+        .progress-bar .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #22c55e);
+            border-radius: 4px;
+            transition: width 0.4s ease;
+            width: 0%;
+        }
+        
+        /* ===== ПОДСКАЗКИ ===== */
+        .tips-section {
+            margin-top: 24px;
+            padding: 20px 24px;
+            background: #f8fafc;
+            border-radius: 14px;
+            border: 1px solid #e2e8f0;
+            animation: fadeInUp 0.5s ease 0.3s both;
+        }
+        
+        .tips-section h3 {
+            font-size: 14px;
+            font-weight: 600;
+            color: #0f172a;
+            margin: 0 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .tips-section ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px 20px;
+        }
+        
+        .tips-section ul li {
+            font-size: 13px;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 0;
+        }
+        
+        .tips-section ul li .tip-icon {
+            font-size: 14px;
+            flex-shrink: 0;
+        }
+        
+        /* ===== АДАПТИВНОСТЬ ===== */
+        @media (max-width: 768px) {
+            .add-container {
+                padding: 20px 16px 40px;
+            }
+            
+            .add-header h1 {
+                font-size: 26px;
+            }
+            
+            .add-form {
+                padding: 24px 18px;
+            }
+            
+            .two-columns {
+                grid-template-columns: 1fr;
+                gap: 0;
+            }
+            
+            .tips-section ul {
+                grid-template-columns: 1fr;
+            }
+            
+            .result-success .success-actions .btn {
+                width: 100%;
+                justify-content: center;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .add-header h1 {
+                font-size: 22px;
+            }
+            
+            .add-form {
+                padding: 18px 14px;
+            }
+            
+            .form-group input,
+            .form-group select,
+            .form-group textarea {
+                font-size: 14px;
+                padding: 10px 14px;
+            }
+            
+            .info-box {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+
+<body class="add-page">
+
+    <!-- ============================================================
+    ШАПКА
+    ============================================================ -->
+    <header class="site-header" role="banner" aria-label="Шапка сайта">
+        <div class="container">
+            <div class="nav-wrapper">
+                <a class="brand" href="/" aria-label="Tajik Opportunities — главная страница">
+                    <span class="brand-flag">🇹🇯</span>
+                    <span class="brand-name">Tajik <strong>Opportunities</strong></span>
+                </a>
+                
+                <nav class="main-nav" role="navigation" aria-label="Основная навигация">
+                    <ul>
+                        <li><a href="/">🏠 Главная</a></li>
+                        <li><a href="/#publications">📰 Публикации</a></li>
+                        <li><a href="/status.html">📋 Статус</a></li>
+                    </ul>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================================
+    ОСНОВНОЙ КОНТЕНТ
+    ============================================================ -->
+    <main class="add-container" role="main" id="mainContent">
+        
+        <!-- ============================================================
+        ЗАГОЛОВОК
+        ============================================================ -->
+        <div class="add-header">
+            <div class="eyebrow">
+                <span aria-hidden="true">✍️</span> 
+                УЧАСТНИКАМ
+            </div>
+            <h1>Добавить публикацию</h1>
+            <p class="subtitle">
+                Отправьте полезную информацию, и администрация рассмотрит её 
+                в ближайшее время.
+            </p>
+        </div>
+
+        <!-- ============================================================
+        ИНФОРМАЦИОННЫЙ БЛОК
+        ============================================================ -->
+        <div class="info-box" role="note">
+            <span class="info-icon" aria-hidden="true">🛡️</span>
+            <div class="info-content">
+                <b>Модерация обязательна.</b>
+                <br>
+                Ваша публикация не появится на сайте автоматически. 
+                Администратор проверит материал в течение 24-48 часов.
+            </div>
+        </div>
+
+        <!-- ============================================================
+        ПРОГРЕСС-БАР
+        ============================================================ -->
+        <div class="progress-bar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+
+        <!-- ============================================================
+        ФОРМА
+        ============================================================ -->
+        <form id="addForm" class="add-form" novalidate>
+            
+            <!-- Заголовок -->
+            <div class="form-group">
+                <label for="titleInput">
+                    Заголовок <span class="required">*</span>
+                </label>
+                <input 
+                    type="text" 
+                    id="titleInput"
+                    name="title"
+                    maxlength="180" 
+                    required 
+                    placeholder="Например: Открыт набор на бесплатную программу"
+                    aria-describedby="titleHint"
+                    autocomplete="off"
+                >
+                <span id="titleHint" class="form-hint">Краткое и информативное название</span>
+                <div class="char-counter" id="titleCounter">0 / 180</div>
+            </div>
+
+            <!-- Категория -->
+            <div class="form-group">
+                <label for="categorySelect">
+                    Категория <span class="required">*</span>
+                </label>
+                <select id="categorySelect" name="category" required>
+                    <option value="">Выберите категорию</option>
+                    <option value="news">📰 Новости</option>
+                    <option value="education">🎓 Образование</option>
+                    <option value="job">💼 Работа</option>
+                    <option value="opportunity">⭐ Возможности</option>
+                    <option value="event">🎪 Мероприятия</option>
+                    <option value="announcement">📢 Объявления</option>
+                    <option value="other">📌 Другое</option>
+                </select>
+                <span class="form-hint">Выберите подходящую категорию для вашей публикации</span>
+            </div>
+
+            <!-- Описание -->
+            <div class="form-group">
+                <label for="contentTextarea">
+                    Описание <span class="required">*</span>
+                </label>
+                <textarea 
+                    id="contentTextarea"
+                    name="content"
+                    rows="10"
+                    maxlength="10000"
+                    required
+                    placeholder="Подробно опишите новость, возможность или объявление..."
+                    aria-describedby="contentHint"
+                ></textarea>
+                <span id="contentHint" class="form-hint">Подробное описание с деталями</span>
+                <div class="char-counter" id="contentCounter">0 / 10000</div>
+            </div>
+
+            <!-- Ссылки (2 колонки) -->
+            <div class="two-columns">
+                <div class="form-group">
+                    <label for="linkInput">
+                        Ссылка <span class="optional">(опционально)</span>
+                    </label>
+                    <input 
+                        type="url" 
+                        id="linkInput"
+                        name="link_url"
+                        maxlength="1000" 
+                        placeholder="https://example.com"
+                        aria-describedby="linkHint"
+                    >
+                    <span id="linkHint" class="form-hint">Ссылка на источник или подробности</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="imageInput">
+                        Изображение <span class="optional">(опционально)</span>
+                    </label>
+                    <input 
+                        type="url" 
+                        id="imageInput"
+                        name="image_url"
+                        maxlength="1000" 
+                        placeholder="https://example.com/image.jpg"
+                        aria-describedby="imageHint"
+                    >
+                    <span id="imageHint" class="form-hint">Прямая ссылка на изображение</span>
+                </div>
+            </div>
+
+            <!-- Контакт и автор (2 колонки) -->
+            <div class="two-columns">
+                <div class="form-group">
+                    <label for="contactInput">
+                        Контакт <span class="optional">(опционально)</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="contactInput"
+                        name="contact"
+                        maxlength="300" 
+                        placeholder="@username, телефон, email..."
+                        aria-describedby="contactHint"
+                    >
+                    <span id="contactHint" class="form-hint">Как с вами связаться</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="authorInput">
+                        Ваше имя / организация <span class="optional">(опционально)</span>
+                    </label>
+                    <input 
+                        type="text" 
+                        id="authorInput"
+                        name="author_name"
+                        maxlength="120" 
+                        placeholder="Имя или название организации"
+                        aria-describedby="authorHint"
+                    >
+                    <span id="authorHint" class="form-hint">Кто автор публикации</span>
+                </div>
+            </div>
+
+            <!-- Кнопка отправки -->
+            <div class="form-actions">
+                <button class="btn btn-primary full" type="submit" id="submitBtn">
+                    <span class="btn-icon" aria-hidden="true">🚀</span> 
+                    Отправить на модерацию
+                </button>
+            </div>
+
+            <!-- Результат -->
+            <div id="result" role="status" aria-live="polite"></div>
+
+        </form>
+
+        <!-- ============================================================
+        СОВЕТЫ
+        ============================================================ -->
+        <div class="tips-section" role="note">
+            <h3>💡 Советы для публикации</h3>
+            <ul>
+                <li><span class="tip-icon" aria-hidden="true">📝</span> Пишите чётко и информативно</li>
+                <li><span class="tip-icon" aria-hidden="true">🔗</span> Добавляйте проверенные ссылки</li>
+                <li><span class="tip-icon" aria-hidden="true">🖼️</span> Используйте качественные изображения</li>
+                <li><span class="tip-icon" aria-hidden="true">📋</span> Проверяйте орфографию</li>
+                <li><span class="tip-icon" aria-hidden="true">📱</span> Указывайте актуальный контакт</li>
+                <li><span class="tip-icon" aria-hidden="true">⏰</span> Следите за сроками событий</li>
+            </ul>
+        </div>
+
+    </main>
+
+    <!-- ============================================================
+    ПОДВАЛ
+    ============================================================ -->
+    <footer class="site-footer" role="contentinfo" aria-label="Подвал сайта">
+        <div class="container">
+            <div class="footer-bottom">
+                <p>
+                    © 2026 Tajik Opportunities. 
+                    <span class="separator">|</span> 
+                    Все публикации проходят модерацию.
+                    <span class="separator">|</span>
+                    <a href="https://t.me/Tajik_Opportunities" target="_blank" rel="noopener noreferrer">✈️ Telegram-канал</a>
+                    <span class="separator">|</span>
+                    <a href="https://t.me/Tajik_Opportunities_Group" target="_blank" rel="noopener noreferrer">👥 Группа</a>
+                </p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ============================================================
+    SCRIPTS
+    ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+            
+            // ============================================================
+            // КОНСТАНТЫ
+            // ============================================================
+            
+            const form = document.getElementById('addForm');
+            const result = document.getElementById('result');
+            const submitBtn = document.getElementById('submitBtn');
+            const progressFill = document.getElementById('progressFill');
+            
+            // Поля
+            const titleInput = document.getElementById('titleInput');
+            const categorySelect = document.getElementById('categorySelect');
+            const contentTextarea = document.getElementById('contentTextarea');
+            const linkInput = document.getElementById('linkInput');
+            const imageInput = document.getElementById('imageInput');
+            const contactInput = document.getElementById('contactInput');
+            const authorInput = document.getElementById('authorInput');
+            
+            // Счётчики
+            const titleCounter = document.getElementById('titleCounter');
+            const contentCounter = document.getElementById('contentCounter');
+            
+            // Максимальные длины
+            const MAX_TITLE = 180;
+            const MAX_CONTENT = 10000;
+            
+            // Категории с эмодзи
+            const CATEGORY_EMOJIS = {
+                'news': '📰',
+                'education': '🎓',
+                'job': '💼',
+                'opportunity': '⭐',
+                'event': '🎪',
+                'announcement': '📢',
+                'other': '📌'
+            };
+            
+            // ============================================================
+            // УТИЛИТЫ
+            // ============================================================
+            
+            function escapeHtml(value) {
+                if (value === null || value === undefined) return '';
+                const map = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#039;'
+                };
+                return String(value).replace(/[&<>"']/g, function(m) { 
+                    return map[m]; 
+                });
+            }
+            
+            function formatDate(dateString) {
+                if (!dateString) return '—';
+                try {
+                    const date = new Date(dateString);
+                    return date.toLocaleString('ru-RU', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                } catch {
+                    return dateString;
+                }
+            }
+            
+            // ============================================================
+            // ВАЛИДАЦИЯ
+            // ============================================================
+            
+            function validateField(field, validator) {
+                const error = validator(field.value);
+                const formGroup = field.closest('.form-group');
+                const hint = formGroup.querySelector('.form-hint');
+                
+                if (error) {
+                    field.classList.add('error');
+                    field.classList.remove('success');
+                    if (hint) {
+                        hint.textContent = error;
+                        hint.classList.add('error-hint');
+                    }
+                    return false;
+                } else {
+                    field.classList.remove('error');
+                    field.classList.add('success');
+                    if (hint) {
+                        const originalHint = field.getAttribute('data-original-hint') || 
+                            hint.textContent;
+                        hint.textContent = originalHint;
+                        hint.classList.remove('error-hint');
+                    }
+                    return true;
+                }
+            }
+            
+            function validateTitle(value) {
+                const trimmed = value.trim();
+                if (!trimmed) return 'Заголовок обязателен для заполнения';
+                if (trimmed.length < 3) return 'Заголовок должен содержать минимум 3 символа';
+                if (trimmed.length > MAX_TITLE) return `Максимум ${MAX_TITLE} символов`;
+                return null;
+            }
+            
+            function validateCategory(value) {
+                if (!value) return 'Выберите категорию';
+                return null;
+            }
+            
+            function validateContent(value) {
+                const trimmed = value.trim();
+                if (!trimmed) return 'Описание обязательно для заполнения';
+                if (trimmed.length < 10) return 'Описание должно содержать минимум 10 символов';
+                if (trimmed.length > MAX_CONTENT) return `Максимум ${MAX_CONTENT} символов`;
+                return null;
+            }
+            
+            function validateUrl(value) {
+                if (!value) return null;
+                try {
+                    const url = new URL(value);
+                    if (url.protocol !== 'https:' && url.protocol !== 'http:') {
+                        return 'URL должен начинаться с http:// или https://';
+                    }
+                    return null;
+                } catch {
+                    return 'Некорректный URL';
+                }
+            }
+            
+            // ============================================================
+            // СЧЁТЧИКИ СИМВОЛОВ
+            // ============================================================
+            
+            function updateCounter(input, counter, max) {
+                const length = input.value.length;
+                counter.textContent = `${length} / ${max}`;
+                counter.classList.remove('count-warning', 'count-danger');
+                
+                if (length > max * 0.9) {
+                    counter.classList.add('count-warning');
+                }
+                if (length >= max) {
+                    counter.classList.add('count-danger');
+                }
+            }
+            
+            titleInput.addEventListener('input', function() {
+                updateCounter(this, titleCounter, MAX_TITLE);
+                validateField(this, validateTitle);
+                updateProgress();
+            });
+            
+            contentTextarea.addEventListener('input', function() {
+                updateCounter(this, contentCounter, MAX_CONTENT);
+                validateField(this, validateContent);
+                updateProgress();
+            });
+            
+            // ============================================================
+            // ПРОГРЕСС-БАР
+            // ============================================================
+            
+            function updateProgress() {
+                const fields = [
+                    { el: titleInput, validator: validateTitle },
+                    { el: categorySelect, validator: validateCategory },
+                    { el: contentTextarea, validator: validateContent }
+                ];
+                
+                let filled = 0;
+                let total = fields.length;
+                
+                fields.forEach(({ el, validator }) => {
+                    if (!validator(el.value)) {
+                        filled++;
+                    }
+                });
+                
+                const percent = Math.round((filled / total) * 100);
+                progressFill.style.width = percent + '%';
+                
+                const progressBar = document.querySelector('.progress-bar');
+                progressBar.setAttribute('aria-valuenow', percent);
+            }
+            
+            // ============================================================
+            // ОТРИСОВКА РЕЗУЛЬТАТОВ
+            // ============================================================
+            
+            function showLoading() {
+                result.innerHTML = `
+                    <div class="result-loading">
+                        <span class="spinner"></span>
+                        Отправка заявки...
+                    </div>
+                `;
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '⏳ Отправка...';
+                form.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.disabled = true;
+                });
+            }
+            
+            function hideLoading() {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '🚀 Отправить на модерацию';
+                form.querySelectorAll('input, select, textarea').forEach(el => {
+                    el.disabled = false;
+                });
+            }
+            
+            function showError(message) {
+                result.innerHTML = `
+                    <div class="result-error" role="alert">
+                        <span class="error-icon" aria-hidden="true">⚠️</span>
+                        <div>${escapeHtml(message)}</div>
+                    </div>
+                `;
+                hideLoading();
+            }
+            
+            function showSuccess(data) {
+                const trackingCode = data.tracking_code || '—';
+                
+                result.innerHTML = `
+                    <div class="result-success" role="status">
+                        <div class="success-icon" aria-hidden="true">✅</div>
+                        <h3>Заявка отправлена!</h3>
+                        <p>${escapeHtml(data.message || 'Ваша заявка отправлена на модерацию.')}</p>
+                        <p>
+                            <span style="display:block;font-size:13px;color:#64748b;margin-top:4px;">
+                                Код для отслеживания:
+                            </span>
+                            <span class="tracking-code">${escapeHtml(trackingCode)}</span>
+                        </p>
+                        <p style="font-size:13px;color:#64748b;margin-top:4px;">
+                            Сохраните этот код для проверки статуса
+                        </p>
+                        <div class="success-actions">
+                            <a href="/status.html" class="btn btn-primary">
+                                📋 Проверить статус
+                            </a>
+                            <button class="btn btn-secondary" id="addAnotherBtn">
+                                ➕ Добавить ещё
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Скрываем форму
+                form.style.display = 'none';
+                document.querySelector('.info-box').style.display = 'none';
+                document.querySelector('.tips-section').style.display = 'none';
+                document.querySelector('.progress-bar').style.display = 'none';
+                
+                // Кнопка "Добавить ещё"
+                document.getElementById('addAnotherBtn').addEventListener('click', function() {
+                    form.reset();
+                    form.style.display = 'block';
+                    document.querySelector('.info-box').style.display = 'flex';
+                    document.querySelector('.tips-section').style.display = 'block';
+                    document.querySelector('.progress-bar').style.display = 'block';
+                    result.innerHTML = '';
+                    updateProgress();
+                    
+                    // Сброс валидации
+                    document.querySelectorAll('.form-group input, .form-group textarea, .form-group select')
+                        .forEach(el => {
+                            el.classList.remove('success', 'error');
+                        });
+                    
+                    // Сброс счётчиков
+                    updateCounter(titleInput, titleCounter, MAX_TITLE);
+                    updateCounter(contentTextarea, contentCounter, MAX_CONTENT);
+                    
+                    // Фокус на заголовок
+                    titleInput.focus();
+                });
+                
+                hideLoading();
+            }
+            
+            // ============================================================
+            // ОТПРАВКА ФОРМЫ
+            // ============================================================
+            
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                
+                // Очистка результата
+                result.innerHTML = '';
+                
+                // Валидация всех полей
+                const isTitleValid = validateField(titleInput, validateTitle);
+                const isCategoryValid = validateField(categorySelect, validateCategory);
+                const isContentValid = validateField(contentTextarea, validateContent);
+                const isLinkValid = validateField(linkInput, validateUrl);
+                const isImageValid = validateField(imageInput, validateUrl);
+                
+                if (!isTitleValid || !isCategoryValid || !isContentValid) {
+                    // Фокус на первое поле с ошибкой
+                    const firstError = form.querySelector('.error');
+                    if (firstError) {
+                        firstError.focus();
+                        firstError.scrollInto
