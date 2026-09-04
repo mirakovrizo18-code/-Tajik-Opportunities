@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Проверить статус — Tajik Opportunities</title>
+
+    <link rel="stylesheet" href="/css/style.css">
+
+</head>
+
+<body>
+
+<header class="header">
+
+    <div class="container nav-container">
+
+        <a href="/" class="logo">
+            <span class="logo-main">TAJIK</span>
+            <span class="logo-sub">OPPORTUNITIES</span>
+        </a>
+
+        <button class="menu-toggle" id="menuToggle">
+            ☰
+        </button>
+
+        <nav class="nav" id="mainNav">
+            <a href="/">Главная</a>
+            <a href="/#news">Новости</a>
+            <a href="/#opportunities">Возможности</a>
+            <a href="/add.html">Добавить</a>
+            <a href="/status.html" class="active">Статус</a>
+        </nav>
+
+    </div>
+
+</header>
+
+
+<main>
+
+    <section class="page-hero">
+
+        <div class="container">
+
+            <span class="badge">🔎 Проверка публикации</span>
+
+            <h1>Проверить статус</h1>
+
+            <p>
+                Введите код, который вы получили
+                после отправки публикации.
+            </p>
+
+        </div>
+
+    </section>
+
+
+    <section class="status-page">
+
+        <div class="container">
+
+            <div class="status-card">
+
+                <div class="status-large-icon">
+                    🔎
+                </div>
+
+                <h2>Найдите свою публикацию</h2>
+
+                <p>
+                    Код выглядит примерно так:
+                    <strong>TO-8F42K1</strong>
+                </p>
+
+
+                <form id="statusForm">
+
+                    <div class="status-input">
+
+                        <input
+                            type="text"
+                            id="trackingCodeInput"
+                            placeholder="TO-XXXXXX"
+                            maxlength="20"
+                            autocomplete="off"
+                            required
+                        >
+
+                        <button
+                            type="submit"
+                            class="btn btn-primary"
+                            id="statusButton"
+                        >
+                            Проверить
+                        </button>
+
+                    </div>
+
+                </form>
+
+
+                <div
+                    id="statusError"
+                    class="form-message error hidden"
+                ></div>
+
+
+                <div
+                    id="statusResult"
+                    class="status-result hidden"
+                >
+
+                    <div class="result-header">
+
+                        <div>
+                            <span class="result-label">
+                                Код публикации
+                            </span>
+
+                            <strong id="resultCode">
+                                TO-000000
+                            </strong>
+                        </div>
+
+                        <span
+                            id="resultStatus"
+                            class="status-badge"
+                        >
+                            На модерации
+                        </span>
+
+                    </div>
+
+
+                    <div class="result-content">
+
+                        <span
+                            id="resultCategory"
+                            class="post-category"
+                        >
+                            Новости
+                        </span>
+
+                        <h3 id="resultTitle">
+                            Название публикации
+                        </h3>
+
+                        <p id="resultDescription">
+                            Описание публикации.
+                        </p>
+
+                        <div class="result-meta">
+
+                            <span>
+                                👤 <strong id="resultAuthor">
+                                    Автор
+                                </strong>
+                            </span>
+
+                            <span>
+                                📅 <strong id="resultDate">
+                                    —
+                                </strong>
+                            </span>
+
+                        </div>
+
+                    </div>
+
+
+                    <div
+                        id="rejectionReason"
+                        class="rejection-box hidden"
+                    >
+
+                        <strong>Причина отклонения:</strong>
+
+                        <p id="rejectionText"></p>
+
+                    </div>
+
+                </div>
+
+
+                <div class="status-help">
+
+                    <h3>Не нашли код?</h3>
+
+                    <p>
+                        Код показывается сразу после успешной
+                        отправки публикации. Если вы его потеряли,
+                        обратитесь к администрации платформы.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+
+<footer class="footer">
+
+    <div class="container footer-grid">
+
+        <div>
+            <a href="/" class="logo footer-logo">
+                <span class="logo-main">TAJIK</span>
+                <span class="logo-sub">OPPORTUNITIES</span>
+            </a>
+
+            <p>
+                Новости, связи и возможности
+                для Таджикистана.
+            </p>
+        </div>
+
+    </div>
+
+    <div class="footer-bottom">
+        <div class="container">
+            © <span id="currentYear"></span> Tajik Opportunities
+        </div>
+    </div>
+
+</footer>
+
+
+<div id="toast" class="toast"></div>
+
+
+<script src="/js/script.js"></script>
+<script src="/js/status.js"></script>
+
+</body>
+</html>
