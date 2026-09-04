@@ -1,0 +1,40 @@
+name = "tajik-opportunities"
+main = "src/index.ts"  # TypeScript - стандарт индустрии
+compatibility_date = "2026-09-05"
+compatibility_flags = ["nodejs_compat"]  # Доступ к Node.js API
+
+# Переменные окружения для разных сред
+[vars]
+ENVIRONMENT = "production"
+API_VERSION = "v1"
+
+[env.staging]
+vars = { ENVIRONMENT = "staging" }
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+# Статические ассеты
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# База данных D1
+[[d1_databases]]
+binding = "DB"
+database_name = "tajik-opportunities-db"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # Реальный ID
+
+# Для staging окружения
+[env.staging.d1_databases]
+binding = "DB"
+database_name = "tajik-opportunities-db-staging"
+database_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+
+# Настройки сборки (если используете TypeScript)
+[build]
+command = "npm run build"
+watch_dir = "src"
+
+[build.upload]
+format = "modules"
