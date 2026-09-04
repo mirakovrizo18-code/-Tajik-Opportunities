@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Модерация — Tajik Opportunities</title>
+
+    <link rel="stylesheet" href="/css/style.css">
+
+</head>
+
+<body class="admin-body">
+
+
+<header class="admin-header">
+
+    <div class="container admin-nav">
+
+        <a href="/" class="logo">
+            <span class="logo-main">TAJIK</span>
+            <span class="logo-sub">OPPORTUNITIES</span>
+        </a>
+
+        <div class="admin-title">
+            🛡️ Панель модерации
+        </div>
+
+        <button
+            id="adminLogout"
+            class="admin-logout"
+        >
+            Выйти
+        </button>
+
+    </div>
+
+</header>
+
+
+<main class="admin-main">
+
+    <div class="container">
+
+
+        <!-- LOGIN -->
+
+        <section id="adminLogin" class="admin-login">
+
+            <div class="admin-login-card">
+
+                <div class="admin-lock">
+                    🔐
+                </div>
+
+                <h1>Вход администратора</h1>
+
+                <p>
+                    Эта страница доступна только
+                    авторизованным администраторам.
+                </p>
+
+
+                <form id="adminLoginForm">
+
+                    <div class="form-group">
+
+                        <label for="adminToken">
+                            Ключ администратора
+                        </label>
+
+                        <input
+                            type="password"
+                            id="adminToken"
+                            placeholder="Введите ключ"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div
+                        id="loginError"
+                        class="form-message error hidden"
+                    ></div>
+
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary btn-large"
+                        id="loginButton"
+                    >
+                        Войти
+                    </button>
+
+                </form>
+
+            </div>
+
+        </section>
+
+
+        <!-- DASHBOARD -->
+
+        <section id="adminDashboard" class="hidden">
+
+
+            <div class="admin-heading">
+
+                <div>
+
+                    <span class="section-label">
+                        ADMIN PANEL
+                    </span>
+
+                    <h1>Модерация публикаций</h1>
+
+                    <p>
+                        Проверяйте публикации участников
+                        перед размещением на сайте.
+                    </p>
+
+                </div>
+
+                <button
+                    id="adminRefresh"
+                    class="btn btn-outline"
+                >
+                    ↻ Обновить
+                </button>
+
+            </div>
+
+
+            <!-- STATISTICS -->
+
+            <div class="admin-stats">
+
+                <div class="stat-card">
+
+                    <span class="stat-icon">📊</span>
+
+                    <div>
+                        <strong id="statTotal">0</strong>
+                        <span>Всего</span>
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card pending">
+
+                    <span class="stat-icon">🟡</span>
+
+                    <div>
+                        <strong id="statPending">0</strong>
+                        <span>На модерации</span>
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card approved">
+
+                    <span class="stat-icon">🟢</span>
+
+                    <div>
+                        <strong id="statApproved">0</strong>
+                        <span>Опубликовано</span>
+                    </div>
+
+                </div>
+
+
+                <div class="stat-card rejected">
+
+                    <span class="stat-icon">🔴</span>
+
+                    <div>
+                        <strong id="statRejected">0</strong>
+                        <span>Отклонено</span>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- FILTER -->
+
+            <div class="admin-toolbar">
+
+                <div class="admin-tabs">
+
+                    <button
+                        class="admin-tab active"
+                        data-status="pending"
+                    >
+                        🟡 На модерации
+                    </button>
+
+                    <button
+                        class="admin-tab"
+                        data-status="approved"
+                    >
+                        🟢 Опубликованные
+                    </button>
+
+                    <button
+                        class="admin-tab"
+                        data-status="rejected"
+                    >
+                        🔴 Отклонённые
+                    </button>
+
+                    <button
+                        class="admin-tab"
+                        data-status="all"
+                    >
+                        Все
+                    </button>
+
+                </div>
+
+            </div>
+
+
+            <!-- PUBLICATIONS -->
+
+            <div id="adminPosts" class="admin-posts">
+
+                <div class="loading-card">
+
+                    <div class="spinner"></div>
+
+                    <p>
+                        Загрузка публикаций...
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <div
+                id="adminEmpty"
+                class="empty-state hidden"
+            >
+
+                <div class="empty-icon">
+                    📭
+                </div>
+
+                <h3>Публикаций нет</h3>
+
+                <p>
+                    В выбранном разделе пока ничего нет.
+                </p>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+
+<!-- MODERATION MODAL -->
+
+<div
+    id="moderationModal"
+    class="modal hidden"
+>
+
+    <div class="modal-overlay" data-close-modal></div>
+
+    <div class="modal-content">
+
+        <button
+            class="modal-close"
+            data-close-modal
+        >
+            ×
+        </button>
+
+
+        <div id="modalBody">
+
+            <span class="post-category">
+                Новости
+            </span>
+
+            <h2 id="modalTitle">
+                Публикация
+            </h2>
+
+            <div
+                id="modalDescription"
+                class="modal-description"
+            ></div>
+
+
+            <div class="modal-details">
+
+                <div>
+                    <span>Автор</span>
+                    <strong id="modalAuthor">—</strong>
+                </div>
+
+                <div>
+                    <span>Контакт</span>
+                    <strong id="modalContact">—</strong>
+                </div>
+
+                <div>
+                    <span>Регион</span>
+                    <strong id="modalLocation">—</strong>
+                </div>
+
+                <div>
+                    <span>Дата</span>
+                    <strong id="modalDate">—</strong>
+                </div>
+
+            </div>
+
+
+            <div id="modalImageContainer" class="modal-image hidden">
+                <img id="modalImage" src="" alt="">
+            </div>
+
+
+            <div
+                id="modalSourceContainer"
+                class="modal-source hidden"
+            >
+                <a
+                    id="modalSource"
+                    href="#"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    Открыть источник →
+                </a>
+            </div>
+
+
+            <div class="moderation-actions">
+
+                <button
+                    id="approveButton"
+                    class="btn btn-success"
+                >
+                    ✓ Одобрить
+                </button>
+
+                <button
+                    id="editButton"
+                    class="btn btn-outline"
+                >
+                    ✎ Редактировать
+                </button>
+
+                <button
+                    id="rejectButton"
+                    class="btn btn-danger"
+                >
+                    ✕ Отклонить
+                </button>
+
+            </div>
+
+
+            <div
+                id="rejectForm"
+                class="reject-form hidden"
+            >
+
+                <label for="rejectReason">
+                    Причина отклонения
+                </label>
+
+                <textarea
+                    id="rejectReason"
+                    rows="4"
+                    placeholder="Укажите причину..."
+                ></textarea>
+
+                <button
+                    id="confirmReject"
+                    class="btn btn-danger"
+                >
+                    Подтвердить отклонение
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div id="toast" class="toast"></div>
+
+
+<script src="/js/script.js"></script>
+<script src="/js/admin.js"></script>
+
+</body>
+</html>
