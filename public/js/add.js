@@ -6,20 +6,9 @@
 (() => {
   "use strict";
 
-  const TO = window.TO;
-
-  if (!TO) {
-    console.error("Tajik Opportunities: utils.js не загружен.");
-    return;
-  }
-
-  // ==========================================================
-  // СОСТОЯНИЕ
-  // ==========================================================
-
   const state = {
     submitting: false,
-    submitted: false,
+    submitted: false
   };
 
   // ==========================================================
@@ -39,7 +28,6 @@
   const linkInput = document.getElementById("link_url");
   const contactInput = document.getElementById("contact");
   const authorInput = document.getElementById("author_name");
-
   const websiteInput = document.getElementById("website");
 
   const submitButton =
@@ -61,10 +49,88 @@
     document.getElementById("copyTrackingButton");
 
   // ==========================================================
-  // ИНИЦИАЛИЗАЦИЯ
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
   // ==========================================================
 
-  document.addEventListener("DOMContentLoaded", init);
+  function getInputValue(input) {
+    if (!input) {
+      return "";
+    }
+
+    return input.value.trim();
+  }
+
+  function isSafeUrl(value) {
+    if (!value) {
+      return false;
+    }
+
+    try {
+      const url = new URL(value);
+
+      return (
+        url.protocol === "https:" ||
+        url.protocol === "http:"
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function showToast(message, type = "success") {
+    const toast = document.getElementById("toast");
+
+    if (!toast) {
+      return;
+    }
+
+    toast.textContent = message;
+
+    toast.classList.remove(
+      "success",
+      "error",
+      "warning",
+      "show"
+    );
+
+    toast.classList.add(
+      type,
+      "show"
+    );
+
+    clearTimeout(toast._timer);
+
+    toast._timer = setTimeout(() => {
+      toast.classList.remove("show");
+    }, 3500);
+  }
+
+  function setButtonLoading(loading) {
+    if (!submitButton) {
+      return;
+    }
+
+    if (loading) {
+      if (!submitButton.dataset.originalText) {
+        submitButton.dataset.originalText =
+          submitButton.textContent;
+      }
+
+      submitButton.disabled = true;
+      submitButton.textContent = "Отправляем...";
+    } else {
+      submitButton.disabled = false;
+
+      if (submitButton.dataset.originalText) {
+        submitButton.textContent =
+          submitButton.dataset.originalText;
+      }
+    }
+  }
+
+  // ==========================================================
+  // ИНИЦИАЛИЗАЦИЯ
+  // ==========================================================
 
   function init() {
     bindEvents();
@@ -77,19 +143,22 @@
   // ==========================================================
 
   function bindEvents() {
-    form.addEventListener("submit", handleSubmit);
-
-    if (contentInput) {
-      contentInput.addEventListener(
-        "input",
-        updateContentCounter
-      );
-    }
+    form.addEventListener(
+      "submit",
+      handleSubmit
+    );
 
     if (titleInput) {
       titleInput.addEventListener(
         "input",
         updateTitleCounter
+      );
+    }
+
+    if (contentInput) {
+      contentInput.addEventListener(
+        "input",
+        updateContentCounter
       );
     }
 
@@ -116,7 +185,7 @@
   }
 
   // ==========================================================
-  // СЧЁТЧИКИ СИМВОЛОВ
+  // СЧЁТЧИК ЗАГОЛОВКА
   // ==========================================================
 
   function setupCounters() {
@@ -136,10 +205,13 @@
       return;
     }
 
-    const length = titleInput.value.length;
-
-    counter.textContent = `${length}/180`;
+    counter.textContent =
+      `${titleInput.value.length}/180`;
   }
+
+  // ==========================================================
+  // СЧЁТЧИК ТЕКСТА
+  // ==========================================================
 
   function updateContentCounter() {
     if (!contentInput) {
@@ -153,9 +225,8 @@
       return;
     }
 
-    const length = contentInput.value.length;
-
-    counter.textContent = `${length}/10000`;
+    counter.textContent =
+      `${contentInput.value.length}/10000`;
   }
 
   // ==========================================================
@@ -178,7 +249,10 @@
     );
   }
 
-  function updateSingleUrlPreview(input, previewId) {
+  function updateSingleUrlPreview(
+    input,
+    previewId
+  ) {
     const preview =
       document.getElementById(previewId);
 
@@ -186,7 +260,8 @@
       return;
     }
 
-    const value = input.value.trim();
+    const value =
+      input.value.trim();
 
     if (!value) {
       preview.textContent = "";
@@ -194,11 +269,10 @@
       return;
     }
 
-    const safeUrl = TO.safeExternalUrl(value);
-
-    if (!safeUrl) {
+    if (!isSafeUrl(value)) {
       preview.textContent =
         "⚠️ Укажите корректную ссылку.";
+
       preview.hidden = false;
       return;
     }
@@ -207,74 +281,6 @@
       "✓ Ссылка выглядит корректно.";
 
     preview.hidden = false;
-  }
-
-  // ==========================================================
-  // ОТПРАВКА ФОРМЫ
-  // ==========================================================
-
-  async function handleSubmit(event) {
-    event.preventDefault();
-
-    if (state.submitting) {
-      return;
-    }
-
-    clearMessage();
-
-    const data = collectFormData();
-
-    const validationError =
-      validateFormData(data);
-
-    if (validationError) {
-      showMessage(
-        validationError,
-        "error"
-      );
-
-      return;
-    }
-
-    state.submitting = true;
-
-    TO.setButtonLoading(
-      submitButton,
-      true,
-      "Отправляем..."
-    );
-
-    try {
-      const response =
-        await TO.postJson(
-          "/api/submissions",
-          data
-        );
-
-      handleSuccessfulSubmission(
-        response
-      );
-    } catch (error) {
-      console.error(
-        "Tajik Opportunities: ошибка отправки",
-        error
-      );
-
-      showMessage(
-        TO.getErrorMessage(
-          error,
-          "Не удалось отправить публикацию. Попробуйте ещё раз."
-        ),
-        "error"
-      );
-    } finally {
-      state.submitting = false;
-
-      TO.setButtonLoading(
-        submitButton,
-        false
-      );
-    }
   }
 
   // ==========================================================
@@ -291,18 +297,9 @@
       contact: getInputValue(contactInput),
       author_name: getInputValue(authorInput),
 
-      // Honeypot.
-      // Обычный пользователь оставляет это поле пустым.
-      website: getInputValue(websiteInput),
+      // Honeypot для защиты от ботов.
+      website: getInputValue(websiteInput)
     };
-  }
-
-  function getInputValue(input) {
-    if (!input) {
-      return "";
-    }
-
-    return input.value.trim();
   }
 
   // ==========================================================
@@ -347,21 +344,25 @@
       "Стажировки",
       "Мероприятия",
       "Волонтёрство",
-      "Другое",
+      "Другое"
     ];
 
-    if (!allowedCategories.includes(data.category)) {
+    if (
+      !allowedCategories.includes(
+        data.category
+      )
+    ) {
       return "Выберите корректную категорию.";
     }
 
     if (data.image_url) {
-      if (!TO.isSafeUrl(data.image_url)) {
+      if (!isSafeUrl(data.image_url)) {
         return "Укажите корректную ссылку на изображение.";
       }
     }
 
     if (data.link_url) {
-      if (!TO.isSafeUrl(data.link_url)) {
+      if (!isSafeUrl(data.link_url)) {
         return "Укажите корректную ссылку на источник или дополнительную информацию.";
       }
     }
@@ -378,10 +379,102 @@
   }
 
   // ==========================================================
+  // ОТПРАВКА
+  // ==========================================================
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (state.submitting) {
+      return;
+    }
+
+    clearMessage();
+
+    const data =
+      collectFormData();
+
+    const validationError =
+      validateFormData(data);
+
+    if (validationError) {
+      showMessage(
+        validationError,
+        "error"
+      );
+
+      return;
+    }
+
+    state.submitting = true;
+
+    setButtonLoading(true);
+
+    try {
+      const response =
+        await fetch(
+          "/api/submissions",
+          {
+            method: "POST",
+
+            headers: {
+              "Content-Type":
+                "application/json",
+
+              "Accept":
+                "application/json"
+            },
+
+            body: JSON.stringify(data)
+          }
+        );
+
+      let result = null;
+
+      try {
+        result =
+          await response.json();
+      } catch {
+        result = null;
+      }
+
+      if (!response.ok) {
+        const message =
+          result?.error ||
+          result?.message ||
+          "Не удалось отправить публикацию. Попробуйте ещё раз.";
+
+        throw new Error(message);
+      }
+
+      handleSuccessfulSubmission(
+        result
+      );
+    } catch (error) {
+      console.error(
+        "Tajik Opportunities: ошибка отправки",
+        error
+      );
+
+      showMessage(
+        error?.message ||
+          "Не удалось отправить публикацию. Попробуйте ещё раз.",
+        "error"
+      );
+    } finally {
+      state.submitting = false;
+
+      setButtonLoading(false);
+    }
+  }
+
+  // ==========================================================
   // УСПЕШНАЯ ОТПРАВКА
   // ==========================================================
 
-  function handleSuccessfulSubmission(response) {
+  function handleSuccessfulSubmission(
+    response
+  ) {
     state.submitted = true;
 
     const trackingCode =
@@ -390,15 +483,19 @@
       response?.data?.tracking_code ||
       "";
 
-    showSuccessState(trackingCode);
+    showSuccessState(
+      trackingCode
+    );
 
-    TO.showToast(
+    showToast(
       "Публикация отправлена на модерацию.",
       "success"
     );
   }
 
-  function showSuccessState(trackingCode) {
+  function showSuccessState(
+    trackingCode
+  ) {
     form.hidden = true;
 
     if (formMessage) {
@@ -416,16 +513,16 @@
         trackingCode || "—";
     }
 
-    if (trackingStatusLink && trackingCode) {
-      trackingStatusLink.href =
-        `/status.html?code=${encodeURIComponent(
-          trackingCode
-        )}`;
-    }
-
-    if (trackingStatusLink && !trackingCode) {
-      trackingStatusLink.href =
-        "/status.html";
+    if (trackingStatusLink) {
+      if (trackingCode) {
+        trackingStatusLink.href =
+          `/status.html?code=${encodeURIComponent(
+            trackingCode
+          )}`;
+      } else {
+        trackingStatusLink.href =
+          "/status.html";
+      }
     }
   }
 
@@ -445,35 +542,97 @@
       return;
     }
 
-    const copied =
-      await TO.copyText(code);
+    try {
+      if (
+        navigator.clipboard &&
+        window.isSecureContext
+      ) {
+        await navigator.clipboard.writeText(
+          code
+        );
 
-    if (copied) {
-      TO.showToast(
-        "Код отслеживания скопирован.",
-        "success"
+        showToast(
+          "Код отслеживания скопирован.",
+          "success"
+        );
+
+        return;
+      }
+
+      fallbackCopy(code);
+    } catch (error) {
+      console.error(
+        "Copy error:",
+        error
       );
 
-      return;
+      fallbackCopy(code);
+    }
+  }
+
+  function fallbackCopy(value) {
+    const textarea =
+      document.createElement(
+        "textarea"
+      );
+
+    textarea.value = value;
+
+    textarea.style.position =
+      "fixed";
+
+    textarea.style.left = "-9999px";
+
+    document.body.appendChild(
+      textarea
+    );
+
+    textarea.focus();
+    textarea.select();
+
+    try {
+      const copied =
+        document.execCommand(
+          "copy"
+        );
+
+      if (copied) {
+        showToast(
+          "Код отслеживания скопирован.",
+          "success"
+        );
+      } else {
+        showToast(
+          "Не удалось скопировать код.",
+          "error"
+        );
+      }
+    } catch {
+      showToast(
+        "Не удалось скопировать код.",
+        "error"
+      );
     }
 
-    TO.showToast(
-      "Не удалось скопировать код.",
-      "error"
-    );
+    textarea.remove();
   }
 
   // ==========================================================
   // СООБЩЕНИЯ
   // ==========================================================
 
-  function showMessage(message, type) {
+  function showMessage(
+    message,
+    type = "error"
+  ) {
     if (!formMessage) {
       return;
     }
 
     formMessage.hidden = false;
-    formMessage.textContent = message;
+
+    formMessage.textContent =
+      message;
 
     formMessage.classList.remove(
       "success",
@@ -482,12 +641,12 @@
     );
 
     formMessage.classList.add(
-      type || "error"
+      type
     );
 
     formMessage.scrollIntoView({
       behavior: "smooth",
-      block: "nearest",
+      block: "nearest"
     });
   }
 
@@ -497,6 +656,7 @@
     }
 
     formMessage.hidden = true;
+
     formMessage.textContent = "";
 
     formMessage.classList.remove(
@@ -504,5 +664,21 @@
       "error",
       "warning"
     );
+  }
+
+  // ==========================================================
+  // ЗАПУСК
+  // ==========================================================
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      init
+    );
+  } else {
+    init();
   }
 })();
