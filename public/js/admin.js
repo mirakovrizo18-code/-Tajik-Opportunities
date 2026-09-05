@@ -6,13 +6,6 @@
 (() => {
   "use strict";
 
-  const TO = window.TO;
-
-  if (!TO) {
-    console.error("Tajik Opportunities: utils.js не загружен.");
-    return;
-  }
-
   // ==========================================================
   // СОСТОЯНИЕ
   // ==========================================================
@@ -39,7 +32,6 @@
     loginMessage: document.getElementById("adminLoginMessage"),
 
     logoutButton: document.getElementById("adminLogout"),
-
     refreshButton: document.getElementById("adminRefresh"),
 
     filterButtons: Array.from(
@@ -108,6 +100,407 @@
   };
 
   // ==========================================================
+  // API
+  // ==========================================================
+
+  async function apiRequest(
+    url,
+    options = {}
+  ) {
+    const requestOptions = {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        "Accept": "application/json",
+        ...(options.body
+          ? {
+              "Content-Type":
+                "application/json",
+            }
+          : {}),
+        ...(options.headers || {}),
+      },
+    };
+
+    const response =
+      await fetch(
+        url,
+        requestOptions
+      );
+
+    let data = null;
+
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      const error =
+        new Error(
+          data?.error ||
+          data?.message ||
+          `Ошибка сервера: ${response.status}`
+        );
+
+      error.status =
+        response.status;
+
+      error.data = data;
+
+      throw error;
+    }
+
+    return data;
+  }
+
+  async function getJson(url) {
+    return apiRequest(url);
+  }
+
+  async function postJson(
+    url,
+    body = {}
+  ) {
+    return apiRequest(url, {
+      method: "POST",
+      body: JSON.stringify(body),
+    });
+  }
+
+  // ==========================================================
+  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
+  // ==========================================================
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function safeExternalUrl(value) {
+    const raw =
+      String(value || "").trim();
+
+    if (!raw) {
+      return "";
+    }
+
+    try {
+      const url =
+        new URL(raw);
+
+      if (
+        url.protocol !== "http:" &&
+        url.protocol !== "https:"
+      ) {
+        return "";
+      }
+
+      return url.href;
+    } catch {
+      return "";
+    }
+  }
+
+  function truncateText(
+    text,
+    maxLength = 220
+  ) {
+    const value =
+      String(text || "").trim();
+
+    if (value.length <= maxLength) {
+      return value;
+    }
+
+    return (
+      value.slice(
+        0,
+        maxLength
+      ).trim() + "…"
+    );
+  }
+
+  function formatDateTime(value) {
+    if (!value) {
+      return "Не указано";
+    }
+
+    const date =
+      new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "Не указано";
+    }
+
+    return new Intl.DateTimeFormat(
+      "ru-RU",
+      {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }
+    ).format(date);
+  }
+
+  function formatRelativeDate(value) {
+    if (!value) {
+      return "";
+    }
+
+    const date =
+      new Date(value);
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+      return "";
+    }
+
+    const now =
+      Date.now();
+
+    const diff =
+      now - date.getTime();
+
+    const minute =
+      60 * 1000;
+
+    const hour =
+      60 * minute;
+
+    const day =
+      24 * hour;
+
+    if (diff < minute) {
+      return "только что";
+    }
+
+    if (diff < hour) {
+      const minutes =
+        Math.floor(
+          diff / minute
+        );
+
+      return `${minutes} мин. назад`;
+    }
+
+    if (diff < day) {
+      const hours =
+        Math.floor(
+          diff / hour
+        );
+
+      return `${hours} ч. назад`;
+    }
+
+    if (diff < 7 * day) {
+      const days =
+        Math.floor(
+          diff / day
+        );
+
+      return `${days} дн. назад`;
+    }
+
+    return formatDateTime(value);
+  }
+
+  function getCategoryLabel(
+    category
+  ) {
+    const labels = {
+      education: "Образование",
+      jobs: "Работа",
+      competitions: "Конкурсы",
+      grants: "Гранты",
+      scholarships: "Стипендии",
+      programs: "Программы",
+      internships: "Стажировки",
+      events: "Мероприятия",
+      business: "Бизнес",
+      volunteering: "Волонтёрство",
+      other: "Другое",
+    };
+
+    return (
+      labels[
+        String(category || "")
+          .toLowerCase()
+      ] ||
+      category ||
+      "Другое"
+    );
+  }
+
+  function getCategoryIcon(
+    category
+  ) {
+    const icons = {
+      education: "🎓",
+      jobs: "💼",
+      competitions: "🏆",
+      grants: "💰",
+      scholarships: "🎓",
+      programs: "🚀",
+      internships: "🧑‍💻",
+      events: "📅",
+      business: "🏢",
+      volunteering: "🤝",
+      other: "📌",
+    };
+
+    return (
+      icons[
+        String(category || "")
+          .toLowerCase()
+      ] || "📌"
+    );
+  }
+
+  function getStatusLabel(
+    status
+  ) {
+    const labels = {
+      pending: "На модерации",
+      approved: "Одобрено",
+      rejected: "Отклонено",
+    };
+
+    return (
+      labels[
+        String(status || "")
+          .toLowerCase()
+      ] ||
+      "Неизвестно"
+    );
+  }
+
+  function getStatusIcon(
+    status
+  ) {
+    const icons = {
+      pending: "🕐",
+      approved: "✅",
+      rejected: "❌",
+    };
+
+    return (
+      icons[
+        String(status || "")
+          .toLowerCase()
+      ] || "📄"
+    );
+  }
+
+  function getErrorMessage(
+    error,
+    fallback
+  ) {
+    if (
+      error &&
+      error.message
+    ) {
+      return error.message;
+    }
+
+    return fallback;
+  }
+
+  function setButtonLoading(
+    button,
+    loading,
+    loadingText = "Загрузка..."
+  ) {
+    if (!button) {
+      return;
+    }
+
+    if (loading) {
+      if (!button.dataset.originalText) {
+        button.dataset.originalText =
+          button.textContent.trim();
+      }
+
+      button.disabled = true;
+      button.textContent =
+        loadingText;
+    } else {
+      button.disabled = false;
+
+      if (
+        button.dataset.originalText
+      ) {
+        button.textContent =
+          button.dataset.originalText;
+
+        delete button.dataset
+          .originalText;
+      }
+    }
+  }
+
+  function showToast(
+    message,
+    type = "info"
+  ) {
+    const toast =
+      document.getElementById(
+        "toast"
+      );
+
+    if (!toast) {
+      console.log(message);
+      return;
+    }
+
+    const messageElement =
+      toast.querySelector(
+        ".toast-message"
+      );
+
+    if (messageElement) {
+      messageElement.textContent =
+        message;
+    } else {
+      toast.textContent =
+        message;
+    }
+
+    toast.hidden = false;
+
+    toast.classList.remove(
+      "success",
+      "error",
+      "warning",
+      "info"
+    );
+
+    toast.classList.add(
+      type
+    );
+
+    clearTimeout(
+      showToast.timer
+    );
+
+    showToast.timer =
+      setTimeout(() => {
+        toast.hidden = true;
+      }, 4000);
+  }
+
+  // ==========================================================
   // ИНИЦИАЛИЗАЦИЯ
   // ==========================================================
 
@@ -127,10 +520,6 @@
   // ==========================================================
 
   function bindEvents() {
-    // --------------------------------------------------------
-    // Вход
-    // --------------------------------------------------------
-
     if (elements.loginForm) {
       elements.loginForm.addEventListener(
         "submit",
@@ -138,20 +527,12 @@
       );
     }
 
-    // --------------------------------------------------------
-    // Выход
-    // --------------------------------------------------------
-
     if (elements.logoutButton) {
       elements.logoutButton.addEventListener(
         "click",
         handleLogout
       );
     }
-
-    // --------------------------------------------------------
-    // Обновление
-    // --------------------------------------------------------
 
     if (elements.refreshButton) {
       elements.refreshButton.addEventListener(
@@ -162,20 +543,14 @@
       );
     }
 
-    // --------------------------------------------------------
-    // Фильтры
-    // --------------------------------------------------------
-
     elements.filterButtons.forEach(
       (button) => {
         button.addEventListener(
           "click",
           () => {
-            const filter =
+            state.filter =
               button.dataset.adminFilter ||
               "pending";
-
-            state.filter = filter;
 
             updateFilterButtons();
             renderSubmissions();
@@ -184,20 +559,12 @@
       }
     );
 
-    // --------------------------------------------------------
-    // Повторная загрузка
-    // --------------------------------------------------------
-
     if (elements.retryButton) {
       elements.retryButton.addEventListener(
         "click",
         loadSubmissions
       );
     }
-
-    // --------------------------------------------------------
-    // Закрытие основной модалки
-    // --------------------------------------------------------
 
     if (elements.modalClose) {
       elements.modalClose.addEventListener(
@@ -206,10 +573,6 @@
       );
     }
 
-    // --------------------------------------------------------
-    // Одобрение
-    // --------------------------------------------------------
-
     if (elements.modalApprove) {
       elements.modalApprove.addEventListener(
         "click",
@@ -217,20 +580,12 @@
       );
     }
 
-    // --------------------------------------------------------
-    // Отклонение
-    // --------------------------------------------------------
-
     if (elements.modalReject) {
       elements.modalReject.addEventListener(
         "click",
         openRejectModal
       );
     }
-
-    // --------------------------------------------------------
-    // Форма отклонения
-    // --------------------------------------------------------
 
     if (elements.rejectForm) {
       elements.rejectForm.addEventListener(
@@ -246,18 +601,10 @@
       );
     }
 
-    // --------------------------------------------------------
-    // ESC
-    // --------------------------------------------------------
-
     document.addEventListener(
       "keydown",
       handleKeyboard
     );
-
-    // --------------------------------------------------------
-    // Клик по фону модалок
-    // --------------------------------------------------------
 
     if (elements.modal) {
       elements.modal.addEventListener(
@@ -289,7 +636,9 @@
   }
 
   function handleKeyboard(event) {
-    if (event.key !== "Escape") {
+    if (
+      event.key !== "Escape"
+    ) {
       return;
     }
 
@@ -304,7 +653,7 @@
   async function checkAuthentication() {
     try {
       const response =
-        await TO.getJson(
+        await getJson(
           "/api/admin/me"
         );
 
@@ -315,7 +664,8 @@
           response.ok === true
         )
       ) {
-        state.authenticated = true;
+        state.authenticated =
+          true;
 
         showDashboard();
 
@@ -326,11 +676,6 @@
 
       showLogin();
     } catch (error) {
-      /*
-       * Если сервер ответил 401,
-       * пользователь просто ещё не вошёл.
-       */
-
       showLogin();
     }
   }
@@ -339,7 +684,9 @@
   // ВХОД
   // ==========================================================
 
-  async function handleLogin(event) {
+  async function handleLogin(
+    event
+  ) {
     event.preventDefault();
 
     if (!elements.passwordInput) {
@@ -358,7 +705,7 @@
       return;
     }
 
-    TO.setButtonLoading(
+    setButtonLoading(
       elements.loginButton,
       true,
       "Входим..."
@@ -368,7 +715,7 @@
 
     try {
       const response =
-        await TO.postJson(
+        await postJson(
           "/api/admin/login",
           {
             password,
@@ -387,15 +734,17 @@
         );
       }
 
-      state.authenticated = true;
+      state.authenticated =
+        true;
 
-      elements.passwordInput.value = "";
+      elements.passwordInput.value =
+        "";
 
       showDashboard();
 
       await loadSubmissions();
 
-      TO.showToast(
+      showToast(
         "Вы успешно вошли в панель администратора.",
         "success"
       );
@@ -406,14 +755,14 @@
       );
 
       showLoginMessage(
-        TO.getErrorMessage(
+        getErrorMessage(
           error,
           "Неверный пароль или ошибка сервера."
         ),
         "error"
       );
     } finally {
-      TO.setButtonLoading(
+      setButtonLoading(
         elements.loginButton,
         false
       );
@@ -426,7 +775,7 @@
 
   async function handleLogout() {
     try {
-      await TO.postJson(
+      await postJson(
         "/api/admin/logout",
         {}
       );
@@ -437,16 +786,20 @@
       );
     }
 
-    state.authenticated = false;
+    state.authenticated =
+      false;
+
     state.submissions = [];
-    state.selectedSubmission = null;
+
+    state.selectedSubmission =
+      null;
 
     closeSubmissionModal();
     closeRejectModal();
 
     showLogin();
 
-    TO.showToast(
+    showToast(
       "Вы вышли из панели.",
       "success"
     );
@@ -457,11 +810,10 @@
   // ==========================================================
 
   async function loadSubmissions() {
-    if (!state.authenticated) {
-      return;
-    }
-
-    if (state.loading) {
+    if (
+      !state.authenticated ||
+      state.loading
+    ) {
       return;
     }
 
@@ -471,16 +823,24 @@
     hideAdminError();
 
     try {
+      /*
+       * Worker возвращает заявки через:
+       * GET /api/admin/submissions
+       */
       const response =
-        await TO.getJson(
+        await getJson(
           "/api/admin/submissions"
         );
 
       const submissions =
-        extractSubmissions(response);
+        extractSubmissions(
+          response
+        );
 
       state.submissions =
-        Array.isArray(submissions)
+        Array.isArray(
+          submissions
+        )
           ? submissions
           : [];
 
@@ -497,11 +857,6 @@
 
       hideAdminLoading();
 
-      /*
-       * Если сессия закончилась,
-       * возвращаем пользователя на вход.
-       */
-
       if (
         error &&
         (
@@ -509,7 +864,9 @@
           error.status === 403
         )
       ) {
-        state.authenticated = false;
+        state.authenticated =
+          false;
+
         showLogin();
 
         showLoginMessage(
@@ -521,7 +878,7 @@
       }
 
       showAdminError(
-        TO.getErrorMessage(
+        getErrorMessage(
           error,
           "Не удалось загрузить заявки."
         )
@@ -531,14 +888,20 @@
     }
   }
 
-  function extractSubmissions(response) {
-    if (Array.isArray(response)) {
+  function extractSubmissions(
+    response
+  ) {
+    if (
+      Array.isArray(response)
+    ) {
       return response;
     }
 
     if (
       response &&
-      Array.isArray(response.submissions)
+      Array.isArray(
+        response.submissions
+      )
     ) {
       return response.submissions;
     }
@@ -546,9 +909,12 @@
     if (
       response &&
       response.data &&
-      Array.isArray(response.data.submissions)
+      Array.isArray(
+        response.data.submissions
+      )
     ) {
-      return response.data.submissions;
+      return response.data
+        .submissions;
     }
 
     return [];
@@ -565,19 +931,28 @@
     const pending =
       submissions.filter(
         (item) =>
-          item.status === "pending"
+          String(
+            item.status || ""
+          ).toLowerCase() ===
+          "pending"
       ).length;
 
     const approved =
       submissions.filter(
         (item) =>
-          item.status === "approved"
+          String(
+            item.status || ""
+          ).toLowerCase() ===
+          "approved"
       ).length;
 
     const rejected =
       submissions.filter(
         (item) =>
-          item.status === "rejected"
+          String(
+            item.status || ""
+          ).toLowerCase() ===
+          "rejected"
       ).length;
 
     if (elements.pendingCount) {
@@ -619,20 +994,30 @@
 
         button.setAttribute(
           "aria-pressed",
-          active ? "true" : "false"
+          active
+            ? "true"
+            : "false"
         );
       }
     );
   }
 
   function getFilteredSubmissions() {
-    if (state.filter === "all") {
-      return [...state.submissions];
+    if (
+      state.filter ===
+      "all"
+    ) {
+      return [
+        ...state.submissions,
+      ];
     }
 
     return state.submissions.filter(
       (submission) =>
-        submission.status ===
+        String(
+          submission.status ||
+          ""
+        ).toLowerCase() ===
         state.filter
     );
   }
@@ -642,7 +1027,9 @@
   // ==========================================================
 
   function renderSubmissions() {
-    if (!elements.submissionsList) {
+    if (
+      !elements.submissionsList
+    ) {
       return;
     }
 
@@ -650,7 +1037,8 @@
       getFilteredSubmissions();
 
     if (!submissions.length) {
-      elements.submissionsList.innerHTML = "";
+      elements.submissionsList.innerHTML =
+        "";
 
       showAdminEmpty();
 
@@ -663,21 +1051,29 @@
       (a, b) => {
         const dateA =
           new Date(
-            a.created_at || 0
+            a.created_at ||
+            a.createdAt ||
+            0
           ).getTime();
 
         const dateB =
           new Date(
-            b.created_at || 0
+            b.created_at ||
+            b.createdAt ||
+            0
           ).getTime();
 
-        return dateB - dateA;
+        return (
+          dateB - dateA
+        );
       }
     );
 
     elements.submissionsList.innerHTML =
       submissions
-        .map(renderSubmissionCard)
+        .map(
+          renderSubmissionCard
+        )
         .join("");
 
     bindSubmissionCards();
@@ -692,24 +1088,24 @@
       );
 
     const title =
-      TO.escapeHtml(
+      escapeHtml(
         submission.title ||
         "Без названия"
       );
 
     const category =
       submission.category ||
-      "Другое";
+      "other";
 
     const categoryLabel =
-      TO.escapeHtml(
-        TO.getCategoryLabel(
+      escapeHtml(
+        getCategoryLabel(
           category
         )
       );
 
     const categoryIcon =
-      TO.getCategoryIcon(
+      getCategoryIcon(
         category
       );
 
@@ -720,43 +1116,54 @@
       ).toLowerCase();
 
     const statusLabel =
-      TO.escapeHtml(
-        TO.getStatusLabel(
+      escapeHtml(
+        getStatusLabel(
           status
         )
       );
 
     const statusIcon =
-      TO.getStatusIcon(
+      getStatusIcon(
         status
       );
 
+    const dateValue =
+      submission.created_at ||
+      submission.createdAt ||
+      "";
+
     const date =
-      submission.created_at
-        ? TO.formatRelativeDate(
-            submission.created_at
+      dateValue
+        ? formatRelativeDate(
+            dateValue
           )
         : "";
 
     const author =
-      submission.author_name
-        ? TO.escapeHtml(
-            submission.author_name
-          )
-        : "Автор не указан";
+      submission.author_name ||
+      submission.authorName ||
+      "Автор не указан";
+
+    const safeAuthor =
+      escapeHtml(
+        author
+      );
 
     const trackingCode =
-      submission.tracking_code
-        ? TO.escapeHtml(
-            submission.tracking_code
-          )
-        : "";
+      submission.tracking_code ||
+      submission.trackingCode ||
+      "";
+
+    const safeTrackingCode =
+      escapeHtml(
+        trackingCode
+      );
 
     const excerpt =
-      TO.escapeHtml(
-        TO.truncateText(
+      escapeHtml(
+        truncateText(
           submission.content ||
-            "",
+          "",
           220
         )
       );
@@ -764,7 +1171,7 @@
     return `
       <article
         class="admin-submission-card"
-        data-submission-id="${TO.escapeHtml(id)}"
+        data-submission-id="${escapeHtml(id)}"
       >
 
         <div class="admin-submission-header">
@@ -780,9 +1187,7 @@
           </div>
 
           <div
-            class="admin-submission-status status-${TO.escapeHtml(
-              status
-            )}"
+            class="admin-submission-status status-${escapeHtml(status)}"
           >
             <span aria-hidden="true">
               ${statusIcon}
@@ -806,24 +1211,24 @@
         <div class="admin-submission-info">
 
           <span>
-            👤 ${author}
+            👤 ${safeAuthor}
           </span>
 
           ${
             date
               ? `
                 <span>
-                  🕐 ${TO.escapeHtml(date)}
+                  🕐 ${escapeHtml(date)}
                 </span>
               `
               : ""
           }
 
           ${
-            trackingCode
+            safeTrackingCode
               ? `
                 <span>
-                  🔑 ${trackingCode}
+                  🔑 ${safeTrackingCode}
                 </span>
               `
               : ""
@@ -836,7 +1241,7 @@
           <button
             type="button"
             class="btn btn-secondary admin-view-button"
-            data-id="${TO.escapeHtml(id)}"
+            data-id="${escapeHtml(id)}"
           >
             👁 Подробнее
           </button>
@@ -847,7 +1252,7 @@
                 <button
                   type="button"
                   class="btn btn-primary admin-approve-button"
-                  data-id="${TO.escapeHtml(id)}"
+                  data-id="${escapeHtml(id)}"
                 >
                   ✓ Одобрить
                 </button>
@@ -855,7 +1260,7 @@
                 <button
                   type="button"
                   class="btn btn-danger admin-reject-button"
-                  data-id="${TO.escapeHtml(id)}"
+                  data-id="${escapeHtml(id)}"
                 >
                   ✕ Отклонить
                 </button>
@@ -878,81 +1283,93 @@
       .querySelectorAll(
         ".admin-view-button"
       )
-      .forEach((button) => {
-        button.addEventListener(
-          "click",
-          () => {
-            openSubmissionModal(
-              button.dataset.id
-            );
-          }
-        );
-      });
+      .forEach(
+        (button) => {
+          button.addEventListener(
+            "click",
+            () => {
+              openSubmissionModal(
+                button.dataset.id
+              );
+            }
+          );
+        }
+      );
 
     document
       .querySelectorAll(
         ".admin-approve-button"
       )
-      .forEach((button) => {
-        button.addEventListener(
-          "click",
-          () => {
-            const submission =
-              findSubmission(
-                button.dataset.id
-              );
+      .forEach(
+        (button) => {
+          button.addEventListener(
+            "click",
+            () => {
+              const submission =
+                findSubmission(
+                  button.dataset.id
+                );
 
-            if (submission) {
-              state.selectedSubmission =
-                submission;
+              if (submission) {
+                state.selectedSubmission =
+                  submission;
 
-              handleApprove();
+                handleApprove();
+              }
             }
-          }
-        );
-      });
+          );
+        }
+      );
 
     document
       .querySelectorAll(
         ".admin-reject-button"
       )
-      .forEach((button) => {
-        button.addEventListener(
-          "click",
-          () => {
-            const submission =
-              findSubmission(
-                button.dataset.id
-              );
+      .forEach(
+        (button) => {
+          button.addEventListener(
+            "click",
+            () => {
+              const submission =
+                findSubmission(
+                  button.dataset.id
+                );
 
-            if (submission) {
-              state.selectedSubmission =
-                submission;
+              if (submission) {
+                state.selectedSubmission =
+                  submission;
 
-              openRejectModal();
+                openRejectModal();
+              }
             }
-          }
-        );
-      });
+          );
+        }
+      );
   }
 
   // ==========================================================
-  // ПОИСК ЗАЯВКИ
+  // ПОИСК
   // ==========================================================
 
-  function findSubmission(id) {
+  function findSubmission(
+    id
+  ) {
     return state.submissions.find(
       (submission) =>
-        String(submission.id) ===
+        String(
+          submission.id
+        ) ===
         String(id)
     );
   }
 
   // ==========================================================
-  // ПРОСМОТР ЗАЯВКИ
+  // ПРОСМОТР
   // ==========================================================
 
-  function openSubmissionModal(id) {
+  function openSubmissionModal(
+    id
+  ) {
     const submission =
       findSubmission(id);
 
@@ -968,7 +1385,9 @@
     );
 
     if (elements.modal) {
-      elements.modal.hidden = false;
+      elements.modal.hidden =
+        false;
+
       document.body.classList.add(
         "modal-open"
       );
@@ -977,91 +1396,98 @@
 
   function closeSubmissionModal() {
     if (elements.modal) {
-      elements.modal.hidden = true;
+      elements.modal.hidden =
+        true;
     }
 
     document.body.classList.remove(
       "modal-open"
     );
-
-    state.selectedSubmission = null;
   }
 
   function renderSubmissionModal(
     submission
   ) {
-    if (!elements.modalBody) {
+    if (
+      !elements.modalBody
+    ) {
       return;
     }
 
     const title =
-      TO.escapeHtml(
+      escapeHtml(
         submission.title ||
         "Без названия"
       );
 
     const content =
-      TO.escapeHtml(
+      escapeHtml(
         submission.content ||
         ""
       );
 
     const category =
       submission.category ||
-      "Другое";
+      "other";
 
     const categoryLabel =
-      TO.escapeHtml(
-        TO.getCategoryLabel(
+      escapeHtml(
+        getCategoryLabel(
           category
         )
       );
 
     const categoryIcon =
-      TO.getCategoryIcon(
+      getCategoryIcon(
         category
       );
 
     const author =
-      submission.author_name
-        ? TO.escapeHtml(
-            submission.author_name
-          )
-        : "Не указан";
+      escapeHtml(
+        submission.author_name ||
+        submission.authorName ||
+        "Не указан"
+      );
 
     const contact =
-      submission.contact
-        ? TO.escapeHtml(
-            submission.contact
-          )
-        : "Не указан";
+      escapeHtml(
+        submission.contact ||
+        "Не указан"
+      );
 
     const trackingCode =
-      submission.tracking_code
-        ? TO.escapeHtml(
-            submission.tracking_code
-          )
-        : "Не указан";
+      escapeHtml(
+        submission.tracking_code ||
+        submission.trackingCode ||
+        "Не указан"
+      );
 
     const createdAt =
-      submission.created_at
-        ? TO.escapeHtml(
-            TO.formatDateTime(
-              submission.created_at
+      submission.created_at ||
+      submission.createdAt ||
+      "";
+
+    const formattedDate =
+      escapeHtml(
+        createdAt
+          ? formatDateTime(
+              createdAt
             )
-          )
-        : "Не указано";
+          : "Не указано"
+      );
 
     const linkUrl =
-      TO.safeExternalUrl(
+      safeExternalUrl(
         submission.link_url ||
-          ""
+        submission.linkUrl ||
+        ""
       );
 
     const imageUrl =
-      TO.safeExternalUrl(
+      safeExternalUrl(
         submission.image_url ||
-          ""
+        submission.imageUrl ||
+        ""
       );
 
     const status =
@@ -1071,11 +1497,9 @@
       ).toLowerCase();
 
     const rejectionReason =
-      submission.rejection_reason
-        ? TO.escapeHtml(
-            submission.rejection_reason
-          )
-        : "";
+      submission.rejection_reason ||
+      submission.rejectionReason ||
+      "";
 
     elements.modalBody.innerHTML = `
       <div class="admin-detail">
@@ -1088,13 +1512,13 @@
           </span>
 
           <span
-            class="admin-detail-status status-${TO.escapeHtml(
-              status
-            )}"
+            class="admin-detail-status status-${escapeHtml(status)}"
           >
-            ${TO.getStatusIcon(status)}
-            ${TO.escapeHtml(
-              TO.getStatusLabel(status)
+            ${getStatusIcon(status)}
+            ${escapeHtml(
+              getStatusLabel(
+                status
+              )
             )}
           </span>
 
@@ -1109,9 +1533,10 @@
             ? `
               <div class="admin-detail-image">
                 <img
-                  src="${TO.escapeHtml(imageUrl)}"
+                  src="${escapeHtml(imageUrl)}"
                   alt="${title}"
                   loading="lazy"
+                  referrerpolicy="no-referrer"
                 >
               </div>
             `
@@ -1119,7 +1544,9 @@
         }
 
         <div class="admin-detail-content">
-          ${formatAdminContent(content)}
+          ${formatAdminContent(
+            content
+          )}
         </div>
 
         <div class="admin-detail-data">
@@ -1141,7 +1568,7 @@
 
           <div class="admin-detail-row">
             <strong>Отправлено:</strong>
-            <span>${createdAt}</span>
+            <span>${formattedDate}</span>
           </div>
 
           ${
@@ -1149,10 +1576,9 @@
               ? `
                 <div class="admin-detail-row">
                   <strong>Ссылка:</strong>
+
                   <a
-                    href="${TO.escapeHtml(
-                      linkUrl
-                    )}"
+                    href="${escapeHtml(linkUrl)}"
                     target="_blank"
                     rel="noopener noreferrer"
                   >
@@ -1167,13 +1593,17 @@
             rejectionReason
               ? `
                 <div class="admin-detail-row admin-rejection-reason">
+
                   <strong>
                     Причина отклонения:
                   </strong>
 
                   <span>
-                    ${rejectionReason}
+                    ${escapeHtml(
+                      rejectionReason
+                    )}
                   </span>
+
                 </div>
               `
               : ""
@@ -1184,22 +1614,39 @@
       </div>
     `;
 
-    updateModalActions(status);
+    updateModalActions(
+      status
+    );
   }
 
-  function formatAdminContent(content) {
-    return String(content)
+  function formatAdminContent(
+    content
+  ) {
+    return String(
+      content || ""
+    )
       .split(/\n{2,}/)
       .map(
-        (paragraph) =>
-          paragraph.trim()
-            ? `<p>${paragraph.trim()}</p>`
-            : ""
+        (paragraph) => {
+          const value =
+            paragraph.trim();
+
+          if (!value) {
+            return "";
+          }
+
+          return `<p>${value.replace(
+            /\n/g,
+            "<br>"
+          )}</p>`;
+        }
       )
       .join("");
   }
 
-  function updateModalActions(status) {
+  function updateModalActions(
+    status
+  ) {
     const pending =
       status === "pending";
 
@@ -1227,7 +1674,10 @@
     }
 
     if (
-      submission.status !==
+      String(
+        submission.status ||
+        ""
+      ).toLowerCase() !==
       "pending"
     ) {
       return;
@@ -1235,24 +1685,22 @@
 
     const confirmed =
       window.confirm(
-        `Одобрить публикацию «${submission.title}»?\n\nПосле одобрения она появится на сайте.`
+        `Одобрить публикацию «${submission.title || "Без названия"}»?\n\nПосле одобрения она появится на сайте.`
       );
 
     if (!confirmed) {
       return;
     }
 
-    if (elements.modalApprove) {
-      TO.setButtonLoading(
-        elements.modalApprove,
-        true,
-        "Одобряем..."
-      );
-    }
+    setButtonLoading(
+      elements.modalApprove,
+      true,
+      "Одобряем..."
+    );
 
     try {
       const response =
-        await TO.postJson(
+        await postJson(
           `/api/admin/submissions/${encodeURIComponent(
             submission.id
           )}/approve`,
@@ -1271,7 +1719,8 @@
         updateLocalSubmission(
           submission.id,
           {
-            status: "approved",
+            status:
+              "approved",
           }
         );
       }
@@ -1281,7 +1730,7 @@
       updateCounters();
       renderSubmissions();
 
-      TO.showToast(
+      showToast(
         "Публикация одобрена и опубликована.",
         "success"
       );
@@ -1291,20 +1740,36 @@
         error
       );
 
-      TO.showToast(
-        TO.getErrorMessage(
+      if (
+        error?.status === 401 ||
+        error?.status === 403
+      ) {
+        state.authenticated =
+          false;
+
+        closeSubmissionModal();
+        showLogin();
+
+        showLoginMessage(
+          "Сессия закончилась. Войдите снова.",
+          "error"
+        );
+
+        return;
+      }
+
+      showToast(
+        getErrorMessage(
           error,
           "Не удалось одобрить публикацию."
         ),
         "error"
       );
     } finally {
-      if (elements.modalApprove) {
-        TO.setButtonLoading(
-          elements.modalApprove,
-          false
-        );
-      }
+      setButtonLoading(
+        elements.modalApprove,
+        false
+      );
     }
   }
 
@@ -1313,12 +1778,15 @@
   // ==========================================================
 
   function openRejectModal() {
-    if (!state.selectedSubmission) {
+    if (
+      !state.selectedSubmission
+    ) {
       return;
     }
 
     if (elements.rejectReason) {
-      elements.rejectReason.value = "";
+      elements.rejectReason.value =
+        "";
     }
 
     if (elements.rejectModal) {
@@ -1330,15 +1798,22 @@
       );
     }
 
-    setTimeout(() => {
-      if (elements.rejectReason) {
-        elements.rejectReason.focus();
-      }
-    }, 50);
+    setTimeout(
+      () => {
+        if (
+          elements.rejectReason
+        ) {
+          elements.rejectReason.focus();
+        }
+      },
+      50
+    );
   }
 
   function closeRejectModal() {
-    if (elements.rejectModal) {
+    if (
+      elements.rejectModal
+    ) {
       elements.rejectModal.hidden =
         true;
     }
@@ -1348,7 +1823,9 @@
     );
   }
 
-  async function handleReject(event) {
+  async function handleReject(
+    event
+  ) {
     event.preventDefault();
 
     const submission =
@@ -1364,7 +1841,7 @@
         : "";
 
     if (!reason) {
-      TO.showToast(
+      showToast(
         "Укажите причину отклонения.",
         "error"
       );
@@ -1372,8 +1849,10 @@
       return;
     }
 
-    if (reason.length < 5) {
-      TO.showToast(
+    if (
+      reason.length < 5
+    ) {
+      showToast(
         "Причина должна содержать минимум 5 символов.",
         "error"
       );
@@ -1381,8 +1860,10 @@
       return;
     }
 
-    if (reason.length > 2000) {
-      TO.showToast(
+    if (
+      reason.length > 2000
+    ) {
+      showToast(
         "Причина слишком длинная.",
         "error"
       );
@@ -1390,7 +1871,7 @@
       return;
     }
 
-    TO.setButtonLoading(
+    setButtonLoading(
       elements.rejectSubmit,
       true,
       "Отклоняем..."
@@ -1398,7 +1879,7 @@
 
     try {
       const response =
-        await TO.postJson(
+        await postJson(
           `/api/admin/submissions/${encodeURIComponent(
             submission.id
           )}/reject`,
@@ -1419,7 +1900,8 @@
         updateLocalSubmission(
           submission.id,
           {
-            status: "rejected",
+            status:
+              "rejected",
             rejection_reason:
               reason,
           }
@@ -1432,7 +1914,7 @@
       updateCounters();
       renderSubmissions();
 
-      TO.showToast(
+      showToast(
         "Публикация отклонена.",
         "success"
       );
@@ -1442,15 +1924,35 @@
         error
       );
 
-      TO.showToast(
-        TO.getErrorMessage(
+      if (
+        error?.status === 401 ||
+        error?.status === 403
+      ) {
+        state.authenticated =
+          false;
+
+        closeRejectModal();
+        closeSubmissionModal();
+
+        showLogin();
+
+        showLoginMessage(
+          "Сессия закончилась. Войдите снова.",
+          "error"
+        );
+
+        return;
+      }
+
+      showToast(
+        getErrorMessage(
           error,
           "Не удалось отклонить публикацию."
         ),
         "error"
       );
     } finally {
-      TO.setButtonLoading(
+      setButtonLoading(
         elements.rejectSubmit,
         false
       );
@@ -1458,21 +1960,28 @@
   }
 
   // ==========================================================
-  // ОБНОВЛЕНИЕ ЛОКАЛЬНЫХ ДАННЫХ
+  // ЛОКАЛЬНЫЕ ДАННЫЕ
   // ==========================================================
 
   function replaceSubmission(
     updated
   ) {
-    if (!updated || !updated.id) {
+    if (
+      !updated ||
+      !updated.id
+    ) {
       return;
     }
 
     const index =
       state.submissions.findIndex(
         (submission) =>
-          String(submission.id) ===
-          String(updated.id)
+          String(
+            submission.id
+          ) ===
+          String(
+            updated.id
+          )
       );
 
     if (index === -1) {
@@ -1485,7 +1994,9 @@
 
     state.submissions[index] =
       {
-        ...state.submissions[index],
+        ...state.submissions[
+          index
+        ],
         ...updated,
       };
   }
@@ -1508,28 +2019,36 @@
   }
 
   // ==========================================================
-  // UI: LOGIN
+  // LOGIN UI
   // ==========================================================
 
   function showLogin() {
-    if (elements.loginSection) {
+    if (
+      elements.loginSection
+    ) {
       elements.loginSection.hidden =
         false;
     }
 
-    if (elements.dashboardSection) {
+    if (
+      elements.dashboardSection
+    ) {
       elements.dashboardSection.hidden =
         true;
     }
   }
 
   function showDashboard() {
-    if (elements.loginSection) {
+    if (
+      elements.loginSection
+    ) {
       elements.loginSection.hidden =
         true;
     }
 
-    if (elements.dashboardSection) {
+    if (
+      elements.dashboardSection
+    ) {
       elements.dashboardSection.hidden =
         false;
     }
@@ -1539,9 +2058,11 @@
 
   function showLoginMessage(
     message,
-    type
+    type = "error"
   ) {
-    if (!elements.loginMessage) {
+    if (
+      !elements.loginMessage
+    ) {
       return;
     }
 
@@ -1558,12 +2079,14 @@
     );
 
     elements.loginMessage.classList.add(
-      type || "error"
+      type
     );
   }
 
   function clearLoginMessage() {
-    if (!elements.loginMessage) {
+    if (
+      !elements.loginMessage
+    ) {
       return;
     }
 
@@ -1581,71 +2104,95 @@
   }
 
   // ==========================================================
-  // UI: ADMIN
+  // ADMIN UI
   // ==========================================================
 
   function showAdminLoading() {
-    if (elements.loadingState) {
+    if (
+      elements.loadingState
+    ) {
       elements.loadingState.hidden =
         false;
     }
 
-    if (elements.submissionsList) {
+    if (
+      elements.submissionsList
+    ) {
       elements.submissionsList.hidden =
         true;
     }
 
-    if (elements.emptyState) {
+    if (
+      elements.emptyState
+    ) {
       elements.emptyState.hidden =
         true;
     }
   }
 
   function hideAdminLoading() {
-    if (elements.loadingState) {
+    if (
+      elements.loadingState
+    ) {
       elements.loadingState.hidden =
         true;
     }
 
-    if (elements.submissionsList) {
+    if (
+      elements.submissionsList
+    ) {
       elements.submissionsList.hidden =
         false;
     }
   }
 
   function showAdminEmpty() {
-    if (elements.emptyState) {
+    if (
+      elements.emptyState
+    ) {
       elements.emptyState.hidden =
         false;
     }
   }
 
   function hideAdminEmpty() {
-    if (elements.emptyState) {
+    if (
+      elements.emptyState
+    ) {
       elements.emptyState.hidden =
         true;
     }
   }
 
-  function showAdminError(message) {
-    if (elements.errorState) {
+  function showAdminError(
+    message
+  ) {
+    if (
+      elements.errorState
+    ) {
       elements.errorState.hidden =
         false;
     }
 
-    if (elements.errorMessage) {
+    if (
+      elements.errorMessage
+    ) {
       elements.errorMessage.textContent =
         message;
     }
 
-    if (elements.submissionsList) {
+    if (
+      elements.submissionsList
+    ) {
       elements.submissionsList.hidden =
         true;
     }
   }
 
   function hideAdminError() {
-    if (elements.errorState) {
+    if (
+      elements.errorState
+    ) {
       elements.errorState.hidden =
         true;
     }
