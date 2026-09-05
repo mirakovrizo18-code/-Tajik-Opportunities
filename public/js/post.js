@@ -1,546 +1,696 @@
 /* ============================================================
    TAJIK OPPORTUNITIES
-   Страница отдельной публикации
+   Publication page
    ============================================================ */
 
 (() => {
   "use strict";
 
-  const TO = window.TO;
+  const API_URL = "/api/posts";
 
-  if (!TO) {
-    console.error("Tajik Opportunities: utils.js не загружен.");
-    return;
+  let currentPost = null;
+
+  /* ==========================================================
+     DOM
+     ========================================================== */
+
+  const loading = document.getElementById(
+    "postLoading"
+  );
+
+  const content = document.getElementById(
+    "postContent"
+  );
+
+  const error = document.getElementById(
+    "postError"
+  );
+
+  const errorMessage = document.getElementById(
+    "postErrorMessage"
+  );
+
+  const retryButton = document.getElementById(
+    "postRetry"
+  );
+
+  const backButton = document.getElementById(
+    "postBack"
+  );
+
+  const category = document.getElementById(
+    "postCategory"
+  );
+
+  const date = document.getElementById(
+    "postDate"
+  );
+
+  const title = document.getElementById(
+    "postTitle"
+  );
+
+  const author = document.getElementById(
+    "postAuthor"
+  );
+
+  const authorName = document.getElementById(
+    "postAuthorName"
+  );
+
+  const imageWrapper = document.getElementById(
+    "postImageWrapper"
+  );
+
+  const image = document.getElementById(
+    "postImage"
+  );
+
+  const text = document.getElementById(
+    "postText"
+  );
+
+  const linkBox = document.getElementById(
+    "postLink"
+  );
+
+  const externalLink = document.getElementById(
+    "postExternalLink"
+  );
+
+  const shareButton = document.getElementById(
+    "postShare"
+  );
+
+  /* ==========================================================
+     HELPERS
+     ========================================================== */
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
-  const state = {
-    post: null,
-    loading: false,
-  };
+  function formatDate(value) {
+    if (!value) {
+      return "";
+    }
 
-  const elements = {
-    loadingState: document.getElementById("postLoading"),
-    contentState: document.getElementById("postContent"),
-    errorState: document.getElementById("postError"),
+    const parsed = new Date(value);
 
-    title: document.getElementById("postTitle"),
-    category: document.getElementById("postCategory"),
-    date: document.getElementById("postDate"),
-    author: document.getElementById("postAuthor"),
-    content: document.getElementById("postText"),
-    image: document.getElementById("postImage"),
-    imageWrapper: document.getElementById("postImageWrapper"),
-    link: document.getElementById("postLink"),
+    if (Number.isNaN(parsed.getTime())) {
+      return "";
+    }
 
-    errorMessage: document.getElementById("postErrorMessage"),
-    retryButton: document.getElementById("postRetry"),
+    return new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric"
+    }).format(parsed);
+  }
 
-    backButton: document.getElementById("postBack"),
-    shareButton: document.getElementById("postShare"),
-  };
+  function getCategoryIcon(value) {
+    const icons = {
+      "Новости": "📰",
+      "Вакансии": "💼",
+      "Образование": "🎓",
+      "Гранты": "💰",
+      "Конкурсы": "🏆",
+      "Стажировки": "🚀",
+      "Мероприятия": "📅",
+      "Волонтёрство": "🤝",
+      "Другое": "✨"
+    };
 
-  document.addEventListener("DOMContentLoaded", init);
+    return icons[value] || "✨";
+  }
 
-  async function init() {
-    bindEvents();
+  function show(element) {
+    if (element) {
+      element.hidden = false;
+    }
+  }
 
-    const id = TO.getQueryParam("id");
+  function hide(element) {
+    if (element) {
+      element.hidden = true;
+    }
+  }
 
-    if (!id) {
-      showError("Публикация не указана.");
+  /* ==========================================================
+     GET POST ID
+     ========================================================== */
+
+  function getPostId() {
+    const params = new URLSearchParams(
+      window.location.search
+    );
+
+    return params.get("id");
+  }
+
+  /* ==========================================================
+     API
+     ========================================================== */
+
+  async function fetchPosts() {
+    const response = await fetch(API_URL, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      cache: "no-store"
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `HTTP ${response.status}`
+      );
+    }
+
+    const data = await response.json();
+
+    if (
+      !data ||
+      !Array.isArray(data.posts)
+    ) {
+      throw new Error(
+        "Некорректный ответ сервера."
+      );
+    }
+
+    return data.posts;
+  }
+
+  async function loadPost() {
+    show(loading);
+    hide(content);
+    hide(error);
+
+    const postId = getPostId();
+
+    if (!postId) {
+      showError(
+        "В URL не указан идентификатор публикации."
+      );
+
       return;
     }
 
-    await loadPost(id);
+    try {
+      const posts = await fetchPosts();
+
+      const post = posts.find(
+        (item) =>
+          String(item.id) ===
+          String(postId)
+      );
+
+      if (!post) {
+        showError(
+          "Публикация не найдена или больше недоступна."
+        );
+
+        return;
+      }
+
+      currentPost = post;
+
+      renderPost(post);
+
+      hide(loading);
+      show(content);
+
+      updatePageMeta(post);
+    } catch (err) {
+      console.error(
+        "Failed to load post:",
+        err
+      );
+
+      showError(
+        "Не удалось получить данные публикации. Проверьте подключение к интернету и попробуйте снова."
+      );
+    }
   }
 
-  // ==========================================================
-  // СОБЫТИЯ
-  // ==========================================================
+  /* ==========================================================
+     RENDER
+     ========================================================== */
 
-  function bindEvents() {
-    if (elements.retryButton) {
-      elements.retryButton.addEventListener(
-        "click",
-        () => {
-          const id = TO.getQueryParam("id");
+  function renderPost(post) {
+    const postCategory =
+      String(
+        post.category || "Другое"
+      );
 
-          if (id) {
-            loadPost(id);
-          }
-        }
+    const postTitle =
+      String(
+        post.title || "Без заголовка"
+      );
+
+    const postContent =
+      String(
+        post.content || ""
+      );
+
+    /* --------------------------------------------------------
+       CATEGORY
+       -------------------------------------------------------- */
+
+    if (category) {
+      category.textContent =
+        `${getCategoryIcon(
+          postCategory
+        )} ${postCategory}`;
+    }
+
+    /* --------------------------------------------------------
+       DATE
+       -------------------------------------------------------- */
+
+    if (date) {
+      const formatted =
+        formatDate(
+          post.published_at
+        );
+
+      date.textContent =
+        formatted || "Дата неизвестна";
+    }
+
+    /* --------------------------------------------------------
+       TITLE
+       -------------------------------------------------------- */
+
+    if (title) {
+      title.textContent =
+        postTitle;
+    }
+
+    /* --------------------------------------------------------
+       AUTHOR
+       -------------------------------------------------------- */
+
+    const name =
+      String(
+        post.author_name || ""
+      ).trim();
+
+    if (author && authorName) {
+      if (name) {
+        authorName.textContent = name;
+        show(author);
+      } else {
+        hide(author);
+      }
+    }
+
+    /* --------------------------------------------------------
+       IMAGE
+       -------------------------------------------------------- */
+
+    const imageUrl =
+      String(
+        post.image_url || ""
+      ).trim();
+
+    if (
+      image &&
+      imageWrapper &&
+      imageUrl
+    ) {
+      image.src = imageUrl;
+      image.alt = postTitle;
+
+      image.onerror = () => {
+        hide(imageWrapper);
+      };
+
+      show(imageWrapper);
+    } else {
+      hide(imageWrapper);
+    }
+
+    /* --------------------------------------------------------
+       TEXT
+       -------------------------------------------------------- */
+
+    if (text) {
+      /*
+       * Текст публикации намеренно вставляется
+       * как обычный текст, а не через innerHTML.
+       * Это защищает страницу от HTML/XSS
+       * в пользовательских заявках.
+       */
+
+      text.textContent =
+        postContent;
+
+      text.style.whiteSpace =
+        "pre-wrap";
+    }
+
+    /* --------------------------------------------------------
+       EXTERNAL LINK
+       -------------------------------------------------------- */
+
+    const url =
+      String(
+        post.link_url || ""
+      ).trim();
+
+    if (
+      linkBox &&
+      externalLink &&
+      url
+    ) {
+      externalLink.href = url;
+
+      show(linkBox);
+    } else {
+      hide(linkBox);
+    }
+  }
+
+  /* ==========================================================
+     PAGE META
+     ========================================================== */
+
+  function updatePageMeta(post) {
+    const postTitle =
+      String(
+        post.title || "Публикация"
+      ).trim();
+
+    document.title =
+      `${postTitle} — Tajik Opportunities`;
+
+    const description =
+      String(
+        post.content || ""
+      )
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 160);
+
+    let meta =
+      document.querySelector(
+        'meta[name="description"]'
+      );
+
+    if (!meta) {
+      meta =
+        document.createElement(
+          "meta"
+        );
+
+      meta.name =
+        "description";
+
+      document.head.appendChild(
+        meta
       );
     }
 
-    if (elements.backButton) {
-      elements.backButton.addEventListener(
-        "click",
-        (event) => {
-          if (document.referrer) {
-            event.preventDefault();
-            window.history.back();
-          }
-        }
+    meta.content =
+      description ||
+      "Публикация на Tajik Opportunities.";
+
+    updateOpenGraph(
+      "og:title",
+      postTitle
+    );
+
+    updateOpenGraph(
+      "og:description",
+      description ||
+        "Публикация на Tajik Opportunities."
+    );
+
+    updateOpenGraph(
+      "og:type",
+      "article"
+    );
+  }
+
+  function updateOpenGraph(
+    property,
+    value
+  ) {
+    let meta =
+      document.querySelector(
+        `meta[property="${property}"]`
+      );
+
+    if (!meta) {
+      meta =
+        document.createElement(
+          "meta"
+        );
+
+      meta.setAttribute(
+        "property",
+        property
+      );
+
+      document.head.appendChild(
+        meta
       );
     }
 
-    if (elements.shareButton) {
-      elements.shareButton.addEventListener(
+    meta.setAttribute(
+      "content",
+      value
+    );
+  }
+
+  /* ==========================================================
+     SHARE
+     ========================================================== */
+
+  async function sharePost() {
+    if (!currentPost) {
+      return;
+    }
+
+    const shareUrl =
+      window.location.href;
+
+    const shareTitle =
+      String(
+        currentPost.title ||
+          "Tajik Opportunities"
+      );
+
+    const shareText =
+      `Посмотрите эту публикацию на Tajik Opportunities: ${shareTitle}`;
+
+    try {
+      if (
+        navigator.share
+      ) {
+        await navigator.share({
+          title: shareTitle,
+          text: shareText,
+          url: shareUrl
+        });
+
+        return;
+      }
+
+      if (
+        navigator.clipboard
+      ) {
+        await navigator.clipboard.writeText(
+          shareUrl
+        );
+
+        showToast(
+          "Ссылка скопирована"
+        );
+
+        return;
+      }
+
+      fallbackCopy(
+        shareUrl
+      );
+    } catch (err) {
+      /*
+       * Пользователь мог просто закрыть
+       * системное окно «Поделиться».
+       * В этом случае не показываем ошибку.
+       */
+
+      if (
+        err &&
+        err.name ===
+          "AbortError"
+      ) {
+        return;
+      }
+
+      console.error(
+        "Share error:",
+        err
+      );
+    }
+  }
+
+  /* ==========================================================
+     COPY FALLBACK
+     ========================================================== */
+
+  function fallbackCopy(value) {
+    const textarea =
+      document.createElement(
+        "textarea"
+      );
+
+    textarea.value =
+      value;
+
+    textarea.style.position =
+      "fixed";
+
+    textarea.style.opacity =
+      "0";
+
+    document.body.appendChild(
+      textarea
+    );
+
+    textarea.select();
+
+    try {
+      document.execCommand(
+        "copy"
+      );
+
+      showToast(
+        "Ссылка скопирована"
+      );
+    } catch {
+      showToast(
+        "Не удалось скопировать ссылку"
+      );
+    }
+
+    textarea.remove();
+  }
+
+  /* ==========================================================
+     TOAST
+     ========================================================== */
+
+  function showToast(message) {
+    const toast =
+      document.getElementById(
+        "toast"
+      );
+
+    if (!toast) {
+      return;
+    }
+
+    toast.textContent =
+      message;
+
+    toast.classList.add(
+      "show"
+    );
+
+    clearTimeout(
+      toast._timer
+    );
+
+    toast._timer =
+      setTimeout(() => {
+        toast.classList.remove(
+          "show"
+        );
+      }, 3000);
+  }
+
+  /* ==========================================================
+     ERROR
+     ========================================================== */
+
+  function showError(message) {
+    hide(loading);
+    hide(content);
+    show(error);
+
+    if (errorMessage) {
+      errorMessage.textContent =
+        message;
+    }
+  }
+
+  /* ==========================================================
+     NAVIGATION
+     ========================================================== */
+
+  function goBack() {
+    if (
+      window.history.length > 1
+    ) {
+      window.history.back();
+    } else {
+      window.location.href = "/";
+    }
+  }
+
+  /* ==========================================================
+     EVENTS
+     ========================================================== */
+
+  function initEvents() {
+    if (retryButton) {
+      retryButton.addEventListener(
+        "click",
+        loadPost
+      );
+    }
+
+    if (backButton) {
+      backButton.addEventListener(
+        "click",
+        goBack
+      );
+    }
+
+    if (shareButton) {
+      shareButton.addEventListener(
         "click",
         sharePost
       );
     }
   }
 
-  // ==========================================================
-  // ЗАГРУЗКА
-  // ==========================================================
+  /* ==========================================================
+     INIT
+     ========================================================== */
 
-  async function loadPost(id) {
-    if (state.loading) {
-      return;
-    }
-
-    state.loading = true;
-
-    showLoading();
-
-    try {
-      const response = await TO.getJson(
-        `/api/posts/${encodeURIComponent(id)}`
-      );
-
-      const post = extractPost(response);
-
-      if (!post) {
-        throw new Error(
-          "Публикация не найдена."
-        );
-      }
-
-      state.post = post;
-
-      renderPost(post);
-
-      hideLoading();
-      hideError();
-      showContent();
-
-      updateDocumentMeta(post);
-    } catch (error) {
-      console.error(
-        "Tajik Opportunities: ошибка загрузки публикации",
-        error
-      );
-
-      hideLoading();
-
-      showError(
-        TO.getErrorMessage(
-          error,
-          "Не удалось загрузить публикацию."
-        )
-      );
-    } finally {
-      state.loading = false;
-    }
+  function init() {
+    initEvents();
+    loadPost();
   }
 
-  function extractPost(response) {
-    if (!response) {
-      return null;
-    }
-
-    if (
-      response.id ||
-      response.title ||
-      response.content
-    ) {
-      return response;
-    }
-
-    if (response.post) {
-      return response.post;
-    }
-
-    if (
-      response.data &&
-      response.data.post
-    ) {
-      return response.data.post;
-    }
-
-    if (
-      response.data &&
-      response.data.id
-    ) {
-      return response.data;
-    }
-
-    return null;
-  }
-
-  // ==========================================================
-  // ОТРИСОВКА
-  // ==========================================================
-
-  function renderPost(post) {
-    const title =
-      post.title || "Без названия";
-
-    const category =
-      post.category || "Другое";
-
-    const categoryLabel =
-      TO.getCategoryLabel(category);
-
-    const categoryIcon =
-      TO.getCategoryIcon(category);
-
-    // --------------------------------------------------------
-    // Заголовок
-    // --------------------------------------------------------
-
-    if (elements.title) {
-      elements.title.textContent = title;
-    }
-
-    // --------------------------------------------------------
-    // Категория
-    // --------------------------------------------------------
-
-    if (elements.category) {
-      elements.category.textContent =
-        `${categoryIcon} ${categoryLabel}`;
-    }
-
-    // --------------------------------------------------------
-    // Дата
-    // --------------------------------------------------------
-
-    const date =
-      post.published_at ||
-      post.created_at ||
-      "";
-
-    if (elements.date) {
-      if (date) {
-        elements.date.textContent =
-          TO.formatDate(date);
-
-        elements.date.dateTime = date;
-      } else {
-        elements.date.textContent = "";
-      }
-    }
-
-    // --------------------------------------------------------
-    // Автор
-    // --------------------------------------------------------
-
-    if (elements.author) {
-      if (post.author_name) {
-        elements.author.textContent =
-          post.author_name;
-
-        elements.author.hidden = false;
-      } else {
-        elements.author.hidden = true;
-      }
-    }
-
-    // --------------------------------------------------------
-    // Текст
-    // --------------------------------------------------------
-
-    renderContent(post.content || "");
-
-    // --------------------------------------------------------
-    // Изображение
-    // --------------------------------------------------------
-
-    renderImage(
-      post.image_url || "",
-      title
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      init
     );
-
-    // --------------------------------------------------------
-    // Дополнительная ссылка
-    // --------------------------------------------------------
-
-    renderExternalLink(
-      post.link_url || ""
-    );
-  }
-
-  // ==========================================================
-  // ТЕКСТ ПУБЛИКАЦИИ
-  // ==========================================================
-
-  function renderContent(content) {
-    if (!elements.content) {
-      return;
-    }
-
-    const safeText = String(content);
-
-    /*
-     * Не используем innerHTML для текста пользователя.
-     * Каждая строка выводится безопасно как обычный текст.
-     */
-
-    elements.content.innerHTML = "";
-
-    const paragraphs =
-      safeText
-        .replace(/\r\n/g, "\n")
-        .split(/\n{2,}/);
-
-    paragraphs.forEach((paragraph) => {
-      const cleaned =
-        paragraph.trim();
-
-      if (!cleaned) {
-        return;
-      }
-
-      const p =
-        document.createElement("p");
-
-      p.textContent = cleaned;
-
-      elements.content.appendChild(p);
-    });
-  }
-
-  // ==========================================================
-  // ИЗОБРАЖЕНИЕ
-  // ==========================================================
-
-  function renderImage(url, title) {
-    if (
-      !elements.image ||
-      !elements.imageWrapper
-    ) {
-      return;
-    }
-
-    const safeUrl =
-      TO.safeExternalUrl(url);
-
-    if (!safeUrl) {
-      elements.imageWrapper.hidden = true;
-      elements.image.removeAttribute("src");
-      return;
-    }
-
-    elements.imageWrapper.hidden = false;
-
-    elements.image.src = safeUrl;
-    elements.image.alt = title;
-    elements.image.loading = "lazy";
-
-    elements.image.onerror = () => {
-      elements.imageWrapper.hidden = true;
-    };
-  }
-
-  // ==========================================================
-  // ВНЕШНЯЯ ССЫЛКА
-  // ==========================================================
-
-  function renderExternalLink(url) {
-    if (!elements.link) {
-      return;
-    }
-
-    const safeUrl =
-      TO.safeExternalUrl(url);
-
-    if (!safeUrl) {
-      elements.link.hidden = true;
-      elements.link.removeAttribute("href");
-      return;
-    }
-
-    elements.link.href = safeUrl;
-    elements.link.target = "_blank";
-    elements.link.rel =
-      "noopener noreferrer";
-
-    elements.link.hidden = false;
-  }
-
-  // ==========================================================
-  // META / TITLE
-  // ==========================================================
-
-  function updateDocumentMeta(post) {
-    const title =
-      post.title || "Tajik Opportunities";
-
-    document.title =
-      `${title} — Tajik Opportunities`;
-
-    const description =
-      String(post.content || "")
-        .replace(/\s+/g, " ")
-        .trim()
-        .slice(0, 160);
-
-    updateMeta(
-      'meta[name="description"]',
-      description
-    );
-
-    updateMeta(
-      'meta[property="og:title"]',
-      title
-    );
-
-    updateMeta(
-      'meta[property="og:description"]',
-      description
-    );
-
-    if (post.image_url) {
-      const safeImage =
-        TO.safeExternalUrl(
-          post.image_url
-        );
-
-      if (safeImage) {
-        updateMeta(
-          'meta[property="og:image"]',
-          safeImage
-        );
-      }
-    }
-  }
-
-  function updateMeta(selector, value) {
-    const meta =
-      document.querySelector(selector);
-
-    if (meta && value) {
-      meta.setAttribute(
-        "content",
-        value
-      );
-    }
-  }
-
-  // ==========================================================
-  // ПОДЕЛИТЬСЯ
-  // ==========================================================
-
-  async function sharePost() {
-    if (!state.post) {
-      return;
-    }
-
-    const title =
-      state.post.title ||
-      "Tajik Opportunities";
-
-    const url =
-      window.location.href;
-
-    if (
-      navigator.share &&
-      typeof navigator.share === "function"
-    ) {
-      try {
-        await navigator.share({
-          title,
-          text:
-            `${title} — Tajik Opportunities`,
-          url,
-        });
-
-        return;
-      } catch (error) {
-        /*
-         * Пользователь мог просто закрыть
-         * системное окно Share.
-         */
-        if (
-          error &&
-          error.name === "AbortError"
-        ) {
-          return;
-        }
-      }
-    }
-
-    const copied =
-      await TO.copyText(url);
-
-    if (copied) {
-      TO.showToast(
-        "Ссылка скопирована.",
-        "success"
-      );
-    } else {
-      TO.showToast(
-        "Не удалось скопировать ссылку.",
-        "error"
-      );
-    }
-  }
-
-  // ==========================================================
-  // UI СОСТОЯНИЯ
-  // ==========================================================
-
-  function showLoading() {
-    if (elements.loadingState) {
-      elements.loadingState.hidden = false;
-    }
-
-    if (elements.contentState) {
-      elements.contentState.hidden = true;
-    }
-
-    if (elements.errorState) {
-      elements.errorState.hidden = true;
-    }
-  }
-
-  function hideLoading() {
-    if (elements.loadingState) {
-      elements.loadingState.hidden = true;
-    }
-  }
-
-  function showContent() {
-    if (elements.contentState) {
-      elements.contentState.hidden = false;
-    }
-  }
-
-  function showError(message) {
-    if (elements.loadingState) {
-      elements.loadingState.hidden = true;
-    }
-
-    if (elements.contentState) {
-      elements.contentState.hidden = true;
-    }
-
-    if (elements.errorState) {
-      elements.errorState.hidden = false;
-    }
-
-    if (elements.errorMessage) {
-      elements.errorMessage.textContent =
-        message;
-    }
-  }
-
-  function hideError() {
-    if (elements.errorState) {
-      elements.errorState.hidden = true;
-    }
+  } else {
+    init();
   }
 })();
