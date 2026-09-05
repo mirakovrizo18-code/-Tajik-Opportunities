@@ -1,0 +1,237 @@
+# ============================================================
+# ROBOTS.TXT — Tajik Opportunities
+# ============================================================
+# Версия: 2.0.0
+# Дата: 2026-09-05
+# ============================================================
+
+# ============================================================
+# ОСНОВНЫЕ ПРАВИЛА ДЛЯ ВСЕХ РОБОТОВ
+# ============================================================
+
+User-agent: *
+
+# Запрещённые разделы
+Disallow: /admin.html
+Disallow: /admin
+Disallow: /api/
+Disallow: /css/
+Disallow: /js/
+Disallow: /images/
+Disallow: /fonts/
+Disallow: /assets/
+Disallow: /vendor/
+Disallow: /node_modules/
+Disallow: /temp/
+Disallow: /tmp/
+Disallow: /backup/
+Disallow: /logs/
+Disallow: /debug/
+Disallow: /test/
+
+# Разрешённые страницы
+Allow: /
+Allow: /index.html
+Allow: /add.html
+Allow: /status.html
+Allow: /search
+Allow: /category
+
+# Параметры для улучшения индексации
+Host: https://tajik-opportunities.com
+
+# Время между запросами
+Crawl-delay: 3
+
+# ============================================================
+# СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ GOOGLE
+# ============================================================
+
+User-agent: Googlebot
+Disallow: /admin.html
+Disallow: /api/
+Disallow: /css/
+Disallow: /js/
+Disallow: /images/
+Allow: /
+Allow: /index.html
+Allow: /add.html
+Allow: /status.html
+Crawl-delay: 1
+# Google игнорирует Crawl-delay, использует свою систему
+
+# ============================================================
+# СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ YANDEX
+# ============================================================
+
+User-agent: Yandex
+Disallow: /admin.html
+Disallow: /api/
+Disallow: /css/
+Disallow: /js/
+Disallow: /images/
+Allow: /
+Allow: /index.html
+Allow: /add.html
+Allow: /status.html
+Crawl-delay: 2
+
+# ============================================================
+# СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ BING
+# ============================================================
+
+User-agent: bingbot
+Disallow: /admin.html
+Disallow: /api/
+Disallow: /css/
+Disallow: /js/
+Disallow: /images/
+Allow: /
+Allow: /index.html
+Allow: /add.html
+Allow: /status.html
+Crawl-delay: 1
+
+# ============================================================
+# СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ DUCKDUCKGO
+# ============================================================
+
+User-agent: DuckDuckBot
+Allow: /
+Allow: /index.html
+Allow: /add.html
+Allow: /status.html
+Disallow: /admin.html
+Disallow: /api/
+Crawl-delay: 5
+
+# ============================================================
+# СПЕЦИАЛЬНЫЕ ПРАВИЛА ДЛЯ BAIDU
+# ============================================================
+
+User-agent: Baiduspider
+Disallow: /
+Crawl-delay: 10
+
+# ============================================================
+# ЗАПРЕТ ДЛЯ ПЛОХИХ БОТОВ (SPAM)
+# ============================================================
+
+# Сборщики данных
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: rogerbot
+Disallow: /
+
+User-agent: Exabot
+Disallow: /
+
+User-agent: Yeti
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /admin.html
+Disallow: /api/
+
+# SEO инструменты
+User-agent: seoscout
+Disallow: /
+
+User-agent: serpstatbot
+Disallow: /
+
+User-agent: UptimeRobot
+Disallow: /
+
+# Парсеры контента
+User-agent: PaperLiBot
+Disallow: /
+
+User-agent: CriteoBot
+Disallow: /
+
+# ============================================================
+# ПРАВИЛА ДЛЯ МОБИЛЬНЫХ РОБОТОВ
+# ============================================================
+
+User-agent: Googlebot-Mobile
+Allow: /
+Allow: /index.html
+Allow: /add.html
+Allow: /status.html
+Disallow: /admin.html
+Disallow: /api/
+
+User-agent: YandexMobileBot
+Allow: /
+Allow: /index.html
+Allow: /add.html
+Allow: /status.html
+Disallow: /admin.html
+Disallow: /api/
+
+# ============================================================
+# ПРАВИЛА ДЛЯ ИЗОБРАЖЕНИЙ
+# ============================================================
+
+User-agent: Googlebot-Image
+Allow: /images/
+Allow: /uploads/
+Disallow: /admin.html
+Disallow: /api/
+
+User-agent: YandexImages
+Allow: /images/
+Allow: /uploads/
+Disallow: /admin.html
+Disallow: /api/
+
+# ============================================================
+# КАРТА САЙТА
+# ============================================================
+
+Sitemap: https://tajik-opportunities.com/sitemap.xml
+
+# Альтернативные карты
+Sitemap: https://tajik-opportunities.com/sitemap-posts.xml
+Sitemap: https://tajik-opportunities.com/sitemap-categories.xml
+
+# ============================================================
+# ДОПОЛНИТЕЛЬНЫЕ НАСТРОЙКИ
+# ============================================================
+
+# Указываем, что сайт на русском языке
+# Используется Yandex
+Host: https://tajik-opportunities.com
+
+# Запрещаем индексацию файлов с параметрами
+# Используется Google
+Disallow: /*?*
+Disallow: /*.php
+Disallow: /*.asp
+Disallow: /*.jsp
+Disallow: /*.cgi
+Disallow: /*.pl
+
+# Запрещаем индексацию системных папок
+Disallow: /wp-admin/
+Disallow: /wp-includes/
+Disallow: /wp-content/plugins/
+Disallow: /wp-content/themes/
+Disallow: /system/
+Disallow: /core/
+Disallow: /lib/
+
+# ============================================================
+# КОНЕЦ ФАЙЛА
+# ============================================================
