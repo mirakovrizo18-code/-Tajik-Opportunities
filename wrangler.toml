@@ -1,40 +1,148 @@
-name = "tajik-opportunities"
-main = "src/index.ts"  # TypeScript - стандарт индустрии
-compatibility_date = "2026-09-05"
-compatibility_flags = ["nodejs_compat"]  # Доступ к Node.js API
+# ============================================================
+# WRANGLER.TOML — Конфигурация Cloudflare Worker
+# ============================================================
+# Проект: Tajik Opportunities
+# Версия: 2.0.0
+# Дата: 2026-09-05
+# ============================================================
 
-# Переменные окружения для разных сред
+# ============================================================
+# ОСНОВНЫЕ НАСТРОЙКИ
+# ============================================================
+
+name = "tajik-opportunities"
+main = "worker/worker.js"
+compatibility_date = "2026-09-05"
+compatibility_flags = ["nodejs_compat"]
+
+# ============================================================
+# ПЕРЕМЕННЫЕ ОКРУЖЕНИЯ
+# ============================================================
+
 [vars]
 ENVIRONMENT = "production"
 API_VERSION = "v1"
+SITE_URL = "https://tajik-opportunities.com"
+SITE_NAME = "Tajik Opportunities"
+DEFAULT_LANGUAGE = "ru"
+TIMEZONE = "Asia/Dushanbe"
 
-[env.staging]
-vars = { ENVIRONMENT = "staging" }
+# ============================================================
+# СТАТИЧЕСКИЕ АССЕТЫ
+# ============================================================
 
-[env.production]
-vars = { ENVIRONMENT = "production" }
-
-# Статические ассеты
 [assets]
 directory = "./public"
 binding = "ASSETS"
+# Автоматическое кэширование статики
+# caching = { strategy = "auto" }
 
-# База данных D1
+# ============================================================
+# БАЗА ДАННЫХ D1 — ПРОДУКЦИОННАЯ
+# ============================================================
+
 [[d1_databases]]
 binding = "DB"
 database_name = "tajik-opportunities-db"
-database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"  # Реальный ID
+database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
 
-# Для staging окружения
-[env.staging.d1_databases]
-binding = "DB"
-database_name = "tajik-opportunities-db-staging"
-database_id = "yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy"
+# ============================================================
+# НАСТРОЙКИ СБОРКИ
+# ============================================================
 
-# Настройки сборки (если используете TypeScript)
 [build]
-command = "npm run build"
+command = "echo 'Build completed'"
 watch_dir = "src"
 
 [build.upload]
 format = "modules"
+# Загрузка только необходимых файлов
+# include = ["src/**/*", "public/**/*"]
+# exclude = ["*.test.js", "*.spec.js"]
+
+# ============================================================
+# ЛОГИРОВАНИЕ
+# ============================================================
+
+[logging]
+level = "info"
+# Доступные уровни: debug, info, warn, error
+
+# ============================================================
+# АНАЛИТИКА И МОНИТОРИНГ
+# ============================================================
+
+[observability]
+# Включение метрик для мониторинга
+# enabled = true
+# sampling_rate = 1.0
+
+# ============================================================
+# НАСТРОЙКИ БЕЗОПАСНОСТИ
+# ============================================================
+
+# Защита от DDoS
+# [rate_limiting]
+# enabled = true
+# requests_per_minute = 1000
+
+# ============================================================
+# СРЕДА РАЗРАБОТКИ (DEV)
+# ============================================================
+
+[env.dev]
+vars = { 
+  ENVIRONMENT = "development", 
+  API_VERSION = "v1",
+  SITE_URL = "http://localhost:8787",
+  SITE_NAME = "Tajik Opportunities (Dev)",
+  DEFAULT_LANGUAGE = "ru",
+  TIMEZONE = "Asia/Dushanbe"
+}
+
+[env.dev.d1_databases]
+binding = "DB"
+database_name = "tajik-opportunities-db-dev"
+database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
+
+# ============================================================
+# СРЕДА СТЕЙДЖИНГА (STAGING)
+# ============================================================
+
+[env.staging]
+vars = { 
+  ENVIRONMENT = "staging", 
+  API_VERSION = "v1",
+  SITE_URL = "https://staging.tajik-opportunities.com",
+  SITE_NAME = "Tajik Opportunities (Staging)",
+  DEFAULT_LANGUAGE = "ru",
+  TIMEZONE = "Asia/Dushanbe"
+}
+
+[env.staging.d1_databases]
+binding = "DB"
+database_name = "tajik-opportunities-db-staging"
+database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
+
+# ============================================================
+# СРЕДА ПРЕВЬЮ (PREVIEW)
+# ============================================================
+
+[env.preview]
+vars = { 
+  ENVIRONMENT = "preview", 
+  API_VERSION = "v1",
+  SITE_URL = "https://preview.tajik-opportunities.com",
+  SITE_NAME = "Tajik Opportunities (Preview)",
+  DEFAULT_LANGUAGE = "ru",
+  TIMEZONE = "Asia/Dushanbe"
+}
+
+[env.preview.d1_databases]
+binding = "DB"
+database_name = "tajik-opportunities-db-preview"
+database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
+
+# ============================================================
+# КОНЕЦ ФАЙЛА
+# ============================================================
