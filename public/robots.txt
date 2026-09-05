@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Disallow: /admin.html
+Disallow: /api/
+Disallow: /worker/
+Disallow: /migrations/
+
+Sitemap: https://tajik-opportunities.com/sitemap.xml
