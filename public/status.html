@@ -1,788 +1,501 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
+    <meta charset="UTF-8">
 
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Проверить статус заявки — Tajik Opportunities</title>
+    <meta name="theme-color" content="#0f172a">
 
-  <meta
-    name="description"
-    content="Проверьте статус вашей заявки на публикацию в Tajik Opportunities по коду отслеживания."
-  >
+    <meta
+        name="description"
+        content="Проверка статуса вашей публикации на Tajik Opportunities."
+    >
 
-  <meta
-    name="robots"
-    content="index,follow"
-  >
+    <title>Проверить статус — Tajik Opportunities</title>
 
-  <meta
-    name="theme-color"
-    content="#0f6b4f"
-  >
+    <link
+        rel="icon"
+        href="/images/Image_2026_09_05_19_01_30.jpg"
+    >
 
-  <link
-    rel="icon"
-    type="image/png"
-    href="/images/logo.png"
-  >
-
-  <link
-    rel="stylesheet"
-    href="/css/style.css"
-  >
+    <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
 
-  <!-- ==========================================================
-       HEADER
-       ========================================================== -->
+    <!-- HEADER -->
+    <header class="site-header">
+        <div class="container header-inner">
 
-  <header class="site-header">
+            <a href="/" class="site-logo">
+                <img
+                    src="/images/Image_2026_09_05_19_01_30.jpg"
+                    alt="Tajik Opportunities"
+                >
 
-    <div class="container header-inner">
+                <span class="site-logo-text">
+                    Tajik Opportunities
+                </span>
+            </a>
 
-      <a
-        class="brand"
-        href="/"
-        aria-label="Tajik Opportunities — главная"
-      >
+            <button
+                class="mobile-menu-button"
+                type="button"
+                aria-label="Открыть меню"
+                aria-expanded="false"
+            >
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
 
-        <img
-          class="brand-logo"
-          src="/images/logo.png"
-          alt="Tajik Opportunities"
-        >
-
-        <span class="brand-text">
-          <strong>Tajik Opportunities</strong>
-          <small>Возможности для Таджикистана</small>
-        </span>
-
-      </a>
-
-
-      <nav
-        class="main-nav"
-        aria-label="Основная навигация"
-      >
-
-        <a href="/">
-          Главная
-        </a>
-
-        <a href="/add.html">
-          Предложить публикацию
-        </a>
-
-        <a
-          href="/status.html"
-          class="active"
-          aria-current="page"
-        >
-          Проверить статус
-        </a>
-
-      </nav>
-
-    </div>
-
-  </header>
-
-
-  <!-- ==========================================================
-       MAIN
-       ========================================================== -->
-
-  <main>
-
-    <!-- HERO -->
-
-    <section class="page-hero">
-
-      <div class="container">
-
-        <div class="page-hero-content">
-
-          <div class="eyebrow">
-            🔎 Проверка заявки
-          </div>
-
-          <h1>
-            Узнайте статус вашей публикации
-          </h1>
-
-          <p>
-            Введите код отслеживания, который вы получили
-            после отправки материала на модерацию.
-          </p>
+            <nav class="site-nav" aria-label="Основная навигация">
+                <a href="/">Главная</a>
+                <a href="/add.html">Добавить публикацию</a>
+                <a href="/status.html" class="active">Проверить статус</a>
+            </nav>
 
         </div>
+    </header>
 
-      </div>
 
-    </section>
+    <!-- MAIN -->
+    <main class="page-main">
 
+        <section class="page-hero">
+            <div class="container">
 
-    <!-- ========================================================
-         STATUS FORM
-         ======================================================== -->
+                <div class="page-hero-content">
+                    <span class="eyebrow">
+                        Tajik Opportunities
+                    </span>
 
-    <section class="section">
-
-      <div class="container">
-
-        <div class="status-layout">
-
-          <div class="status-card">
-
-            <div class="status-card-header">
-
-              <span class="section-kicker">
-                Код отслеживания
-              </span>
-
-              <h2>
-                Проверить статус
-              </h2>
-
-              <p>
-                Код был показан после успешной отправки вашей заявки.
-              </p>
-
-            </div>
-
-
-            <form
-              id="statusForm"
-              class="status-form"
-              novalidate
-            >
-
-              <div class="form-group">
-
-                <label for="trackingCodeInput">
-                  Код отслеживания
-                </label>
-
-                <input
-                  type="text"
-                  id="trackingCodeInput"
-                  name="trackingCode"
-                  placeholder="Например: TO-XXXXXXXX"
-                  maxlength="100"
-                  autocomplete="off"
-                  autocapitalize="characters"
-                  spellcheck="false"
-                  required
-                >
-
-                <small class="field-help">
-                  Введите код точно так, как он был выдан после отправки.
-                </small>
-
-              </div>
-
-
-              <button
-                type="submit"
-                class="btn btn-primary btn-large"
-                id="statusSubmit"
-              >
-
-                <span>
-                  🔎
-                </span>
-
-                <span>
-                  Проверить статус
-                </span>
-
-              </button>
-
-            </form>
-
-
-            <!-- ==================================================
-                 LOADING
-                 ================================================== -->
-
-            <div
-              id="statusLoading"
-              class="status-loading"
-              hidden
-            >
-
-              <div class="loading-spinner"></div>
-
-              <p>
-                Проверяем вашу заявку...
-              </p>
-
-            </div>
-
-
-            <!-- ==================================================
-                 EMPTY
-                 ================================================== -->
-
-            <div
-              id="statusEmpty"
-              class="status-empty"
-              hidden
-            >
-
-              <div class="status-empty-icon">
-                🔎
-              </div>
-
-              <h3>
-                Введите код отслеживания
-              </h3>
-
-              <p>
-                После этого мы покажем актуальный статус вашей заявки.
-              </p>
-
-            </div>
-
-
-            <!-- ==================================================
-                 ERROR
-                 ================================================== -->
-
-            <div
-              id="statusError"
-              class="status-error"
-              hidden
-            >
-
-              <div class="status-error-icon">
-                ⚠️
-              </div>
-
-              <h3>
-                Не удалось проверить заявку
-              </h3>
-
-              <p id="statusErrorMessage">
-                Произошла ошибка. Попробуйте ещё раз.
-              </p>
-
-              <button
-                type="button"
-                id="statusRetry"
-                class="btn btn-secondary"
-              >
-                🔄 Попробовать снова
-              </button>
-
-            </div>
-
-
-            <!-- ==================================================
-                 RESULT
-                 ================================================== -->
-
-            <div
-              id="statusResult"
-              class="status-result"
-              hidden
-            >
-
-              <div class="status-result-header">
-
-                <span class="section-kicker">
-                  Результат проверки
-                </span>
-
-                <h2 id="statusTitle">
-                  —
-                </h2>
-
-              </div>
-
-
-              <!-- STATUS -->
-
-              <div class="status-main">
-
-                <div
-                  id="statusIcon"
-                  class="status-icon"
-                >
-                  ⏳
-                </div>
-
-                <div>
-
-                  <span class="status-label">
-                    Текущий статус
-                  </span>
-
-                  <strong
-                    id="statusValue"
-                    class="status-value"
-                  >
-                    —
-                  </strong>
-
-                </div>
-
-              </div>
-
-
-              <!-- DETAILS -->
-
-              <div class="status-details">
-
-                <div class="status-detail">
-
-                  <span>
-                    📂 Категория
-                  </span>
-
-                  <strong id="statusCategory">
-                    —
-                  </strong>
-
-                </div>
-
-
-                <div class="status-detail">
-
-                  <span>
-                    📅 Дата отправки
-                  </span>
-
-                  <strong id="statusDate">
-                    —
-                  </strong>
-
-                </div>
-
-              </div>
-
-
-              <!-- REJECTION REASON -->
-
-              <div
-                id="statusReasonBlock"
-                class="status-reason"
-                hidden
-              >
-
-                <div class="status-reason-icon">
-                  ℹ️
-                </div>
-
-                <div>
-
-                  <strong>
-                    Причина отклонения
-                  </strong>
-
-                  <p id="statusReason">
-                    —
-                  </p>
-
-                </div>
-
-              </div>
-
-
-              <!-- APPROVED POST -->
-
-              <div
-                id="statusPostLink"
-                class="status-approved"
-                hidden
-              >
-
-                <div class="status-approved-icon">
-                  🎉
-                </div>
-
-                <div>
-
-                  <strong>
-                    Публикация одобрена!
-                  </strong>
-
-                  <p>
-                    Материал опубликован на сайте.
-                  </p>
-
-                  <a
-                    id="statusPostUrl"
-                    href="#"
-                    class="btn btn-primary"
-                  >
-                    Открыть публикацию →
-                  </a>
-
-                </div>
-
-              </div>
-
-
-              <!-- CHECK AGAIN -->
-
-              <button
-                type="button"
-                id="statusCheckAgain"
-                class="btn btn-secondary"
-              >
-                🔄 Проверить другой код
-              </button>
-
-            </div>
-
-          </div>
-
-
-          <!-- ====================================================
-               SIDEBAR
-               ==================================================== -->
-
-          <aside class="status-sidebar">
-
-
-            <!-- HOW IT WORKS -->
-
-            <div class="sidebar-highlight">
-
-              <div class="sidebar-highlight-icon">
-                💡
-              </div>
-
-              <h3>
-                Что означают статусы?
-              </h3>
-
-
-              <div class="status-explanation">
-
-                <div class="status-explanation-item">
-
-                  <span class="status-mini-icon">
-                    ⏳
-                  </span>
-
-                  <div>
-
-                    <strong>
-                      На модерации
-                    </strong>
+                    <h1>
+                        Проверить статус публикации
+                    </h1>
 
                     <p>
-                      Ваша заявка получена и ожидает проверки
-                      администрацией.
+                        Введите код отслеживания, который вы получили
+                        после отправки публикации.
                     </p>
+                </div>
 
-                  </div>
+            </div>
+        </section>
+
+
+        <!-- STATUS -->
+        <section class="status-section">
+            <div class="container">
+
+                <div class="status-card">
+
+                    <div class="status-card-header">
+                        <div class="status-card-icon">
+                            🔎
+                        </div>
+
+                        <div>
+                            <h2>
+                                Код отслеживания
+                            </h2>
+
+                            <p>
+                                Введите код, чтобы узнать текущий статус.
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <!-- FORM -->
+                    <form id="statusForm" class="status-form">
+
+                        <div class="form-group">
+                            <label for="trackingCodeInput">
+                                Код отслеживания
+                            </label>
+
+                            <input
+                                id="trackingCodeInput"
+                                name="trackingCode"
+                                type="text"
+                                placeholder="Например: TO-ABC12345"
+                                autocomplete="off"
+                                maxlength="100"
+                                required
+                            >
+
+                            <small>
+                                Код был показан после отправки вашей публикации.
+                            </small>
+                        </div>
+
+
+                        <button
+                            id="statusSubmit"
+                            class="btn btn-primary"
+                            type="submit"
+                        >
+                            <span class="button-text">
+                                Проверить статус
+                            </span>
+
+                            <span class="button-loading" hidden>
+                                Проверяем...
+                            </span>
+                        </button>
+
+                    </form>
+
+
+                    <!-- LOADING -->
+                    <div
+                        id="statusLoading"
+                        class="status-loading"
+                        hidden
+                    >
+                        <div class="loading-spinner"></div>
+
+                        <p>
+                            Проверяем статус публикации...
+                        </p>
+                    </div>
+
+
+                    <!-- EMPTY -->
+                    <div
+                        id="statusEmpty"
+                        class="status-empty"
+                        hidden
+                    >
+                        <div class="status-empty-icon">
+                            🔍
+                        </div>
+
+                        <h3>
+                            Публикация не найдена
+                        </h3>
+
+                        <p>
+                            Проверьте правильность кода отслеживания
+                            и попробуйте ещё раз.
+                        </p>
+                    </div>
+
+
+                    <!-- ERROR -->
+                    <div
+                        id="statusError"
+                        class="status-error"
+                        hidden
+                    >
+                        <div class="status-error-icon">
+                            ⚠️
+                        </div>
+
+                        <h3>
+                            Не удалось проверить статус
+                        </h3>
+
+                        <p id="statusErrorMessage">
+                            Произошла ошибка. Попробуйте ещё раз.
+                        </p>
+
+                        <button
+                            id="statusRetry"
+                            class="btn btn-secondary"
+                            type="button"
+                        >
+                            Попробовать снова
+                        </button>
+                    </div>
+
+
+                    <!-- RESULT -->
+                    <div
+                        id="statusResult"
+                        class="status-result"
+                        hidden
+                    >
+
+                        <div class="status-result-header">
+
+                            <div
+                                id="statusIcon"
+                                class="status-result-icon"
+                            >
+                                📄
+                            </div>
+
+                            <div>
+                                <span class="status-result-label">
+                                    Статус публикации
+                                </span>
+
+                                <h3 id="statusValue">
+                                    —
+                                </h3>
+                            </div>
+
+                        </div>
+
+
+                        <div class="status-result-details">
+
+                            <div class="status-detail">
+                                <span class="status-detail-label">
+                                    Название
+                                </span>
+
+                                <strong id="statusTitle">
+                                    —
+                                </strong>
+                            </div>
+
+
+                            <div class="status-detail">
+                                <span class="status-detail-label">
+                                    Категория
+                                </span>
+
+                                <strong id="statusCategory">
+                                    —
+                                </strong>
+                            </div>
+
+
+                            <div class="status-detail">
+                                <span class="status-detail-label">
+                                    Дата отправки
+                                </span>
+
+                                <strong id="statusDate">
+                                    —
+                                </strong>
+                            </div>
+
+                        </div>
+
+
+                        <!-- REJECTION REASON -->
+                        <div
+                            id="statusReasonBlock"
+                            class="status-reason"
+                            hidden
+                        >
+                            <div class="status-reason-title">
+                                Причина отклонения
+                            </div>
+
+                            <p id="statusReason">
+                                —
+                            </p>
+                        </div>
+
+
+                        <!-- APPROVED POST -->
+                        <div
+                            id="statusPostLink"
+                            class="status-post-link"
+                            hidden
+                        >
+                            <a
+                                id="statusPostUrl"
+                                href="#"
+                                class="btn btn-primary"
+                            >
+                                Открыть публикацию
+                            </a>
+                        </div>
+
+
+                        <button
+                            id="statusCheckAgain"
+                            class="btn btn-secondary"
+                            type="button"
+                        >
+                            Проверить другой код
+                        </button>
+
+                    </div>
 
                 </div>
 
 
-                <div class="status-explanation-item">
+                <!-- INFO -->
+                <div class="status-info">
 
-                  <span class="status-mini-icon">
-                    ✅
-                  </span>
+                    <div class="status-info-item">
+                        <div class="status-info-icon">
+                            📝
+                        </div>
 
-                  <div>
+                        <div>
+                            <h3>
+                                Отправили публикацию?
+                            </h3>
 
-                    <strong>
-                      Одобрено
-                    </strong>
+                            <p>
+                                Сохраните код отслеживания после отправки.
+                                Он понадобится для проверки статуса.
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <div class="status-info-item">
+                        <div class="status-info-icon">
+                            ⏳
+                        </div>
+
+                        <div>
+                            <h3>
+                                Ожидайте проверки
+                            </h3>
+
+                            <p>
+                                Публикации проходят модерацию перед
+                                размещением на сайте.
+                            </p>
+                        </div>
+                    </div>
+
+
+                    <div class="status-info-item">
+                        <div class="status-info-icon">
+                            📢
+                        </div>
+
+                        <div>
+                            <h3>
+                                Публикация одобрена?
+                            </h3>
+
+                            <p>
+                                После одобрения вы сможете открыть
+                                опубликованный материал.
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </section>
+
+    </main>
+
+
+    <!-- FOOTER -->
+    <footer class="site-footer">
+        <div class="container">
+
+            <div class="footer-main">
+
+                <div class="footer-brand">
+
+                    <a href="/" class="site-logo">
+                        <img
+                            src="/images/Image_2026_09_05_19_01_30.jpg"
+                            alt="Tajik Opportunities"
+                        >
+
+                        <span class="site-logo-text">
+                            Tajik Opportunities
+                        </span>
+                    </a>
 
                     <p>
-                      Материал прошёл проверку и опубликован
-                      на сайте.
+                        Возможности для Таджикистана:
+                        образование, работа, конкурсы,
+                        программы и полезные инициативы.
                     </p>
-
-                  </div>
 
                 </div>
 
 
-                <div class="status-explanation-item">
+                <div class="footer-links">
 
-                  <span class="status-mini-icon">
-                    ❌
-                  </span>
+                    <div class="footer-column">
+                        <h3>
+                            Навигация
+                        </h3>
 
-                  <div>
+                        <a href="/">
+                            Главная
+                        </a>
 
-                    <strong>
-                      Отклонено
-                    </strong>
+                        <a href="/add.html">
+                            Добавить публикацию
+                        </a>
 
-                    <p>
-                      Материал не был одобрен. Если доступна причина,
-                      она будет показана ниже.
-                    </p>
+                        <a href="/status.html">
+                            Проверить статус
+                        </a>
+                    </div>
 
-                  </div>
+
+                    <div class="footer-column">
+                        <h3>
+                            Сообщество
+                        </h3>
+
+                        <a
+                            href="https://t.me/Tajik_Opportunities"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Telegram-канал
+                        </a>
+
+                        <a
+                            href="https://t.me/Tajik_Opportunities_Group"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                        >
+                            Telegram-группа
+                        </a>
+                    </div>
 
                 </div>
-
-              </div>
 
             </div>
 
 
-            <!-- LOST CODE -->
-
-            <div class="info-card">
-
-              <div class="info-card-icon">
-                🔐
-              </div>
-
-              <div>
-
-                <h3>
-                  Потеряли код?
-                </h3>
+            <div class="footer-bottom">
 
                 <p>
-                  Код отслеживания показывается только после успешной
-                  отправки заявки. Поэтому рекомендуем сохранить его
-                  сразу после отправки.
+                    © <span id="currentYear"></span>
+                    Tajik Opportunities.
+                    Все права защищены.
                 </p>
 
-              </div>
+                <p>
+                    Сделано для Таджикистана 🇹🇯
+                </p>
 
             </div>
 
-
-            <!-- ADD PUBLICATION -->
-
-            <div class="telegram-card">
-
-              <div class="telegram-icon">
-                📢
-              </div>
-
-              <h3>
-                Хотите предложить ещё одну публикацию?
-              </h3>
-
-              <p>
-                Отправьте новую вакансию, новость, грант,
-                конкурс, стажировку или другую возможность.
-              </p>
-
-              <a
-                href="/add.html"
-                class="btn btn-telegram"
-              >
-                Предложить публикацию
-              </a>
-
-            </div>
-
-
-          </aside>
-
         </div>
-
-      </div>
-
-    </section>
+    </footer>
 
 
-    <!-- ========================================================
-         TELEGRAM CTA
-         ======================================================== -->
-
-    <section class="section section-soft">
-
-      <div class="container">
-
-        <div class="cta-card">
-
-          <div>
-
-            <span class="section-kicker">
-              Telegram
-            </span>
-
-            <h2>
-              Следите за новыми возможностями
-            </h2>
-
-            <p>
-              Подписывайтесь на Telegram-канал Tajik Opportunities,
-              чтобы получать новые публикации и полезные возможности.
-            </p>
-
-          </div>
-
-
-          <div class="cta-actions">
-
-            <a
-              href="https://t.me/Tajik_Opportunities"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn btn-telegram"
-            >
-              ✈️ Telegram-канал
-            </a>
-
-            <a
-              href="https://t.me/Tajik_Opportunities_Group"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="btn btn-secondary"
-            >
-              💬 Telegram-группа
-            </a>
-
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-  </main>
-
-
-  <!-- ==========================================================
-       FOOTER
-       ========================================================== -->
-
-  <footer class="site-footer">
-
-    <div class="container">
-
-      <div class="footer-grid">
-
-
-        <div class="footer-brand">
-
-          <a
-            class="brand"
-            href="/"
-            aria-label="Tajik Opportunities"
-          >
-
-            <img
-              class="brand-logo"
-              src="/images/logo.png"
-              alt="Tajik Opportunities"
-            >
-
-            <span class="brand-text">
-              <strong>Tajik Opportunities</strong>
-              <small>Возможности для Таджикистана</small>
-            </span>
-
-          </a>
-
-          <p>
-            Платформа полезных возможностей, новостей,
-            образования, работы и проектов для Таджикистана.
-          </p>
-
-        </div>
-
-
-        <div class="footer-links">
-
-          <h3>
-            Навигация
-          </h3>
-
-          <a href="/">
-            Главная
-          </a>
-
-          <a href="/add.html">
-            Предложить публикацию
-          </a>
-
-          <a href="/status.html">
-            Проверить статус
-          </a>
-
-        </div>
-
-
-        <div class="footer-links">
-
-          <h3>
-            Telegram
-          </h3>
-
-          <a
-            href="https://t.me/Tajik_Opportunities"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Канал
-          </a>
-
-          <a
-            href="https://t.me/Tajik_Opportunities_Group"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Группа
-          </a>
-
-        </div>
-
-      </div>
-
-
-      <div class="footer-bottom">
-
-        <span>
-          © <span id="currentYear"></span>
-          Tajik Opportunities
-        </span>
-
-        <span>
-          Сделано для Таджикистана 🇹🇯
-        </span>
-
-      </div>
-
+    <!-- TOAST -->
+    <div
+        id="toast"
+        class="toast"
+        role="status"
+        aria-live="polite"
+        hidden
+    >
+        <span class="toast-message"></span>
     </div>
 
-  </footer>
 
-
-  <!-- ==========================================================
-       TOAST
-       ========================================================== -->
-
-  <div
-    id="toast"
-    class="toast"
-    role="status"
-    aria-live="polite"
-    aria-atomic="true"
-  ></div>
-
-
-  <!-- ==========================================================
-       SCRIPTS
-       ========================================================== -->
-
-  <script src="/js/utils.js"></script>
-  <script src="/js/status.js"></script>
+    <!-- SCRIPTS -->
+    <script src="/js/app.js"></script>
+    <script src="/js/status.js"></script>
 
 </body>
-      </html>
+  </html>
