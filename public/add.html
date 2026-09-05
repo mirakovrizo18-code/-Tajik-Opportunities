@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>Предложить публикацию — Tajik Opportunities</title>
+
+  <meta
+    name="description"
+    content="Предложите новость, вакансию, образовательную возможность, грант, конкурс, мероприятие или другой полезный материал для Tajik Opportunities."
+  >
+
+  <meta
+    name="robots"
+    content="index,follow"
+  >
+
+  <meta
+    name="theme-color"
+    content="#0f6b4f"
+  >
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/logo.png"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/style.css"
+  >
+</head>
+
+<body>
+
+  <!-- ==========================================================
+       HEADER
+       ========================================================== -->
+
+  <header class="site-header">
+    <div class="container header-inner">
+
+      <a
+        class="brand"
+        href="/"
+        aria-label="Tajik Opportunities — главная"
+      >
+        <img
+          class="brand-logo"
+          src="/images/logo.png"
+          alt="Tajik Opportunities"
+        >
+
+        <span class="brand-text">
+          <strong>Tajik Opportunities</strong>
+          <small>Возможности для Таджикистана</small>
+        </span>
+      </a>
+
+      <nav
+        class="main-nav"
+        aria-label="Основная навигация"
+      >
+        <a href="/">Главная</a>
+
+        <a
+          href="/add.html"
+          class="active"
+          aria-current="page"
+        >
+          Предложить публикацию
+        </a>
+
+        <a href="/status.html">
+          Проверить статус
+        </a>
+      </nav>
+
+    </div>
+  </header>
+
+
+  <!-- ==========================================================
+       MAIN
+       ========================================================== -->
+
+  <main>
+
+    <!-- HERO -->
+
+    <section class="page-hero">
+      <div class="container">
+
+        <div class="page-hero-content">
+
+          <div class="eyebrow">
+            📢 Предложить материал
+          </div>
+
+          <h1>
+            Поделитесь полезной возможностью
+          </h1>
+
+          <p>
+            Отправьте нам новость, вакансию, образовательную программу,
+            грант, конкурс, стажировку, мероприятие, волонтёрский проект
+            или другую полезную информацию.
+          </p>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- FORM SECTION -->
+
+    <section class="section">
+      <div class="container">
+
+        <div class="form-layout">
+
+          <!-- ====================================================
+               FORM
+               ==================================================== -->
+
+          <div class="form-card">
+
+            <div class="form-card-header">
+
+              <div>
+                <span class="section-kicker">
+                  Новая публикация
+                </span>
+
+                <h2>
+                  Заполните форму
+                </h2>
+
+                <p>
+                  После отправки материал попадёт на модерацию.
+                  Публикация появится на сайте только после проверки.
+                </p>
+              </div>
+
+            </div>
+
+
+            <form
+              id="submissionForm"
+              class="submission-form"
+              novalidate
+            >
+
+              <!-- ==================================================
+                   TITLE
+                   ================================================== -->
+
+              <div class="form-group">
+
+                <label for="title">
+                  Заголовок
+                  <span class="required">*</span>
+                </label>
+
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  placeholder="Например: Бесплатная образовательная программа для студентов"
+                  maxlength="180"
+                  autocomplete="off"
+                  required
+                >
+
+                <div class="field-meta">
+                  <span>
+                    Короткий и понятный заголовок
+                  </span>
+
+                  <span id="titleCounter">
+                    0 / 180
+                  </span>
+                </div>
+
+              </div>
+
+
+              <!-- ==================================================
+                   CONTENT
+                   ================================================== -->
+
+              <div class="form-group">
+
+                <label for="content">
+                  Описание
+                  <span class="required">*</span>
+                </label>
+
+                <textarea
+                  id="content"
+                  name="content"
+                  rows="10"
+                  maxlength="10000"
+                  placeholder="Подробно опишите возможность: для кого она предназначена, что предлагается, сроки, требования, условия участия и другую важную информацию."
+                  required
+                ></textarea>
+
+                <div class="field-meta">
+                  <span>
+                    Чем подробнее информация, тем легче её проверить.
+                  </span>
+
+                  <span id="contentCounter">
+                    0 / 10000
+                  </span>
+                </div>
+
+              </div>
+
+
+              <!-- ==================================================
+                   CATEGORY
+                   ================================================== -->
+
+              <div class="form-group">
+
+                <label for="category">
+                  Категория
+                  <span class="required">*</span>
+                </label>
+
+                <select
+                  id="category"
+                  name="category"
+                  required
+                >
+
+                  <option value="">
+                    Выберите категорию
+                  </option>
+
+                  <option value="Новости">
+                    📰 Новости
+                  </option>
+
+                  <option value="Вакансии">
+                    💼 Вакансии
+                  </option>
+
+                  <option value="Образование">
+                    🎓 Образование
+                  </option>
+
+                  <option value="Гранты">
+                    💰 Гранты
+                  </option>
+
+                  <option value="Конкурсы">
+                    🏆 Конкурсы
+                  </option>
+
+                  <option value="Стажировки">
+                    🧑‍💻 Стажировки
+                  </option>
+
+                  <option value="Мероприятия">
+                    📅 Мероприятия
+                  </option>
+
+                  <option value="Волонтёрство">
+                    🤝 Волонтёрство
+                  </option>
+
+                  <option value="Другое">
+                    ✨ Другое
+                  </option>
+
+                </select>
+
+              </div>
+
+
+              <!-- ==================================================
+                   IMAGE URL
+                   ================================================== -->
+
+              <div class="form-group">
+
+                <label for="image_url">
+                  Изображение
+                  <span class="optional">
+                    необязательно
+                  </span>
+                </label>
+
+                <input
+                  type="url"
+                  id="image_url"
+                  name="image_url"
+                  placeholder="https://example.com/image.jpg"
+                  maxlength="2000"
+                  inputmode="url"
+                  autocomplete="url"
+                >
+
+                <div
+                  id="imageUrlPreview"
+                  class="url-preview"
+                  aria-live="polite"
+                ></div>
+
+                <small class="field-help">
+                  Если у публикации есть подходящее изображение,
+                  можете указать прямую ссылку на него.
+                </small>
+
+              </div>
+
+
+              <!-- ==================================================
+                   LINK URL
+                   ================================================== -->
+
+              <div class="form-group">
+
+                <label for="link_url">
+                  Ссылка
+                  <span class="optional">
+                    необязательно
+                  </span>
+                </label>
+
+                <input
+                  type="url"
+                  id="link_url"
+                  name="link_url"
+                  placeholder="https://example.com"
+                  maxlength="2000"
+                  inputmode="url"
+                  autocomplete="url"
+                >
+
+                <div
+                  id="linkUrlPreview"
+                  class="url-preview"
+                  aria-live="polite"
+                ></div>
+
+                <small class="field-help">
+                  Укажите официальный сайт, страницу регистрации
+                  или другую ссылку, связанную с публикацией.
+                </small>
+
+              </div>
+
+
+              <!-- ==================================================
+                   CONTACT
+                   ================================================== -->
+
+              <div class="form-group">
+
+                <label for="contact">
+                  Контактная информация
+                  <span class="optional">
+                    необязательно
+                  </span>
+                </label>
+
+                <input
+                  type="text"
+                  id="contact"
+                  name="contact"
+                  maxlength="500"
+                  placeholder="Telegram, телефон, email или другой способ связи"
+                  autocomplete="off"
+                >
+
+                <small class="field-help">
+                  Можно указать контакт организатора или источник,
+                  по которому можно уточнить информацию.
+                </small>
+
+              </div>
+
+
+              <!-- ==================================================
+                   AUTHOR NAME
+                   ================================================== -->
+
+              <div class="form-group">
+
+                <label for="author_name">
+                  Ваше имя
+                  <span class="optional">
+                    необязательно
+                  </span>
+                </label>
+
+                <input
+                  type="text"
+                  id="author_name"
+                  name="author_name"
+                  maxlength="120"
+                  placeholder="Как вас указать в качестве автора"
+                  autocomplete="name"
+                >
+
+              </div>
+
+
+              <!-- ==================================================
+                   HONEYPOT
+                   ================================================== -->
+
+              <div
+                class="honeypot"
+                aria-hidden="true"
+              >
+
+                <label for="website">
+                  Website
+                </label>
+
+                <input
+                  type="text"
+                  id="website"
+                  name="website"
+                  tabindex="-1"
+                  autocomplete="off"
+                >
+
+              </div>
+
+
+              <!-- ==================================================
+                   INFORMATION
+                   ================================================== -->
+
+              <div class="form-notice">
+
+                <div class="form-notice-icon">
+                  ℹ️
+                </div>
+
+                <div>
+
+                  <strong>
+                    Важно
+                  </strong>
+
+                  <p>
+                    Отправка формы не означает автоматическую публикацию.
+                    Каждая заявка проходит модерацию. Администрация
+                    может отклонить материалы, которые нарушают правила
+                    сайта, содержат недостоверную информацию или не
+                    соответствуют тематике проекта.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <!-- ==================================================
+                   MESSAGE
+                   ================================================== -->
+
+              <div
+                id="formMessage"
+                class="form-message"
+                role="alert"
+                aria-live="polite"
+              ></div>
+
+
+              <!-- ==================================================
+                   SUBMIT
+                   ================================================== -->
+
+              <button
+                type="submit"
+                class="btn btn-primary btn-large"
+                id="submitSubmission"
+              >
+                <span class="btn-icon">
+                  📤
+                </span>
+
+                <span>
+                  Отправить на модерацию
+                </span>
+              </button>
+
+              <p class="form-submit-note">
+                Нажимая кнопку отправки, вы подтверждаете,
+                что предоставленная информация не является заведомо
+                ложной и может быть проверена администрацией.
+              </p>
+
+            </form>
+
+
+            <!-- ====================================================
+                 SUCCESS
+                 ==================================================== -->
+
+            <div
+              id="submissionSuccess"
+              class="submission-success"
+              hidden
+            >
+
+              <div class="success-icon">
+                ✓
+              </div>
+
+              <span class="section-kicker">
+                Заявка отправлена
+              </span>
+
+              <h2>
+                Спасибо за вашу публикацию!
+              </h2>
+
+              <p>
+                Ваша заявка успешно отправлена и ожидает модерации.
+                Сохраните код отслеживания ниже, чтобы позже проверить
+                её статус.
+              </p>
+
+
+              <div class="tracking-box">
+
+                <span class="tracking-label">
+                  Ваш код отслеживания
+                </span>
+
+                <strong
+                  id="trackingCode"
+                  class="tracking-code"
+                >
+                  —
+                </strong>
+
+              </div>
+
+
+              <div class="success-actions">
+
+                <button
+                  type="button"
+                  class="btn btn-secondary"
+                  id="copyTrackingButton"
+                >
+                  📋 Скопировать код
+                </button>
+
+                <a
+                  href="/status.html"
+                  class="btn btn-primary"
+                  id="trackingStatusLink"
+                >
+                  🔎 Проверить статус
+                </a>
+
+              </div>
+
+
+              <div class="form-notice success-notice">
+
+                <div class="form-notice-icon">
+                  💡
+                </div>
+
+                <div>
+
+                  <strong>
+                    Не потеряйте код
+                  </strong>
+
+                  <p>
+                    Код нужен для самостоятельной проверки статуса
+                    вашей заявки. Он не является паролем и не гарантирует
+                    публикацию материала.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <a
+                href="/"
+                class="text-link"
+              >
+                ← Вернуться на главную
+              </a>
+
+            </div>
+
+          </div>
+
+
+          <!-- ====================================================
+               SIDEBAR
+               ==================================================== -->
+
+          <aside class="form-sidebar">
+
+            <!-- HOW IT WORKS -->
+
+            <div class="info-card">
+
+              <div class="info-card-icon">
+                1
+              </div>
+
+              <div>
+
+                <h3>
+                  Отправьте информацию
+                </h3>
+
+                <p>
+                  Заполните форму и укажите максимум полезных деталей.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div class="info-card">
+
+              <div class="info-card-icon">
+                2
+              </div>
+
+              <div>
+
+                <h3>
+                  Модерация
+                </h3>
+
+                <p>
+                  Администрация проверит содержание, ссылки
+                  и соответствие публикации проекту.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <div class="info-card">
+
+              <div class="info-card-icon">
+                3
+              </div>
+
+              <div>
+
+                <h3>
+                  Публикация
+                </h3>
+
+                <p>
+                  После одобрения материал появится на сайте
+                  Tajik Opportunities.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <!-- QUALITY CARD -->
+
+            <div class="sidebar-highlight">
+
+              <div class="sidebar-highlight-icon">
+                ⭐
+              </div>
+
+              <h3>
+                Как сделать заявку лучше?
+              </h3>
+
+              <ul>
+
+                <li>
+                  Используйте конкретный заголовок.
+                </li>
+
+                <li>
+                  Подробно опишите возможность.
+                </li>
+
+                <li>
+                  Укажите сроки и требования.
+                </li>
+
+                <li>
+                  Добавьте официальную ссылку.
+                </li>
+
+                <li>
+                  Проверьте информацию перед отправкой.
+                </li>
+
+              </ul>
+
+            </div>
+
+
+            <!-- TELEGRAM -->
+
+            <div class="telegram-card">
+
+              <div class="telegram-icon">
+                ✈️
+              </div>
+
+              <h3>
+                Следите за новыми возможностями
+              </h3>
+
+              <p>
+                Подписывайтесь на Telegram-канал
+                Tajik Opportunities, чтобы не пропускать
+                новые публикации.
+              </p>
+
+              <a
+                href="https://t.me/Tajik_Opportunities"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-telegram"
+              >
+                Открыть Telegram
+              </a>
+
+            </div>
+
+          </aside>
+
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- COMMUNITY CTA -->
+
+    <section class="section section-soft">
+      <div class="container">
+
+        <div class="cta-card">
+
+          <div>
+
+            <span class="section-kicker">
+              Tajik Opportunities
+            </span>
+
+            <h2>
+              Делимся возможностями вместе
+            </h2>
+
+            <p>
+              Один полезный материал может помочь кому-то найти
+              работу, получить образование, выиграть грант,
+              пройти стажировку или найти новый проект.
+            </p>
+
+          </div>
+
+          <a
+            href="/"
+            class="btn btn-primary"
+          >
+            Смотреть публикации
+          </a>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- ==========================================================
+       FOOTER
+       ========================================================== -->
+
+  <footer class="site-footer">
+
+    <div class="container">
+
+      <div class="footer-grid">
+
+        <div class="footer-brand">
+
+          <a
+            class="brand"
+            href="/"
+            aria-label="Tajik Opportunities"
+          >
+
+            <img
+              class="brand-logo"
+              src="/images/logo.png"
+              alt="Tajik Opportunities"
+            >
+
+            <span class="brand-text">
+              <strong>Tajik Opportunities</strong>
+              <small>Возможности для Таджикистана</small>
+            </span>
+
+          </a>
+
+          <p>
+            Платформа полезных возможностей, новостей,
+            образования, работы и проектов для Таджикистана.
+          </p>
+
+        </div>
+
+
+        <div class="footer-links">
+
+          <h3>
+            Навигация
+          </h3>
+
+          <a href="/">
+            Главная
+          </a>
+
+          <a href="/add.html">
+            Предложить публикацию
+          </a>
+
+          <a href="/status.html">
+            Проверить статус
+          </a>
+
+        </div>
+
+
+        <div class="footer-links">
+
+          <h3>
+            Telegram
+          </h3>
+
+          <a
+            href="https://t.me/Tajik_Opportunities"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Канал
+          </a>
+
+          <a
+            href="https://t.me/Tajik_Opportunities_Group"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Группа
+          </a>
+
+        </div>
+
+      </div>
+
+
+      <div class="footer-bottom">
+
+        <span>
+          © <span id="currentYear"></span>
+          Tajik Opportunities
+        </span>
+
+        <span>
+          Сделано для Таджикистана 🇹🇯
+        </span>
+
+      </div>
+
+    </div>
+
+  </footer>
+
+
+  <!-- ==========================================================
+       TOAST
+       ========================================================== -->
+
+  <div
+    id="toast"
+    class="toast"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+
+  <!-- ==========================================================
+       SCRIPTS
+       ========================================================== -->
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/add.js"></script>
+
+</body>
+  </html>
