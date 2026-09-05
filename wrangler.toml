@@ -1,0 +1,74 @@
+# ============================================================
+# TAJIK OPPORTUNITIES — CLOUDFLARE WORKERS
+# ============================================================
+
+name = "tajik-opportunities"
+main = "worker/worker.js"
+compatibility_date = "2026-09-05"
+compatibility_flags = ["nodejs_compat"]
+
+# ============================================================
+# ОСНОВНЫЕ ПЕРЕМЕННЫЕ
+# ============================================================
+
+[vars]
+ENVIRONMENT = "production"
+API_VERSION = "v1"
+SITE_URL = "https://tajik-opportunities.com"
+SITE_NAME = "Tajik Opportunities"
+DEFAULT_LANGUAGE = "ru"
+TIMEZONE = "Asia/Dushanbe"
+
+# ============================================================
+# СТАТИЧЕСКИЕ ФАЙЛЫ САЙТА
+# ============================================================
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# ============================================================
+# CLOUDFLARE D1
+# ============================================================
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tajik-opportunities-db"
+database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
+
+# ============================================================
+# BUILD
+# ============================================================
+
+[build]
+command = "echo 'Tajik Opportunities build completed'"
+
+# ============================================================
+# ЛОГИРОВАНИЕ
+# ============================================================
+
+[logging]
+level = "info"
+
+# ============================================================
+# DEVELOPMENT
+# ============================================================
+
+[env.dev]
+
+[env.dev.vars]
+ENVIRONMENT = "development"
+API_VERSION = "v1"
+SITE_URL = "http://localhost:8787"
+SITE_NAME = "Tajik Opportunities (Dev)"
+DEFAULT_LANGUAGE = "ru"
+TIMEZONE = "Asia/Dushanbe"
+
+[[env.dev.d1_databases]]
+binding = "DB"
+database_name = "tajik-opportunities-db"
+database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
+
+# ============================================================
+# КОНЕЦ КОНФИГУРАЦИИ
+# ============================================================
