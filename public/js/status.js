@@ -6,26 +6,26 @@
 (() => {
   "use strict";
 
-  const TO = window.TO;
-
-  if (!TO) {
-    console.error("Tajik Opportunities: utils.js не загружен.");
-    return;
-  }
+  const API_URL = "/api/submissions/status";
 
   const state = {
-    loading: false,
+    loading: false
   };
 
   // ==========================================================
   // DOM
   // ==========================================================
 
-  const form = document.getElementById("statusForm");
-  const codeInput = document.getElementById("trackingCodeInput");
-  const submitButton = form
-    ? form.querySelector('button[type="submit"]')
-    : null;
+  const form =
+    document.getElementById("statusForm");
+
+  const codeInput =
+    document.getElementById("trackingCodeInput");
+
+  const submitButton =
+    form
+      ? form.querySelector('button[type="submit"]')
+      : null;
 
   const loadingState =
     document.getElementById("statusLoading");
@@ -44,6 +44,9 @@
 
   const retryButton =
     document.getElementById("statusRetry");
+
+  const checkAgainButton =
+    document.getElementById("statusCheckAgain");
 
   const resultTitle =
     document.getElementById("statusTitle");
@@ -69,27 +72,196 @@
   const resultPostLink =
     document.getElementById("statusPostLink");
 
+  const resultPostUrl =
+    document.getElementById("statusPostUrl");
+
   // ==========================================================
-  // ИНИЦИАЛИЗАЦИЯ
+  // HELPERS
   // ==========================================================
 
-  document.addEventListener("DOMContentLoaded", init);
+  function show(element) {
+    if (element) {
+      element.hidden = false;
+    }
+  }
+
+  function hide(element) {
+    if (element) {
+      element.hidden = true;
+    }
+  }
+
+  function setText(element, value) {
+    if (element) {
+      element.textContent = String(value ?? "");
+    }
+  }
+
+  function getQueryCode() {
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    return (
+      params.get("code") || ""
+    ).trim();
+  }
+
+  function updateUrl(code) {
+    if (!code) {
+      return;
+    }
+
+    const url =
+      new URL(
+        window.location.href
+      );
+
+    url.searchParams.set(
+      "code",
+      code
+    );
+
+    window.history.replaceState(
+      {},
+      "",
+      url.toString()
+    );
+  }
+
+  function normalizeCode() {
+    if (!codeInput) {
+      return "";
+    }
+
+    const normalized =
+      codeInput.value
+        .replace(/\s+/g, "")
+        .trim()
+        .slice(0, 100);
+
+    codeInput.value =
+      normalized;
+
+    return normalized;
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return "—";
+    }
+
+    const parsed =
+      new Date(value);
+
+    if (
+      Number.isNaN(
+        parsed.getTime()
+      )
+    ) {
+      return "—";
+    }
+
+    return new Intl.DateTimeFormat(
+      "ru-RU",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }
+    ).format(parsed);
+  }
+
+  function getStatusInfo(status) {
+    const normalized =
+      String(
+        status || "pending"
+      ).toLowerCase();
+
+    const statuses = {
+      pending: {
+        label: "На модерации",
+        icon: "⏳"
+      },
+
+      approved: {
+        label: "Одобрено",
+        icon: "✅"
+      },
+
+      rejected: {
+        label: "Отклонено",
+        icon: "❌"
+      }
+    };
+
+    return (
+      statuses[normalized] ||
+      statuses.pending
+    );
+  }
+
+  function getCategoryIcon(category) {
+    const icons = {
+      "Новости": "📰",
+      "Вакансии": "💼",
+      "Образование": "🎓",
+      "Гранты": "💰",
+      "Конкурсы": "🏆",
+      "Стажировки": "🧑‍💻",
+      "Мероприятия": "📅",
+      "Волонтёрство": "🤝",
+      "Другое": "✨"
+    };
+
+    return (
+      icons[category] ||
+      "✨"
+    );
+  }
+
+  function getErrorMessage(
+    error,
+    fallback
+  ) {
+    if (
+      error &&
+      error.message
+    ) {
+      return error.message;
+    }
+
+    return fallback;
+  }
+
+  // ==========================================================
+  // INITIALIZATION
+  // ==========================================================
 
   function init() {
     bindEvents();
 
     const code =
-      TO.getQueryParam("code");
+      getQueryCode();
 
-    if (code && codeInput) {
-      codeInput.value = code.trim();
+    if (
+      code &&
+      codeInput
+    ) {
+      codeInput.value =
+        code;
 
-      checkStatus(code.trim());
+      checkStatus(code);
+    } else {
+      showEmpty();
     }
   }
 
   // ==========================================================
-  // СОБЫТИЯ
+  // EVENTS
   // ==========================================================
 
   function bindEvents() {
@@ -109,7 +281,9 @@
       codeInput.addEventListener(
         "keydown",
         (event) => {
-          if (event.key === "Enter") {
+          if (
+            event.key === "Enter"
+          ) {
             event.preventDefault();
 
             if (form) {
@@ -125,9 +299,7 @@
         "click",
         () => {
           const code =
-            codeInput
-              ? codeInput.value.trim()
-              : "";
+            normalizeCode();
 
           if (code) {
             checkStatus(code);
@@ -135,11 +307,14 @@
         }
       );
     }
-  }
 
-  // ==========================================================
-  // НОРМАЛИЗАЦИЯ КОДА
-  // ==========================================================
+    if (checkAgainButton) {
+      checkAgainButton.addEventListener(
+        "click",
+        resetStatus
+      );
+    }
+  }
 
   function normalizeInput() {
     if (!codeInput) {
@@ -153,22 +328,20 @@
   }
 
   // ==========================================================
-  // ОТПРАВКА
+  // SUBMIT
   // ==========================================================
 
-  async function handleSubmit(event) {
+  async function handleSubmit(
+    event
+  ) {
     event.preventDefault();
 
     if (state.loading) {
       return;
     }
 
-    normalizeInput();
-
     const code =
-      codeInput
-        ? codeInput.value.trim()
-        : "";
+      normalizeCode();
 
     if (!code) {
       showError(
@@ -190,10 +363,12 @@
   }
 
   // ==========================================================
-  // ПРОВЕРКА СТАТУСА
+  // API
   // ==========================================================
 
-  async function checkStatus(code) {
+  async function checkStatus(
+    code
+  ) {
     if (state.loading) {
       return;
     }
@@ -201,31 +376,61 @@
     state.loading = true;
 
     showLoading();
-
-    TO.setButtonLoading(
+    setButtonLoading(
       submitButton,
-      true,
-      "Проверяем..."
+      true
     );
 
     try {
+      const url =
+        `${API_URL}?code=${encodeURIComponent(
+          code
+        )}`;
+
       const response =
-        await TO.getJson(
-          `/api/submissions/status?code=${encodeURIComponent(
-            code
-          )}`
+        await fetch(
+          url,
+          {
+            method: "GET",
+
+            headers: {
+              "Accept":
+                "application/json"
+            },
+
+            cache: "no-store"
+          }
         );
 
-      const submission =
-        extractSubmission(response);
+      let data = null;
 
-      if (!submission) {
+      try {
+        data =
+          await response.json();
+      } catch {
+        data = null;
+      }
+
+      if (!response.ok) {
         throw new Error(
-          "Публикация с таким кодом не найдена."
+          data?.error ||
+          data?.message ||
+          "Не удалось проверить статус заявки."
         );
       }
 
-      renderStatus(submission);
+      const submission =
+        extractSubmission(data);
+
+      if (!submission) {
+        throw new Error(
+          "Заявка с таким кодом не найдена."
+        );
+      }
+
+      renderStatus(
+        submission
+      );
 
       updateUrl(code);
 
@@ -233,10 +438,10 @@
       hideError();
       showResult();
 
-      TO.showToast(
-        "Статус успешно получен.",
-        "success"
+      showToast(
+        "Статус успешно получен."
       );
+
     } catch (error) {
       console.error(
         "Tajik Opportunities: ошибка проверки статуса",
@@ -246,15 +451,16 @@
       hideLoading();
 
       showError(
-        TO.getErrorMessage(
+        getErrorMessage(
           error,
-          "Не удалось проверить статус."
+          "Не удалось проверить статус заявки. Попробуйте ещё раз."
         )
       );
+
     } finally {
       state.loading = false;
 
-      TO.setButtonLoading(
+      setButtonLoading(
         submitButton,
         false
       );
@@ -262,10 +468,12 @@
   }
 
   // ==========================================================
-  // ПОЛУЧЕНИЕ ДАННЫХ
+  // EXTRACT SUBMISSION
   // ==========================================================
 
-  function extractSubmission(response) {
+  function extractSubmission(
+    response
+  ) {
     if (!response) {
       return null;
     }
@@ -278,7 +486,9 @@
       return response;
     }
 
-    if (response.submission) {
+    if (
+      response.submission
+    ) {
       return response.submission;
     }
 
@@ -291,7 +501,11 @@
 
     if (
       response.data &&
-      response.data.status
+      (
+        response.data.id ||
+        response.data.title ||
+        response.data.status
+      )
     ) {
       return response.data;
     }
@@ -300,10 +514,12 @@
   }
 
   // ==========================================================
-  // ОТРИСОВКА
+  // RENDER STATUS
   // ==========================================================
 
-  function renderStatus(submission) {
+  function renderStatus(
+    submission
+  ) {
     const title =
       submission.title ||
       "Без названия";
@@ -314,82 +530,87 @@
 
     const status =
       String(
-        submission.status || "pending"
+        submission.status ||
+        "pending"
       ).toLowerCase();
 
-    // --------------------------------------------------------
-    // Заголовок
-    // --------------------------------------------------------
-
-    if (resultTitle) {
-      resultTitle.textContent =
-        title;
-    }
+    const statusInfo =
+      getStatusInfo(
+        status
+      );
 
     // --------------------------------------------------------
-    // Категория
+    // TITLE
     // --------------------------------------------------------
 
-    if (resultCategory) {
-      const icon =
-        TO.getCategoryIcon(category);
-
-      const label =
-        TO.getCategoryLabel(category);
-
-      resultCategory.textContent =
-        `${icon} ${label}`;
-    }
+    setText(
+      resultTitle,
+      title
+    );
 
     // --------------------------------------------------------
-    // Статус
+    // CATEGORY
     // --------------------------------------------------------
 
-    const statusLabel =
-      TO.getStatusLabel(status);
+    setText(
+      resultCategory,
+      `${getCategoryIcon(
+        category
+      )} ${category}`
+    );
 
-    const statusIcon =
-      TO.getStatusIcon(status);
+    // --------------------------------------------------------
+    // STATUS
+    // --------------------------------------------------------
+
+    setText(
+      resultStatus,
+      statusInfo.label
+    );
 
     if (resultStatus) {
-      resultStatus.textContent =
-        statusLabel;
-
       resultStatus.className =
         `status-value status-${status}`;
     }
 
-    if (resultStatusIcon) {
-      resultStatusIcon.textContent =
-        statusIcon;
-    }
+    setText(
+      resultStatusIcon,
+      statusInfo.icon
+    );
 
     // --------------------------------------------------------
-    // Дата
+    // DATE
     // --------------------------------------------------------
 
     const date =
       submission.created_at ||
+      submission.submitted_at ||
       submission.published_at ||
       "";
 
     if (resultDate) {
       if (date) {
         resultDate.textContent =
-          TO.formatDateTime(date);
+          formatDate(date);
 
-        resultDate.hidden = false;
+        resultDate.hidden =
+          false;
       } else {
-        resultDate.hidden = true;
+        resultDate.textContent =
+          "—";
+
+        resultDate.hidden =
+          false;
       }
     }
 
     // --------------------------------------------------------
-    // Причина отклонения
+    // REJECTION REASON
     // --------------------------------------------------------
 
     const rejectionReason =
       submission.rejection_reason ||
+      submission.reason ||
       "";
 
     if (
@@ -406,7 +627,8 @@
         resultReasonBlock.hidden =
           false;
       } else {
-        resultReason.textContent = "";
+        resultReason.textContent =
+          "";
 
         resultReasonBlock.hidden =
           true;
@@ -414,30 +636,37 @@
     }
 
     // --------------------------------------------------------
-    // Ссылка на опубликованную запись
+    // APPROVED POST
     // --------------------------------------------------------
 
-    if (resultPostLink) {
-      const postId =
-        submission.post_id ||
-        submission.published_post_id ||
-        "";
+    const postId =
+      submission.post_id ||
+      submission.published_post_id ||
+      "";
 
+    if (
+      resultPostLink &&
+      resultPostUrl
+    ) {
       if (
         status === "approved" &&
         postId
       ) {
-        resultPostLink.href =
+        const postUrl =
           `/post.html?id=${encodeURIComponent(
             postId
           )}`;
+
+        resultPostUrl.href =
+          postUrl;
 
         resultPostLink.hidden =
           false;
       } else {
         resultPostLink.hidden =
           true;
-        resultPostLink.removeAttribute(
+
+        resultPostUrl.removeAttribute(
           "href"
         );
       }
@@ -445,86 +674,221 @@
   }
 
   // ==========================================================
-  // URL
-  // ==========================================================
-
-  function updateUrl(code) {
-    if (!code) {
-      return;
-    }
-
-    TO.setQueryParams(
-      {
-        code,
-      },
-      true
-    );
-  }
-
-  // ==========================================================
-  // UI
+  // UI STATES
   // ==========================================================
 
   function showLoading() {
-    if (loadingState) {
-      loadingState.hidden = false;
-    }
+    show(
+      loadingState
+    );
 
-    if (resultState) {
-      resultState.hidden = true;
-    }
+    hide(
+      resultState
+    );
 
-    if (emptyState) {
-      emptyState.hidden = true;
-    }
+    hide(
+      emptyState
+    );
 
-    if (errorState) {
-      errorState.hidden = true;
-    }
+    hide(
+      errorState
+    );
   }
 
   function hideLoading() {
-    if (loadingState) {
-      loadingState.hidden = true;
-    }
+    hide(
+      loadingState
+    );
   }
 
   function showResult() {
-    if (resultState) {
-      resultState.hidden = false;
-    }
+    hide(
+      loadingState
+    );
 
-    if (emptyState) {
-      emptyState.hidden = true;
-    }
+    hide(
+      emptyState
+    );
+
+    hide(
+      errorState
+    );
+
+    show(
+      resultState
+    );
   }
 
-  function showError(message) {
-    if (loadingState) {
-      loadingState.hidden = true;
-    }
+  function showEmpty() {
+    hide(
+      loadingState
+    );
 
-    if (resultState) {
-      resultState.hidden = true;
-    }
+    hide(
+      resultState
+    );
 
-    if (emptyState) {
-      emptyState.hidden = true;
-    }
+    hide(
+      errorState
+    );
 
-    if (errorState) {
-      errorState.hidden = false;
-    }
+    show(
+      emptyState
+    );
+  }
 
-    if (errorMessage) {
-      errorMessage.textContent =
-        message;
-    }
+  function showError(
+    message
+  ) {
+    hide(
+      loadingState
+    );
+
+    hide(
+      resultState
+    );
+
+    hide(
+      emptyState
+    );
+
+    show(
+      errorState
+    );
+
+    setText(
+      errorMessage,
+      message
+    );
   }
 
   function hideError() {
-    if (errorState) {
-      errorState.hidden = true;
+    hide(
+      errorState
+    );
+  }
+
+  function resetStatus() {
+    if (state.loading) {
+      return;
+    }
+
+    if (codeInput) {
+      codeInput.value =
+        "";
+      codeInput.focus();
+    }
+
+    const url =
+      new URL(
+        window.location.href
+      );
+
+    url.searchParams.delete(
+      "code"
+    );
+
+    window.history.replaceState(
+      {},
+      "",
+      url.pathname +
+      url.search +
+      url.hash
+    );
+
+    showEmpty();
+  }
+
+  // ==========================================================
+  // BUTTON
+  // ==========================================================
+
+  function setButtonLoading(
+    button,
+    loading
+  ) {
+    if (!button) {
+      return;
+    }
+
+    if (loading) {
+      if (
+        !button.dataset.originalText
+      ) {
+        button.dataset.originalText =
+          button.textContent.trim();
+      }
+
+      button.disabled =
+        true;
+
+      button.textContent =
+        "⏳ Проверяем...";
+    } else {
+      button.disabled =
+        false;
+
+      if (
+        button.dataset.originalText
+      ) {
+        button.textContent =
+          button.dataset.originalText;
+      }
     }
   }
+
+  // ==========================================================
+  // TOAST
+  // ==========================================================
+
+  function showToast(
+    message
+  ) {
+    const toast =
+      document.getElementById(
+        "toast"
+      );
+
+    if (!toast) {
+      return;
+    }
+
+    toast.textContent =
+      message;
+
+    toast.classList.add(
+      "show"
+    );
+
+    clearTimeout(
+      toast._timer
+    );
+
+    toast._timer =
+      setTimeout(
+        () => {
+          toast.classList.remove(
+            "show"
+          );
+        },
+        3000
+      );
+  }
+
+  // ==========================================================
+  // START
+  // ==========================================================
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      init
+    );
+  } else {
+    init();
+  }
+
 })();
