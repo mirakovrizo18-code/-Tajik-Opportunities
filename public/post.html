@@ -15,7 +15,8 @@
 
   <meta
     name="description"
-    content="Полная публикация на Tajik Opportunities."
+    id="metaDescription"
+    content="Публикация на Tajik Opportunities."
   >
 
   <meta
@@ -25,12 +26,14 @@
 
   <meta
     property="og:title"
+    id="ogTitle"
     content="Публикация — Tajik Opportunities"
   >
 
   <meta
     property="og:description"
-    content="Полная публикация на Tajik Opportunities."
+    id="ogDescription"
+    content="Публикация на Tajik Opportunities."
   >
 
   <meta
@@ -43,7 +46,7 @@
     content="Tajik Opportunities"
   >
 
-  <title>
+  <title id="pageTitle">
     Публикация — Tajik Opportunities
   </title>
 
@@ -56,13 +59,244 @@
     rel="stylesheet"
     href="/css/style.css"
   >
+
+  <style>
+    .post-page {
+      padding-bottom: 80px;
+    }
+
+    .post-detail {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .post-detail-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+
+    .post-date {
+      opacity: .65;
+      font-size: 13px;
+    }
+
+    .post-detail h1 {
+      font-size: clamp(28px, 5vw, 48px);
+      line-height: 1.12;
+      margin: 10px 0 18px;
+      overflow-wrap: anywhere;
+    }
+
+    .post-author {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(127,127,127,.07);
+      margin-bottom: 20px;
+      width: fit-content;
+      max-width: 100%;
+    }
+
+    .post-author-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(127,127,127,.12);
+    }
+
+    .post-author small {
+      display: block;
+      opacity: .55;
+      font-size: 11px;
+      margin-bottom: 2px;
+    }
+
+    .post-author strong {
+      display: block;
+      overflow-wrap: anywhere;
+    }
+
+    .post-detail-image-wrapper {
+      margin: 20px 0;
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(127,127,127,.08);
+    }
+
+    .post-detail-image {
+      display: block;
+      width: 100%;
+      max-height: 650px;
+      object-fit: contain;
+    }
+
+    .post-text {
+      font-size: 17px;
+      line-height: 1.75;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin-top: 25px;
+    }
+
+    .post-link-box {
+      display: flex;
+      gap: 15px;
+      align-items: flex-start;
+      margin-top: 25px;
+      padding: 18px;
+      border-radius: 16px;
+      background: rgba(15,107,79,.08);
+      border: 1px solid rgba(15,107,79,.15);
+    }
+
+    .post-link-icon {
+      font-size: 30px;
+    }
+
+    .post-link-content {
+      min-width: 0;
+    }
+
+    .post-link-content strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .post-link-content p {
+      margin: 0 0 10px;
+      opacity: .7;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    .post-link-content a {
+      overflow-wrap: anywhere;
+    }
+
+    .post-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 28px;
+    }
+
+    .post-actions button,
+    .post-actions a {
+      cursor: pointer;
+    }
+
+    .post-stats {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 18px;
+    }
+
+    .post-stat {
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(127,127,127,.08);
+      font-size: 12px;
+    }
+
+    .loading-card,
+    .error-card {
+      max-width: 700px;
+      margin: 50px auto;
+      padding: 35px 20px;
+      border-radius: 18px;
+      text-align: center;
+      background: rgba(127,127,127,.07);
+    }
+
+    .loading-spinner {
+      width: 38px;
+      height: 38px;
+      margin: 0 auto 15px;
+      border: 4px solid rgba(127,127,127,.2);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: postSpin .8s linear infinite;
+    }
+
+    @keyframes postSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .error-icon {
+      font-size: 50px;
+      margin-bottom: 12px;
+    }
+
+    .error-actions {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .telegram-card {
+      max-width: 900px;
+      margin: 35px auto 0;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: #222;
+      color: #fff;
+      font-size: 14px;
+      transition: .25s ease;
+      max-width: calc(100vw - 30px);
+      text-align: center;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 600px) {
+      .post-text {
+        font-size: 16px;
+      }
+
+      .post-link-box {
+        flex-direction: column;
+      }
+
+      .post-actions {
+        flex-direction: column;
+      }
+
+      .post-actions .btn {
+        width: 100%;
+        box-sizing: border-box;
+        text-align: center;
+      }
+    }
+  </style>
 </head>
 
 <body>
-
-  <!-- ==========================================================
-       HEADER
-  ========================================================== -->
 
   <header class="site-header">
 
@@ -75,12 +309,10 @@
       >
 
         <span class="brand-logo">
-
           <img
             src="/images/Image_2026_09_05_19_01_30.jpg"
             alt="Tajik Opportunities"
           >
-
         </span>
 
         <span class="brand-text">
@@ -96,7 +328,6 @@
         </span>
 
       </a>
-
 
       <nav
         class="main-nav"
@@ -115,6 +346,18 @@
           Проверить статус
         </a>
 
+        <a href="/notifications.html">
+          🔔
+        </a>
+
+        <a href="/messages.html">
+          💬
+        </a>
+
+        <a href="/profile.html">
+          👤
+        </a>
+
       </nav>
 
     </div>
@@ -122,15 +365,7 @@
   </header>
 
 
-  <!-- ==========================================================
-       MAIN
-  ========================================================== -->
-
-  <main>
-
-    <!-- ========================================================
-         LOADING
-    ======================================================== -->
+  <main class="post-page">
 
     <section
       id="postLoading"
@@ -158,10 +393,6 @@
     </section>
 
 
-    <!-- ========================================================
-         POST CONTENT
-    ======================================================== -->
-
     <section
       id="postContent"
       class="section post-section"
@@ -169,8 +400,6 @@
     >
 
       <div class="container">
-
-        <!-- BACK -->
 
         <div class="post-topbar">
 
@@ -185,11 +414,7 @@
         </div>
 
 
-        <!-- ARTICLE -->
-
         <article class="post-detail">
-
-          <!-- CATEGORY + DATE -->
 
           <div class="post-detail-meta">
 
@@ -210,14 +435,10 @@
           </div>
 
 
-          <!-- TITLE -->
-
           <h1 id="postTitle">
             —
           </h1>
 
-
-          <!-- AUTHOR -->
 
           <div
             id="postAuthor"
@@ -244,8 +465,6 @@
           </div>
 
 
-          <!-- IMAGE -->
-
           <div
             id="postImageWrapper"
             class="post-detail-image-wrapper"
@@ -257,13 +476,10 @@
               class="post-detail-image"
               src=""
               alt=""
-              loading="lazy"
             >
 
           </div>
 
-
-          <!-- TEXT -->
 
           <div
             id="postText"
@@ -271,7 +487,42 @@
           ></div>
 
 
-          <!-- EXTERNAL LINK -->
+          <div
+            id="postStats"
+            class="post-stats"
+            hidden
+          >
+
+            <span
+              id="viewsStat"
+              class="post-stat"
+            >
+              👁 0
+            </span>
+
+            <span
+              id="likesStat"
+              class="post-stat"
+            >
+              ❤️ 0
+            </span>
+
+            <span
+              id="commentsStat"
+              class="post-stat"
+            >
+              💬 0
+            </span>
+
+            <span
+              id="savesStat"
+              class="post-stat"
+            >
+              🔖 0
+            </span>
+
+          </div>
+
 
           <div
             id="postLink"
@@ -308,8 +559,6 @@
           </div>
 
 
-          <!-- SHARE -->
-
           <div class="post-actions">
 
             <button
@@ -331,10 +580,6 @@
 
         </article>
 
-
-        <!-- ====================================================
-             TELEGRAM CTA
-        ===================================================== -->
 
         <div class="telegram-card post-telegram-card">
 
@@ -372,10 +617,6 @@
 
     </section>
 
-
-    <!-- ========================================================
-         ERROR
-    ======================================================== -->
 
     <section
       id="postError"
@@ -431,10 +672,6 @@
   </main>
 
 
-  <!-- ==========================================================
-       FOOTER
-  ========================================================== -->
-
   <footer class="site-footer">
 
     <div class="container">
@@ -446,7 +683,6 @@
           <a
             class="brand"
             href="/"
-            aria-label="Tajik Opportunities"
           >
 
             <span class="brand-logo">
@@ -498,6 +734,10 @@
             Проверить статус
           </a>
 
+          <a href="/messages.html">
+            Сообщения
+          </a>
+
         </div>
 
 
@@ -547,25 +787,869 @@
   </footer>
 
 
-  <!-- ==========================================================
-       TOAST
-  ========================================================== -->
-
   <div
     id="toast"
     class="toast"
     role="status"
     aria-live="polite"
-    aria-atomic="true"
   ></div>
 
 
-  <!-- ==========================================================
-       JAVASCRIPT
-  ========================================================== -->
+<script>
+(() => {
 
-  <script src="/js/app.js"></script>
-  <script src="/js/post.js"></script>
+  "use strict";
+
+
+  const API = "/api";
+
+
+  const $ = (id) =>
+    document.getElementById(id);
+
+
+  const loading =
+    $("postLoading");
+
+  const content =
+    $("postContent");
+
+  const errorSection =
+    $("postError");
+
+  const errorMessage =
+    $("postErrorMessage");
+
+  const title =
+    $("postTitle");
+
+  const category =
+    $("postCategory");
+
+  const date =
+    $("postDate");
+
+  const author =
+    $("postAuthor");
+
+  const authorName =
+    $("postAuthorName");
+
+  const imageWrapper =
+    $("postImageWrapper");
+
+  const image =
+    $("postImage");
+
+  const text =
+    $("postText");
+
+  const linkBox =
+    $("postLink");
+
+  const externalLink =
+    $("postExternalLink");
+
+  const shareButton =
+    $("postShare");
+
+  const backButton =
+    $("postBack");
+
+  const retryButton =
+    $("postRetry");
+
+  const stats =
+    $("postStats");
+
+  const viewsStat =
+    $("viewsStat");
+
+  const likesStat =
+    $("likesStat");
+
+  const commentsStat =
+    $("commentsStat");
+
+  const savesStat =
+    $("savesStat");
+
+  const toast =
+    $("toast");
+
+
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+
+  const publicationId =
+    params.get("id") ||
+    params.get("publication_id") ||
+    params.get("post_id");
+
+
+  let publication = null;
+
+  let toastTimer = null;
+
+
+  function showToast(message) {
+
+    if (!toast) return;
+
+    toast.textContent =
+      message;
+
+    toast.classList.add(
+      "show"
+    );
+
+    clearTimeout(
+      toastTimer
+    );
+
+    toastTimer =
+      setTimeout(() => {
+
+        toast.classList.remove(
+          "show"
+        );
+
+      }, 2500);
+  }
+
+
+  function escapeHTML(value) {
+
+    return String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
+
+
+  async function request(
+    url,
+    options = {}
+  ) {
+
+    const response =
+      await fetch(url, {
+
+        credentials:
+          "same-origin",
+
+        ...options,
+
+        headers: {
+
+          "Accept":
+            "application/json",
+
+          ...(options.body
+            ? {
+                "Content-Type":
+                  "application/json"
+              }
+            : {}),
+
+          ...(options.headers || {})
+
+        }
+
+      });
+
+
+    let data = {};
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch (_) {
+
+      data = {};
+
+    }
+
+
+    if (!response.ok) {
+
+      const error =
+        new Error(
+          data?.error ||
+          data?.message ||
+          `Ошибка ${response.status}`
+        );
+
+      error.status =
+        response.status;
+
+      throw error;
+    }
+
+
+    return data;
+  }
+
+
+  function getPublicationData(data) {
+
+    return (
+      data?.publication ||
+      data?.post ||
+      data?.item ||
+      data?.data ||
+      data
+    );
+  }
+
+
+  function getValue(
+    object,
+    keys,
+    fallback = ""
+  ) {
+
+    for (const key of keys) {
+
+      if (
+        object &&
+        object[key] !== undefined &&
+        object[key] !== null &&
+        object[key] !== ""
+      ) {
+        return object[key];
+      }
+    }
+
+    return fallback;
+  }
+
+
+  function formatDate(value) {
+
+    if (!value) return "—";
+
+
+    const d =
+      new Date(value);
+
+
+    if (
+      Number.isNaN(
+        d.getTime()
+      )
+    ) {
+      return String(value);
+    }
+
+
+    return new Intl.DateTimeFormat(
+      "ru-RU",
+      {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }
+    ).format(d);
+  }
+
+
+  function getImage(post) {
+
+    return getValue(
+      post,
+      [
+        "image",
+        "image_url",
+        "imageUrl",
+        "cover",
+        "cover_url",
+        "thumbnail",
+        "thumbnail_url",
+        "photo",
+        "photo_url"
+      ],
+      ""
+    );
+  }
+
+
+  function getTitle(post) {
+
+    return getValue(
+      post,
+      [
+        "title",
+        "name",
+        "headline"
+      ],
+      "Публикация"
+    );
+  }
+
+
+  function getCategory(post) {
+
+    return getValue(
+      post,
+      [
+        "category_name",
+        "category",
+        "category_title",
+        "section"
+      ],
+      "Возможность"
+    );
+  }
+
+
+  function getText(post) {
+
+    return getValue(
+      post,
+      [
+        "content",
+        "text",
+        "description",
+        "body"
+      ],
+      ""
+    );
+  }
+
+
+  function getAuthor(post) {
+
+    return getValue(
+      post,
+      [
+        "author_name",
+        "author",
+        "username",
+        "user_name",
+        "created_by"
+      ],
+      ""
+    );
+  }
+
+
+  function getExternalUrl(post) {
+
+    return getValue(
+      post,
+      [
+        "external_url",
+        "externalUrl",
+        "website",
+        "url",
+        "link"
+      ],
+      ""
+    );
+  }
+
+
+  function getNumber(
+    post,
+    keys
+  ) {
+
+    const value =
+      getValue(
+        post,
+        keys,
+        0
+      );
+
+
+    const number =
+      Number(value);
+
+
+    return Number.isFinite(number)
+      ? number
+      : 0;
+  }
+
+
+  function renderPublication() {
+
+    const post =
+      publication;
+
+
+    if (!post) return;
+
+
+    const postTitle =
+      getTitle(post);
+
+    const postCategory =
+      getCategory(post);
+
+    const postText =
+      getText(post);
+
+    const postAuthor =
+      getAuthor(post);
+
+    const postImage =
+      getImage(post);
+
+    const postUrl =
+      getExternalUrl(post);
+
+
+    title.textContent =
+      postTitle;
+
+
+    category.textContent =
+      postCategory;
+
+
+    date.textContent =
+      formatDate(
+        getValue(
+          post,
+          [
+            "published_at",
+            "publishedAt",
+            "created_at",
+            "createdAt",
+            "date"
+          ],
+          ""
+        )
+      );
+
+
+    if (postAuthor) {
+
+      author.hidden =
+        false;
+
+      authorName.textContent =
+        postAuthor;
+
+    } else {
+
+      author.hidden =
+        true;
+    }
+
+
+    if (postImage) {
+
+      image.src =
+        postImage;
+
+      image.alt =
+        postTitle;
+
+      imageWrapper.hidden =
+        false;
+
+    } else {
+
+      imageWrapper.hidden =
+        true;
+
+      image.removeAttribute(
+        "src"
+      );
+    }
+
+
+    text.textContent =
+      postText;
+
+
+    if (postUrl) {
+
+      try {
+
+        const safeUrl =
+          new URL(
+            postUrl,
+            window.location.origin
+          );
+
+
+        externalLink.href =
+          safeUrl.href;
+
+        linkBox.hidden =
+          false;
+
+      } catch (_) {
+
+        linkBox.hidden =
+          true;
+      }
+
+    } else {
+
+      linkBox.hidden =
+        true;
+    }
+
+
+    const views =
+      getNumber(
+        post,
+        [
+          "views",
+          "view_count",
+          "views_count"
+        ]
+      );
+
+
+    const likes =
+      getNumber(
+        post,
+        [
+          "likes",
+          "like_count",
+          "likes_count"
+        ]
+      );
+
+
+    const comments =
+      getNumber(
+        post,
+        [
+          "comments",
+          "comment_count",
+          "comments_count"
+        ]
+      );
+
+
+    const saves =
+      getNumber(
+        post,
+        [
+          "saves",
+          "save_count",
+          "saves_count"
+        ]
+      );
+
+
+    if (
+      views ||
+      likes ||
+      comments ||
+      saves
+    ) {
+
+      stats.hidden =
+        false;
+
+      viewsStat.textContent =
+        `👁 ${views}`;
+
+      likesStat.textContent =
+        `❤️ ${likes}`;
+
+      commentsStat.textContent =
+        `💬 ${comments}`;
+
+      savesStat.textContent =
+        `🔖 ${saves}`;
+    }
+
+
+    document.title =
+      `${postTitle} — Tajik Opportunities`;
+
+
+    const description =
+      postText
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 160);
+
+
+    $("metaDescription")
+      .setAttribute(
+        "content",
+        description ||
+        "Публикация на Tajik Opportunities."
+      );
+
+
+    $("ogTitle")
+      .setAttribute(
+        "content",
+        postTitle
+      );
+
+
+    $("ogDescription")
+      .setAttribute(
+        "content",
+        description ||
+        "Публикация на Tajik Opportunities."
+      );
+
+
+    loading.hidden =
+      true;
+
+    errorSection.hidden =
+      true;
+
+    content.hidden =
+      false;
+  }
+
+
+  async function loadPublication() {
+
+    if (!publicationId) {
+
+      showError(
+        "В ссылке отсутствует ID публикации."
+      );
+
+      return;
+    }
+
+
+    loading.hidden =
+      false;
+
+    content.hidden =
+      true;
+
+    errorSection.hidden =
+      true;
+
+
+    try {
+
+      const data =
+        await request(
+          `${API}/publications/${encodeURIComponent(publicationId)}`
+        );
+
+
+      publication =
+        getPublicationData(
+          data
+        );
+
+
+      if (
+        !publication ||
+        typeof publication !== "object"
+      ) {
+
+        throw new Error(
+          "Публикация не найдена."
+        );
+      }
+
+
+      renderPublication();
+
+
+      /*
+       * Увеличиваем просмотры через
+       * новый Worker.
+       */
+
+      try {
+
+        await request(
+          `${API}/publications/view`,
+          {
+            method: "POST",
+
+            body: JSON.stringify({
+              publication_id:
+                publicationId
+            })
+          }
+        );
+
+      } catch (viewError) {
+
+        console.debug(
+          "View counter:",
+          viewError.message
+        );
+      }
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      showError(
+        error.message ||
+        "Публикация не найдена или временно недоступна."
+      );
+    }
+  }
+
+
+  function showError(message) {
+
+    loading.hidden =
+      true;
+
+    content.hidden =
+      true;
+
+    errorSection.hidden =
+      false;
+
+    errorMessage.textContent =
+      message;
+  }
+
+
+  async function sharePublication() {
+
+    const shareUrl =
+      window.location.href;
+
+
+    const shareTitle =
+      getTitle(
+        publication || {}
+      );
+
+
+    if (
+      navigator.share
+    ) {
+
+      try {
+
+        await navigator.share({
+          title:
+            shareTitle,
+          text:
+            `${shareTitle} — Tajik Opportunities`,
+          url:
+            shareUrl
+        });
+
+
+        /*
+         * Счётчик share хранится
+         * на сервере, если Worker
+         * поддерживает эту операцию.
+         */
+
+        try {
+
+          await request(
+            `${API}/publications/share`,
+            {
+              method: "POST",
+
+              body:
+                JSON.stringify({
+                  publication_id:
+                    publicationId
+                })
+            }
+          );
+
+        } catch (_) {}
+
+        return;
+
+      } catch (error) {
+
+        if (
+          error?.name ===
+          "AbortError"
+        ) {
+          return;
+        }
+      }
+    }
+
+
+    try {
+
+      await navigator.clipboard.writeText(
+        shareUrl
+      );
+
+      showToast(
+        "Ссылка скопирована."
+      );
+
+    } catch (_) {
+
+      window.prompt(
+        "Скопируйте ссылку:",
+        shareUrl
+      );
+    }
+  }
+
+
+  backButton.addEventListener(
+    "click",
+    () => {
+
+      if (
+        document.referrer &&
+        document.referrer
+          .startsWith(
+            window.location.origin
+          )
+      ) {
+
+        history.back();
+
+      } else {
+
+        window.location.href =
+          "/";
+      }
+
+    }
+  );
+
+
+  retryButton.addEventListener(
+    "click",
+    loadPublication
+  );
+
+
+  shareButton.addEventListener(
+    "click",
+    sharePublication
+  );
+
+
+  $("currentYear").textContent =
+    new Date().getFullYear();
+
+
+  loadPublication();
+
+})();
+</script>
 
 </body>
-</html>
+            </html>
