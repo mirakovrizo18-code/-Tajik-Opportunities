@@ -1,6 +1,7 @@
 /* ============================================================
    TAJIK OPPORTUNITIES
    Homepage publications
+   Professional publication experience
    ============================================================ */
 
 (() => {
@@ -19,46 +20,47 @@
      DOM
      ========================================================== */
 
-  const searchInput = document.getElementById("searchInput");
-  const clearSearch = document.getElementById("clearSearch");
+  const searchInput =
+    document.getElementById("searchInput");
 
-  const categoryButtons = document.querySelectorAll(
-    ".category-chip"
-  );
+  const clearSearch =
+    document.getElementById("clearSearch");
 
-  const sortSelect = document.getElementById("sortSelect");
+  const categoryButtons =
+    document.querySelectorAll(".category-chip");
 
-  const resultsInfo = document.getElementById(
-    "resultsInfo"
-  );
+  const sortSelect =
+    document.getElementById("sortSelect");
 
-  const resetFilters = document.getElementById(
-    "resetFilters"
-  );
+  const resultsInfo =
+    document.getElementById("resultsInfo");
 
-  const loadingState = document.getElementById(
-    "loadingState"
-  );
+  const resetFilters =
+    document.getElementById("resetFilters");
 
-  const postsGrid = document.getElementById(
-    "postsGrid"
-  );
+  const loadingState =
+    document.getElementById("loadingState");
 
-  const emptyState = document.getElementById(
-    "emptyState"
-  );
+  const postsGrid =
+    document.getElementById("postsGrid");
 
-  const emptyReset = document.getElementById(
-    "emptyReset"
-  );
+  const emptyState =
+    document.getElementById("emptyState");
 
-  const errorState = document.getElementById(
-    "errorState"
-  );
+  const emptyReset =
+    document.getElementById("emptyReset");
 
-  const retryButton = document.getElementById(
-    "retryButton"
-  );
+  const errorState =
+    document.getElementById("errorState");
+
+  const retryButton =
+    document.getElementById("retryButton");
+
+  /* ==========================================================
+     CONSTANTS
+     ========================================================== */
+
+  const PREVIEW_LENGTH = 220;
 
   /* ==========================================================
      HELPERS
@@ -71,6 +73,26 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function normalizeText(value) {
+    return String(value ?? "")
+      .replace(/\r\n/g, "\n")
+      .replace(/\r/g, "\n")
+      .replace(/\u00a0/g, " ")
+      .trim();
+  }
+
+  function formatContent(value) {
+    const text = normalizeText(value);
+
+    if (!text) {
+      return "";
+    }
+
+    return escapeHtml(text)
+      .replace(/\n{3,}/g, "\n\n")
+      .replace(/\n/g, "<br>");
   }
 
   function formatDate(value) {
@@ -91,14 +113,48 @@
     }).format(date);
   }
 
-  function truncateText(value, maxLength = 180) {
-    const text = String(value ?? "").trim();
+  function formatDateTime(value) {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat("ru-RU", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    }).format(date);
+  }
+
+  function truncateText(value, maxLength = PREVIEW_LENGTH) {
+    const text = normalizeText(value);
 
     if (text.length <= maxLength) {
       return text;
     }
 
-    return text.slice(0, maxLength).trim() + "…";
+    const shortened =
+      text.slice(0, maxLength);
+
+    const lastSpace =
+      shortened.lastIndexOf(" ");
+
+    if (lastSpace > maxLength * 0.7) {
+      return (
+        shortened
+          .slice(0, lastSpace)
+          .trim() + "…"
+      );
+    }
+
+    return shortened.trim() + "…";
   }
 
   function getCategoryIcon(category) {
@@ -115,6 +171,22 @@
     };
 
     return icons[category] || "✨";
+  }
+
+  function getCategoryClass(category) {
+    const classes = {
+      "Новости": "news",
+      "Вакансии": "jobs",
+      "Образование": "education",
+      "Гранты": "grants",
+      "Конкурсы": "competitions",
+      "Стажировки": "internships",
+      "Мероприятия": "events",
+      "Волонтёрство": "volunteering",
+      "Другое": "other"
+    };
+
+    return classes[category] || "other";
   }
 
   function showElement(element) {
@@ -135,6 +207,7 @@
 
   function showLoading() {
     showElement(loadingState);
+
     hideElement(errorState);
     hideElement(emptyState);
     hideElement(postsGrid);
@@ -149,6 +222,7 @@
     hideElement(loadingState);
     hideElement(emptyState);
     hideElement(postsGrid);
+
     showElement(errorState);
 
     if (resultsInfo) {
@@ -160,6 +234,7 @@
   function showEmpty() {
     hideElement(loadingState);
     hideElement(errorState);
+
     showElement(emptyState);
     showElement(postsGrid);
   }
@@ -186,9 +261,13 @@
         );
       }
 
-      const data = await response.json();
+      const data =
+        await response.json();
 
-      if (!data || !Array.isArray(data.posts)) {
+      if (
+        !data ||
+        !Array.isArray(data.posts)
+      ) {
         throw new Error(
           "Некорректный ответ API."
         );
@@ -199,6 +278,7 @@
       hideLoading();
 
       applyFilters();
+
     } catch (error) {
       console.error(
         "Failed to load posts:",
@@ -214,36 +294,42 @@
      ========================================================== */
 
   function applyFilters() {
-    const search = currentSearch
-      .trim()
-      .toLowerCase();
-
-    filteredPosts = allPosts.filter((post) => {
-      const categoryMatches =
-        currentCategory === "all" ||
-        String(post.category || "") ===
-          currentCategory;
-
-      if (!categoryMatches) {
-        return false;
-      }
-
-      if (!search) {
-        return true;
-      }
-
-      const searchableText = [
-        post.title,
-        post.content,
-        post.category,
-        post.author_name
-      ]
-        .filter(Boolean)
-        .join(" ")
+    const search =
+      currentSearch
+        .trim()
         .toLowerCase();
 
-      return searchableText.includes(search);
-    });
+    filteredPosts =
+      allPosts.filter((post) => {
+
+        const categoryMatches =
+          currentCategory === "all" ||
+          String(
+            post.category || ""
+          ) === currentCategory;
+
+        if (!categoryMatches) {
+          return false;
+        }
+
+        if (!search) {
+          return true;
+        }
+
+        const searchableText = [
+          post.title,
+          post.content,
+          post.category,
+          post.author_name
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return searchableText.includes(
+          search
+        );
+      });
 
     sortPosts();
 
@@ -258,15 +344,20 @@
 
   function sortPosts() {
     filteredPosts.sort((a, b) => {
-      const dateA = new Date(
-        a.published_at || 0
-      ).getTime();
 
-      const dateB = new Date(
-        b.published_at || 0
-      ).getTime();
+      const dateA =
+        new Date(
+          a.published_at || 0
+        ).getTime();
 
-      if (currentSort === "oldest") {
+      const dateB =
+        new Date(
+          b.published_at || 0
+        ).getTime();
+
+      if (
+        currentSort === "oldest"
+      ) {
         return dateA - dateB;
       }
 
@@ -297,12 +388,14 @@
       document.createDocumentFragment();
 
     filteredPosts.forEach((post) => {
-      const card = createPostCard(post);
-
-      fragment.appendChild(card);
+      fragment.appendChild(
+        createPostCard(post)
+      );
     });
 
-    postsGrid.appendChild(fragment);
+    postsGrid.appendChild(
+      fragment
+    );
   }
 
   /* ==========================================================
@@ -310,28 +403,72 @@
      ========================================================== */
 
   function createPostCard(post) {
+
     const article =
       document.createElement("article");
 
-    article.className = "post-card";
+    article.className =
+      "post-card";
+
+    const rawCategory =
+      String(
+        post.category || "Другое"
+      );
 
     const category =
-      escapeHtml(post.category || "Другое");
+      escapeHtml(
+        rawCategory
+      );
 
     const categoryIcon =
-      getCategoryIcon(post.category);
+      getCategoryIcon(
+        rawCategory
+      );
+
+    const categoryClass =
+      getCategoryClass(
+        rawCategory
+      );
 
     const title =
-      escapeHtml(post.title || "Без заголовка");
-
-    const content =
       escapeHtml(
-        truncateText(post.content || "")
+        post.title ||
+        "Без заголовка"
+      );
+
+    const rawContent =
+      normalizeText(
+        post.content || ""
+      );
+
+    const preview =
+      truncateText(
+        rawContent,
+        PREVIEW_LENGTH
+      );
+
+    const shortContent =
+      escapeHtml(
+        preview
+      );
+
+    const fullContent =
+      formatContent(
+        rawContent
       );
 
     const date =
       escapeHtml(
-        formatDate(post.published_at)
+        formatDate(
+          post.published_at
+        )
+      );
+
+    const dateTime =
+      escapeHtml(
+        formatDateTime(
+          post.published_at
+        )
       );
 
     const imageUrl =
@@ -344,44 +481,95 @@
         ? post.link_url.trim()
         : "";
 
+    const hasLongContent =
+      rawContent.length >
+      PREVIEW_LENGTH;
+
+    /* --------------------------------------------------------
+       IMAGE
+       -------------------------------------------------------- */
+
     let imageHtml = "";
 
     if (imageUrl) {
+
       imageHtml = `
         <div class="post-card-image">
+
           <img
             src="${escapeHtml(imageUrl)}"
             alt="${title}"
             loading="lazy"
-            onerror="this.parentElement.classList.add('image-error')"
+            decoding="async"
+            onerror="
+              this.parentElement.classList.add('image-error');
+              this.style.display='none';
+            "
           >
+
         </div>
       `;
     }
 
-    const externalLinkHtml = linkUrl
-      ? `
+    /* --------------------------------------------------------
+       DETAILS BUTTON
+       -------------------------------------------------------- */
+
+    const moreButtonHtml =
+      hasLongContent
+        ? `
+          <button
+            type="button"
+            class="post-card-link post-card-more"
+            aria-expanded="false"
+            aria-label="Показать полное описание публикации"
+          >
+
+            <span class="post-card-more-text">
+              Подробнее
+            </span>
+
+            <span
+              class="post-card-more-icon"
+              aria-hidden="true"
+            >
+              ↓
+            </span>
+
+          </button>
+        `
+        : "";
+
+    /* --------------------------------------------------------
+       SOURCE BUTTON
+       -------------------------------------------------------- */
+
+    const sourceButtonHtml =
+      linkUrl
+        ? `
           <a
             href="${escapeHtml(linkUrl)}"
             target="_blank"
             rel="noopener noreferrer"
-            class="post-card-link"
+            class="post-card-link post-card-source"
+            aria-label="Открыть источник публикации"
           >
-            Подробнее
-            <span>↗</span>
+
+            <span>
+              Перейти к источнику
+            </span>
+
+            <span aria-hidden="true">
+              ↗
+            </span>
+
           </a>
         `
-      : `
-          <a
-            href="/post.html?id=${encodeURIComponent(
-              post.id || ""
-            )}"
-            class="post-card-link"
-          >
-            Читать
-            <span>→</span>
-          </a>
-        `;
+        : "";
+
+    /* --------------------------------------------------------
+       CARD
+       -------------------------------------------------------- */
 
     article.innerHTML = `
       ${imageHtml}
@@ -390,17 +578,30 @@
 
         <div class="post-card-meta">
 
-          <span class="post-category">
-            ${categoryIcon}
-            ${category}
+          <span
+            class="post-category post-category-${categoryClass}"
+          >
+            <span
+              class="post-category-icon"
+              aria-hidden="true"
+            >
+              ${categoryIcon}
+            </span>
+
+            <span>
+              ${category}
+            </span>
           </span>
 
           ${
             date
               ? `
-                <time datetime="${escapeHtml(
-                  post.published_at || ""
-                )}">
+                <time
+                  datetime="${escapeHtml(
+                    post.published_at || ""
+                  )}"
+                  title="${dateTime}"
+                >
                   ${date}
                 </time>
               `
@@ -413,16 +614,156 @@
           ${title}
         </h3>
 
-        <p class="post-card-excerpt">
-          ${content}
-        </p>
+        <div class="post-card-text">
 
-        <div class="post-card-footer">
-          ${externalLinkHtml}
+          <p class="post-card-excerpt">
+            ${shortContent}
+          </p>
+
+          ${
+            hasLongContent
+              ? `
+                <div
+                  class="post-card-full-content hidden"
+                  aria-hidden="true"
+                >
+                  <div
+                    class="post-card-full-inner"
+                  >
+                    ${fullContent}
+                  </div>
+                </div>
+              `
+              : ""
+          }
+
         </div>
+
+        ${
+          moreButtonHtml ||
+          sourceButtonHtml
+            ? `
+              <div class="post-card-footer">
+
+                <div class="post-card-actions">
+
+                  ${moreButtonHtml}
+
+                  ${sourceButtonHtml}
+
+                </div>
+
+              </div>
+            `
+            : ""
+        }
 
       </div>
     `;
+
+    /* ========================================================
+       EXPAND / COLLAPSE
+       ======================================================== */
+
+    const moreButton =
+      article.querySelector(
+        ".post-card-more"
+      );
+
+    const fullContentElement =
+      article.querySelector(
+        ".post-card-full-content"
+      );
+
+    if (
+      moreButton &&
+      fullContentElement
+    ) {
+
+      moreButton.addEventListener(
+        "click",
+        () => {
+
+          const isOpen =
+            moreButton.getAttribute(
+              "aria-expanded"
+            ) === "true";
+
+          if (isOpen) {
+
+            fullContentElement.classList.add(
+              "hidden"
+            );
+
+            fullContentElement.setAttribute(
+              "aria-hidden",
+              "true"
+            );
+
+            moreButton.setAttribute(
+              "aria-expanded",
+              "false"
+            );
+
+            const text =
+              moreButton.querySelector(
+                ".post-card-more-text"
+              );
+
+            const icon =
+              moreButton.querySelector(
+                ".post-card-more-icon"
+              );
+
+            if (text) {
+              text.textContent =
+                "Подробнее";
+            }
+
+            if (icon) {
+              icon.textContent =
+                "↓";
+            }
+
+          } else {
+
+            fullContentElement.classList.remove(
+              "hidden"
+            );
+
+            fullContentElement.setAttribute(
+              "aria-hidden",
+              "false"
+            );
+
+            moreButton.setAttribute(
+              "aria-expanded",
+              "true"
+            );
+
+            const text =
+              moreButton.querySelector(
+                ".post-card-more-text"
+              );
+
+            const icon =
+              moreButton.querySelector(
+                ".post-card-more-icon"
+              );
+
+            if (text) {
+              text.textContent =
+                "Скрыть";
+            }
+
+            if (icon) {
+              icon.textContent =
+                "↑";
+            }
+          }
+        }
+      );
+    }
 
     return article;
   }
@@ -440,18 +781,25 @@
       filteredPosts.length;
 
     if (count === 0) {
+
       resultsInfo.textContent =
         "Публикаций не найдено.";
+
     } else if (count === 1) {
+
       resultsInfo.textContent =
         "Найдена 1 публикация.";
+
     } else if (
       count >= 2 &&
       count <= 4
     ) {
+
       resultsInfo.textContent =
         `Найдено ${count} публикации.`;
+
     } else {
+
       resultsInfo.textContent =
         `Найдено ${count} публикаций.`;
     }
@@ -462,6 +810,7 @@
       currentSort !== "newest";
 
     if (resetFilters) {
+
       resetFilters.classList.toggle(
         "hidden",
         !filtersActive
@@ -474,17 +823,22 @@
      ========================================================== */
 
   function updateFilterButtons() {
-    categoryButtons.forEach((button) => {
-      const category =
-        button.getAttribute(
-          "data-category"
-        );
 
-      button.classList.toggle(
-        "active",
-        category === currentCategory
-      );
-    });
+    categoryButtons.forEach(
+      (button) => {
+
+        const category =
+          button.getAttribute(
+            "data-category"
+          );
+
+        button.classList.toggle(
+          "active",
+          category ===
+            currentCategory
+        );
+      }
+    );
   }
 
   /* ==========================================================
@@ -492,12 +846,14 @@
      ========================================================== */
 
   function handleSearch() {
+
     currentSearch =
       searchInput
         ? searchInput.value
         : "";
 
     if (clearSearch) {
+
       clearSearch.classList.toggle(
         "hidden",
         currentSearch.length === 0
@@ -508,6 +864,7 @@
   }
 
   function clearSearchInput() {
+
     if (searchInput) {
       searchInput.value = "";
     }
@@ -515,6 +872,7 @@
     currentSearch = "";
 
     if (clearSearch) {
+
       clearSearch.classList.add(
         "hidden"
       );
@@ -532,6 +890,7 @@
      ========================================================== */
 
   function resetAllFilters() {
+
     currentCategory = "all";
     currentSearch = "";
     currentSort = "newest";
@@ -545,6 +904,7 @@
     }
 
     if (clearSearch) {
+
       clearSearch.classList.add(
         "hidden"
       );
@@ -558,7 +918,9 @@
      ========================================================== */
 
   function initEvents() {
+
     if (searchInput) {
+
       searchInput.addEventListener(
         "input",
         handleSearch
@@ -566,32 +928,40 @@
     }
 
     if (clearSearch) {
+
       clearSearch.addEventListener(
         "click",
         clearSearchInput
       );
     }
 
-    categoryButtons.forEach((button) => {
-      button.addEventListener(
-        "click",
-        () => {
-          currentCategory =
-            button.getAttribute(
-              "data-category"
-            ) || "all";
+    categoryButtons.forEach(
+      (button) => {
 
-          applyFilters();
-        }
-      );
-    });
+        button.addEventListener(
+          "click",
+          () => {
+
+            currentCategory =
+              button.getAttribute(
+                "data-category"
+              ) || "all";
+
+            applyFilters();
+          }
+        );
+      }
+    );
 
     if (sortSelect) {
+
       sortSelect.addEventListener(
         "change",
         () => {
+
           currentSort =
-            sortSelect.value || "newest";
+            sortSelect.value ||
+            "newest";
 
           applyFilters();
         }
@@ -599,6 +969,7 @@
     }
 
     if (resetFilters) {
+
       resetFilters.addEventListener(
         "click",
         resetAllFilters
@@ -606,6 +977,7 @@
     }
 
     if (emptyReset) {
+
       emptyReset.addEventListener(
         "click",
         resetAllFilters
@@ -613,6 +985,7 @@
     }
 
     if (retryButton) {
+
       retryButton.addEventListener(
         "click",
         loadPosts
@@ -625,6 +998,7 @@
      ========================================================== */
 
   function readUrlFilters() {
+
     const params =
       new URLSearchParams(
         window.location.search
@@ -642,20 +1016,26 @@
           ) === category
       )
     ) {
-      currentCategory = category;
+
+      currentCategory =
+        category;
     }
 
     const search =
       params.get("search");
 
     if (search) {
-      currentSearch = search;
+
+      currentSearch =
+        search;
 
       if (searchInput) {
-        searchInput.value = search;
+        searchInput.value =
+          search;
       }
 
       if (clearSearch) {
+
         clearSearch.classList.remove(
           "hidden"
         );
@@ -670,17 +1050,27 @@
      ========================================================== */
 
   function init() {
+
     initEvents();
+
     readUrlFilters();
+
     loadPosts();
   }
 
-  if (document.readyState === "loading") {
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+
     document.addEventListener(
       "DOMContentLoaded",
       init
     );
+
   } else {
+
     init();
   }
+
 })();
