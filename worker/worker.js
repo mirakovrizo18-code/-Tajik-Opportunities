@@ -32,9 +32,7 @@ function clean(value, max = 5000) {
 function safeUrl(value) {
   const valueClean = clean(value, 1000);
 
-  if (!valueClean) {
-    return null;
-  }
+  if (!valueClean) return null;
 
   try {
     const url = new URL(valueClean);
@@ -88,10 +86,18 @@ function base64UrlDecode(value) {
 
   const binary = atob(normalized);
 
-  return Uint8Array.from(binary, (char) => char.charCodeAt(0));
+  return Uint8Array.from(
+    binary,
+    (char) => char.charCodeAt(0)
+  );
 }
 
-async function hmac(value, secret, verifyMode = false, signature = null) {
+async function hmac(
+  value,
+  secret,
+  verifyMode = false,
+  signature = null
+) {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -123,10 +129,14 @@ async function hmac(value, secret, verifyMode = false, signature = null) {
 
 async function createAdminSession(secret) {
   const expiresAt =
-    Math.floor(Date.now() / 1000) + SESSION_SECONDS;
+    Math.floor(Date.now() / 1000) +
+    SESSION_SECONDS;
 
   const value = `admin.${expiresAt}`;
-  const signature = await hmac(value, secret);
+  const signature = await hmac(
+    value,
+    secret
+  );
 
   return `${value}.${signature}`;
 }
@@ -136,7 +146,8 @@ async function isAdmin(request, env) {
     return false;
   }
 
-  const cookieHeader = request.headers.get("Cookie") || "";
+  const cookieHeader =
+    request.headers.get("Cookie") || "";
 
   const match = cookieHeader.match(
     new RegExp(`${COOKIE}=([^;]+)`)
@@ -152,7 +163,11 @@ async function isAdmin(request, env) {
     return false;
   }
 
-  const [type, expiresAt, signature] = parts;
+  const [
+    type,
+    expiresAt,
+    signature
+  ] = parts;
 
   if (type !== "admin") {
     return false;
@@ -162,7 +177,10 @@ async function isAdmin(request, env) {
     return false;
   }
 
-  if (Number(expiresAt) < Math.floor(Date.now() / 1000)) {
+  if (
+    Number(expiresAt) <
+    Math.floor(Date.now() / 1000)
+  ) {
     return false;
   }
 
@@ -178,26 +196,25 @@ async function isAdmin(request, env) {
   }
 }
 
-function getClientIp(request) {
-  return (
-    request.headers.get("CF-Connecting-IP") ||
-    request.headers.get("X-Forwarded-For") ||
-    "unknown"
-  );
-}
-
 function validateSubmission(body) {
   const title = clean(body.title, 180);
   const content = clean(body.content, 12000);
   const category = clean(body.category, 80);
 
-  const authorName = clean(body.author_name, 120);
-  const contact = clean(body.contact, 300);
+  const authorName =
+    clean(body.author_name, 120);
 
-  const imageUrl = safeUrl(body.image_url);
-  const linkUrl = safeUrl(body.link_url);
+  const contact =
+    clean(body.contact, 300);
 
-  const honeypot = clean(body.website, 200);
+  const imageUrl =
+    safeUrl(body.image_url);
+
+  const linkUrl =
+    safeUrl(body.link_url);
+
+  const honeypot =
+    clean(body.website, 200);
 
   if (honeypot) {
     return {
@@ -207,13 +224,15 @@ function validateSubmission(body) {
 
   if (title.length < 5) {
     return {
-      error: "Заголовок должен содержать минимум 5 символов."
+      error:
+        "Заголовок должен содержать минимум 5 символов."
     };
   }
 
   if (content.length < 20) {
     return {
-      error: "Описание должно содержать минимум 20 символов."
+      error:
+        "Описание должно содержать минимум 20 символов."
     };
   }
 
@@ -256,7 +275,10 @@ async function getPosts(env) {
   return result.results || [];
 }
 
-async function createSubmission(request, env) {
+async function createSubmission(
+  request,
+  env
+) {
   let body;
 
   try {
@@ -271,7 +293,8 @@ async function createSubmission(request, env) {
     );
   }
 
-  const validated = validateSubmission(body);
+  const validated =
+    validateSubmission(body);
 
   if (validated.error) {
     return json(
@@ -297,7 +320,11 @@ async function createSubmission(request, env) {
 
   let code = trackingCode();
 
-  for (let attempt = 0; attempt < 5; attempt++) {
+  for (
+    let attempt = 0;
+    attempt < 5;
+    attempt++
+  ) {
     try {
       await env.DB.prepare(
         `
@@ -340,12 +367,16 @@ async function createSubmission(request, env) {
       );
     } catch (error) {
       if (!String(error).includes("UNIQUE")) {
-        console.error("Submission error:", error);
+        console.error(
+          "Submission error:",
+          error
+        );
 
         return json(
           {
             ok: false,
-            error: "Не удалось создать заявку."
+            error:
+              "Не удалось создать заявку."
           },
           500
         );
@@ -358,13 +389,17 @@ async function createSubmission(request, env) {
   return json(
     {
       ok: false,
-      error: "Не удалось создать заявку. Попробуйте ещё раз."
+      error:
+        "Не удалось создать заявку. Попробуйте ещё раз."
     },
     500
   );
 }
 
-async function getSubmissionStatus(request, env) {
+async function getSubmissionStatus(
+  request,
+  env
+) {
   const url = new URL(request.url);
 
   const code = clean(
@@ -376,34 +411,37 @@ async function getSubmissionStatus(request, env) {
     return json(
       {
         ok: false,
-        error: "Введите код отслеживания."
+        error:
+          "Введите код отслеживания."
       },
       400
     );
   }
 
-  const submission = await env.DB.prepare(
-    `
-      SELECT
-        tracking_code,
-        title,
-        category,
-        status,
-        rejection_reason,
-        created_at,
-        reviewed_at
-      FROM submissions
-      WHERE tracking_code = ?
-    `
-  )
-    .bind(code)
-    .first();
+  const submission =
+    await env.DB.prepare(
+      `
+        SELECT
+          tracking_code,
+          title,
+          category,
+          status,
+          rejection_reason,
+          created_at,
+          reviewed_at
+        FROM submissions
+        WHERE tracking_code = ?
+      `
+    )
+      .bind(code)
+      .first();
 
   if (!submission) {
     return json(
       {
         ok: false,
-        error: "Заявка с таким кодом не найдена."
+        error:
+          "Заявка с таким кодом не найдена."
       },
       404
     );
@@ -419,12 +457,16 @@ async function getSubmissionStatus(request, env) {
   );
 }
 
-async function adminLogin(request, env) {
+async function adminLogin(
+  request,
+  env
+) {
   if (!env.ADMIN_PASSWORD) {
     return json(
       {
         ok: false,
-        error: "Пароль администратора ещё не настроен."
+        error:
+          "Пароль администратора ещё не настроен."
       },
       500,
       NO_STORE
@@ -446,9 +488,13 @@ async function adminLogin(request, env) {
     );
   }
 
-  const password = String(body.password ?? "");
+  const password =
+    String(body.password ?? "");
 
-  if (!password || password !== env.ADMIN_PASSWORD) {
+  if (
+    !password ||
+    password !== env.ADMIN_PASSWORD
+  ) {
     return json(
       {
         ok: false,
@@ -459,9 +505,10 @@ async function adminLogin(request, env) {
     );
   }
 
-  const session = await createAdminSession(
-    env.ADMIN_PASSWORD
-  );
+  const session =
+    await createAdminSession(
+      env.ADMIN_PASSWORD
+    );
 
   return json(
     {
@@ -500,7 +547,10 @@ async function adminLogout() {
   );
 }
 
-async function adminSubmissions(request, env) {
+async function adminSubmissions(
+  request,
+  env
+) {
   const url = new URL(request.url);
 
   const requestedStatus =
@@ -515,28 +565,31 @@ async function adminSubmissions(request, env) {
     "rejected"
   ];
 
-  const status = allowedStatuses.includes(
-    requestedStatus
-  )
-    ? requestedStatus
-    : "pending";
+  const status =
+    allowedStatuses.includes(
+      requestedStatus
+    )
+      ? requestedStatus
+      : "pending";
 
-  const result = await env.DB.prepare(
-    `
-      SELECT *
-      FROM submissions
-      WHERE status = ?
-      ORDER BY created_at DESC
-      LIMIT 100
-    `
-  )
-    .bind(status)
-    .all();
+  const result =
+    await env.DB.prepare(
+      `
+        SELECT *
+        FROM submissions
+        WHERE status = ?
+        ORDER BY created_at DESC
+        LIMIT 100
+      `
+    )
+      .bind(status)
+      .all();
 
   return json(
     {
       ok: true,
-      submissions: result.results || []
+      submissions:
+        result.results || []
     },
     200,
     NO_STORE
@@ -547,15 +600,16 @@ async function approveSubmission(
   submissionId,
   env
 ) {
-  const submission = await env.DB.prepare(
-    `
-      SELECT *
-      FROM submissions
-      WHERE id = ?
-    `
-  )
-    .bind(submissionId)
-    .first();
+  const submission =
+    await env.DB.prepare(
+      `
+        SELECT *
+        FROM submissions
+        WHERE id = ?
+      `
+    )
+      .bind(submissionId)
+      .first();
 
   if (!submission) {
     return json(
@@ -568,18 +622,22 @@ async function approveSubmission(
     );
   }
 
-  if (submission.status !== "pending") {
+  if (
+    submission.status !== "pending"
+  ) {
     return json(
       {
         ok: false,
-        error: "Заявка уже обработана."
+        error:
+          "Заявка уже обработана."
       },
       409,
       NO_STORE
     );
   }
 
-  const now = new Date().toISOString();
+  const now =
+    new Date().toISOString();
 
   try {
     await env.DB.batch([
@@ -630,18 +688,23 @@ async function approveSubmission(
     return json(
       {
         ok: true,
-        message: "Заявка одобрена и опубликована."
+        message:
+          "Заявка одобрена и опубликована."
       },
       200,
       NO_STORE
     );
   } catch (error) {
-    console.error("Approve error:", error);
+    console.error(
+      "Approve error:",
+      error
+    );
 
     return json(
       {
         ok: false,
-        error: "Не удалось одобрить заявку."
+        error:
+          "Не удалось одобрить заявку."
       },
       500,
       NO_STORE
@@ -666,25 +729,27 @@ async function rejectSubmission(
     clean(body.reason, 1000) ||
     "Материал не соответствует требованиям платформы.";
 
-  const now = new Date().toISOString();
+  const now =
+    new Date().toISOString();
 
-  const result = await env.DB.prepare(
-    `
-      UPDATE submissions
-      SET
-        status = 'rejected',
-        rejection_reason = ?,
-        reviewed_at = ?
-      WHERE id = ?
-        AND status = 'pending'
-    `
-  )
-    .bind(
-      reason,
-      now,
-      submissionId
+  const result =
+    await env.DB.prepare(
+      `
+        UPDATE submissions
+        SET
+          status = 'rejected',
+          rejection_reason = ?,
+          reviewed_at = ?
+        WHERE id = ?
+          AND status = 'pending'
+      `
     )
-    .run();
+      .bind(
+        reason,
+        now,
+        submissionId
+      )
+      .run();
 
   if (!result.meta.changes) {
     return json(
@@ -717,25 +782,18 @@ async function handleApi(
   const path = url.pathname;
   const method = request.method;
 
-  /*
-   * Публичные публикации
-   */
-
   if (
     path === "/api/posts" &&
     method === "GET"
   ) {
-    const posts = await getPosts(env);
+    const posts =
+      await getPosts(env);
 
     return json({
       ok: true,
       posts
     });
   }
-
-  /*
-   * Отправка новой заявки участником
-   */
 
   if (
     path === "/api/submissions" &&
@@ -747,10 +805,6 @@ async function handleApi(
     );
   }
 
-  /*
-   * Проверка статуса заявки
-   */
-
   if (
     path === "/api/submissions/status" &&
     method === "GET"
@@ -760,10 +814,6 @@ async function handleApi(
       env
     );
   }
-
-  /*
-   * Административная часть
-   */
 
   if (path.startsWith("/api/admin/")) {
     if (
@@ -793,7 +843,8 @@ async function handleApi(
       return json(
         {
           ok: false,
-          error: "Требуется авторизация."
+          error:
+            "Требуется авторизация."
         },
         401,
         NO_STORE
@@ -859,17 +910,30 @@ async function handleApi(
   return json(
     {
       ok: false,
-      error: "API route not found."
+      error:
+        "API route not found."
     },
     404
   );
 }
 
+/*
+ * ============================================================
+ * ОСНОВНОЙ WORKER
+ * ============================================================
+ */
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
 
-    if (url.pathname.startsWith("/api/")) {
+    /*
+     * API
+     */
+
+    if (
+      url.pathname.startsWith("/api/")
+    ) {
       try {
         return await handleApi(
           request,
@@ -893,6 +957,43 @@ export default {
       }
     }
 
-    return env.ASSETS.fetch(request);
+    /*
+     * Статический сайт
+     *
+     * Сначала пробуем обычный путь.
+     */
+
+    let response =
+      await env.ASSETS.fetch(request);
+
+    /*
+     * Если пользователь открыл главную
+     * страницу "/" и Assets не нашли её,
+     * явно запрашиваем index.html.
+     */
+
+    if (
+      response.status === 404 &&
+      url.pathname === "/"
+    ) {
+      const indexUrl =
+        new URL(
+          "/index.html",
+          request.url
+        );
+
+      const indexRequest =
+        new Request(
+          indexUrl,
+          request
+        );
+
+      response =
+        await env.ASSETS.fetch(
+          indexRequest
+        );
+    }
+
+    return response;
   }
 };
