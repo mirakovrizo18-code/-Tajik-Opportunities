@@ -1,0 +1,2147 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Сообщения — Tajik Opportunities</title>
+  <meta
+    name="description"
+    content="Личные сообщения и связь с администрацией Tajik Opportunities."
+  >
+
+  <link rel="icon" href="/images/Image_2026_09_05_19_01_30.jpg">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <style>
+    /* =========================================================
+       TAJIK OPPORTUNITIES — MESSAGES
+       ========================================================= */
+
+    .messages-page {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 20px 50px;
+    }
+
+    .messages-header {
+      margin-bottom: 24px;
+    }
+
+    .messages-header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 42px);
+    }
+
+    .messages-header p {
+      margin: 0;
+      opacity: .72;
+      line-height: 1.6;
+    }
+
+    .messages-layout {
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      min-height: 680px;
+      border: 1px solid rgba(127,127,127,.18);
+      border-radius: 24px;
+      overflow: hidden;
+      background: var(--card-bg, #fff);
+      box-shadow: 0 15px 50px rgba(0,0,0,.07);
+    }
+
+    .dark .messages-layout,
+    body.dark .messages-layout {
+      background: #151515;
+    }
+
+    /* =========================================================
+       DIALOGS
+       ========================================================= */
+
+    .dialogs-panel {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      border-right: 1px solid rgba(127,127,127,.18);
+      background: rgba(127,127,127,.035);
+    }
+
+    .dialogs-top {
+      padding: 20px;
+      border-bottom: 1px solid rgba(127,127,127,.15);
+    }
+
+    .dialogs-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .dialogs-top h2 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .new-message-btn {
+      border: 0;
+      border-radius: 12px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 700;
+      background: #111;
+      color: #fff;
+    }
+
+    .dialogs-search {
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid rgba(127,127,127,.22);
+      border-radius: 13px;
+      padding: 12px 14px;
+      outline: none;
+      background: transparent;
+      color: inherit;
+    }
+
+    .dialogs-search:focus {
+      border-color: currentColor;
+    }
+
+    .dialogs-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .dialog-item {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 15px 18px;
+      border: 0;
+      border-bottom: 1px solid rgba(127,127,127,.10);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition: background .18s ease;
+    }
+
+    .dialog-item:hover {
+      background: rgba(127,127,127,.08);
+    }
+
+    .dialog-item.active {
+      background: rgba(127,127,127,.12);
+    }
+
+    .dialog-avatar,
+    .chat-avatar {
+      width: 48px;
+      height: 48px;
+      flex: 0 0 48px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: linear-gradient(135deg, #222, #777);
+      color: #fff;
+      font-weight: 800;
+      font-size: 17px;
+    }
+
+    .dialog-avatar img,
+    .chat-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .dialog-content {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .dialog-name-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .dialog-name {
+      font-weight: 800;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .dialog-time {
+      flex: 0 0 auto;
+      font-size: 11px;
+      opacity: .55;
+    }
+
+    .dialog-preview {
+      margin-top: 4px;
+      font-size: 13px;
+      opacity: .65;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .unread-badge {
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      box-sizing: border-box;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #111;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .admin-dialog .dialog-avatar {
+      background: linear-gradient(135deg, #111, #555);
+    }
+
+    /* =========================================================
+       CHAT
+       ========================================================= */
+
+    .chat-panel {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      background: var(--card-bg, #fff);
+    }
+
+    .chat-empty {
+      flex: 1;
+      min-height: 500px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 30px;
+      text-align: center;
+    }
+
+    .chat-empty-inner {
+      max-width: 460px;
+    }
+
+    .chat-empty-icon {
+      font-size: 64px;
+      margin-bottom: 15px;
+    }
+
+    .chat-empty h2 {
+      margin: 0 0 10px;
+    }
+
+    .chat-empty p {
+      opacity: .65;
+      line-height: 1.6;
+    }
+
+    .chat-empty button {
+      margin-top: 16px;
+    }
+
+    .chat-header {
+      min-height: 78px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(127,127,127,.16);
+    }
+
+    .chat-user-info {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .chat-user-name {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 800;
+    }
+
+    .chat-user-status {
+      margin-top: 4px;
+      font-size: 12px;
+      opacity: .6;
+    }
+
+    .chat-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .icon-btn {
+      width: 40px;
+      height: 40px;
+      border: 1px solid rgba(127,127,127,.2);
+      border-radius: 12px;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .chat-messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: 24px 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      background:
+        radial-gradient(circle at 20% 10%, rgba(127,127,127,.035), transparent 30%),
+        radial-gradient(circle at 80% 80%, rgba(127,127,127,.035), transparent 30%);
+    }
+
+    .message-row {
+      display: flex;
+      max-width: 82%;
+    }
+
+    .message-row.mine {
+      align-self: flex-end;
+      justify-content: flex-end;
+    }
+
+    .message-row.theirs {
+      align-self: flex-start;
+    }
+
+    .message-bubble {
+      padding: 11px 14px;
+      border-radius: 17px;
+      line-height: 1.5;
+      word-break: break-word;
+      white-space: pre-wrap;
+      box-shadow: 0 3px 12px rgba(0,0,0,.04);
+    }
+
+    .message-row.mine .message-bubble {
+      background: #111;
+      color: #fff;
+      border-bottom-right-radius: 5px;
+    }
+
+    .message-row.theirs .message-bubble {
+      background: rgba(127,127,127,.11);
+      border-bottom-left-radius: 5px;
+    }
+
+    .message-meta {
+      margin-top: 4px;
+      padding: 0 5px;
+      font-size: 10px;
+      opacity: .52;
+      display: flex;
+      justify-content: flex-end;
+      gap: 5px;
+    }
+
+    .message-system {
+      align-self: center;
+      max-width: 90%;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: rgba(127,127,127,.09);
+      font-size: 11px;
+      opacity: .65;
+      text-align: center;
+    }
+
+    /* =========================================================
+       COMPOSER
+       ========================================================= */
+
+    .chat-composer {
+      padding: 14px 18px;
+      border-top: 1px solid rgba(127,127,127,.16);
+    }
+
+    .composer-notice {
+      display: none;
+      margin-bottom: 10px;
+      padding: 10px 12px;
+      border-radius: 11px;
+      background: rgba(127,127,127,.09);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    .composer-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 9px;
+    }
+
+    .message-input {
+      flex: 1;
+      min-height: 46px;
+      max-height: 150px;
+      resize: none;
+      box-sizing: border-box;
+      padding: 12px 14px;
+      border: 1px solid rgba(127,127,127,.22);
+      border-radius: 15px;
+      outline: none;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+    }
+
+    .message-input:focus {
+      border-color: currentColor;
+    }
+
+    .send-btn {
+      min-width: 48px;
+      height: 46px;
+      padding: 0 15px;
+      border: 0;
+      border-radius: 14px;
+      background: #111;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .send-btn:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+    }
+
+    /* =========================================================
+       LOGIN / NOTICE
+       ========================================================= */
+
+    .messages-login {
+      max-width: 650px;
+      margin: 40px auto;
+      padding: 35px 25px;
+      border: 1px solid rgba(127,127,127,.18);
+      border-radius: 24px;
+      text-align: center;
+      background: var(--card-bg, #fff);
+    }
+
+    .messages-login-icon {
+      font-size: 55px;
+      margin-bottom: 12px;
+    }
+
+    .messages-login h2 {
+      margin: 0 0 10px;
+    }
+
+    .messages-login p {
+      opacity: .65;
+      line-height: 1.6;
+    }
+
+    .primary-button,
+    .secondary-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-height: 44px;
+      padding: 0 17px;
+      border-radius: 13px;
+      cursor: pointer;
+      text-decoration: none;
+      font-weight: 800;
+      box-sizing: border-box;
+    }
+
+    .primary-button {
+      border: 0;
+      background: #111;
+      color: #fff;
+    }
+
+    .secondary-button {
+      border: 1px solid rgba(127,127,127,.22);
+      background: transparent;
+      color: inherit;
+    }
+
+    .admin-intro {
+      margin: 18px 20px 5px;
+      padding: 13px 14px;
+      border-radius: 14px;
+      background: rgba(127,127,127,.08);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .loading-message {
+      padding: 35px 20px;
+      text-align: center;
+      opacity: .6;
+    }
+
+    .no-dialogs {
+      padding: 40px 20px;
+      text-align: center;
+      opacity: .6;
+      line-height: 1.6;
+    }
+
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
+    @media (max-width: 850px) {
+      .messages-page {
+        padding: 20px 12px 35px;
+      }
+
+      .messages-layout {
+        display: block;
+        min-height: 0;
+        border-radius: 19px;
+      }
+
+      .dialogs-panel {
+        border-right: 0;
+      }
+
+      .chat-panel {
+        display: none;
+        min-height: 650px;
+      }
+
+      .messages-layout.chat-open .dialogs-panel {
+        display: none;
+      }
+
+      .messages-layout.chat-open .chat-panel {
+        display: flex;
+      }
+
+      .chat-header {
+        padding: 12px 14px;
+      }
+
+      .chat-messages {
+        padding: 18px 13px;
+      }
+
+      .message-row {
+        max-width: 90%;
+      }
+
+      .mobile-back {
+        display: inline-flex !important;
+      }
+    }
+
+    @media (min-width: 851px) {
+      .mobile-back {
+        display: none !important;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .messages-header h1 {
+        font-size: 29px;
+      }
+
+      .dialogs-top {
+        padding: 16px;
+      }
+
+      .dialog-item {
+        padding: 13px 14px;
+      }
+
+      .chat-composer {
+        padding: 10px;
+      }
+
+      .send-btn {
+        padding: 0 12px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =======================================================
+       HEADER
+       ======================================================= -->
+
+  <header class="site-header">
+    <div class="container">
+
+      <a href="/" class="brand" aria-label="Tajik Opportunities">
+        <img
+          src="/images/Image_2026_09_05_19_01_30.jpg"
+          alt="Tajik Opportunities"
+        >
+      </a>
+
+      <nav class="desktop-nav">
+        <a href="/">Главная</a>
+        <a href="/#search">Найти</a>
+        <a href="/#categories">Категории</a>
+        <a href="/add.html">Создать</a>
+      </nav>
+
+      <div class="header-actions">
+
+        <a
+          href="/notifications.html"
+          class="header-icon"
+          aria-label="Уведомления"
+          title="Уведомления"
+        >
+          🔔
+          <span id="headerUnreadCount" class="notification-count hidden">0</span>
+        </a>
+
+        <a
+          href="/profile.html"
+          class="header-profile"
+          aria-label="Профиль"
+        >
+          👤
+        </a>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- =======================================================
+       MAIN
+       ======================================================= -->
+
+  <main class="messages-page">
+
+    <section class="messages-header">
+      <h1>💬 Сообщения</h1>
+      <p>
+        Общайтесь с пользователями, авторами публикаций и администрацией
+        Tajik Opportunities.
+      </p>
+    </section>
+
+    <!-- LOGIN STATE -->
+
+    <section id="loginState" class="messages-login hidden">
+
+      <div class="messages-login-icon">🔐</div>
+
+      <h2>Войдите, чтобы использовать сообщения</h2>
+
+      <p>
+        После входа вы сможете получать и отправлять личные сообщения,
+        общаться с пользователями и связываться с администрацией.
+      </p>
+
+      <a href="/profile.html" class="primary-button">
+        👤 Войти или зарегистрироваться
+      </a>
+
+    </section>
+
+    <!-- MESSAGES -->
+
+    <section id="messagesApp" class="messages-layout hidden">
+
+      <!-- ===================================================
+           DIALOGS
+           =================================================== -->
+
+      <aside class="dialogs-panel">
+
+        <div class="dialogs-top">
+
+          <div class="dialogs-top-row">
+            <h2>Диалоги</h2>
+
+            <button
+              type="button"
+              id="newMessageButton"
+              class="new-message-btn"
+            >
+              ＋
+            </button>
+          </div>
+
+          <input
+            type="search"
+            id="dialogsSearch"
+            class="dialogs-search"
+            placeholder="Поиск диалогов..."
+            autocomplete="off"
+          >
+
+        </div>
+
+        <div class="admin-intro">
+          🛡️ <strong>Администрация</strong><br>
+          Здесь можно напрямую обратиться в Tajik Opportunities.
+          Сообщение можно отправить даже в скрытом режиме.
+        </div>
+
+        <div id="dialogsList" class="dialogs-list">
+          <div class="loading-message">
+            Загрузка диалогов...
+          </div>
+        </div>
+
+      </aside>
+
+      <!-- ===================================================
+           CHAT
+           =================================================== -->
+
+      <section class="chat-panel">
+
+        <!-- EMPTY -->
+
+        <div id="chatEmpty" class="chat-empty">
+
+          <div class="chat-empty-inner">
+
+            <div class="chat-empty-icon">💬</div>
+
+            <h2>Выберите диалог</h2>
+
+            <p>
+              Выберите существующий диалог слева или начните новый разговор.
+            </p>
+
+            <button
+              type="button"
+              id="emptyAdminButton"
+              class="primary-button"
+            >
+              🛡️ Написать администрации
+            </button>
+
+          </div>
+
+        </div>
+
+        <!-- ACTIVE CHAT -->
+
+        <div id="activeChat" class="hidden" style="display:flex;flex-direction:column;height:100%;min-height:680px;">
+
+          <header class="chat-header">
+
+            <button
+              type="button"
+              id="mobileBackButton"
+              class="icon-btn mobile-back"
+              aria-label="Назад"
+            >
+              ←
+            </button>
+
+            <div id="chatAvatar" class="chat-avatar">
+              👤
+            </div>
+
+            <div class="chat-user-info">
+
+              <h2 id="chatUserName" class="chat-user-name">
+                Пользователь
+              </h2>
+
+              <div id="chatUserStatus" class="chat-user-status">
+                Сообщения
+              </div>
+
+            </div>
+
+            <div class="chat-header-actions">
+
+              <button
+                type="button"
+                id="chatProfileButton"
+                class="icon-btn"
+                title="Открыть профиль"
+                aria-label="Открыть профиль"
+              >
+                👤
+              </button>
+
+            </div>
+
+          </header>
+
+          <div
+            id="chatMessages"
+            class="chat-messages"
+            aria-live="polite"
+          ></div>
+
+          <div class="chat-composer">
+
+            <div id="composerNotice" class="composer-notice"></div>
+
+            <div class="composer-row">
+
+              <textarea
+                id="messageInput"
+                class="message-input"
+                rows="1"
+                maxlength="5000"
+                placeholder="Напишите сообщение..."
+              ></textarea>
+
+              <button
+                type="button"
+                id="sendMessageButton"
+                class="send-btn"
+              >
+                ➤
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </section>
+
+  </main>
+
+  <!-- =======================================================
+       MOBILE NAV
+       ======================================================= -->
+
+  <nav class="mobile-nav">
+
+    <a href="/">
+      <span>🏠</span>
+      <small>Главная</small>
+    </a>
+
+    <a href="/saved.html">
+      <span>🔖</span>
+      <small>Сохранённое</small>
+    </a>
+
+    <a href="/add.html">
+      <span>➕</span>
+      <small>Создать</small>
+    </a>
+
+    <a href="/messages.html" class="active">
+      <span>💬</span>
+      <small>Сообщения</small>
+    </a>
+
+    <a href="/profile.html">
+      <span>👤</span>
+      <small>Профиль</small>
+    </a>
+
+  </nav>
+
+  <!-- =======================================================
+       TOAST
+       ======================================================= -->
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <!-- =======================================================
+       APP
+       ======================================================= -->
+
+  <script src="/js/app.js"></script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /*
+       * ======================================================
+       * API CONFIG
+       * ======================================================
+       *
+       * Все API-маршруты собраны здесь.
+       * Если в worker.js используются другие названия,
+       * достаточно изменить этот блок.
+       */
+
+      const API = {
+        me: "/api/auth/me",
+        dialogs: "/api/messages/dialogs",
+        messages: "/api/messages",
+        sendMessage: "/api/messages",
+        read: "/api/messages/read",
+        admin: "/api/messages/admin"
+      };
+
+      const state = {
+        user: null,
+        dialogs: [],
+        activeDialog: null,
+        messages: [],
+        loadingDialogs: false,
+        loadingMessages: false,
+        sending: false,
+        pollTimer: null
+      };
+
+      const $ = (selector) => document.querySelector(selector);
+
+      const elements = {
+        loginState: $("#loginState"),
+        messagesApp: $("#messagesApp"),
+        dialogsList: $("#dialogsList"),
+        dialogsSearch: $("#dialogsSearch"),
+        newMessageButton: $("#newMessageButton"),
+        emptyAdminButton: $("#emptyAdminButton"),
+        chatEmpty: $("#chatEmpty"),
+        activeChat: $("#activeChat"),
+        chatAvatar: $("#chatAvatar"),
+        chatUserName: $("#chatUserName"),
+        chatUserStatus: $("#chatUserStatus"),
+        chatProfileButton: $("#chatProfileButton"),
+        chatMessages: $("#chatMessages"),
+        messageInput: $("#messageInput"),
+        sendMessageButton: $("#sendMessageButton"),
+        composerNotice: $("#composerNotice"),
+        mobileBackButton: $("#mobileBackButton"),
+        headerUnreadCount: $("#headerUnreadCount")
+      };
+
+      /* ======================================================
+         HELPERS
+         ====================================================== */
+
+      function escapeHTML(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function normalizeUsername(value) {
+        return String(value || "")
+          .replace(/^@/, "")
+          .trim()
+          .toLowerCase();
+      }
+
+      function getInitials(name) {
+        const text = String(name || "").trim();
+
+        if (!text) return "👤";
+
+        const parts = text
+          .split(/\s+/)
+          .filter(Boolean)
+          .slice(0, 2);
+
+        return parts
+          .map(part => part.charAt(0).toUpperCase())
+          .join("") || "👤";
+      }
+
+      function safeImageUrl(url) {
+        if (!url) return "";
+
+        try {
+          const parsed = new URL(url, window.location.origin);
+
+          if (
+            parsed.protocol === "http:" ||
+            parsed.protocol === "https:"
+          ) {
+            return parsed.href;
+          }
+
+          return "";
+        } catch {
+          return "";
+        }
+      }
+
+      function formatTime(value) {
+        if (!value) return "";
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+          return "";
+        }
+
+        const now = new Date();
+
+        const sameDay =
+          date.getDate() === now.getDate() &&
+          date.getMonth() === now.getMonth() &&
+          date.getFullYear() === now.getFullYear();
+
+        if (sameDay) {
+          return date.toLocaleTimeString("ru-RU", {
+            hour: "2-digit",
+            minute: "2-digit"
+          });
+        }
+
+        return date.toLocaleDateString("ru-RU", {
+          day: "2-digit",
+          month: "2-digit"
+        });
+      }
+
+      function showToast(message) {
+        if (typeof window.showToast === "function") {
+          window.showToast(message);
+          return;
+        }
+
+        const toast = $("#toast");
+
+        if (!toast) return;
+
+        toast.textContent = message;
+        toast.classList.add("show");
+
+        clearTimeout(showToast.timer);
+
+        showToast.timer = setTimeout(() => {
+          toast.classList.remove("show");
+        }, 3000);
+      }
+
+      async function request(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            ...(options.headers || {})
+          },
+          ...options
+        });
+
+        let data = null;
+
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
+        }
+
+        if (!response.ok) {
+          const error = new Error(
+            data?.message ||
+            data?.error ||
+            `Ошибка запроса: ${response.status}`
+          );
+
+          error.status = response.status;
+          error.data = data;
+
+          throw error;
+        }
+
+        return data;
+      }
+
+      /* ======================================================
+         RESPONSE NORMALIZATION
+         ====================================================== */
+
+      function extractUser(data) {
+        if (!data) return null;
+
+        if (data.user) return data.user;
+        if (data.profile) return data.profile;
+        if (data.account) return data.account;
+
+        return data;
+      }
+
+      function extractDialogs(data) {
+        if (Array.isArray(data)) return data;
+
+        return (
+          data?.dialogs ||
+          data?.conversations ||
+          data?.items ||
+          data?.data ||
+          []
+        );
+      }
+
+      function extractMessages(data) {
+        if (Array.isArray(data)) return data;
+
+        return (
+          data?.messages ||
+          data?.items ||
+          data?.data ||
+          []
+        );
+      }
+
+      /* ======================================================
+         AUTH
+         ====================================================== */
+
+      async function loadCurrentUser() {
+        try {
+          const data = await request(API.me);
+
+          state.user = extractUser(data);
+
+          if (!state.user) {
+            throw new Error("Пользователь не найден");
+          }
+
+          showAuthenticated();
+
+        } catch (error) {
+
+          if (error.status === 401 || error.status === 403) {
+            showLogin();
+            return;
+          }
+
+          /*
+           * Некоторые версии app.js могут уже хранить
+           * текущего пользователя глобально.
+           */
+
+          const possibleUser =
+            window.currentUser ||
+            window.TO_USER ||
+            window.TajikOpportunitiesUser;
+
+          if (possibleUser) {
+            state.user = possibleUser;
+            showAuthenticated();
+            return;
+          }
+
+          showLogin();
+        }
+      }
+
+      function showLogin() {
+        elements.loginState.classList.remove("hidden");
+        elements.messagesApp.classList.add("hidden");
+      }
+
+      function showAuthenticated() {
+        elements.loginState.classList.add("hidden");
+        elements.messagesApp.classList.remove("hidden");
+
+        loadDialogs();
+        startPolling();
+      }
+
+      /* ======================================================
+         DIALOGS
+         ====================================================== */
+
+      async function loadDialogs() {
+
+        if (state.loadingDialogs) return;
+
+        state.loadingDialogs = true;
+
+        try {
+
+          const data = await request(API.dialogs);
+
+          state.dialogs = extractDialogs(data);
+
+          renderDialogs();
+
+        } catch (error) {
+
+          console.error("Dialogs error:", error);
+
+          elements.dialogsList.innerHTML = `
+            <div class="no-dialogs">
+              Не удалось загрузить диалоги.<br>
+              Попробуйте обновить страницу.
+            </div>
+          `;
+
+        } finally {
+          state.loadingDialogs = false;
+        }
+      }
+
+      function getDialogUser(dialog) {
+
+        return (
+          dialog.user ||
+          dialog.recipient ||
+          dialog.other_user ||
+          dialog.participant ||
+          {}
+        );
+      }
+
+      function renderAvatar(user, className = "dialog-avatar") {
+
+        const name =
+          user.name ||
+          user.full_name ||
+          user.display_name ||
+          user.username ||
+          "Пользователь";
+
+        const image = safeImageUrl(
+          user.avatar ||
+          user.avatar_url ||
+          user.photo ||
+          user.photo_url
+        );
+
+        if (image) {
+
+          return `
+            <div class="${className}">
+              <img
+                src="${escapeHTML(image)}"
+                alt="${escapeHTML(name)}"
+                loading="lazy"
+              >
+            </div>
+          `;
+
+        }
+
+        return `
+          <div class="${className}">
+            ${escapeHTML(getInitials(name))}
+          </div>
+        `;
+      }
+
+      function renderDialogs() {
+
+        const query =
+          elements.dialogsSearch.value
+            .trim()
+            .toLowerCase();
+
+        const filtered = state.dialogs.filter(dialog => {
+
+          if (!query) return true;
+
+          const user = getDialogUser(dialog);
+
+          const text = [
+            user.name,
+            user.full_name,
+            user.display_name,
+            user.username,
+            dialog.last_message,
+            dialog.preview
+          ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+          return text.includes(query);
+        });
+
+        if (!filtered.length) {
+
+          elements.dialogsList.innerHTML = `
+            <div class="no-dialogs">
+              💬<br><br>
+              У вас пока нет диалогов.
+            </div>
+          `;
+
+          updateUnreadCount();
+          return;
+        }
+
+        elements.dialogsList.innerHTML = filtered
+          .map((dialog, index) => {
+
+            const user = getDialogUser(dialog);
+
+            const dialogId =
+              dialog.id ||
+              dialog.conversation_id ||
+              dialog.chat_id ||
+              user.id ||
+              user.username ||
+              `dialog-${index}`;
+
+            const name =
+              user.name ||
+              user.full_name ||
+              user.display_name ||
+              (user.username ? `@${normalizeUsername(user.username)}` : "Пользователь");
+
+            const preview =
+              dialog.last_message ||
+              dialog.preview ||
+              dialog.lastMessage ||
+              "Нет сообщений";
+
+            const unread =
+              Number(
+                dialog.unread_count ??
+                dialog.unread ??
+                0
+              );
+
+            const active =
+              state.activeDialog &&
+              String(state.activeDialog.id) === String(dialogId);
+
+            const admin =
+              dialog.is_admin ||
+              dialog.type === "admin" ||
+              user.is_admin;
+
+            return `
+              <button
+                type="button"
+                class="dialog-item ${active ? "active" : ""} ${admin ? "admin-dialog" : ""}"
+                data-dialog-id="${escapeHTML(dialogId)}"
+              >
+
+                ${renderAvatar(user)}
+
+                <div class="dialog-content">
+
+                  <div class="dialog-name-row">
+
+                    <span class="dialog-name">
+                      ${admin ? "🛡️ " : ""}
+                      ${escapeHTML(name)}
+                    </span>
+
+                    <span class="dialog-time">
+                      ${escapeHTML(
+                        formatTime(
+                          dialog.last_message_at ||
+                          dialog.updated_at ||
+                          dialog.updatedAt
+                        )
+                      )}
+                    </span>
+
+                  </div>
+
+                  <div class="dialog-preview">
+                    ${escapeHTML(preview)}
+                  </div>
+
+                </div>
+
+                ${
+                  unread > 0
+                    ? `<span class="unread-badge">${unread > 99 ? "99+" : unread}</span>`
+                    : ""
+                }
+
+              </button>
+            `;
+          })
+          .join("");
+
+        elements.dialogsList
+          .querySelectorAll(".dialog-item")
+          .forEach(button => {
+
+            button.addEventListener("click", () => {
+
+              const id = button.dataset.dialogId;
+
+              const dialog = state.dialogs.find(item => {
+
+                const user = getDialogUser(item);
+
+                const dialogId =
+                  item.id ||
+                  item.conversation_id ||
+                  item.chat_id ||
+                  user.id ||
+                  user.username;
+
+                return String(dialogId) === String(id);
+              });
+
+              if (dialog) {
+                openDialog(dialog);
+              }
+
+            });
+
+          });
+
+        updateUnreadCount();
+      }
+
+      function updateUnreadCount() {
+
+        const total = state.dialogs.reduce((sum, dialog) => {
+
+          return sum + Number(
+            dialog.unread_count ??
+            dialog.unread ??
+            0
+          );
+
+        }, 0);
+
+        if (!elements.headerUnreadCount) return;
+
+        if (total > 0) {
+
+          elements.headerUnreadCount.textContent =
+            total > 99 ? "99+" : String(total);
+
+          elements.headerUnreadCount.classList.remove("hidden");
+
+        } else {
+
+          elements.headerUnreadCount.classList.add("hidden");
+
+        }
+      }
+
+      /* ======================================================
+         OPEN DIALOG
+         ====================================================== */
+
+      async function openDialog(dialog) {
+
+        state.activeDialog = dialog;
+
+        renderDialogs();
+
+        elements.chatEmpty.classList.add("hidden");
+        elements.activeChat.classList.remove("hidden");
+
+        const user = getDialogUser(dialog);
+
+        const name =
+          dialog.is_admin ||
+          dialog.type === "admin" ||
+          user.is_admin
+            ? "Администрация Tajik Opportunities"
+            : (
+                user.name ||
+                user.full_name ||
+                user.display_name ||
+                (user.username
+                  ? `@${normalizeUsername(user.username)}`
+                  : "Пользователь")
+              );
+
+        const avatar =
+          safeImageUrl(
+            user.avatar ||
+            user.avatar_url ||
+            user.photo ||
+            user.photo_url
+          );
+
+        if (avatar) {
+
+          elements.chatAvatar.innerHTML = `
+            <img
+              src="${escapeHTML(avatar)}"
+              alt="${escapeHTML(name)}"
+            >
+          `;
+
+        } else {
+
+          elements.chatAvatar.textContent =
+            getInitials(name);
+        }
+
+        elements.chatUserName.textContent = name;
+
+        if (
+          dialog.is_admin ||
+          dialog.type === "admin" ||
+          user.is_admin
+        ) {
+
+          elements.chatUserStatus.textContent =
+            "Официальный чат с администрацией";
+
+          elements.composerNotice.style.display = "block";
+
+          elements.composerNotice.textContent =
+            "🛡️ Сообщения администрации могут быть связаны с вашей публикацией, аккаунтом или обращением. Если вы скрыли профиль, администрация всё равно получит доступный ей идентификатор обращения.";
+
+        } else {
+
+          elements.chatUserStatus.textContent =
+            user.username
+              ? `@${normalizeUsername(user.username)}`
+              : "Личные сообщения";
+
+          elements.composerNotice.style.display = "none";
+        }
+
+        elements.chatProfileButton.classList.toggle(
+          "hidden",
+          !!(
+            dialog.is_admin ||
+            dialog.type === "admin" ||
+            user.is_admin
+          )
+        );
+
+        loadMessages(dialog);
+
+        if (window.innerWidth <= 850) {
+          elements.messagesApp.classList.add("chat-open");
+        }
+
+        markDialogRead(dialog);
+      }
+
+      /* ======================================================
+         MESSAGES
+         ====================================================== */
+
+      async function loadMessages(dialog) {
+
+        if (state.loadingMessages) return;
+
+        state.loadingMessages = true;
+
+        elements.chatMessages.innerHTML = `
+          <div class="loading-message">
+            Загрузка сообщений...
+          </div>
+        `;
+
+        const dialogId =
+          dialog.id ||
+          dialog.conversation_id ||
+          dialog.chat_id;
+
+        try {
+
+          let url =
+            `${API.messages}?conversation_id=${encodeURIComponent(dialogId)}`;
+
+          const data = await request(url);
+
+          state.messages = extractMessages(data);
+
+          renderMessages();
+
+        } catch (error) {
+
+          console.error("Messages error:", error);
+
+          elements.chatMessages.innerHTML = `
+            <div class="loading-message">
+              Не удалось загрузить сообщения.
+            </div>
+          `;
+
+        } finally {
+
+          state.loadingMessages = false;
+        }
+      }
+
+      function getMessageText(message) {
+
+        return (
+          message.text ||
+          message.content ||
+          message.message ||
+          ""
+        );
+      }
+
+      function isMine(message) {
+
+        const currentId =
+          state.user?.id ||
+          state.user?.user_id;
+
+        const senderId =
+          message.sender_id ||
+          message.senderId ||
+          message.user_id ||
+          message.author_id;
+
+        if (
+          currentId &&
+          senderId &&
+          String(currentId) === String(senderId)
+        ) {
+          return true;
+        }
+
+        if (
+          message.is_mine === true ||
+          message.mine === true
+        ) {
+          return true;
+        }
+
+        return false;
+      }
+
+      function renderMessages() {
+
+        if (!state.messages.length) {
+
+          elements.chatMessages.innerHTML = `
+            <div class="message-system">
+              Это начало вашего разговора.
+            </div>
+          `;
+
+          return;
+        }
+
+        elements.chatMessages.innerHTML =
+          state.messages.map(message => {
+
+            const mine = isMine(message);
+
+            const text = getMessageText(message);
+
+            const createdAt =
+              message.created_at ||
+              message.createdAt ||
+              message.timestamp ||
+              message.date;
+
+            const read =
+              message.read === true ||
+              message.is_read === true;
+
+            return `
+              <div class="message-row ${mine ? "mine" : "theirs"}">
+
+                <div>
+
+                  <div class="message-bubble">
+                    ${escapeHTML(text)}
+                  </div>
+
+                  <div class="message-meta">
+
+                    <span>
+                      ${escapeHTML(formatTime(createdAt))}
+                    </span>
+
+                    ${
+                      mine
+                        ? `<span>${read ? "✓✓" : "✓"}</span>`
+                        : ""
+                    }
+
+                  </div>
+
+                </div>
+
+              </div>
+            `;
+
+          }).join("");
+
+        requestAnimationFrame(() => {
+          elements.chatMessages.scrollTop =
+            elements.chatMessages.scrollHeight;
+        });
+      }
+
+      /* ======================================================
+         SEND
+         ====================================================== */
+
+      async function sendMessage() {
+
+        if (state.sending) return;
+
+        if (!state.activeDialog) {
+          showToast("Сначала выберите диалог.");
+          return;
+        }
+
+        const text =
+          elements.messageInput.value.trim();
+
+        if (!text) return;
+
+        const dialog = state.activeDialog;
+
+        const dialogId =
+          dialog.id ||
+          dialog.conversation_id ||
+          dialog.chat_id;
+
+        state.sending = true;
+
+        elements.sendMessageButton.disabled = true;
+
+        try {
+
+          await request(API.sendMessage, {
+            method: "POST",
+
+            body: JSON.stringify({
+              conversation_id: dialogId,
+              recipient_id:
+                dialog.recipient_id ||
+                getDialogUser(dialog).id ||
+                null,
+              recipient_username:
+                getDialogUser(dialog).username ||
+                null,
+              text
+            })
+          });
+
+          elements.messageInput.value = "";
+
+          autoResizeTextarea();
+
+          await loadMessages(dialog);
+          await loadDialogs();
+
+        } catch (error) {
+
+          console.error("Send message error:", error);
+
+          showToast(
+            error.message ||
+            "Не удалось отправить сообщение."
+          );
+
+        } finally {
+
+          state.sending = false;
+          elements.sendMessageButton.disabled = false;
+          elements.messageInput.focus();
+        }
+      }
+
+      /* ======================================================
+         ADMIN CHAT
+         ====================================================== */
+
+      async function openAdminChat() {
+
+        /*
+         * Сначала пытаемся найти существующий
+         * административный диалог.
+         */
+
+        const existing = state.dialogs.find(dialog => {
+
+          const user = getDialogUser(dialog);
+
+          return (
+            dialog.is_admin === true ||
+            dialog.type === "admin" ||
+            dialog.admin === true ||
+            user.is_admin === true
+          );
+        });
+
+        if (existing) {
+          openDialog(existing);
+          return;
+        }
+
+        /*
+         * Если существующего диалога нет,
+         * просим Worker создать/вернуть его.
+         */
+
+        try {
+
+          const data = await request(API.admin, {
+            method: "POST",
+
+            body: JSON.stringify({
+              action: "open"
+            })
+          });
+
+          const dialog =
+            data?.dialog ||
+            data?.conversation ||
+            data;
+
+          if (!dialog) {
+            throw new Error("Не удалось открыть чат с администрацией.");
+          }
+
+          /*
+           * Добавляем диалог в локальный список.
+           */
+
+          state.dialogs.unshift(dialog);
+
+          renderDialogs();
+
+          openDialog(dialog);
+
+        } catch (error) {
+
+          console.error("Admin chat error:", error);
+
+          showToast(
+            error.message ||
+            "Не удалось открыть чат с администрацией."
+          );
+        }
+      }
+
+      /* ======================================================
+         READ
+         ====================================================== */
+
+      async function markDialogRead(dialog) {
+
+        const dialogId =
+          dialog.id ||
+          dialog.conversation_id ||
+          dialog.chat_id;
+
+        if (!dialogId) return;
+
+        try {
+
+          await request(API.read, {
+            method: "POST",
+
+            body: JSON.stringify({
+              conversation_id: dialogId
+            })
+          });
+
+          dialog.unread_count = 0;
+          dialog.unread = 0;
+
+          updateUnreadCount();
+
+        } catch (error) {
+
+          /*
+           * Не блокируем чат, если endpoint
+           * прочтения пока отсутствует.
+           */
+
+          console.debug("Read status:", error);
+        }
+      }
+
+      /* ======================================================
+         PROFILE
+         ====================================================== */
+
+      function openChatProfile() {
+
+        if (!state.activeDialog) return;
+
+        const user =
+          getDialogUser(state.activeDialog);
+
+        const username =
+          user.username ||
+          user.handle;
+
+        if (!username) {
+          showToast("Профиль пользователя недоступен.");
+          return;
+        }
+
+        window.location.href =
+          `/profile.html?username=${encodeURIComponent(
+            normalizeUsername(username)
+          )}`;
+      }
+
+      /* ======================================================
+         NEW MESSAGE
+         ====================================================== */
+
+      function startNewMessage() {
+
+        const username =
+          window.prompt(
+            "Введите @username пользователя:"
+          );
+
+        if (!username) return;
+
+        const clean =
+          normalizeUsername(username);
+
+        if (!clean) {
+          showToast("Введите корректный username.");
+          return;
+        }
+
+        /*
+         * Создаём временный объект.
+         * Worker при первой отправке сможет создать
+         * настоящий диалог.
+         */
+
+        const dialog = {
+          id: `new-${clean}`,
+          recipient_id: null,
+          recipient_username: clean,
+          user: {
+            username: clean,
+            display_name: `@${clean}`
+          },
+          messages: []
+        };
+
+        state.dialogs.unshift(dialog);
+
+        renderDialogs();
+
+        openDialog(dialog);
+
+        showToast(
+          `Диалог с @${clean} подготовлен.`
+        );
+      }
+
+      /* ======================================================
+         TEXTAREA
+         ====================================================== */
+
+      function autoResizeTextarea() {
+
+        const input = elements.messageInput;
+
+        input.style.height = "auto";
+
+        input.style.height =
+          Math.min(input.scrollHeight, 150) + "px";
+      }
+
+      /* ======================================================
+         POLLING
+         ====================================================== */
+
+      function startPolling() {
+
+        stopPolling();
+
+        state.pollTimer = setInterval(async () => {
+
+          if (document.hidden) return;
+
+          try {
+
+            await loadDialogs();
+
+            if (state.activeDialog) {
+              await loadMessages(state.activeDialog);
+            }
+
+          } catch (error) {
+            console.debug("Message polling:", error);
+          }
+
+        }, 8000);
+      }
+
+      function stopPolling() {
+
+        if (state.pollTimer) {
+          clearInterval(state.pollTimer);
+          state.pollTimer = null;
+        }
+      }
+
+      /* ======================================================
+         EVENTS
+         ====================================================== */
+
+      elements.dialogsSearch.addEventListener(
+        "input",
+        renderDialogs
+      );
+
+      elements.sendMessageButton.addEventListener(
+        "click",
+        sendMessage
+      );
+
+      elements.messageInput.addEventListener(
+        "input",
+        autoResizeTextarea
+      );
+
+      elements.messageInput.addEventListener(
+        "keydown",
+        event => {
+
+          if (
+            event.key === "Enter" &&
+            !event.shiftKey
+          ) {
+
+            event.preventDefault();
+
+            sendMessage();
+          }
+
+        }
+      );
+
+      elements.newMessageButton.addEventListener(
+        "click",
+        startNewMessage
+      );
+
+      elements.emptyAdminButton.addEventListener(
+        "click",
+        openAdminChat
+      );
+
+      elements.chatProfileButton.addEventListener(
+        "click",
+        openChatProfile
+      );
+
+      elements.mobileBackButton.addEventListener(
+        "click",
+        () => {
+
+          elements.messagesApp.classList.remove(
+            "chat-open"
+          );
+
+        }
+      );
+
+      window.addEventListener(
+        "beforeunload",
+        stopPolling
+      );
+
+      /* ======================================================
+         URL: ?username=
+         ====================================================== */
+
+      async function openUserFromURL() {
+
+        const params =
+          new URLSearchParams(window.location.search);
+
+        const username =
+          normalizeUsername(
+            params.get("username")
+          );
+
+        if (!username) return;
+
+        /*
+         * Если диалог уже существует — открываем его.
+         */
+
+        const existing =
+          state.dialogs.find(dialog => {
+
+            const user =
+              getDialogUser(dialog);
+
+            return normalizeUsername(
+              user.username
+            ) === username;
+
+          });
+
+        if (existing) {
+          openDialog(existing);
+          return;
+        }
+
+        /*
+         * Иначе создаём новый локальный диалог.
+         * Настоящий conversation создаст Worker
+         * при первой отправке сообщения.
+         */
+
+        const dialog = {
+          id: `new-${username}`,
+          recipient_username: username,
+          user: {
+            username,
+            display_name: `@${username}`
+          },
+          messages: []
+        };
+
+        state.dialogs.unshift(dialog);
+
+        renderDialogs();
+
+        openDialog(dialog);
+      }
+
+      /* ======================================================
+         INIT
+         ====================================================== */
+
+      async function init() {
+
+        await loadCurrentUser();
+
+        if (!state.user) return;
+
+        await openUserFromURL();
+      }
+
+      init();
+
+    })();
+  </script>
+
+</body>
+  </html>
