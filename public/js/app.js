@@ -16,7 +16,7 @@
   };
 
   /* =========================================================
-     BASIC HELPERS
+     HELPERS
   ========================================================= */
 
   const $ = (selector, parent = document) =>
@@ -26,7 +26,9 @@
     Array.from(parent.querySelectorAll(selector));
 
   function escapeHTML(value) {
-    if (value === null || value === undefined) return "";
+    if (value === null || value === undefined) {
+      return "";
+    }
 
     return String(value)
       .replace(/&/g, "&amp;")
@@ -103,22 +105,42 @@
     }
   }
 
+  function extractArray(data, keys = []) {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    for (const key of keys) {
+      if (Array.isArray(data?.[key])) {
+        return data[key];
+      }
+    }
+
+    if (Array.isArray(data?.data)) {
+      return data.data;
+    }
+
+    for (const key of keys) {
+      if (Array.isArray(data?.data?.[key])) {
+        return data.data[key];
+      }
+    }
+
+    return [];
+  }
+
   /* =========================================================
      API
   ========================================================= */
 
-  async function request(
-    endpoint,
-    options = {}
-  ) {
+  async function request(endpoint, options = {}) {
     const config = {
-      credentials: "same-origin",
+      credentials: "include",
       ...options,
       headers: {
         ...(options.body !== undefined
           ? {
-              "Content-Type":
-                "application/json"
+              "Content-Type": "application/json"
             }
           : {}),
         ...(options.headers || {})
@@ -130,24 +152,38 @@
       config
     );
 
-    const type =
+    const contentType =
       response.headers.get("content-type") || "";
 
     let data;
 
-    if (type.includes("application/json")) {
-      data = await response.json();
+    if (contentType.includes("application/json")) {
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
     } else {
       data = await response.text();
     }
 
     if (!response.ok) {
       const message =
-        typeof data === "object" && data?.error
-          ? data.error
+        typeof data === "object" && data
+          ? (
+              data.message ||
+              data.error ||
+              data.detail ||
+              `Ошибка сервера: ${response.status}`
+            )
           : `Ошибка сервера: ${response.status}`;
 
-      throw new Error(message);
+      const error = new Error(message);
+
+      error.status = response.status;
+      error.data = data;
+
+      throw error;
     }
 
     return data;
@@ -225,16 +261,16 @@
     return item;
   }
 
-  const showSuccess = (message) =>
+  const showSuccess = message =>
     toast(message, "success");
 
-  const showError = (message) =>
+  const showError = message =>
     toast(message, "error");
 
-  const showInfo = (message) =>
+  const showInfo = message =>
     toast(message, "info");
 
-  const showWarning = (message) =>
+  const showWarning = message =>
     toast(message, "warning");
 
   /* =========================================================
@@ -312,7 +348,7 @@
   }
 
   /* =========================================================
-     CURRENT USER
+     AUTH
   ========================================================= */
 
   async function loadCurrentUser() {
@@ -321,7 +357,12 @@
 
       state.user =
         result?.user ||
-        result?.data ||
+        result?.data?.user ||
+        (
+          result?.authenticated
+            ? result?.data
+            : null
+        ) ||
         null;
 
       updateUserInterface();
@@ -335,10 +376,6 @@
       return null;
     }
   }
-
-  /* =========================================================
-     USER INTERFACE
-  ========================================================= */
 
   function updateUserInterface() {
     const user = state.user;
@@ -357,6 +394,7 @@
                 user.username
               ).replace(/^@/, "")}`
             : user.name ||
+              user.display_name ||
               "Профиль";
       } else {
         profileText.textContent =
@@ -382,7 +420,9 @@
     $$("[data-user-name]").forEach(
       element => {
         element.textContent =
-          user?.name || "";
+          user?.name ||
+          user?.display_name ||
+          "";
       }
     );
 
@@ -416,10 +456,6 @@
     );
   }
 
-  /* =========================================================
-     LOGIN
-  ========================================================= */
-
   async function login(
     username,
     password
@@ -439,22 +475,20 @@
 
       updateUserInterface();
 
-      showSuccess("Вы вошли в аккаунт");
+      showSuccess(
+        "Вы вошли в аккаунт"
+      );
 
       return result;
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось войти"
+        "Не удалось войти"
       );
 
       throw error;
     }
   }
-
-  /* =========================================================
-     REGISTER
-  ========================================================= */
 
   async function register(data) {
     try {
@@ -477,35 +511,33 @@
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось создать аккаунт"
+        "Не удалось создать аккаунт"
       );
 
       throw error;
     }
   }
 
-  /* =========================================================
-     LOGOUT
-  ========================================================= */
-
   async function logout() {
     try {
-      await post("/auth/logout", {});
+      await post(
+        "/auth/logout",
+        {}
+      );
     } catch {
-      // Session may already be expired.
+      // Сессия могла уже закончиться.
     }
 
     state.user = null;
 
     updateUserInterface();
 
-    showSuccess("Вы вышли из аккаунта");
+    showSuccess(
+      "Вы вышли из аккаунта"
+    );
 
     setTimeout(() => {
-      if (
-        location.pathname !==
-        "/"
-      ) {
+      if (location.pathname !== "/") {
         location.href = "/";
       }
     }, 500);
@@ -515,9 +547,7 @@
      USERNAME
   ========================================================= */
 
-  async function checkUsername(
-    username
-  ) {
+  async function checkUsername(username) {
     if (!username) {
       return {
         available: false
@@ -526,7 +556,7 @@
 
     try {
       return await get(
-        `/auth/username?username=${encodeURIComponent(
+        `/username/check?username=${encodeURIComponent(
           username
         )}`
       );
@@ -604,25 +634,28 @@
   ========================================================= */
 
   async function getProfile(username) {
-    const query = username
-      ? `?username=${encodeURIComponent(
+    if (username) {
+      return get(
+        `/profile/public?username=${encodeURIComponent(
           username
         )}`
-      : "";
+      );
+    }
 
-    return get(`/profile${query}`);
+    return get("/profile");
   }
 
   async function updateProfile(data) {
     try {
       const result =
-        await patch(
+        await put(
           "/profile",
           data
         );
 
       state.user =
         result?.user ||
+        result?.data?.user ||
         result?.data ||
         state.user;
 
@@ -636,7 +669,7 @@
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось обновить профиль"
+        "Не удалось обновить профиль"
       );
 
       throw error;
@@ -647,9 +680,7 @@
      PUBLICATIONS
   ========================================================= */
 
-  async function getPublications(
-    params = {}
-  ) {
+  async function getPublications(params = {}) {
     const query =
       new URLSearchParams();
 
@@ -678,9 +709,7 @@
     );
   }
 
-  async function getPublication(
-    id
-  ) {
+  async function getPublication(id) {
     return get(
       `/publications/${encodeURIComponent(
         id
@@ -688,9 +717,7 @@
     );
   }
 
-  async function createPublication(
-    data
-  ) {
+  async function createPublication(data) {
     try {
       const result =
         await post(
@@ -706,7 +733,7 @@
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось создать публикацию"
+        "Не удалось создать публикацию"
       );
 
       throw error;
@@ -724,10 +751,10 @@
     try {
       const result =
         await post(
-          `/publications/${encodeURIComponent(
-            publicationId
-          )}/react`,
+          "/publications/react",
           {
+            publication_id:
+              publicationId,
             reaction
           }
         );
@@ -741,7 +768,7 @@
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось поставить реакцию"
+        "Не удалось поставить реакцию"
       );
 
       return null;
@@ -763,10 +790,8 @@
       button.classList.toggle(
         "active",
         Boolean(
-          result?.reaction ===
-            reaction ||
-          result?.current_reaction ===
-            reaction
+          result?.reaction === reaction ||
+          result?.current_reaction === reaction
         )
       );
 
@@ -793,25 +818,31 @@
   ========================================================= */
 
   async function toggleSave(
-    publicationId
+    publicationId,
+    saved = true
   ) {
     try {
       const result =
         await post(
-          `/publications/${encodeURIComponent(
-            publicationId
-          )}/favorite`,
-          {}
+          "/publications/save",
+          {
+            publication_id:
+              publicationId,
+            saved,
+            save: saved
+          }
         );
 
       $$(
         `[data-save="${publicationId}"]`
       ).forEach(button => {
+        const currentSaved =
+          result?.saved ??
+          saved;
+
         button.classList.toggle(
           "active",
-          Boolean(
-            result?.saved
-          )
+          Boolean(currentSaved)
         );
 
         const counter =
@@ -834,7 +865,7 @@
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось сохранить публикацию"
+        "Не удалось сохранить публикацию"
       );
 
       return null;
@@ -850,12 +881,48 @@
   ) {
     try {
       return await post(
-        `/publications/${encodeURIComponent(
-          publicationId
-        )}/view`,
-        {}
+        "/publications/view",
+        {
+          publication_id:
+            publicationId
+        }
       );
     } catch {
+      return null;
+    }
+  }
+
+  /* =========================================================
+     SHARE
+  ========================================================= */
+
+  async function sharePublication(
+    publicationId
+  ) {
+    try {
+      const result =
+        await post(
+          "/publications/share",
+          {
+            publication_id:
+              publicationId
+          }
+        );
+
+      await share(
+        `${location.origin}/post.html?id=${encodeURIComponent(
+          publicationId
+        )}`
+      );
+
+      return result;
+    } catch (error) {
+      await share(
+        `${location.origin}/post.html?id=${encodeURIComponent(
+          publicationId
+        )}`
+      );
+
       return null;
     }
   }
@@ -869,14 +936,14 @@
   ) {
     try {
       return await get(
-        `/publications/${encodeURIComponent(
+        `/comments?publication_id=${encodeURIComponent(
           publicationId
-        )}/comments`
+        )}`
       );
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось загрузить комментарии"
+        "Не удалось загрузить комментарии"
       );
 
       return null;
@@ -899,12 +966,14 @@
     try {
       const result =
         await post(
-          `/publications/${encodeURIComponent(
-            publicationId
-          )}/comments`,
+          "/comments",
           {
-            text: text.trim(),
-            parent_id: parentId
+            publication_id:
+              publicationId,
+            text:
+              text.trim(),
+            parent_id:
+              parentId
           }
         );
 
@@ -916,7 +985,7 @@
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось добавить комментарий"
+        "Не удалось добавить комментарий"
       );
 
       return null;
@@ -924,78 +993,18 @@
   }
 
   /* =========================================================
-     FOLLOW
-  ========================================================= */
-
-  async function toggleFollow(
-    username
-  ) {
-    try {
-      return await post(
-        "/follows/toggle",
-        {
-          username
-        }
-      );
-    } catch (error) {
-      showError(
-        error.message ||
-          "Не удалось изменить подписку"
-      );
-
-      return null;
-    }
-  }
-
-  /* =========================================================
-     REPORT
-  ========================================================= */
-
-  async function report(
-    publicationId,
-    reason,
-    details = ""
-  ) {
-    try {
-      const result =
-        await post(
-          "/reports",
-          {
-            publication_id:
-              publicationId,
-            reason,
-            details
-          }
-        );
-
-      showSuccess(
-        "Жалоба отправлена"
-      );
-
-      return result;
-    } catch (error) {
-      showError(
-        error.message ||
-          "Не удалось отправить жалобу"
-      );
-
-      return null;
-    }
-  }
-
-  /* =========================================================
-     MESSAGES
+     CHAT
   ========================================================= */
 
   async function getChats() {
     try {
       return await get(
-        "/messages/chats"
+        "/chat"
       );
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось загрузить чаты"
+        "Не удалось загрузить чаты"
       );
 
       return null;
@@ -1003,18 +1012,41 @@
   }
 
   async function getMessages(
-    userId
+    userId,
+    options = {}
   ) {
     try {
-      return await get(
-        `/messages/${encodeURIComponent(
+      const query =
+        new URLSearchParams();
+
+      if (userId) {
+        query.set(
+          "user_id",
           userId
-        )}`
+        );
+      }
+
+      if (
+        options.conversation_id
+      ) {
+        query.set(
+          "conversation_id",
+          options.conversation_id
+        );
+      }
+
+      const suffix =
+        query.toString()
+          ? `?${query.toString()}`
+          : "";
+
+      return await get(
+        `/chat/messages${suffix}`
       );
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось загрузить сообщения"
+        "Не удалось загрузить сообщения"
       );
 
       return null;
@@ -1024,31 +1056,65 @@
   async function sendMessage(
     userId,
     text,
-    publicationId = null
+    options = {}
   ) {
     if (!text?.trim()) {
       return null;
     }
 
     try {
-      const result =
-        await post(
-          "/messages/send",
-          {
-            user_id: userId,
-            text: text.trim(),
-            publication_id:
-              publicationId
-          }
-        );
+      return await post(
+        "/chat/messages",
+        {
+          user_id:
+            userId || null,
 
-      return result;
+          conversation_id:
+            options.conversation_id ||
+            null,
+
+          text:
+            text.trim(),
+
+          publication_id:
+            options.publication_id ||
+            null,
+
+          reply_to_id:
+            options.reply_to_id ||
+            null,
+
+          media:
+            options.media ||
+            null
+        }
+      );
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось отправить сообщение"
+        "Не удалось отправить сообщение"
       );
 
+      return null;
+    }
+  }
+
+  async function markChatRead(
+    userId,
+    conversationId = null
+  ) {
+    try {
+      return await post(
+        "/chat/read",
+        {
+          user_id:
+            userId || null,
+
+          conversation_id:
+            conversationId || null
+        }
+      );
+    } catch {
       return null;
     }
   }
@@ -1065,18 +1131,26 @@
         );
 
       state.notifications =
-        result?.notifications ||
-        result?.items ||
-        [];
+        extractArray(
+          result,
+          [
+            "notifications",
+            "items"
+          ]
+        );
 
       state.notificationCount =
-        result?.unread_count ||
-        result?.unread ||
-        state.notifications.filter(
-          item =>
-            !item.read &&
-            !item.is_read
-        ).length;
+        Number(
+          result?.unread_count ??
+          result?.unread ??
+          result?.data?.unread_count ??
+          state.notifications.filter(
+            item =>
+              !item.read &&
+              !item.is_read &&
+              !item.read_at
+          ).length
+        );
 
       updateNotificationUI();
 
@@ -1092,35 +1166,70 @@
   }
 
   function updateNotificationUI() {
-    const badge =
-      $("#notificationBadge");
+    const badges = [
+      $("#notificationBadge"),
+      $("#headerUnreadCount")
+    ].filter(Boolean);
 
-    if (badge) {
+    badges.forEach(badge => {
+      const count =
+        state.notificationCount;
+
       badge.textContent =
-        formatNumber(
-          state.notificationCount
-        );
+        count > 99
+          ? "99+"
+          : formatNumber(count);
 
       badge.classList.toggle(
         "hidden",
-        !state.notificationCount
+        !count
       );
-    }
+    });
   }
 
   async function markNotificationRead(
     id
   ) {
+    if (!id) {
+      return null;
+    }
+
     try {
       const result =
         await post(
-          `/notifications/${encodeURIComponent(
-            id
-          )}/read`,
-          {}
+          "/notifications/read",
+          {
+            notification_id:
+              id
+          }
         );
 
-      await loadNotifications();
+      const notification =
+        state.notifications.find(
+          item =>
+            String(
+              item.id ??
+              item.notification_id
+            ) ===
+            String(id)
+        );
+
+      if (notification) {
+        notification.read = true;
+        notification.is_read = true;
+        notification.read_at =
+          new Date().toISOString();
+      }
+
+      state.notificationCount =
+        state.notifications.filter(
+          item =>
+            !item.read &&
+            !item.is_read &&
+            !item.read_at
+        ).length;
+
+      updateNotificationUI();
 
       return result;
     } catch {
@@ -1136,7 +1245,9 @@
     const list =
       $("#notificationList");
 
-    if (!list) return;
+    if (!list) {
+      return;
+    }
 
     if (!state.notifications.length) {
       list.innerHTML = `
@@ -1152,7 +1263,9 @@
       state.notifications
         .map(item => {
           const id =
-            item.id ?? "";
+            item.id ??
+            item.notification_id ??
+            "";
 
           const title =
             item.title ||
@@ -1162,6 +1275,7 @@
           const text =
             item.message ||
             item.text ||
+            item.content ||
             "";
 
           const date =
@@ -1173,15 +1287,14 @@
 
           const unread =
             !item.read &&
-            !item.is_read;
+            !item.is_read &&
+            !item.read_at;
 
           return `
             <button
               type="button"
               class="notification-item ${
-                unread
-                  ? "unread"
-                  : ""
+                unread ? "unread" : ""
               }"
               data-notification-id="${escapeHTML(
                 id
@@ -1219,86 +1332,12 @@
               "data-notification-id"
             );
 
-          if (id) {
-            await markNotificationRead(
-              id
-            );
-          }
+          await markNotificationRead(
+            id
+          );
         }
       );
     });
-  }
-
-  function initNotifications() {
-    const open =
-      $("#notificationsButton");
-
-    const panel =
-      $("#notificationPanel");
-
-    const close =
-      $("#closeNotifications");
-
-    if (!open || !panel) {
-      return;
-    }
-
-    open.addEventListener(
-      "click",
-      async event => {
-        event.preventDefault();
-
-        panel.classList.toggle(
-          "hidden"
-        );
-
-        if (
-          !panel.classList.contains(
-            "hidden"
-          )
-        ) {
-          await loadNotifications();
-          renderNotifications();
-        }
-      }
-    );
-
-    close?.addEventListener(
-      "click",
-      () => {
-        panel.classList.add(
-          "hidden"
-        );
-      }
-    );
-
-    document.addEventListener(
-      "click",
-      event => {
-        if (
-          panel.classList.contains(
-            "hidden"
-          )
-        ) {
-          return;
-        }
-
-        if (
-          panel.contains(
-            event.target
-          ) ||
-          open.contains(
-            event.target
-          )
-        ) {
-          return;
-        }
-
-        panel.classList.add(
-          "hidden"
-        );
-      }
-    );
   }
 
   /* =========================================================
@@ -1317,7 +1356,9 @@
               "data-category"
             );
 
-          if (!category) return;
+          if (!category) {
+            return;
+          }
 
           $$(
             "[data-category]"
@@ -1351,7 +1392,9 @@
     const input =
       $("#searchInput");
 
-    if (!input) return;
+    if (!input) {
+      return;
+    }
 
     const clear =
       $("#clearSearch");
@@ -1388,6 +1431,7 @@
       "click",
       () => {
         input.value = "";
+
         clear.classList.add(
           "hidden"
         );
@@ -1422,7 +1466,9 @@
       const element =
         document.getElementById(id);
 
-      if (!element) return;
+      if (!element) {
+        return;
+      }
 
       element.addEventListener(
         "change",
@@ -1458,16 +1504,16 @@
 
     return {
       search:
-        $("#searchInput")?.value
-          .trim() || "",
+        $("#searchInput")?.value.trim() ||
+        "",
 
       country:
-        $("#countryFilter")?.value
-          .trim() || "",
+        $("#countryFilter")?.value.trim() ||
+        "",
 
       city:
-        $("#cityFilter")?.value
-          .trim() || "",
+        $("#cityFilter")?.value.trim() ||
+        "",
 
       scope:
         $("#scopeFilter")?.value ||
@@ -1484,18 +1530,12 @@
     };
   }
 
-  /* =========================================================
-     RESET FILTERS
-  ========================================================= */
-
   function resetFilters() {
-    const ids = [
+    [
       "searchInput",
       "countryFilter",
       "cityFilter"
-    ];
-
-    ids.forEach(id => {
+    ].forEach(id => {
       const element =
         document.getElementById(id);
 
@@ -1520,16 +1560,14 @@
 
     $$(
       "[data-category]"
-    ).forEach(
-      button => {
-        button.classList.toggle(
-          "active",
-          button.getAttribute(
-            "data-category"
-          ) === "all"
-        );
-      }
-    );
+    ).forEach(button => {
+      button.classList.toggle(
+        "active",
+        button.getAttribute(
+          "data-category"
+        ) === "all"
+      );
+    });
 
     window.dispatchEvent(
       new CustomEvent(
@@ -1551,7 +1589,7 @@
   }
 
   /* =========================================================
-     GLOBAL BUTTONS
+     GLOBAL ACTIONS
   ========================================================= */
 
   function initGlobalButtons() {
@@ -1563,17 +1601,16 @@
             "[data-action]"
           );
 
-        if (!button) return;
+        if (!button) {
+          return;
+        }
 
         const action =
           button.getAttribute(
             "data-action"
           );
 
-        if (
-          action ===
-          "logout"
-        ) {
+        if (action === "logout") {
           event.preventDefault();
 
           await logout();
@@ -1581,50 +1618,20 @@
           return;
         }
 
-        if (
-          action ===
-          "copy-link"
-        ) {
+        if (action === "copy-link") {
           event.preventDefault();
 
           await copyText(
             button.getAttribute(
               "data-url"
             ) ||
-              location.href
+            location.href
           );
 
           return;
         }
 
-        if (
-          action ===
-          "share"
-        ) {
-          event.preventDefault();
-
-          await share(
-            button.getAttribute(
-              "data-url"
-            ) ||
-              location.href,
-            button.getAttribute(
-              "data-title"
-            ) ||
-              document.title,
-            button.getAttribute(
-              "data-text"
-            ) ||
-              ""
-          );
-
-          return;
-        }
-
-        if (
-          action ===
-          "save"
-        ) {
+        if (action === "share") {
           event.preventDefault();
 
           const id =
@@ -1633,16 +1640,53 @@
             );
 
           if (id) {
-            await toggleSave(id);
+            await sharePublication(
+              id
+            );
+          } else {
+            await share(
+              button.getAttribute(
+                "data-url"
+              ) ||
+              location.href,
+              button.getAttribute(
+                "data-title"
+              ) ||
+              document.title,
+              button.getAttribute(
+                "data-text"
+              ) ||
+              ""
+            );
           }
 
           return;
         }
 
-        if (
-          action ===
-          "reaction"
-        ) {
+        if (action === "save") {
+          event.preventDefault();
+
+          const id =
+            button.getAttribute(
+              "data-publication-id"
+            );
+
+          if (id) {
+            const saved =
+              button.classList.contains(
+                "active"
+              );
+
+            await toggleSave(
+              id,
+              !saved
+            );
+          }
+
+          return;
+        }
+
+        if (action === "reaction") {
           event.preventDefault();
 
           const id =
@@ -1670,7 +1714,7 @@
   }
 
   /* =========================================================
-     FORMS
+     AUTH FORMS
   ========================================================= */
 
   function initAuthForms() {
@@ -1690,7 +1734,8 @@
 
           const password =
             loginForm.elements
-              .password?.value || "";
+              .password?.value ||
+            "";
 
           if (!username) {
             showError(
@@ -1724,8 +1769,7 @@
             );
 
             setTimeout(() => {
-              location.href =
-                "/";
+              location.href = "/";
             }, 500);
           } finally {
             if (button) {
@@ -1758,7 +1802,8 @@
 
             password:
               registerForm.elements
-                .password?.value || ""
+                .password?.value ||
+              ""
           };
 
           if (!data.name) {
@@ -1778,8 +1823,7 @@
           }
 
           if (
-            data.password.length <
-            6
+            data.password.length < 6
           ) {
             showError(
               "Пароль должен содержать минимум 6 символов"
@@ -1803,8 +1847,7 @@
             );
 
             setTimeout(() => {
-              location.href =
-                "/";
+              location.href = "/";
             }, 500);
           } finally {
             if (button) {
@@ -1824,7 +1867,9 @@
     const form =
       $("#publicationForm");
 
-    if (!form) return;
+    if (!form) {
+      return;
+    }
 
     form.addEventListener(
       "submit",
@@ -1871,8 +1916,7 @@
               location.pathname ===
               "/add.html"
             ) {
-              location.href =
-                "/";
+              location.href = "/";
             }
           }, 800);
         } finally {
@@ -1885,7 +1929,7 @@
   }
 
   /* =========================================================
-     MEDIA URL ADDER
+     MEDIA FIELDS
   ========================================================= */
 
   function initMediaFields() {
@@ -1902,7 +1946,9 @@
               )
             );
 
-          if (!container) return;
+          if (!container) {
+            return;
+          }
 
           const wrapper =
             document.createElement(
@@ -1947,7 +1993,7 @@
   }
 
   /* =========================================================
-     TEXTAREA
+     TEXTAREAS
   ========================================================= */
 
   function initTextareas() {
@@ -1973,7 +2019,7 @@
   }
 
   /* =========================================================
-     CHARACTER COUNTERS
+     COUNTERS
   ========================================================= */
 
   function initCounters() {
@@ -1987,7 +2033,9 @@
           )
         );
 
-      if (!target) return;
+      if (!target) {
+        return;
+      }
 
       const update =
         () => {
@@ -2018,7 +2066,9 @@
             "href"
           );
 
-        if (!href) return;
+        if (!href) {
+          return;
+        }
 
         try {
           const url =
@@ -2038,14 +2088,14 @@
               "noopener noreferrer";
           }
         } catch {
-          // Ignore invalid links.
+          // Неверная ссылка — ничего не делаем.
         }
       }
     );
   }
 
   /* =========================================================
-     IMAGE FALLBACK
+     IMAGES
   ========================================================= */
 
   function initImages() {
@@ -2166,9 +2216,7 @@
             "show"
           );
 
-          if (
-            !$(".modal.show")
-          ) {
+          if (!$(".modal.show")) {
             document.body.classList.remove(
               "no-scroll"
             );
@@ -2179,7 +2227,7 @@
   }
 
   /* =========================================================
-     CURRENT YEAR
+     YEAR
   ========================================================= */
 
   function initYear() {
@@ -2304,16 +2352,15 @@
     react,
     toggleSave,
     addView,
+    sharePublication,
 
     getComments,
     addComment,
 
-    toggleFollow,
-    report,
-
     getChats,
     getMessages,
     sendMessage,
+    markChatRead,
 
     loadNotifications,
     markNotificationRead,
@@ -2333,7 +2380,7 @@
 
     state.initialized = true;
 
-    initNotifications();
+    initNotificationsPanel();
     initCategoryFilters();
     initSearch();
     initFilters();
@@ -2392,6 +2439,87 @@
       )
     );
   }
+
+  /* =========================================================
+     NOTIFICATION PANEL INIT
+  ========================================================= */
+
+  function initNotificationsPanel() {
+    const open =
+      $("#notificationsButton");
+
+    const panel =
+      $("#notificationPanel");
+
+    const close =
+      $("#closeNotifications");
+
+    if (!open || !panel) {
+      return;
+    }
+
+    open.addEventListener(
+      "click",
+      async event => {
+        event.preventDefault();
+
+        panel.classList.toggle(
+          "hidden"
+        );
+
+        if (
+          !panel.classList.contains(
+            "hidden"
+          )
+        ) {
+          await loadNotifications();
+
+          renderNotifications();
+        }
+      }
+    );
+
+    close?.addEventListener(
+      "click",
+      () => {
+        panel.classList.add(
+          "hidden"
+        );
+      }
+    );
+
+    document.addEventListener(
+      "click",
+      event => {
+        if (
+          panel.classList.contains(
+            "hidden"
+          )
+        ) {
+          return;
+        }
+
+        if (
+          panel.contains(
+            event.target
+          ) ||
+          open.contains(
+            event.target
+          )
+        ) {
+          return;
+        }
+
+        panel.classList.add(
+          "hidden"
+        );
+      }
+    );
+  }
+
+  /* =========================================================
+     START
+  ========================================================= */
 
   if (
     document.readyState ===
