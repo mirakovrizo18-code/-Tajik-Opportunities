@@ -2,923 +2,693 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <meta name="theme-color" content="#0b3d2e">
-
+  <title>Создать публикацию — Tajik Opportunities</title>
   <meta
     name="description"
-    content="Создайте публикацию на Tajik Opportunities — вакансии, новости, образование, гранты, конкурсы, мероприятия, проекты, услуги и другие возможности."
+    content="Создайте публикацию, вакансию, объявление, мероприятие, проект или другую полезную возможность на Tajik Opportunities."
   >
 
-  <title>Создать публикацию — Tajik Opportunities</title>
-
-  <link
-    rel="icon"
-    href="/images/Image_2026_09_05_19_01_30.jpg"
-  >
-
-  <link
-    rel="stylesheet"
-    href="/css/style.css"
-  >
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
 
-<!-- =========================================================
-     HEADER
-========================================================= -->
-
 <header class="site-header">
-
   <div class="container header-inner">
 
     <a href="/" class="brand">
+      <img
+        src="/images/Image_2026_09_05_19_01_30.jpg"
+        alt="Tajik Opportunities"
+        class="brand-logo"
+      >
 
-      <span class="brand-logo">
-        <img
-          src="/images/Image_2026_09_05_19_01_30.jpg"
-          alt="Tajik Opportunities"
-        >
-      </span>
-
-      <span class="brand-text">
-
-        <strong>
-          Tajik Opportunities
-        </strong>
-
-        <small>
-          Платформа возможностей
-        </small>
-
-      </span>
-
+      <div class="brand-text">
+        <strong>Tajik Opportunities</strong>
+        <span>Возможности без границ</span>
+      </div>
     </a>
 
-
-    <nav class="desktop-nav">
-
-      <a href="/" class="nav-link">
-        🏠 Главная
-      </a>
-
-      <a
-        href="/add.html"
-        class="nav-link active"
-      >
-        ＋ Создать
-      </a>
-
+    <nav class="main-nav">
+      <a href="/">Главная</a>
+      <a href="/#news">Новости</a>
+      <a href="/#education">Образование</a>
+      <a href="/#work">Работа</a>
+      <a href="/#opportunities">Возможности</a>
     </nav>
 
+    <div class="header-actions">
+      <a href="/notifications.html" class="icon-btn" title="Уведомления">
+        🔔
+      </a>
 
-    <a
-      href="/"
-      class="header-action"
-    >
-      ← Главная
-    </a>
-
-  </div>
-
-</header>
-
-
-<!-- =========================================================
-     PAGE HERO
-========================================================= -->
-
-<main>
-
-<section class="page-hero">
-
-  <div class="container">
-
-    <div class="page-hero-content">
-
-      <div class="eyebrow">
-        📢 Tajik Opportunities
-      </div>
-
-
-      <h1>
-        Создайте свою публикацию
-      </h1>
-
-
-      <p>
-        Поделитесь вакансией, новостью, образовательной
-        возможностью, грантом, конкурсом, мероприятием,
-        проектом, услугой или любой другой полезной информацией.
-      </p>
-
+      <a href="/profile.html" class="profile-btn">
+        👤 Профиль
+      </a>
     </div>
 
   </div>
-
-</section>
-
-
-<!-- =========================================================
-     FORM
-========================================================= -->
-
-<section class="section">
-
-  <div class="container">
-
-    <div class="form-layout">
+</header>
 
 
-      <!-- =====================================================
-           MAIN FORM
-      ====================================================== -->
+<main>
 
-      <div class="form-card">
+  <section class="page-hero">
+    <div class="container">
 
-        <div class="form-card-header">
+      <div class="page-hero-content">
 
-          <span class="section-kicker">
-            Новая публикация
-          </span>
+        <div>
+          <div class="eyebrow">
+            📢 Публикация
+          </div>
 
-
-          <h2>
-            Заполните информацию
-          </h2>
-
+          <h1>Создать публикацию</h1>
 
           <p>
-            После отправки публикация будет проверена
-            администрацией. До одобрения она не появится
-            в публичной ленте.
+            Поделитесь вакансией, новостью, мероприятием, проектом,
+            объявлением, услугой, грантом, конкурсом или другой
+            полезной возможностью.
           </p>
-
         </div>
 
+        <a href="/" class="btn btn-secondary">
+          ← На главную
+        </a>
 
-        <form
-          id="submissionForm"
-          class="submission-form"
-          novalidate
-        >
+      </div>
 
+    </div>
+  </section>
 
-          <!-- =================================================
-               TITLE
-          ================================================== -->
 
-          <div class="form-group">
+  <section class="content-section">
+    <div class="container">
 
-            <label for="title">
+      <div class="form-layout">
 
-              Заголовок
+        <div class="form-main">
 
-              <span class="required">
-                *
-              </span>
+          <form id="publicationForm" class="publication-form">
 
-            </label>
+            <!-- ОСНОВНАЯ ИНФОРМАЦИЯ -->
 
+            <div class="form-card">
 
-            <input
-              id="title"
-              name="title"
-              type="text"
-              placeholder="Например: Международный конкурс для молодых предпринимателей"
-              autocomplete="off"
-              required
-            >
+              <div class="form-card-header">
+                <div>
+                  <span class="form-icon">📝</span>
+                  <h2>Основная информация</h2>
+                  <p>
+                    Заполните основные сведения о публикации.
+                  </p>
+                </div>
+              </div>
 
 
-            <div class="field-meta">
+              <div class="form-group">
 
-              <span>
-                Сделайте заголовок понятным и конкретным.
-              </span>
+                <label for="title">
+                  Заголовок
+                  <span class="required">*</span>
+                </label>
 
-              <span id="titleCounter">
-                0
-              </span>
+                <input
+                  id="title"
+                  name="title"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Например: Вакансия менеджера в Душанбе"
+                  required
+                >
 
-            </div>
-
-          </div>
-
-
-          <!-- =================================================
-               DESCRIPTION
-          ================================================== -->
-
-          <div class="form-group">
-
-            <label for="content">
-
-              Описание
-
-              <span class="required">
-                *
-              </span>
-
-            </label>
-
-
-            <textarea
-              id="content"
-              name="content"
-              rows="12"
-              placeholder="Подробно расскажите о публикации..."
-              required
-            ></textarea>
-
-
-            <div class="field-meta">
-
-              <span>
-                Укажите все важные подробности.
-              </span>
-
-              <span id="contentCounter">
-                0
-              </span>
-
-            </div>
-
-          </div>
-
-
-          <!-- =================================================
-               CATEGORY
-          ================================================== -->
-
-          <div class="form-group">
-
-            <label for="category">
-
-              Категория
-
-              <span class="required">
-                *
-              </span>
-
-            </label>
-
-
-            <select
-              id="category"
-              name="category"
-              required
-            >
-
-              <option value="">
-                Выберите категорию
-              </option>
-
-              <option value="jobs">
-                💼 Работа
-              </option>
-
-              <option value="job_seekers">
-                👤 Соискатели
-              </option>
-
-              <option value="employees">
-                👥 Сотрудники
-              </option>
-
-              <option value="profiles">
-                🧑 Профили
-              </option>
-
-              <option value="news">
-                📰 Новости
-              </option>
-
-              <option value="education">
-                🎓 Образование
-              </option>
-
-              <option value="opportunities">
-                ✨ Возможности
-              </option>
-
-              <option value="announcements">
-                📢 Объявления
-              </option>
-
-              <option value="services">
-                🤝 Услуги
-              </option>
-
-              <option value="startups">
-                🚀 Стартапы
-              </option>
-
-              <option value="projects">
-                💡 Проекты
-              </option>
-
-              <option value="ideas">
-                🧠 Идеи
-              </option>
-
-              <option value="events">
-                📅 Мероприятия
-              </option>
-
-              <option value="competitions">
-                🏆 Конкурсы
-              </option>
-
-              <option value="grants">
-                💰 Гранты
-              </option>
-
-              <option value="scholarships">
-                🎓 Стипендии
-              </option>
-
-              <option value="volunteering">
-                ❤️ Волонтёрство
-              </option>
-
-              <option value="courses">
-                📚 Курсы
-              </option>
-
-              <option value="it">
-                💻 IT
-              </option>
-
-              <option value="creative">
-                🎨 Творчество
-              </option>
-
-              <option value="sport">
-                ⚽ Спорт
-              </option>
-
-              <option value="music">
-                🎵 Музыка
-              </option>
-
-              <option value="gaming">
-                🎮 Игры
-              </option>
-
-              <option value="products">
-                🛍️ Товары
-              </option>
-
-              <option value="housing">
-                🏠 Жильё
-              </option>
-
-              <option value="transport">
-                🚗 Транспорт
-              </option>
-
-              <option value="travel">
-                ✈️ Путешествия
-              </option>
-
-              <option value="business">
-                🏢 Бизнес
-              </option>
-
-              <option value="advertising">
-                📣 Реклама
-              </option>
-
-              <option value="help">
-                🆘 Помощь
-              </option>
-
-              <option value="other">
-                ➕ Другое
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <!-- =================================================
-               SUBCATEGORY
-          ================================================== -->
-
-          <div class="form-group">
-
-            <label for="subcategory">
-              Подкатегория
-              <span class="optional">
-                необязательно
-              </span>
-            </label>
-
-
-            <input
-              id="subcategory"
-              name="subcategory"
-              type="text"
-              placeholder="Например: IT, маркетинг, дизайн..."
-            >
-
-          </div>
-
-
-          <!-- =================================================
-               LOCATION
-          ================================================== -->
-
-          <div class="form-section-title">
-
-            <span>
-              🌍 Местоположение
-            </span>
-
-          </div>
-
-
-          <div class="form-grid-3">
-
-
-            <div class="form-group">
-
-              <label for="country">
-                Страна
-              </label>
-
-              <input
-                id="country"
-                name="country"
-                type="text"
-                placeholder="Таджикистан"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="city">
-                Город
-              </label>
-
-              <input
-                id="city"
-                name="city"
-                type="text"
-                placeholder="Душанбе"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="scope">
-                Охват
-              </label>
-
-              <select
-                id="scope"
-                name="scope"
-              >
-
-                <option value="">
-                  Не указан
-                </option>
-
-                <option value="local">
-                  📍 Местный
-                </option>
-
-                <option value="national">
-                  🇹🇯 Национальный
-                </option>
-
-                <option value="international">
-                  🌍 Международный
-                </option>
-
-                <option value="online">
-                  💻 Онлайн
-                </option>
-
-              </select>
-
-            </div>
-
-          </div>
-
-
-          <div class="form-group">
-
-            <label for="location">
-              Точное место / адрес
-            </label>
-
-            <input
-              id="location"
-              name="location"
-              type="text"
-              placeholder="Адрес, площадка, университет, офис или другое место"
-            >
-
-          </div>
-
-
-          <!-- =================================================
-               DATES
-          ================================================== -->
-
-          <div class="form-section-title">
-
-            <span>
-              📅 Даты и сроки
-            </span>
-
-          </div>
-
-
-          <div class="form-grid-3">
-
-
-            <div class="form-group">
-
-              <label for="event_start">
-                Начало
-              </label>
-
-              <input
-                id="event_start"
-                name="event_start"
-                type="datetime-local"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="event_end">
-                Окончание
-              </label>
-
-              <input
-                id="event_end"
-                name="event_end"
-                type="datetime-local"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="deadline">
-                Дедлайн
-              </label>
-
-              <input
-                id="deadline"
-                name="deadline"
-                type="datetime-local"
-              >
-
-            </div>
-
-          </div>
-
-
-          <!-- =================================================
-               PRICE / SALARY
-          ================================================== -->
-
-          <div class="form-section-title">
-
-            <span>
-              💰 Цена / зарплата
-            </span>
-
-          </div>
-
-
-          <div class="form-grid-3">
-
-
-            <div class="form-group">
-
-              <label for="price">
-                Сумма
-              </label>
-
-              <input
-                id="price"
-                name="price"
-                type="number"
-                min="0"
-                step="any"
-                placeholder="Например: 5000"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="currency">
-                Валюта
-              </label>
-
-              <select
-                id="currency"
-                name="currency"
-              >
-
-                <option value="">
-                  Не указана
-                </option>
-
-                <option value="TJS">
-                  🇹🇯 TJS
-                </option>
-
-                <option value="USD">
-                  🇺🇸 USD
-                </option>
-
-                <option value="EUR">
-                  🇪🇺 EUR
-                </option>
-
-                <option value="RUB">
-                  🇷🇺 RUB
-                </option>
-
-                <option value="GBP">
-                  🇬🇧 GBP
-                </option>
-
-                <option value="CNY">
-                  🇨🇳 CNY
-                </option>
-
-                <option value="INR">
-                  🇮🇳 INR
-                </option>
-
-                <option value="AED">
-                  🇦🇪 AED
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="employment_type">
-                Тип занятости
-              </label>
-
-              <select
-                id="employment_type"
-                name="employment_type"
-              >
-
-                <option value="">
-                  Не указан
-                </option>
-
-                <option value="full_time">
-                  Полный день
-                </option>
-
-                <option value="part_time">
-                  Неполный день
-                </option>
-
-                <option value="remote">
-                  Удалённо
-                </option>
-
-                <option value="freelance">
-                  Фриланс
-                </option>
-
-                <option value="internship">
-                  Стажировка
-                </option>
-
-                <option value="volunteer">
-                  Волонтёрство
-                </option>
-
-                <option value="temporary">
-                  Временная работа
-                </option>
-
-              </select>
-
-            </div>
-
-          </div>
-
-
-          <!-- =================================================
-               WORK FORMAT / EXPERIENCE / EDUCATION
-          ================================================== -->
-
-          <div class="form-grid-3">
-
-
-            <div class="form-group">
-
-              <label for="work_format">
-                Формат работы
-              </label>
-
-              <select
-                id="work_format"
-                name="work_format"
-              >
-
-                <option value="">
-                  Не указан
-                </option>
-
-                <option value="office">
-                  🏢 В офисе
-                </option>
-
-                <option value="remote">
-                  🏠 Удалённо
-                </option>
-
-                <option value="hybrid">
-                  🔄 Гибрид
-                </option>
-
-                <option value="online">
-                  💻 Онлайн
-                </option>
-
-              </select>
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="experience">
-                Опыт
-              </label>
-
-              <input
-                id="experience"
-                name="experience"
-                type="text"
-                placeholder="Например: от 1 года"
-              >
-
-            </div>
-
-
-            <div class="form-group">
-
-              <label for="education">
-                Образование
-              </label>
-
-              <input
-                id="education"
-                name="education"
-                type="text"
-                placeholder="Например: высшее"
-              >
-
-            </div>
-
-          </div>
-
-
-          <!-- =================================================
-               LANGUAGES
-          ================================================== -->
-
-          <div class="form-group">
-
-            <label for="languages">
-              🗣️ Языки
-            </label>
-
-            <input
-              id="languages"
-              name="languages"
-              type="text"
-              placeholder="Например: русский, таджикский, английский"
-            >
-
-          </div>
-
-
-          <!-- =================================================
-               TAGS
-          ================================================== -->
-
-          <div class="form-group">
-
-            <label for="tags">
-              #️⃣ Теги
-            </label>
-
-            <input
-              id="tags"
-              name="tags"
-              type="text"
-              placeholder="#работа #душанбе #образование #грант"
-            >
-
-            <small class="field-help">
-              Разделяйте теги пробелами или запятыми.
-            </small>
-
-          </div>
-
-
-          <!-- =================================================
-               MEDIA
-          ================================================== -->
-
-          <div class="form-section-title">
-
-            <span>
-              🎬 Медиа и ссылки
-            </span>
-
-          </div>
-
-
-          <div class="form-notice">
-
-            <div class="form-notice-icon">
-              ℹ️
-            </div>
-
-            <div>
-
-              <strong>
-                Добавляйте медиа по URL
-              </strong>
-
-              <p>
-                Файлы загружать не нужно. Вставьте ссылку
-                на изображение, видео, аудио, музыку,
-                галерею или другой материал.
-              </p>
-
-            </div>
-
-          </div>
-
-
-          <!-- MEDIA ADDER -->
-
-          <div
-            id="mediaList"
-            class="media-list"
-          >
-
-            <div class="media-item">
-
-              <div class="media-item-header">
-
-                <strong>
-                  Медиа #1
-                </strong>
+                <div class="field-hint">
+                  Короткий и понятный заголовок помогает быстрее привлечь внимание.
+                </div>
 
               </div>
 
 
-              <div class="form-grid-2">
+              <div class="form-row">
+
+                <div class="form-group">
+
+                  <label for="category">
+                    Категория
+                    <span class="required">*</span>
+                  </label>
+
+                  <select id="category" name="category" required>
+
+                    <option value="">
+                      Выберите категорию
+                    </option>
+
+                    <option value="news">
+                      📰 Новости
+                    </option>
+
+                    <option value="education">
+                      🎓 Образование
+                    </option>
+
+                    <option value="jobs">
+                      💼 Работа
+                    </option>
+
+                    <option value="opportunities">
+                      🎁 Возможности
+                    </option>
+
+                    <option value="announcements">
+                      📢 Объявления
+                    </option>
+
+                    <option value="services">
+                      🤝 Услуги
+                    </option>
+
+                    <option value="projects">
+                      💡 Идеи и проекты
+                    </option>
+
+                    <option value="startups">
+                      🚀 Стартапы и проекты
+                    </option>
+
+                    <option value="events">
+                      📅 Мероприятия
+                    </option>
+
+                    <option value="competitions">
+                      🏆 Конкурсы
+                    </option>
+
+                    <option value="grants">
+                      💰 Гранты
+                    </option>
+
+                    <option value="useful">
+                      📚 Полезное
+                    </option>
+
+                    <option value="volunteering">
+                      🤝 Волонтёрство
+                    </option>
+
+                    <option value="products">
+                      🛍️ Товары и предложения
+                    </option>
+
+                    <option value="specialists">
+                      🧑‍💻 Специалисты
+                    </option>
+
+                    <option value="other">
+                      ✨ Другое
+                    </option>
+
+                  </select>
+
+                </div>
 
 
                 <div class="form-group">
 
-                  <label>
-                    Тип медиа
+                  <label for="type">
+                    Тип публикации
                   </label>
 
-                  <select
-                    name="media_type"
-                    class="media-type"
+                  <select id="type" name="type">
+
+                    <option value="post">
+                      Обычная публикация
+                    </option>
+
+                    <option value="announcement">
+                      Объявление
+                    </option>
+
+                    <option value="article">
+                      Статья
+                    </option>
+
+                    <option value="opportunity">
+                      Возможность
+                    </option>
+
+                    <option value="offer">
+                      Предложение
+                    </option>
+
+                    <option value="request">
+                      Запрос
+                    </option>
+
+                  </select>
+
+                </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="description">
+                  Описание
+                  <span class="required">*</span>
+                </label>
+
+                <textarea
+                  id="description"
+                  name="description"
+                  rows="10"
+                  maxlength="10000"
+                  placeholder="Подробно расскажите о публикации..."
+                  required
+                ></textarea>
+
+                <div class="field-hint">
+                  Можно указать условия, требования, сроки, контакты,
+                  подробности и другую важную информацию.
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- МЕСТОПОЛОЖЕНИЕ -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+                  <span class="form-icon">🌍</span>
+
+                  <h2>Местоположение</h2>
+
+                  <p>
+                    Укажите, где действует ваша публикация.
+                  </p>
+                </div>
+
+              </div>
+
+
+              <div class="form-row">
+
+                <div class="form-group">
+
+                  <label for="country">
+                    Страна
+                  </label>
+
+                  <input
+                    id="country"
+                    name="country"
+                    type="text"
+                    maxlength="100"
+                    placeholder="Например: Таджикистан"
                   >
+
+                </div>
+
+
+                <div class="form-group">
+
+                  <label for="city">
+                    Город
+                  </label>
+
+                  <input
+                    id="city"
+                    name="city"
+                    type="text"
+                    maxlength="100"
+                    placeholder="Например: Душанбе"
+                  >
+
+                </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="location">
+                  Точное место / адрес
+                </label>
+
+                <input
+                  id="location"
+                  name="location"
+                  type="text"
+                  maxlength="300"
+                  placeholder="Например: центр города, офис, университет..."
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="scope">
+                  Охват
+                </label>
+
+                <select id="scope" name="scope">
+
+                  <option value="local">
+                    📍 Местный
+                  </option>
+
+                  <option value="national">
+                    🇹🇯 Национальный
+                  </option>
+
+                  <option value="international">
+                    🌍 Международный
+                  </option>
+
+                  <option value="online">
+                    💻 Онлайн
+                  </option>
+
+                  <option value="all">
+                    🌎 Для всех
+                  </option>
+
+                </select>
+
+              </div>
+
+            </div>
+
+
+            <!-- СРОКИ -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+                  <span class="form-icon">📅</span>
+
+                  <h2>Дата и сроки</h2>
+
+                  <p>
+                    Необязательно. Используется для мероприятий,
+                    конкурсов, грантов, вакансий и других публикаций.
+                  </p>
+                </div>
+
+              </div>
+
+
+              <div class="form-row">
+
+                <div class="form-group">
+
+                  <label for="startDate">
+                    Дата начала
+                  </label>
+
+                  <input
+                    id="startDate"
+                    name="startDate"
+                    type="datetime-local"
+                  >
+
+                </div>
+
+
+                <div class="form-group">
+
+                  <label for="endDate">
+                    Дата окончания
+                  </label>
+
+                  <input
+                    id="endDate"
+                    name="endDate"
+                    type="datetime-local"
+                  >
+
+                </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="deadline">
+                  Крайний срок подачи
+                </label>
+
+                <input
+                  id="deadline"
+                  name="deadline"
+                  type="datetime-local"
+                >
+
+              </div>
+
+            </div>
+
+
+            <!-- ДОПОЛНИТЕЛЬНЫЕ ДАННЫЕ -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+                  <span class="form-icon">💼</span>
+
+                  <h2>Дополнительные данные</h2>
+
+                  <p>
+                    Заполняйте только те поля, которые подходят вашей публикации.
+                  </p>
+                </div>
+
+              </div>
+
+
+              <div class="form-row">
+
+                <div class="form-group">
+
+                  <label for="salary">
+                    Зарплата / стоимость
+                  </label>
+
+                  <input
+                    id="salary"
+                    name="salary"
+                    type="text"
+                    maxlength="100"
+                    placeholder="Например: 5000–8000 сомони"
+                  >
+
+                </div>
+
+
+                <div class="form-group">
+
+                  <label for="currency">
+                    Валюта
+                  </label>
+
+                  <select id="currency" name="currency">
+
+                    <option value="">
+                      Не указана
+                    </option>
+
+                    <option value="TJS">
+                      TJS — сомони
+                    </option>
+
+                    <option value="USD">
+                      USD — доллар США
+                    </option>
+
+                    <option value="EUR">
+                      EUR — евро
+                    </option>
+
+                    <option value="RUB">
+                      RUB — рубль
+                    </option>
+
+                    <option value="GBP">
+                      GBP — фунт
+                    </option>
+
+                    <option value="other">
+                      Другая
+                    </option>
+
+                  </select>
+
+                </div>
+
+              </div>
+
+
+              <div class="form-row">
+
+                <div class="form-group">
+
+                  <label for="employmentType">
+                    Формат / тип занятости
+                  </label>
+
+                  <select id="employmentType" name="employmentType">
+
+                    <option value="">
+                      Не указано
+                    </option>
+
+                    <option value="full_time">
+                      Полный день
+                    </option>
+
+                    <option value="part_time">
+                      Неполный день
+                    </option>
+
+                    <option value="remote">
+                      Удалённо
+                    </option>
+
+                    <option value="hybrid">
+                      Гибрид
+                    </option>
+
+                    <option value="project">
+                      Проектная работа
+                    </option>
+
+                    <option value="freelance">
+                      Фриланс
+                    </option>
+
+                    <option value="volunteer">
+                      Волонтёрство
+                    </option>
+
+                  </select>
+
+                </div>
+
+
+                <div class="form-group">
+
+                  <label for="experience">
+                    Опыт
+                  </label>
+
+                  <input
+                    id="experience"
+                    name="experience"
+                    type="text"
+                    maxlength="100"
+                    placeholder="Например: от 1 года"
+                  >
+
+                </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="education">
+                  Образование
+                </label>
+
+                <input
+                  id="education"
+                  name="education"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Например: высшее образование"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="languages">
+                  Языки
+                </label>
+
+                <input
+                  id="languages"
+                  name="languages"
+                  type="text"
+                  maxlength="300"
+                  placeholder="Например: таджикский, русский, английский"
+                >
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="tags">
+                  Теги
+                </label>
+
+                <input
+                  id="tags"
+                  name="tags"
+                  type="text"
+                  maxlength="500"
+                  placeholder="Например: работа, Душанбе, менеджер"
+                >
+
+                <div class="field-hint">
+                  Разделяйте теги запятыми.
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- ССЫЛКИ И МЕДИА -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+                  <span class="form-icon">🔗</span>
+
+                  <h2>Ссылки и медиа</h2>
+
+                  <p>
+                    Можно добавить изображения, видео, аудио,
+                    музыку, документы или обычные ссылки.
+                  </p>
+                </div>
+
+              </div>
+
+
+              <div id="mediaList" class="media-list">
+
+                <div class="media-row">
+
+                  <select class="media-type">
 
                     <option value="image">
                       🖼️ Изображение
@@ -929,47 +699,87 @@
                     </option>
 
                     <option value="video">
-                      🎬 Видео
+                      🎥 Видео
+                    </option>
+
+                    <option value="audio">
+                      🎧 Аудио
                     </option>
 
                     <option value="music">
                       🎵 Музыка
                     </option>
 
-                    <option value="audio">
-                      🔊 Аудио
+                    <option value="document">
+                      📄 Документ
                     </option>
 
                     <option value="link">
                       🔗 Ссылка
                     </option>
 
-                    <option value="document">
-                      📄 Документ
-                    </option>
-
-                    <option value="other">
-                      📎 Другое
-                    </option>
-
                   </select>
 
-                </div>
-
-
-                <div class="form-group">
-
-                  <label>
-                    URL
-                  </label>
 
                   <input
                     type="url"
-                    name="media_url"
                     class="media-url"
-                    placeholder="https://example.com/..."
-                    inputmode="url"
+                    placeholder="https://example.com/file"
                   >
+
+
+                  <button
+                    type="button"
+                    class="btn btn-danger remove-media"
+                    title="Удалить"
+                  >
+                    ×
+                  </button>
+
+                </div>
+
+              </div>
+
+
+              <button
+                type="button"
+                id="addMedia"
+                class="btn btn-secondary"
+              >
+                + Добавить ещё медиа
+              </button>
+
+
+              <div class="info-box">
+
+                <strong>ℹ️ Важно</strong>
+
+                <p>
+                  Файлы напрямую на сайт загружать не нужно.
+                  Используйте прямые ссылки на изображения, видео,
+                  аудио, документы или другие материалы.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <!-- ССЫЛКА -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+                  <span class="form-icon">🌐</span>
+
+                  <h2>Основная ссылка</h2>
+
+                  <p>
+                    Если у публикации есть официальный источник,
+                    сайт, регистрация или дополнительная информация.
+                  </p>
 
                 </div>
 
@@ -978,787 +788,323 @@
 
               <div class="form-group">
 
-                <label>
-                  Подпись
+                <label for="sourceUrl">
+                  Ссылка
                 </label>
 
                 <input
-                  type="text"
-                  name="media_caption"
-                  class="media-caption"
-                  placeholder="Описание медиа"
+                  id="sourceUrl"
+                  name="sourceUrl"
+                  type="url"
+                  maxlength="2000"
+                  placeholder="https://example.com"
                 >
 
               </div>
 
             </div>
 
-          </div>
+
+            <!-- ПЕРЕВОД -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+                  <span class="form-icon">🌍</span>
+
+                  <h2>Языки публикации</h2>
+
+                  <p>
+                    Оригинальный текст сохраняется. В дальнейшем
+                    публикацию можно переводить на доступные языки.
+                  </p>
+                </div>
+
+              </div>
 
 
-          <button
-            type="button"
-            id="addMediaButton"
-            class="btn btn-secondary"
-          >
-            ＋ Добавить ещё медиа
-          </button>
+              <div class="form-group">
+
+                <label for="language">
+                  Язык оригинала
+                </label>
+
+                <select id="language" name="language">
+
+                  <option value="ru">
+                    🇷🇺 Русский
+                  </option>
+
+                  <option value="tg">
+                    🇹🇯 Таджикский
+                  </option>
+
+                  <option value="en">
+                    🇬🇧 English
+                  </option>
+
+                  <option value="fa">
+                    🇮🇷 فارسی
+                  </option>
+
+                  <option value="uz">
+                    🇺🇿 O‘zbek
+                  </option>
+
+                  <option value="kk">
+                    🇰🇿 Қазақша
+                  </option>
+
+                  <option value="ky">
+                    🇰🇬 Кыргызча
+                  </option>
+
+                  <option value="tr">
+                    🇹🇷 Türkçe
+                  </option>
+
+                  <option value="ar">
+                    🇸🇦 العربية
+                  </option>
+
+                  <option value="zh">
+                    🇨🇳 中文
+                  </option>
+
+                  <option value="hi">
+                    🇮🇳 हिन्दी
+                  </option>
+
+                  <option value="other">
+                    🌐 Другой
+                  </option>
+
+                </select>
+
+              </div>
 
 
-          <!-- =================================================
-               CONTACT
-          ================================================== -->
+              <label class="checkbox-label">
 
-          <div class="form-section-title">
+                <input
+                  type="checkbox"
+                  id="translateLater"
+                  name="translateLater"
+                >
 
-            <span>
-              📞 Контакты
-            </span>
+                <span>
+                  🌍 Подготовить публикацию для перевода на другие языки
+                </span>
 
-          </div>
-
-
-          <div class="form-grid-2">
-
-
-            <div class="form-group">
-
-              <label for="contact_name">
-                Имя / организация
               </label>
-
-              <input
-                id="contact_name"
-                name="contact_name"
-                type="text"
-                placeholder="Имя или название организации"
-              >
 
             </div>
 
 
-            <div class="form-group">
+            <!-- ОТПРАВКА -->
 
-              <label for="contact_phone">
-                Телефон
-              </label>
+            <div class="form-card submit-card">
 
-              <input
-                id="contact_phone"
-                name="contact_phone"
-                type="tel"
-                placeholder="+992 ..."
-              >
+              <div class="moderation-notice">
+
+                <div class="moderation-icon">
+                  🛡️
+                </div>
+
+                <div>
+
+                  <h3>
+                    Публикация проходит модерацию
+                  </h3>
+
+                  <p>
+                    После отправки публикация не появляется
+                    на сайте автоматически. Сначала её проверит
+                    администрация Tajik Opportunities.
+                  </p>
+
+                  <p>
+                    При необходимости администрация может связаться
+                    с вами через официальный приватный чат сайта.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div id="formMessage" class="form-message"></div>
+
+
+              <div class="submit-actions">
+
+                <a href="/" class="btn btn-secondary">
+                  Отмена
+                </a>
+
+                <button
+                  type="submit"
+                  id="submitPublication"
+                  class="btn btn-primary"
+                >
+                  📤 Отправить на модерацию
+                </button>
+
+              </div>
 
             </div>
 
+          </form>
 
-            <div class="form-group">
+        </div>
 
-              <label for="contact_email">
-                Email
-              </label>
 
-              <input
-                id="contact_email"
-                name="contact_email"
-                type="email"
-                placeholder="example@email.com"
-              >
+        <!-- БОКОВАЯ ПАНЕЛЬ -->
 
+        <aside class="form-sidebar">
+
+          <div class="sidebar-card">
+
+            <div class="sidebar-icon">
+              💡
             </div>
 
+            <h3>
+              Как это работает?
+            </h3>
 
-            <div class="form-group">
+            <ol class="steps-list">
 
-              <label for="contact_telegram">
-                Telegram
-              </label>
+              <li>
+                <strong>Создайте публикацию</strong>
+                <span>
+                  Заполните необходимые поля.
+                </span>
+              </li>
 
-              <input
-                id="contact_telegram"
-                name="contact_telegram"
-                type="text"
-                placeholder="@username"
-              >
+              <li>
+                <strong>Отправьте её</strong>
+                <span>
+                  Публикация попадёт администрации.
+                </span>
+              </li>
 
-            </div>
+              <li>
+                <strong>Модерация</strong>
+                <span>
+                  Администратор проверит информацию.
+                </span>
+              </li>
 
-          </div>
+              <li>
+                <strong>Публикация</strong>
+                <span>
+                  После одобрения материал появится на сайте.
+                </span>
+              </li>
 
-
-          <!-- =================================================
-               EXTERNAL URL
-          ================================================== -->
-
-          <div class="form-group">
-
-            <label for="external_url">
-              🔗 Официальная ссылка
-            </label>
-
-            <input
-              id="external_url"
-              name="external_url"
-              type="url"
-              placeholder="https://example.com"
-              inputmode="url"
-            >
-
-            <small class="field-help">
-              Например, официальный сайт,
-              страница регистрации или источник информации.
-            </small>
+            </ol>
 
           </div>
 
 
-          <!-- =================================================
-               AUTHOR
-          ================================================== -->
+          <div class="sidebar-card official-card">
 
-          <div class="form-group">
-
-            <label for="author_name">
-              👤 Имя автора
-            </label>
-
-            <input
-              id="author_name"
-              name="author_name"
-              type="text"
-              placeholder="Как вас указать"
-              autocomplete="name"
-            >
-
-          </div>
-
-
-          <!-- =================================================
-               LANGUAGE / TRANSLATION
-          ================================================== -->
-
-          <div class="form-section-title">
-
-            <span>
-              🌐 Язык публикации
-            </span>
-
-          </div>
-
-
-          <div class="form-group">
-
-            <label for="language">
-              Язык оригинала
-            </label>
-
-            <select
-              id="language"
-              name="language"
-            >
-
-              <option value="ru">
-                🇷🇺 Русский
-              </option>
-
-              <option value="tg">
-                🇹🇯 Тоҷикӣ
-              </option>
-
-              <option value="en">
-                🇬🇧 English
-              </option>
-
-              <option value="fa">
-                🇮🇷 فارسی
-              </option>
-
-              <option value="uz">
-                🇺🇿 O‘zbek
-              </option>
-
-              <option value="kk">
-                🇰🇿 Қазақша
-              </option>
-
-              <option value="ky">
-                🇰🇬 Кыргызча
-              </option>
-
-              <option value="tr">
-                🇹🇷 Türkçe
-              </option>
-
-              <option value="ar">
-                🇸🇦 العربية
-              </option>
-
-              <option value="zh">
-                🇨🇳 中文
-              </option>
-
-              <option value="hi">
-                🇮🇳 हिन्दी
-              </option>
-
-              <option value="de">
-                🇩🇪 Deutsch
-              </option>
-
-              <option value="fr">
-                🇫🇷 Français
-              </option>
-
-              <option value="es">
-                🇪🇸 Español
-              </option>
-
-              <option value="it">
-                🇮🇹 Italiano
-              </option>
-
-              <option value="other">
-                🌍 Другой язык
-              </option>
-
-            </select>
-
-          </div>
-
-
-          <!-- =================================================
-               TRANSLATION
-          ================================================== -->
-
-          <div class="translation-option">
-
-            <label class="checkbox-label">
-
-              <input
-                type="checkbox"
-                id="translateAll"
-                name="translate_all"
-              >
-
-              <span>
-                🌍 Перевести публикацию на все доступные языки
-              </span>
-
-            </label>
-
-
-            <p>
-              Оригинальный текст сохраняется.
-              Переводы могут быть подготовлены отдельно
-              и проверены перед публикацией.
-            </p>
-
-          </div>
-
-
-          <!-- =================================================
-               HONEYPOT
-          ================================================== -->
-
-          <div
-            class="honeypot"
-            aria-hidden="true"
-          >
-
-            <label for="website">
-              Website
-            </label>
-
-            <input
-              id="website"
-              name="website"
-              type="text"
-              tabindex="-1"
-              autocomplete="off"
-            >
-
-          </div>
-
-
-          <!-- =================================================
-               MODERATION NOTICE
-          ================================================= -->
-
-          <div class="form-notice">
-
-            <div class="form-notice-icon">
-              🛡️
+            <div class="official-avatar">
+              🇹🇯
             </div>
 
             <div>
 
-              <strong>
-                Публикация проходит модерацию
-              </strong>
+              <div class="official-name">
+                Tajik Opportunities
+                <span>✓</span>
+              </div>
 
-              <p>
-                После отправки материал получает статус
-                «На проверке». Он не будет виден другим
-                пользователям до решения администрации.
-              </p>
+              <div class="official-label">
+                Проверенный официальный аккаунт
+              </div>
 
             </div>
 
-          </div>
-
-
-          <!-- =================================================
-               MESSAGE
-          ================================================= -->
-
-          <div
-            id="formMessage"
-            class="form-message"
-            hidden
-            role="alert"
-            aria-live="polite"
-          ></div>
-
-
-          <!-- =================================================
-               SUBMIT
-          ================================================= -->
-
-          <button
-            id="submitSubmission"
-            type="submit"
-            class="btn btn-primary btn-large"
-          >
-
-            📤
-
-            <span>
-              Отправить на модерацию
-            </span>
-
-          </button>
-
-
-          <p class="form-submit-note">
-
-            После отправки вы получите код,
-            по которому сможете проверить статус заявки.
-
-          </p>
-
-
-        </form>
-
-
-        <!-- ===================================================
-             SUCCESS
-        ==================================================== -->
-
-        <div
-          id="submissionSuccess"
-          class="submission-success"
-          hidden
-        >
-
-          <div class="success-icon">
-            ✓
-          </div>
-
-
-          <span class="section-kicker">
-            Успешно отправлено
-          </span>
-
-
-          <h2>
-            Публикация отправлена на модерацию
-          </h2>
-
-
-          <p>
-            Спасибо! Администрация проверит вашу публикацию.
-          </p>
-
-
-          <div class="tracking-box">
-
-            <span class="tracking-label">
-              Код отслеживания
-            </span>
-
-
-            <strong
-              id="trackingCode"
-              class="tracking-code"
-            >
-              —
-            </strong>
+            <p>
+              При необходимости администрация может связаться
+              с автором через приватный чат непосредственно
+              на платформе.
+            </p>
 
           </div>
 
 
-          <div class="success-actions">
+          <div class="sidebar-card">
 
-            <button
-              type="button"
-              id="copyTrackingButton"
-              class="btn btn-secondary"
-            >
-              📋 Скопировать код
-            </button>
+            <h3>
+              📌 Что можно разместить?
+            </h3>
 
+            <ul class="feature-list">
 
-            <a
-              href="/status.html"
-              class="btn btn-primary"
-            >
-              🔎 Проверить статус
-            </a>
+              <li>💼 Вакансии</li>
+              <li>🎓 Образование</li>
+              <li>📰 Новости</li>
+              <li>🎁 Возможности</li>
+              <li>📢 Объявления</li>
+              <li>📅 Мероприятия</li>
+              <li>🏆 Конкурсы</li>
+              <li>💰 Гранты</li>
+              <li>🚀 Стартапы</li>
+              <li>🤝 Услуги</li>
+              <li>💡 Проекты</li>
+              <li>🤝 Волонтёрство</li>
+              <li>🛍️ Товары</li>
+              <li>✨ И многое другое</li>
+
+            </ul>
 
           </div>
 
-
-          <a
-            href="/"
-            class="text-link"
-          >
-            ← Вернуться на главную
-          </a>
-
-        </div>
+        </aside>
 
       </div>
 
-
-      <!-- =====================================================
-           SIDEBAR
-      ====================================================== -->
-
-      <aside class="form-sidebar">
-
-
-        <div class="info-card">
-
-          <div class="info-card-icon">
-            1
-          </div>
-
-          <div>
-
-            <h3>
-              Создайте публикацию
-            </h3>
-
-            <p>
-              Заполните основные сведения
-              и добавьте полезные материалы.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="info-card">
-
-          <div class="info-card-icon">
-            2
-          </div>
-
-          <div>
-
-            <h3>
-              Отправьте её
-            </h3>
-
-            <p>
-              После отправки публикация
-              попадёт в очередь модерации.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <div class="info-card">
-
-          <div class="info-card-icon">
-            3
-          </div>
-
-          <div>
-
-            <h3>
-              Получите результат
-            </h3>
-
-            <p>
-              После проверки публикация может
-              появиться в общей ленте.
-            </p>
-
-          </div>
-
-        </div>
-
-
-        <!-- ===================================================
-             TIPS
-        ==================================================== -->
-
-        <div class="sidebar-highlight">
-
-          <div class="sidebar-highlight-icon">
-            ⭐
-          </div>
-
-
-          <h3>
-            Хорошая публикация
-          </h3>
-
-
-          <ul>
-
-            <li>
-              Понятный заголовок
-            </li>
-
-            <li>
-              Подробное описание
-            </li>
-
-            <li>
-              Правильная категория
-            </li>
-
-            <li>
-              Страна и город
-            </li>
-
-            <li>
-              Сроки и дедлайн
-            </li>
-
-            <li>
-              Официальная ссылка
-            </li>
-
-            <li>
-              Контактная информация
-            </li>
-
-            <li>
-              Подходящие медиа
-            </li>
-
-          </ul>
-
-        </div>
-
-
-        <!-- ===================================================
-             TELEGRAM
-        ==================================================== -->
-
-        <div class="telegram-card">
-
-          <div class="telegram-icon">
-            ✈️
-          </div>
-
-
-          <h3>
-            Tajik Opportunities
-          </h3>
-
-
-          <p>
-            Следите за новыми публикациями
-            и возможностями в Telegram.
-          </p>
-
-
-          <a
-            href="https://t.me/Tajik_Opportunities"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-telegram"
-          >
-            Открыть Telegram
-          </a>
-
-        </div>
-
-      </aside>
-
     </div>
-
-  </div>
-
-</section>
-
-
-<!-- =========================================================
-     BOTTOM CTA
-========================================================= -->
-
-<section class="section section-soft">
-
-  <div class="container">
-
-    <div class="cta-card">
-
-      <div>
-
-        <span class="section-kicker">
-          Tajik Opportunities
-        </span>
-
-
-        <h2>
-          Здесь можно поделиться чем угодно полезным
-        </h2>
-
-
-        <p>
-          Работа, образование, новости, гранты,
-          конкурсы, проекты, услуги, мероприятия,
-          идеи и другие возможности.
-        </p>
-
-      </div>
-
-
-      <a
-        href="/"
-        class="btn btn-primary"
-      >
-        Смотреть публикации →
-      </a>
-
-    </div>
-
-  </div>
-
-</section>
+  </section>
 
 </main>
 
 
-<!-- =========================================================
-     FOOTER
-========================================================= -->
-
 <footer class="site-footer">
 
-  <div class="container">
+  <div class="container footer-inner">
 
-    <div class="footer-grid">
+    <div>
+      <strong>Tajik Opportunities</strong>
 
-
-      <div class="footer-brand">
-
-        <a
-          href="/"
-          class="brand"
-        >
-
-          <span class="brand-logo">
-
-            <img
-              src="/images/Image_2026_09_05_19_01_30.jpg"
-              alt="Tajik Opportunities"
-            >
-
-          </span>
-
-
-          <span class="brand-text">
-
-            <strong>
-              Tajik Opportunities
-            </strong>
-
-            <small>
-              Платформа возможностей
-            </small>
-
-          </span>
-
-        </a>
-
-
-        <p>
-          Полезные возможности, новости,
-          работа, образование, проекты
-          и многое другое.
-        </p>
-
-      </div>
-
-
-      <div class="footer-links">
-
-        <h3>
-          Платформа
-        </h3>
-
-        <a href="/">
-          🏠 Главная
-        </a>
-
-        <a href="/add.html">
-          ＋ Создать публикацию
-        </a>
-
-        <a href="/status.html">
-          🔎 Проверить статус
-        </a>
-
-      </div>
-
-
-      <div class="footer-links">
-
-        <h3>
-          Telegram
-        </h3>
-
-        <a
-          href="https://t.me/Tajik_Opportunities"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          ✈️ Канал
-        </a>
-
-        <a
-          href="https://t.me/Tajik_Opportunities_Group"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          👥 Группа
-        </a>
-
-      </div>
-
+      <p>
+        Платформа возможностей, информации,
+        общения и полезных инициатив.
+      </p>
     </div>
 
+    <div class="footer-links">
 
-    <div class="footer-bottom">
+      <a href="/">
+        Главная
+      </a>
 
-      <span>
-        © <span id="currentYear"></span>
-        Tajik Opportunities
-      </span>
+      <a href="/profile.html">
+        Профиль
+      </a>
 
+      <a href="/messages.html">
+        Сообщения
+      </a>
 
-      <span>
-        🇹🇯 Создано для Таджикистана
-      </span>
+      <a href="/notifications.html">
+        Уведомления
+      </a>
 
     </div>
 
@@ -1766,84 +1112,6 @@
 
 </footer>
 
-
-<!-- =========================================================
-     MOBILE NAVIGATION
-========================================================= -->
-
-<nav class="mobile-nav">
-
-  <a
-    href="/"
-    class="mobile-nav-item"
-  >
-
-    <span class="mobile-nav-icon">
-      🏠
-    </span>
-
-    <span>
-      Главная
-    </span>
-
-  </a>
-
-
-  <a
-    href="/add.html"
-    class="mobile-nav-item active"
-  >
-
-    <span class="mobile-nav-icon">
-      ＋
-    </span>
-
-    <span>
-      Создать
-    </span>
-
-  </a>
-
-
-  <a
-    href="/status.html"
-    class="mobile-nav-item"
-  >
-
-    <span class="mobile-nav-icon">
-      🔎
-    </span>
-
-    <span>
-      Статус
-    </span>
-
-  </a>
-
-
-  <a
-    href="https://t.me/Tajik_Opportunities"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="mobile-nav-item"
-  >
-
-    <span class="mobile-nav-icon">
-      ✈️
-    </span>
-
-    <span>
-      Telegram
-    </span>
-
-  </a>
-
-</nav>
-
-
-<!-- =========================================================
-     TOAST
-========================================================= -->
 
 <div
   id="toast"
@@ -1853,12 +1121,410 @@
 ></div>
 
 
-<!-- =========================================================
-     JAVASCRIPT
-========================================================= -->
+<script>
+(() => {
+  "use strict";
 
-<script src="/js/app.js"></script>
-<script src="/js/add.js"></script>
+  const form = document.getElementById("publicationForm");
+  const mediaList = document.getElementById("mediaList");
+  const addMediaButton = document.getElementById("addMedia");
+  const formMessage = document.getElementById("formMessage");
+  const submitButton = document.getElementById("submitPublication");
+  const toast = document.getElementById("toast");
+
+  function showToast(message, type = "info") {
+    if (!toast) return;
+
+    toast.textContent = message;
+    toast.className = "toast show " + type;
+
+    setTimeout(() => {
+      toast.className = "toast";
+    }, 3500);
+  }
+
+
+  function setMessage(message, type = "") {
+    if (!formMessage) return;
+
+    formMessage.textContent = message;
+    formMessage.className = "form-message " + type;
+  }
+
+
+  function createMediaRow() {
+
+    const row = document.createElement("div");
+
+    row.className = "media-row";
+
+    row.innerHTML = `
+      <select class="media-type">
+
+        <option value="image">
+          🖼️ Изображение
+        </option>
+
+        <option value="gallery">
+          🖼️ Галерея
+        </option>
+
+        <option value="video">
+          🎥 Видео
+        </option>
+
+        <option value="audio">
+          🎧 Аудио
+        </option>
+
+        <option value="music">
+          🎵 Музыка
+        </option>
+
+        <option value="document">
+          📄 Документ
+        </option>
+
+        <option value="link">
+          🔗 Ссылка
+        </option>
+
+      </select>
+
+      <input
+        type="url"
+        class="media-url"
+        placeholder="https://example.com/file"
+      >
+
+      <button
+        type="button"
+        class="btn btn-danger remove-media"
+        title="Удалить"
+      >
+        ×
+      </button>
+    `;
+
+    return row;
+  }
+
+
+  addMediaButton?.addEventListener("click", () => {
+
+    mediaList.appendChild(createMediaRow());
+
+  });
+
+
+  mediaList?.addEventListener("click", (event) => {
+
+    const button = event.target.closest(".remove-media");
+
+    if (!button) return;
+
+    const rows = mediaList.querySelectorAll(".media-row");
+
+    if (rows.length <= 1) {
+
+      const input = button
+        .closest(".media-row")
+        ?.querySelector(".media-url");
+
+      if (input) {
+        input.value = "";
+      }
+
+      return;
+    }
+
+    button.closest(".media-row")?.remove();
+
+  });
+
+
+  function collectMedia() {
+
+    const rows = [...document.querySelectorAll(".media-row")];
+
+    return rows
+      .map(row => {
+
+        const type =
+          row.querySelector(".media-type")?.value?.trim() || "";
+
+        const url =
+          row.querySelector(".media-url")?.value?.trim() || "";
+
+        return {
+          type,
+          url
+        };
+
+      })
+      .filter(item => item.url);
+
+  }
+
+
+  function getValue(id) {
+
+    const element = document.getElementById(id);
+
+    return element
+      ? element.value.trim()
+      : "";
+
+  }
+
+
+  function getCheckbox(id) {
+
+    const element = document.getElementById(id);
+
+    return Boolean(element?.checked);
+
+  }
+
+
+  form?.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    setMessage("");
+
+    const title = getValue("title");
+    const description = getValue("description");
+    const category = getValue("category");
+
+    if (!title) {
+
+      setMessage(
+        "Введите заголовок публикации.",
+        "error"
+      );
+
+      document.getElementById("title")?.focus();
+
+      return;
+    }
+
+
+    if (!category) {
+
+      setMessage(
+        "Выберите категорию.",
+        "error"
+      );
+
+      document.getElementById("category")?.focus();
+
+      return;
+    }
+
+
+    if (!description) {
+
+      setMessage(
+        "Добавьте описание публикации.",
+        "error"
+      );
+
+      document.getElementById("description")?.focus();
+
+      return;
+    }
+
+
+    const media = collectMedia();
+
+
+    const payload = {
+
+      title,
+
+      category,
+
+      type: getValue("type") || "post",
+
+      description,
+
+      country: getValue("country"),
+
+      city: getValue("city"),
+
+      location: getValue("location"),
+
+      scope: getValue("scope"),
+
+      start_date: getValue("startDate"),
+
+      end_date: getValue("endDate"),
+
+      deadline: getValue("deadline"),
+
+      salary: getValue("salary"),
+
+      currency: getValue("currency"),
+
+      employment_type: getValue("employmentType"),
+
+      experience: getValue("experience"),
+
+      education: getValue("education"),
+
+      languages: getValue("languages"),
+
+      tags: getValue("tags"),
+
+      source_url: getValue("sourceUrl"),
+
+      language: getValue("language") || "ru",
+
+      translate_later: getCheckbox("translateLater"),
+
+      media
+
+    };
+
+
+    submitButton.disabled = true;
+
+    submitButton.dataset.originalText =
+      submitButton.textContent;
+
+    submitButton.textContent =
+      "⏳ Отправка...";
+
+
+    try {
+
+      const response = await fetch("/api/publications", {
+
+        method: "POST",
+
+        headers: {
+          "Content-Type": "application/json"
+        },
+
+        credentials: "include",
+
+        body: JSON.stringify(payload)
+
+      });
+
+
+      let data = null;
+
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+
+
+      if (!response.ok) {
+
+        if (response.status === 401) {
+
+          throw new Error(
+            "Чтобы отправить публикацию, сначала войдите в аккаунт."
+          );
+
+        }
+
+        throw new Error(
+          data?.error ||
+          data?.message ||
+          "Не удалось отправить публикацию."
+        );
+
+      }
+
+
+      setMessage(
+        "Публикация успешно отправлена на модерацию.",
+        "success"
+      );
+
+      showToast(
+        "Публикация отправлена на проверку.",
+        "success"
+      );
+
+
+      form.reset();
+
+
+      setTimeout(() => {
+
+        window.location.href = "/";
+
+      }, 1800);
+
+
+    } catch (error) {
+
+      console.error(error);
+
+      setMessage(
+        error?.message ||
+        "Произошла ошибка. Попробуйте ещё раз.",
+        "error"
+      );
+
+      showToast(
+        error?.message ||
+        "Ошибка отправки.",
+        "error"
+      );
+
+
+    } finally {
+
+      submitButton.disabled = false;
+
+      submitButton.textContent =
+        submitButton.dataset.originalText ||
+        "📤 Отправить на модерацию";
+
+    }
+
+  });
+
+
+  /*
+   * Предупреждение при уходе со страницы,
+   * если пользователь уже начал заполнять форму.
+   */
+
+  let formChanged = false;
+
+  form?.addEventListener("input", () => {
+
+    formChanged = true;
+
+  });
+
+
+  window.addEventListener("beforeunload", (event) => {
+
+    if (!formChanged) return;
+
+    event.preventDefault();
+    event.returnValue = "";
+
+  });
+
+
+  form?.addEventListener("submit", () => {
+
+    formChanged = false;
+
+  });
+
+})();
+</script>
 
 </body>
   </html>
