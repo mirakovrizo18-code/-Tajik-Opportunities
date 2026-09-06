@@ -1,8 +1,8 @@
-🇹🇯 Tajik Opportunities
+# 🇹🇯 Tajik Opportunities
 
 Tajik Opportunities — платформа полезных возможностей для Таджикистана.
 
-📌 О проекте
+## 📌 О проекте
 
 Платформа объединяет актуальные возможности для жителей Таджикистана:
 
@@ -16,11 +16,11 @@ Tajik Opportunities — платформа полезных возможност
 - 📢 Мероприятия
 - 📰 Полезные новости и объявления
 
-🌐 Сайт
+## 🌐 Сайт
 
 https://tajik-opportunities.com
 
-📂 Структура проекта
+## 📂 Структура проекта
 
 tajik-opportunities/
 ├── public/
@@ -39,15 +39,16 @@ tajik-opportunities/
 │   └── status.html
 └── README.md
 
-🛠️ Технологии
+## 🛠️ Технологии
 
 - HTML5
 - CSS3
 - JavaScript
 - GitHub
-- GitHub Pages
+- Cloudflare Workers
+- Cloudflare D1
 
-📱 Telegram
+## 📱 Telegram
 
 Основной Telegram-канал:
 
@@ -57,10 +58,12 @@ Telegram-группа:
 
 https://t.me/Tajik_Opportunities_Group
 
-🇹🇯 Цель проекта
+## 🇹🇯 Цель проекта
 
 Создать удобную и доступную платформу, где жители Таджикистана смогут находить полезные возможности для учёбы, работы, развития и участия в международных и локальных проектах.
 
 ---
 
 Tajik Opportunities — возможности для Таджикистана 🇹🇯
+
+<!-- Deployment update -->
