@@ -1,74 +1,2936 @@
-/* ============================================================
-   🇹🇯 TAJIK OPPORTUNITIES
-   works.js
-   Professional universal platform controller
-   ============================================================ */
+/**
+ * 🇹🇯 TAJIK OPPORTUNITIES
+ * worker/worker.js
+ *
+ * Серверный Cloudflare Worker
+ *
+ * API:
+ * /api/auth/*
+ * /api/profile/*
+ * /api/categories
+ * /api/publications/*
+ * /api/comments
+ * /api/chat/*
+ * /api/notifications/*
+ * /api/admin/*
+ *
+ * Требуется Cloudflare D1:
+ * binding name: DB
+ */
 
-(() => {
-  "use strict";
+const SITE_NAME = "🇹🇯 Tajik Opportunities";
+const OFFICIAL_NAME = "🇹🇯 Tajik Opportunities✅";
+const OFFICIAL_USERNAME = "@tajikopportunities";
 
-  /* ============================================================
-     1. GLOBAL CONFIG
-     ============================================================ */
+const COOKIE_USER = "to_session";
+const COOKIE_ADMIN = "to_admin_session";
 
-  const TO = window.TO = window.TO || {};
+const SESSION_DAYS = 30;
+const ADMIN_SESSION_HOURS = 12;
 
-  TO.version = "4.0.0";
-  TO.name = "Tajik Opportunities";
-  TO.username = "@tajikopportunities";
+const SECURITY_HEADERS = {
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "permissions-policy": "camera=(), microphone=(), geolocation=()",
+  "cross-origin-opener-policy": "same-origin"
+};
 
-  TO.config = {
-    apiPrefix: "/api",
-    siteName: "Tajik Opportunities",
-    officialName: "🇹🇯 Tajik Opportunities✅",
-    officialUsername: "@tajikopportunities",
+const CATEGORIES = [
+  ["jobs", "💼 Работа"],
+  ["job_seekers", "🔎 Ищу работу"],
+  ["employees", "👔 Ищу сотрудника"],
+  ["profiles", "👤 Профили"],
+  ["news", "📰 Новости"],
+  ["education", "🎓 Образование"],
+  ["courses", "📚 Курсы"],
+  ["opportunities", "🎁 Возможности"],
+  ["announcements", "📢 Объявления"],
+  ["services", "🤝 Услуги"],
+  ["ideas", "💡 Идеи"],
+  ["projects", "🚀 Проекты"],
+  ["startups", "🌱 Стартапы"],
+  ["events", "📅 Мероприятия"],
+  ["competitions", "🏆 Конкурсы"],
+  ["grants", "💰 Гранты"],
+  ["volunteering", "🤝 Волонтёрство"],
+  ["products", "🛍️ Товары"],
+  ["business", "🏢 Бизнес"],
+  ["it", "💻 IT"],
+  ["sport", "⚽ Спорт"],
+  ["music", "🎵 Музыка"],
+  ["culture", "🎭 Культура"],
+  ["travel", "✈️ Путешествия"],
+  ["help", "🆘 Помощь"],
+  ["other", "➕ Другое"]
+];
 
-    sessionCookie: "to_session",
-    adminCookie: "to_admin",
+const REACTIONS = [
+  "like",
+  "love",
+  "support",
+  "funny",
+  "wow",
+  "sad",
+  "angry"
+];
 
-    requestTimeout: 20000,
-    pollingInterval: 15000,
-    notificationInterval: 20000,
-    viewDelay: 2500,
+const STATUSES = [
+  "pending",
+  "waiting_payment",
+  "paid",
+  "published",
+  "rejected",
+  "hidden",
+  "deleted"
+];
 
-    debug: false
+/* =========================================================
+   BASIC HELPERS
+========================================================= */
+
+function json(data, status = 200, extra = {}) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: {
+      "content-type": "application/json; charset=utf-8",
+      ...SECURITY_HEADERS,
+      ...extra
+    }
+  });
+}
+
+function text(data, status = 200, extra = {}) {
+  return new Response(data, {
+    status,
+    headers: {
+      "content-type": "text/plain; charset=utf-8",
+      ...SECURITY_HEADERS,
+      ...extra
+    }
+  });
+}
+
+function error(message, status = 400, extra = {}) {
+  return json(
+    {
+      ok: false,
+      error: message
+    },
+    status,
+    extra
+  );
+}
+
+function ok(data = {}) {
+  return json({
+    ok: true,
+    ...data
+  });
+}
+
+function now() {
+  return new Date().toISOString();
+}
+
+function randomId(prefix = "") {
+  return (
+    prefix +
+    crypto.randomUUID().replaceAll("-", "")
+  );
+}
+
+function normalizeUsername(value) {
+  return String(value || "")
+    .trim()
+    .replace(/^@/, "")
+    .toLowerCase();
+}
+
+function cleanString(value, max = 10000) {
+  if (value === undefined || value === null) return "";
+  return String(value).trim().slice(0, max);
+}
+
+function int(value, fallback = 0) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return fallback;
+  return Math.max(0, Math.floor(n));
+}
+
+function bool(value) {
+  return value === true ||
+    value === 1 ||
+    value === "1" ||
+    value === "true";
+}
+
+function safeJsonParse(value, fallback = null) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return fallback;
+  }
+}
+
+async function bodyJson(request) {
+  try {
+    return await request.json();
+  } catch {
+    return {};
+  }
+}
+
+function cookieValue(request, name) {
+  const header = request.headers.get("Cookie") || "";
+
+  const parts = header.split(";");
+
+  for (const part of parts) {
+    const [key, ...rest] = part.trim().split("=");
+
+    if (key === name) {
+      return decodeURIComponent(rest.join("="));
+    }
+  }
+
+  return null;
+}
+
+function cookie(name, value, maxAge, options = {}) {
+  const secure = options.secure !== false;
+
+  return [
+    `${name}=${encodeURIComponent(value)}`,
+    `Max-Age=${maxAge}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+    secure ? "Secure" : ""
+  ]
+    .filter(Boolean)
+    .join("; ");
+}
+
+function deleteCookie(name) {
+  return `${name}=; Max-Age=0; Path=/; HttpOnly; SameSite=Lax; Secure`;
+}
+
+function headersWithCookies(headers, cookies) {
+  const result = new Headers(headers);
+
+  for (const c of cookies) {
+    result.append("Set-Cookie", c);
+  }
+
+  return result;
+}
+
+async function sha256(value) {
+  const data = new TextEncoder().encode(String(value));
+
+  const hash = await crypto.subtle.digest(
+    "SHA-256",
+    data
+  );
+
+  return [...new Uint8Array(hash)]
+    .map(x => x.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+async function hashPassword(password) {
+  return sha256(password);
+}
+
+function getDB(env) {
+  if (!env.DB) {
+    throw new Error(
+      "D1 binding DB is not configured. Create a D1 binding named DB."
+    );
+  }
+
+  return env.DB;
+}
+
+/* =========================================================
+   DATABASE INITIALIZATION
+========================================================= */
+
+let dbInitialized = false;
+
+async function initDB(env) {
+  const db = getDB(env);
+
+  if (dbInitialized) return;
+
+  await db.batch([
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        name TEXT NOT NULL,
+        email TEXT,
+        password_hash TEXT,
+        avatar TEXT,
+        bio TEXT,
+        city TEXT,
+        country TEXT,
+        language TEXT DEFAULT 'ru',
+        verified INTEGER DEFAULT 0,
+        blocked INTEGER DEFAULT 0,
+        role TEXT DEFAULT 'user',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        type TEXT DEFAULT 'user',
+        expires_at TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS publications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        title TEXT NOT NULL,
+        text TEXT,
+        category TEXT,
+        city TEXT,
+        country TEXT,
+        hashtags TEXT,
+        media TEXT,
+        status TEXT DEFAULT 'pending',
+        views INTEGER DEFAULT 0,
+        likes INTEGER DEFAULT 0,
+        comments INTEGER DEFAULT 0,
+        saves INTEGER DEFAULT 0,
+        shares INTEGER DEFAULT 0,
+        love INTEGER DEFAULT 0,
+        support INTEGER DEFAULT 0,
+        funny INTEGER DEFAULT 0,
+        wow INTEGER DEFAULT 0,
+        sad INTEGER DEFAULT 0,
+        angry INTEGER DEFAULT 0,
+        price INTEGER DEFAULT 0,
+        pinned INTEGER DEFAULT 0,
+        featured INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS reactions (
+        id TEXT PRIMARY KEY,
+        publication_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        reaction TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(publication_id, user_id)
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS saves (
+        id TEXT PRIMARY KEY,
+        publication_id TEXT NOT NULL,
+        user_id TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        UNIQUE(publication_id, user_id)
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS comments (
+        id TEXT PRIMARY KEY,
+        publication_id TEXT NOT NULL,
+        user_id TEXT,
+        parent_id TEXT,
+        text TEXT NOT NULL,
+        likes INTEGER DEFAULT 0,
+        hidden INTEGER DEFAULT 0,
+        deleted INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS messages (
+        id TEXT PRIMARY KEY,
+        sender_id TEXT,
+        receiver_id TEXT,
+        conversation_id TEXT,
+        text TEXT,
+        media TEXT,
+        reply_to TEXT,
+        forwarded_from TEXT,
+        edited INTEGER DEFAULT 0,
+        deleted INTEGER DEFAULT 0,
+        read INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        type TEXT,
+        title TEXT,
+        text TEXT,
+        data TEXT,
+        read INTEGER DEFAULT 0,
+        created_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS audit_logs (
+        id TEXT PRIMARY KEY,
+        admin_id TEXT,
+        action TEXT,
+        entity_type TEXT,
+        entity_id TEXT,
+        details TEXT,
+        created_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS admins (
+        id TEXT PRIMARY KEY,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        name TEXT,
+        role TEXT DEFAULT 'admin',
+        active INTEGER DEFAULT 1,
+        created_at TEXT NOT NULL
+      )
+    `),
+
+    db.prepare(`
+      CREATE TABLE IF NOT EXISTS publication_orders (
+        id TEXT PRIMARY KEY,
+        publication_id TEXT NOT NULL,
+        user_id TEXT,
+        amount INTEGER DEFAULT 0,
+        status TEXT DEFAULT 'pending',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+      )
+    `)
+  ]);
+
+  dbInitialized = true;
+}
+
+/* =========================================================
+   AUTH
+========================================================= */
+
+async function getUserFromSession(request, env) {
+  const token = cookieValue(request, COOKIE_USER);
+
+  if (!token) return null;
+
+  const db = getDB(env);
+
+  const row = await db.prepare(`
+    SELECT
+      u.*
+    FROM sessions s
+    JOIN users u ON u.id = s.user_id
+    WHERE s.id = ?
+      AND s.type = 'user'
+      AND s.expires_at > ?
+      AND u.blocked = 0
+    LIMIT 1
+  `)
+    .bind(token, now())
+    .first();
+
+  return row || null;
+}
+
+async function getAdminFromSession(request, env) {
+  const token = cookieValue(request, COOKIE_ADMIN);
+
+  if (!token) return null;
+
+  const db = getDB(env);
+
+  const row = await db.prepare(`
+    SELECT
+      a.*
+    FROM sessions s
+    JOIN admins a ON a.id = s.user_id
+    WHERE s.id = ?
+      AND s.type = 'admin'
+      AND s.expires_at > ?
+      AND a.active = 1
+    LIMIT 1
+  `)
+    .bind(token, now())
+    .first();
+
+  return row || null;
+}
+
+async function requireUser(request, env) {
+  const user = await getUserFromSession(request, env);
+
+  if (!user) {
+    throw new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Требуется авторизация"
+      }),
+      {
+        status: 401,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          ...SECURITY_HEADERS
+        }
+      }
+    );
+  }
+
+  return user;
+}
+
+async function requireAdmin(request, env) {
+  const admin = await getAdminFromSession(request, env);
+
+  if (!admin) {
+    throw new Response(
+      JSON.stringify({
+        ok: false,
+        error: "Требуются права администратора"
+      }),
+      {
+        status: 403,
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+          ...SECURITY_HEADERS
+        }
+      }
+    );
+  }
+
+  return admin;
+}
+
+/* =========================================================
+   AUDIT
+========================================================= */
+
+async function audit(
+  env,
+  adminId,
+  action,
+  entityType = "",
+  entityId = "",
+  details = {}
+) {
+  const db = getDB(env);
+
+  await db.prepare(`
+    INSERT INTO audit_logs
+    (id, admin_id, action, entity_type, entity_id, details, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+    .bind(
+      randomId("audit_"),
+      adminId || null,
+      action,
+      entityType,
+      entityId,
+      JSON.stringify(details),
+      now()
+    )
+    .run();
+}
+
+/* =========================================================
+   PUBLICATIONS NORMALIZATION
+========================================================= */
+
+function normalizePublication(row) {
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    publication_id: row.id,
+    user_id: row.user_id,
+    title: row.title,
+    text: row.text || "",
+    category: row.category || "other",
+    city: row.city || "",
+    country: row.country || "",
+    hashtags: safeJsonParse(row.hashtags, []),
+    media: safeJsonParse(row.media, []),
+    status: row.status,
+
+    views: int(row.views),
+    likes: int(row.likes),
+    comments: int(row.comments),
+    saves: int(row.saves),
+    shares: int(row.shares),
+
+    love: int(row.love),
+    support: int(row.support),
+    funny: int(row.funny),
+    wow: int(row.wow),
+    sad: int(row.sad),
+    angry: int(row.angry),
+
+    price: int(row.price),
+    pinned: bool(row.pinned),
+    featured: bool(row.featured),
+
+    created_at: row.created_at,
+    updated_at: row.updated_at
   };
+}
 
-  /* ============================================================
-     2. CONSTANTS
-     ============================================================ */
+function normalizeUser(row) {
+  if (!row) return null;
 
-  TO.categories = [
-    ["jobs", "💼 Работа"],
-    ["job_seekers", "🔎 Ищу работу"],
-    ["employees", "👔 Ищу сотрудника"],
-    ["profiles", "👤 Профили"],
-    ["news", "📰 Новости"],
-    ["education", "🎓 Образование"],
-    ["courses", "📚 Курсы"],
-    ["opportunities", "🎁 Возможности"],
-    ["announcements", "📢 Объявления"],
-    ["services", "🤝 Услуги"],
-    ["ideas", "💡 Идеи"],
-    ["projects", "🚀 Проекты"],
-    ["startups", "🌱 Стартапы"],
-    ["events", "📅 Мероприятия"],
-    ["competitions", "🏆 Конкурсы"],
-    ["grants", "💰 Гранты"],
-    ["volunteering", "🤝 Волонтёрство"],
-    ["products", "🛍️ Товары"],
-    ["business", "🏢 Бизнес"],
-    ["it", "💻 IT"],
-    ["sport", "⚽ Спорт"],
-    ["music", "🎵 Музыка"],
-    ["culture", "🎭 Культура"],
-    ["travel", "✈️ Путешествия"],
-    ["help", "🆘 Помощь"],
-    ["other", "➕ Другое"]
+  return {
+    id: row.id,
+    user_id: row.id,
+    username: "@" + row.username,
+    name: row.name,
+    email: row.email || "",
+    avatar: row.avatar || "",
+    bio: row.bio || "",
+    city: row.city || "",
+    country: row.country || "",
+    language: row.language || "ru",
+    verified: bool(row.verified),
+    blocked: bool(row.blocked),
+    role: row.role || "user",
+    created_at: row.created_at,
+    updated_at: row.updated_at
+  };
+}
+
+/* =========================================================
+   AUTH ROUTES
+========================================================= */
+
+async function register(request, env) {
+  const data = await bodyJson(request);
+
+  const name = cleanString(data.name, 120);
+  const username = normalizeUsername(data.username);
+  const email = cleanString(data.email, 200);
+  const password = String(data.password || "");
+
+  if (!name) {
+    return error("Введите имя");
+  }
+
+  if (!username || !/^[a-zA-Z0-9_.-]{3,40}$/.test(username)) {
+    return error("Некорректный username");
+  }
+
+  if (password.length < 6) {
+    return error("Пароль должен содержать минимум 6 символов");
+  }
+
+  const db = getDB(env);
+
+  const exists = await db.prepare(`
+    SELECT id FROM users WHERE username = ? LIMIT 1
+  `)
+    .bind(username)
+    .first();
+
+  if (exists) {
+    return error("Этот username уже занят", 409);
+  }
+
+  const id = randomId("usr_");
+  const timestamp = now();
+  const passwordHash = await hashPassword(password);
+
+  await db.prepare(`
+    INSERT INTO users
+    (
+      id,
+      username,
+      name,
+      email,
+      password_hash,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+    .bind(
+      id,
+      username,
+      name,
+      email || null,
+      passwordHash,
+      timestamp,
+      timestamp
+    )
+    .run();
+
+  const sessionId = randomId("sess_");
+
+  const expires = new Date(
+    Date.now() + SESSION_DAYS * 86400000
+  ).toISOString();
+
+  await db.prepare(`
+    INSERT INTO sessions
+    (id, user_id, type, expires_at, created_at)
+    VALUES (?, ?, 'user', ?, ?)
+  `)
+    .bind(
+      sessionId,
+      id,
+      expires,
+      timestamp
+    )
+    .run();
+
+  const user = await db.prepare(`
+    SELECT * FROM users WHERE id = ?
+  `)
+    .bind(id)
+    .first();
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      user: normalizeUser(user)
+    }),
+    {
+      status: 201,
+      headers: headersWithCookies(
+        {
+          "content-type": "application/json; charset=utf-8",
+          ...SECURITY_HEADERS
+        },
+        [
+          cookie(
+            COOKIE_USER,
+            sessionId,
+            SESSION_DAYS * 86400
+          )
+        ]
+      )
+    }
+  );
+}
+
+async function login(request, env) {
+  const data = await bodyJson(request);
+
+  const loginValue = cleanString(
+    data.username || data.email || data.login,
+    200
+  );
+
+  const password = String(data.password || "");
+
+  if (!loginValue || !password) {
+    return error("Введите логин и пароль");
+  }
+
+  const username = normalizeUsername(loginValue);
+
+  const db = getDB(env);
+
+  const user = await db.prepare(`
+    SELECT * FROM users
+    WHERE username = ?
+       OR lower(email) = lower(?)
+    LIMIT 1
+  `)
+    .bind(username, loginValue)
+    .first();
+
+  if (!user) {
+    return error("Неверный логин или пароль", 401);
+  }
+
+  if (user.blocked) {
+    return error("Аккаунт заблокирован", 403);
+  }
+
+  const hash = await hashPassword(password);
+
+  if (hash !== user.password_hash) {
+    return error("Неверный логин или пароль", 401);
+  }
+
+  const sessionId = randomId("sess_");
+  const timestamp = now();
+
+  const expires = new Date(
+    Date.now() + SESSION_DAYS * 86400000
+  ).toISOString();
+
+  await db.prepare(`
+    INSERT INTO sessions
+    (id, user_id, type, expires_at, created_at)
+    VALUES (?, ?, 'user', ?, ?)
+  `)
+    .bind(
+      sessionId,
+      user.id,
+      expires,
+      timestamp
+    )
+    .run();
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      user: normalizeUser(user)
+    }),
+    {
+      headers: headersWithCookies(
+        {
+          "content-type": "application/json; charset=utf-8",
+          ...SECURITY_HEADERS
+        },
+        [
+          cookie(
+            COOKIE_USER,
+            sessionId,
+            SESSION_DAYS * 86400
+          )
+        ]
+      )
+    }
+  );
+}
+
+async function logoutUser(request, env) {
+  const token = cookieValue(request, COOKIE_USER);
+
+  if (token) {
+    await getDB(env)
+      .prepare(`DELETE FROM sessions WHERE id = ?`)
+      .bind(token)
+      .run();
+  }
+
+  return new Response(
+    JSON.stringify({ ok: true }),
+    {
+      headers: headersWithCookies(
+        {
+          "content-type": "application/json; charset=utf-8",
+          ...SECURITY_HEADERS
+        },
+        [deleteCookie(COOKIE_USER)]
+      )
+    }
+  );
+}
+
+async function authMe(request, env) {
+  const user = await getUserFromSession(request, env);
+
+  return ok({
+    authenticated: !!user,
+    user: normalizeUser(user)
+  });
+}
+
+/* =========================================================
+   USERNAME
+========================================================= */
+
+async function usernameCheck(request, env) {
+  const url = new URL(request.url);
+  const username = normalizeUsername(
+    url.searchParams.get("username")
+  );
+
+  if (!username) {
+    return error("Username не указан");
+  }
+
+  const exists = await getDB(env)
+    .prepare(`
+      SELECT id FROM users WHERE username = ? LIMIT 1
+    `)
+    .bind(username)
+    .first();
+
+  return ok({
+    username: "@" + username,
+    available: !exists
+  });
+}
+
+/* =========================================================
+   PROFILE
+========================================================= */
+
+async function getProfile(request, env) {
+  const user = await requireUser(request, env);
+
+  return ok({
+    user: normalizeUser(user),
+    profile: normalizeUser(user)
+  });
+}
+
+async function updateProfile(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+  const db = getDB(env);
+
+  const fields = [];
+  const values = [];
+
+  if (data.name !== undefined) {
+    fields.push("name = ?");
+    values.push(cleanString(data.name, 120));
+  }
+
+  if (data.bio !== undefined) {
+    fields.push("bio = ?");
+    values.push(cleanString(data.bio, 5000));
+  }
+
+  if (data.avatar !== undefined) {
+    fields.push("avatar = ?");
+    values.push(cleanString(data.avatar, 2000));
+  }
+
+  if (data.city !== undefined) {
+    fields.push("city = ?");
+    values.push(cleanString(data.city, 120));
+  }
+
+  if (data.country !== undefined) {
+    fields.push("country = ?");
+    values.push(cleanString(data.country, 120));
+  }
+
+  if (data.language !== undefined) {
+    fields.push("language = ?");
+    values.push(cleanString(data.language, 20));
+  }
+
+  if (!fields.length) {
+    return ok({
+      user: normalizeUser(user)
+    });
+  }
+
+  fields.push("updated_at = ?");
+  values.push(now());
+  values.push(user.id);
+
+  await db.prepare(`
+    UPDATE users
+    SET ${fields.join(", ")}
+    WHERE id = ?
+  `)
+    .bind(...values)
+    .run();
+
+  const updated = await db.prepare(`
+    SELECT * FROM users WHERE id = ?
+  `)
+    .bind(user.id)
+    .first();
+
+  return ok({
+    user: normalizeUser(updated),
+    profile: normalizeUser(updated)
+  });
+}
+
+async function publicProfile(request, env) {
+  const url = new URL(request.url);
+
+  const username = normalizeUsername(
+    url.searchParams.get("username")
+  );
+
+  if (!username) {
+    return error("Username не указан");
+  }
+
+  const user = await getDB(env)
+    .prepare(`
+      SELECT * FROM users WHERE username = ? LIMIT 1
+    `)
+    .bind(username)
+    .first();
+
+  if (!user || user.blocked) {
+    return error("Пользователь не найден", 404);
+  }
+
+  return ok({
+    user: normalizeUser(user),
+    profile: normalizeUser(user)
+  });
+}
+
+/* =========================================================
+   CATEGORIES
+========================================================= */
+
+async function categories() {
+  return ok({
+    categories: CATEGORIES.map(([id, name]) => ({
+      id,
+      name
+    }))
+  });
+}
+
+/* =========================================================
+   PUBLICATIONS
+========================================================= */
+
+async function createPublication(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+
+  const title = cleanString(
+    data.title || data.name,
+    300
+  );
+
+  const body = cleanString(
+    data.text || data.description || "",
+    50000
+  );
+
+  if (!title && !body) {
+    return error("Добавьте заголовок или текст");
+  }
+
+  let media = data.media;
+
+  if (!Array.isArray(media)) {
+    media = [];
+  }
+
+  media = media
+    .slice(0, 30)
+    .map(item => ({
+      type: cleanString(item?.type, 40),
+      url: cleanString(item?.url, 5000),
+      title: cleanString(item?.title, 300)
+    }))
+    .filter(item => item.url);
+
+  let hashtags = data.hashtags;
+
+  if (!Array.isArray(hashtags)) {
+    hashtags = [];
+  }
+
+  hashtags = hashtags
+    .map(x => cleanString(x, 100))
+    .filter(Boolean)
+    .slice(0, 50);
+
+  const id = randomId("pub_");
+  const timestamp = now();
+
+  await getDB(env).prepare(`
+    INSERT INTO publications
+    (
+      id,
+      user_id,
+      title,
+      text,
+      category,
+      city,
+      country,
+      hashtags,
+      media,
+      status,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)
+  `)
+    .bind(
+      id,
+      user.id,
+      title || "",
+      body,
+      cleanString(data.category, 80),
+      cleanString(data.city, 120),
+      cleanString(data.country, 120),
+      JSON.stringify(hashtags),
+      JSON.stringify(media),
+      timestamp,
+      timestamp
+    )
+    .run();
+
+  const publication = await getDB(env)
+    .prepare(`SELECT * FROM publications WHERE id = ?`)
+    .bind(id)
+    .first();
+
+  return json({
+    ok: true,
+    publication: normalizePublication(publication)
+  }, 201);
+}
+
+async function listPublications(request, env) {
+  const url = new URL(request.url);
+
+  const category = cleanString(
+    url.searchParams.get("category"),
+    80
+  );
+
+  const search = cleanString(
+    url.searchParams.get("search") ||
+    url.searchParams.get("q"),
+    200
+  );
+
+  const limit = Math.min(
+    100,
+    Math.max(
+      1,
+      int(url.searchParams.get("limit"), 30)
+    )
+  );
+
+  const offset = Math.max(
+    0,
+    int(url.searchParams.get("offset"), 0)
+  );
+
+  const db = getDB(env);
+
+  let sql = `
+    SELECT *
+    FROM publications
+    WHERE status = 'published'
+  `;
+
+  const binds = [];
+
+  if (category) {
+    sql += ` AND category = ?`;
+    binds.push(category);
+  }
+
+  if (search) {
+    sql += `
+      AND (
+        title LIKE ?
+        OR text LIKE ?
+        OR hashtags LIKE ?
+        OR city LIKE ?
+      )
+    `;
+
+    const q = `%${search}%`;
+
+    binds.push(q, q, q, q);
+  }
+
+  sql += `
+    ORDER BY pinned DESC, featured DESC, created_at DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  binds.push(limit, offset);
+
+  const result = await db
+    .prepare(sql)
+    .bind(...binds)
+    .all();
+
+  const publications = (result.results || [])
+    .map(normalizePublication);
+
+  return ok({
+    publications,
+    items: publications,
+    total: publications.length,
+    limit,
+    offset
+  });
+}
+
+async function getPublication(request, env, id) {
+  const publication = await getDB(env)
+    .prepare(`
+      SELECT *
+      FROM publications
+      WHERE id = ?
+      LIMIT 1
+    `)
+    .bind(id)
+    .first();
+
+  if (!publication) {
+    return error("Публикация не найдена", 404);
+  }
+
+  return ok({
+    publication: normalizePublication(publication)
+  });
+}
+
+/* =========================================================
+   VIEWS
+========================================================= */
+
+async function publicationView(request, env) {
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.publication_id ||
+    data.id,
+    100
+  );
+
+  if (!id) {
+    return error("publication_id обязателен");
+  }
+
+  const result = await getDB(env)
+    .prepare(`
+      UPDATE publications
+      SET views = views + 1,
+          updated_at = ?
+      WHERE id = ?
+    `)
+    .bind(now(), id)
+    .run();
+
+  if (!result.meta.changes) {
+    return error("Публикация не найдена", 404);
+  }
+
+  const row = await getDB(env)
+    .prepare(`
+      SELECT views FROM publications WHERE id = ?
+    `)
+    .bind(id)
+    .first();
+
+  return ok({
+    views: int(row?.views)
+  });
+}
+
+/* =========================================================
+   REACTIONS
+========================================================= */
+
+async function publicationReact(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+
+  const publicationId = cleanString(
+    data.publication_id || data.id,
+    100
+  );
+
+  const reaction = cleanString(
+    data.reaction || "like",
+    30
+  ).toLowerCase();
+
+  if (!publicationId) {
+    return error("publication_id обязателен");
+  }
+
+  if (!REACTIONS.includes(reaction)) {
+    return error("Неизвестная реакция");
+  }
+
+  const db = getDB(env);
+
+  const publication = await db.prepare(`
+    SELECT * FROM publications WHERE id = ?
+  `)
+    .bind(publicationId)
+    .first();
+
+  if (!publication) {
+    return error("Публикация не найдена", 404);
+  }
+
+  const existing = await db.prepare(`
+    SELECT * FROM reactions
+    WHERE publication_id = ?
+      AND user_id = ?
+    LIMIT 1
+  `)
+    .bind(publicationId, user.id)
+    .first();
+
+  if (existing) {
+    if (existing.reaction === reaction) {
+      await db.prepare(`
+        DELETE FROM reactions
+        WHERE id = ?
+      `)
+        .bind(existing.id)
+        .run();
+
+      await db.prepare(`
+        UPDATE publications
+        SET ${reaction} = MAX(0, ${reaction} - 1),
+            likes = MAX(0, likes - ?),
+            updated_at = ?
+        WHERE id = ?
+      `)
+        .bind(
+          reaction === "like" ? 1 : 0,
+          now(),
+          publicationId
+        )
+        .run();
+
+      return ok({
+        reaction: null
+      });
+    }
+
+    const oldReaction = existing.reaction;
+
+    await db.prepare(`
+      UPDATE reactions
+      SET reaction = ?
+      WHERE id = ?
+    `)
+      .bind(reaction, existing.id)
+      .run();
+
+    await db.prepare(`
+      UPDATE publications
+      SET
+        ${oldReaction} = MAX(0, ${oldReaction} - 1),
+        ${reaction} = ${reaction} + 1,
+        likes = likes + ?,
+        updated_at = ?
+      WHERE id = ?
+    `)
+      .bind(
+        reaction === "like" ? 1 : oldReaction === "like" ? -1 : 0,
+        now(),
+        publicationId
+      )
+      .run();
+
+    return ok({
+      reaction
+    });
+  }
+
+  await db.prepare(`
+    INSERT INTO reactions
+    (id, publication_id, user_id, reaction, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `)
+    .bind(
+      randomId("react_"),
+      publicationId,
+      user.id,
+      reaction,
+      now()
+    )
+    .run();
+
+  await db.prepare(`
+    UPDATE publications
+    SET
+      ${reaction} = ${reaction} + 1,
+      likes = likes + ?,
+      updated_at = ?
+    WHERE id = ?
+  `)
+    .bind(
+      reaction === "like" ? 1 : 0,
+      now(),
+      publicationId
+    )
+    .run();
+
+  return ok({
+    reaction
+  });
+}
+
+/* =========================================================
+   SAVE
+========================================================= */
+
+async function publicationSave(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+
+  const publicationId = cleanString(
+    data.publication_id || data.id,
+    100
+  );
+
+  const db = getDB(env);
+
+  const existing = await db.prepare(`
+    SELECT * FROM saves
+    WHERE publication_id = ?
+      AND user_id = ?
+    LIMIT 1
+  `)
+    .bind(publicationId, user.id)
+    .first();
+
+  if (existing) {
+    await db.prepare(`
+      DELETE FROM saves WHERE id = ?
+    `)
+      .bind(existing.id)
+      .run();
+
+    await db.prepare(`
+      UPDATE publications
+      SET saves = MAX(0, saves - 1)
+      WHERE id = ?
+    `)
+      .bind(publicationId)
+      .run();
+
+    return ok({
+      saved: false
+    });
+  }
+
+  await db.prepare(`
+    INSERT INTO saves
+    (id, publication_id, user_id, created_at)
+    VALUES (?, ?, ?, ?)
+  `)
+    .bind(
+      randomId("save_"),
+      publicationId,
+      user.id,
+      now()
+    )
+    .run();
+
+  await db.prepare(`
+    UPDATE publications
+    SET saves = saves + 1
+    WHERE id = ?
+  `)
+    .bind(publicationId)
+    .run();
+
+  return ok({
+    saved: true
+  });
+}
+
+/* =========================================================
+   SHARE
+========================================================= */
+
+async function publicationShare(request, env) {
+  const data = await bodyJson(request);
+
+  const publicationId = cleanString(
+    data.publication_id || data.id,
+    100
+  );
+
+  if (!publicationId) {
+    return error("publication_id обязателен");
+  }
+
+  await getDB(env).prepare(`
+    UPDATE publications
+    SET shares = shares + 1
+    WHERE id = ?
+  `)
+    .bind(publicationId)
+    .run();
+
+  const row = await getDB(env).prepare(`
+    SELECT shares FROM publications WHERE id = ?
+  `)
+    .bind(publicationId)
+    .first();
+
+  return ok({
+    shares: int(row?.shares)
+  });
+}
+
+/* =========================================================
+   COMMENTS
+========================================================= */
+
+async function listComments(request, env) {
+  const url = new URL(request.url);
+
+  const publicationId =
+    url.searchParams.get("publication_id");
+
+  if (!publicationId) {
+    return error("publication_id обязателен");
+  }
+
+  const result = await getDB(env).prepare(`
+    SELECT
+      c.*,
+      u.username,
+      u.name,
+      u.avatar,
+      u.verified
+    FROM comments c
+    LEFT JOIN users u ON u.id = c.user_id
+    WHERE c.publication_id = ?
+      AND c.deleted = 0
+      AND c.hidden = 0
+    ORDER BY c.created_at ASC
+  `)
+    .bind(publicationId)
+    .all();
+
+  return ok({
+    comments: result.results || []
+  });
+}
+
+async function createComment(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+
+  const publicationId = cleanString(
+    data.publication_id,
+    100
+  );
+
+  const commentText = cleanString(
+    data.text || data.comment,
+    10000
+  );
+
+  if (!publicationId || !commentText) {
+    return error("Публикация и текст обязательны");
+  }
+
+  const publication = await getDB(env)
+    .prepare(`
+      SELECT id FROM publications WHERE id = ?
+    `)
+    .bind(publicationId)
+    .first();
+
+  if (!publication) {
+    return error("Публикация не найдена", 404);
+  }
+
+  const id = randomId("com_");
+  const timestamp = now();
+
+  await getDB(env).prepare(`
+    INSERT INTO comments
+    (
+      id,
+      publication_id,
+      user_id,
+      parent_id,
+      text,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `)
+    .bind(
+      id,
+      publicationId,
+      user.id,
+      cleanString(data.parent_id, 100) || null,
+      commentText,
+      timestamp,
+      timestamp
+    )
+    .run();
+
+  await getDB(env).prepare(`
+    UPDATE publications
+    SET comments = comments + 1
+    WHERE id = ?
+  `)
+    .bind(publicationId)
+    .run();
+
+  return json({
+    ok: true,
+    comment: {
+      id,
+      publication_id: publicationId,
+      user_id: user.id,
+      text: commentText,
+      created_at: timestamp
+    }
+  }, 201);
+}
+
+/* =========================================================
+   CHAT
+========================================================= */
+
+function conversationId(a, b) {
+  return [a, b].sort().join(":");
+}
+
+async function chatList(request, env) {
+  const user = await requireUser(request, env);
+  const db = getDB(env);
+
+  const result = await db.prepare(`
+    SELECT
+      m.*,
+      u.username AS other_username,
+      u.name AS other_name,
+      u.avatar AS other_avatar
+    FROM messages m
+    LEFT JOIN users u
+      ON u.id =
+        CASE
+          WHEN m.sender_id = ? THEN m.receiver_id
+          ELSE m.sender_id
+        END
+    WHERE m.sender_id = ?
+       OR m.receiver_id = ?
+    ORDER BY m.created_at DESC
+  `)
+    .bind(user.id, user.id, user.id)
+    .all();
+
+  const seen = new Set();
+  const chats = [];
+
+  for (const row of result.results || []) {
+    const otherId =
+      row.sender_id === user.id
+        ? row.receiver_id
+        : row.sender_id;
+
+    if (!otherId || seen.has(otherId)) continue;
+
+    seen.add(otherId);
+
+    chats.push({
+      user_id: otherId,
+      username: row.other_username
+        ? "@" + row.other_username
+        : "",
+      name: row.other_name || "",
+      avatar: row.other_avatar || "",
+      last_message: row.text || "",
+      last_message_at: row.created_at
+    });
+  }
+
+  return ok({
+    chats
+  });
+}
+
+async function chatMessages(request, env) {
+  const user = await requireUser(request, env);
+  const url = new URL(request.url);
+
+  const otherUserId =
+    url.searchParams.get("user_id") ||
+    url.searchParams.get("with");
+
+  if (!otherUserId) {
+    return error("user_id обязателен");
+  }
+
+  const cid = conversationId(
+    user.id,
+    otherUserId
+  );
+
+  const result = await getDB(env).prepare(`
+    SELECT *
+    FROM messages
+    WHERE conversation_id = ?
+    ORDER BY created_at ASC
+    LIMIT 500
+  `)
+    .bind(cid)
+    .all();
+
+  return ok({
+    messages: result.results || []
+  });
+}
+
+async function sendChatMessage(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+
+  const receiverId = cleanString(
+    data.receiver_id ||
+    data.user_id ||
+    data.to,
+    100
+  );
+
+  const messageText = cleanString(
+    data.text || data.message,
+    20000
+  );
+
+  if (!receiverId) {
+    return error("Получатель не указан");
+  }
+
+  if (!messageText && !data.media) {
+    return error("Сообщение пустое");
+  }
+
+  const receiver = await getDB(env)
+    .prepare(`
+      SELECT id FROM users
+      WHERE id = ?
+        AND blocked = 0
+    `)
+    .bind(receiverId)
+    .first();
+
+  if (!receiver) {
+    return error("Получатель не найден", 404);
+  }
+
+  const id = randomId("msg_");
+  const cid = conversationId(
+    user.id,
+    receiverId
+  );
+
+  await getDB(env).prepare(`
+    INSERT INTO messages
+    (
+      id,
+      sender_id,
+      receiver_id,
+      conversation_id,
+      text,
+      media,
+      reply_to,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+    .bind(
+      id,
+      user.id,
+      receiverId,
+      cid,
+      messageText,
+      JSON.stringify(data.media || []),
+      cleanString(data.reply_to, 100) || null,
+      now(),
+      now()
+    )
+    .run();
+
+  await getDB(env).prepare(`
+    INSERT INTO notifications
+    (
+      id,
+      user_id,
+      type,
+      title,
+      text,
+      data,
+      created_at
+    )
+    VALUES (?, ?, 'message', ?, ?, ?, ?)
+  `)
+    .bind(
+      randomId("not_"),
+      receiverId,
+      "Новое сообщение",
+      messageText.slice(0, 200),
+      JSON.stringify({
+        message_id: id,
+        sender_id: user.id
+      }),
+      now()
+    )
+    .run();
+
+  return json({
+    ok: true,
+    message: {
+      id,
+      sender_id: user.id,
+      receiver_id: receiverId,
+      conversation_id: cid,
+      text: messageText,
+      created_at: now()
+    }
+  }, 201);
+}
+
+async function markChatRead(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+
+  const otherUserId =
+    cleanString(
+      data.user_id ||
+      data.sender_id,
+      100
+    );
+
+  if (!otherUserId) {
+    return error("user_id обязателен");
+  }
+
+  await getDB(env).prepare(`
+    UPDATE messages
+    SET read = 1
+    WHERE sender_id = ?
+      AND receiver_id = ?
+  `)
+    .bind(otherUserId, user.id)
+    .run();
+
+  return ok();
+}
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function notifications(request, env) {
+  const user = await requireUser(request, env);
+
+  const result = await getDB(env).prepare(`
+    SELECT *
+    FROM notifications
+    WHERE user_id = ?
+    ORDER BY created_at DESC
+    LIMIT 200
+  `)
+    .bind(user.id)
+    .all();
+
+  return ok({
+    notifications: result.results || []
+  });
+}
+
+async function notificationRead(request, env) {
+  const user = await requireUser(request, env);
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.id ||
+    data.notification_id,
+    100
+  );
+
+  await getDB(env).prepare(`
+    UPDATE notifications
+    SET read = 1
+    WHERE id = ?
+      AND user_id = ?
+  `)
+    .bind(id, user.id)
+    .run();
+
+  return ok();
+}
+
+/* =========================================================
+   ADMIN LOGIN
+========================================================= */
+
+async function adminLogin(request, env) {
+  const data = await bodyJson(request);
+
+  const username = normalizeUsername(
+    data.username ||
+    data.login
+  );
+
+  const password = String(data.password || "");
+
+  if (!username || !password) {
+    return error("Введите логин и пароль");
+  }
+
+  const db = getDB(env);
+
+  let admin = await db.prepare(`
+    SELECT *
+    FROM admins
+    WHERE username = ?
+    LIMIT 1
+  `)
+    .bind(username)
+    .first();
+
+  /*
+   * Первоначальный администратор создаётся автоматически,
+   * если таблица admins пустая.
+   *
+   * Логин:
+   * admin
+   *
+   * Пароль:
+   * admin123
+   *
+   * После первого входа пароль обязательно поменять
+   * через настройки/БД.
+   */
+
+  if (!admin) {
+    const count = await db.prepare(`
+      SELECT COUNT(*) AS count FROM admins
+    `).first();
+
+    if (int(count?.count) === 0 &&
+        username === "admin" &&
+        password === "admin123") {
+
+      const id = randomId("adm_");
+      const timestamp = now();
+      const passwordHash =
+        await hashPassword("admin123");
+
+      await db.prepare(`
+        INSERT INTO admins
+        (
+          id,
+          username,
+          password_hash,
+          name,
+          role,
+          active,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, 'owner', 1, ?)
+      `)
+        .bind(
+          id,
+          "admin",
+          passwordHash,
+          "Administrator",
+          timestamp
+        )
+        .run();
+
+      admin = await db.prepare(`
+        SELECT * FROM admins WHERE id = ?
+      `)
+        .bind(id)
+        .first();
+    }
+  }
+
+  if (!admin || !admin.active) {
+    return error(
+      "Неверные данные администратора",
+      401
+    );
+  }
+
+  const passwordHash =
+    await hashPassword(password);
+
+  if (passwordHash !== admin.password_hash) {
+    return error(
+      "Неверные данные администратора",
+      401
+    );
+  }
+
+  const sessionId = randomId("admin_");
+
+  const expires = new Date(
+    Date.now() +
+    ADMIN_SESSION_HOURS * 3600000
+  ).toISOString();
+
+  await db.prepare(`
+    INSERT INTO sessions
+    (
+      id,
+      user_id,
+      type,
+      expires_at,
+      created_at
+    )
+    VALUES (?, ?, 'admin', ?, ?)
+  `)
+    .bind(
+      sessionId,
+      admin.id,
+      expires,
+      now()
+    )
+    .run();
+
+  return new Response(
+    JSON.stringify({
+      ok: true,
+      admin: {
+        id: admin.id,
+        username: "@" + admin.username,
+        name: admin.name,
+        role: admin.role
+      }
+    }),
+    {
+      headers: headersWithCookies(
+        {
+          "content-type":
+            "application/json; charset=utf-8",
+          ...SECURITY_HEADERS
+        },
+        [
+          cookie(
+            COOKIE_ADMIN,
+            sessionId,
+            ADMIN_SESSION_HOURS * 3600
+          )
+        ]
+      )
+    }
+  );
+}
+
+async function adminLogout(request, env) {
+  const token = cookieValue(
+    request,
+    COOKIE_ADMIN
+  );
+
+  if (token) {
+    await getDB(env)
+      .prepare(`
+        DELETE FROM sessions WHERE id = ?
+      `)
+      .bind(token)
+      .run();
+  }
+
+  return new Response(
+    JSON.stringify({
+      ok: true
+    }),
+    {
+      headers: headersWithCookies(
+        {
+          "content-type":
+            "application/json; charset=utf-8",
+          ...SECURITY_HEADERS
+        },
+        [
+          deleteCookie(COOKIE_ADMIN)
+        ]
+      )
+    }
+  );
+}
+
+async function adminMe(request, env) {
+  const admin =
+    await getAdminFromSession(
+      request,
+      env
+    );
+
+  return ok({
+    authenticated: !!admin,
+    admin: admin
+      ? {
+          id: admin.id,
+          username: "@" + admin.username,
+          name: admin.name,
+          role: admin.role
+        }
+      : null
+  });
+}
+
+/* =========================================================
+   ADMIN DASHBOARD
+========================================================= */
+
+async function adminDashboard(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const db = getDB(env);
+
+  const [
+    users,
+    publications,
+    pending,
+    published,
+    rejected,
+    hidden,
+    views,
+    likes,
+    comments
+  ] = await Promise.all([
+    db.prepare(`
+      SELECT COUNT(*) AS count FROM users
+    `).first(),
+
+    db.prepare(`
+      SELECT COUNT(*) AS count FROM publications
+    `).first(),
+
+    db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM publications
+      WHERE status = 'pending'
+    `).first(),
+
+    db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM publications
+      WHERE status = 'published'
+    `).first(),
+
+    db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM publications
+      WHERE status = 'rejected'
+    `).first(),
+
+    db.prepare(`
+      SELECT COUNT(*) AS count
+      FROM publications
+      WHERE status = 'hidden'
+         OR status = 'deleted'
+    `).first(),
+
+    db.prepare(`
+      SELECT COALESCE(SUM(views), 0) AS total
+      FROM publications
+    `).first(),
+
+    db.prepare(`
+      SELECT COALESCE(SUM(likes), 0) AS total
+      FROM publications
+    `).first(),
+
+    db.prepare(`
+      SELECT COALESCE(SUM(comments), 0) AS total
+      FROM publications
+    `).first()
+  ]);
+
+  await audit(
+    env,
+    admin.id,
+    "dashboard_view"
+  );
+
+  return ok({
+    stats: {
+      users: int(users?.count),
+      usersCount: int(users?.count),
+
+      publications: int(publications?.count),
+      total: int(publications?.count),
+
+      pending: int(pending?.count),
+      pendingCount: int(pending?.count),
+
+      published: int(published?.count),
+      approved: int(published?.count),
+      approvedCount: int(published?.count),
+
+      rejected: int(rejected?.count),
+      rejectedCount: int(rejected?.count),
+
+      hidden: int(hidden?.count),
+      trash: int(hidden?.count),
+      trashCount: int(hidden?.count),
+
+      views: int(views?.total),
+      viewsCount: int(views?.total),
+
+      likes: int(likes?.total),
+      likesCount: int(likes?.total),
+
+      comments: int(comments?.total),
+      commentsCount: int(comments?.total)
+    }
+  });
+}
+
+/* =========================================================
+   ADMIN NOTIFICATIONS
+========================================================= */
+
+async function adminNotifications(request, env) {
+  await requireAdmin(request, env);
+
+  const result = await getDB(env).prepare(`
+    SELECT *
+    FROM notifications
+    ORDER BY created_at DESC
+    LIMIT 300
+  `).all();
+
+  return ok({
+    notifications: result.results || []
+  });
+}
+
+/* =========================================================
+   ADMIN USERS
+========================================================= */
+
+async function adminUsers(request, env) {
+  await requireAdmin(request, env);
+
+  const url = new URL(request.url);
+
+  const search = cleanString(
+    url.searchParams.get("search") ||
+    url.searchParams.get("q"),
+    200
+  );
+
+  const limit = Math.min(
+    200,
+    Math.max(
+      1,
+      int(url.searchParams.get("limit"), 100)
+    )
+  );
+
+  let sql = `
+    SELECT *
+    FROM users
+  `;
+
+  const binds = [];
+
+  if (search) {
+    sql += `
+      WHERE
+        username LIKE ?
+        OR name LIKE ?
+        OR id LIKE ?
+        OR email LIKE ?
+    `;
+
+    const q = `%${search}%`;
+
+    binds.push(q, q, q, q);
+  }
+
+  sql += `
+    ORDER BY created_at DESC
+    LIMIT ?
+  `;
+
+  binds.push(limit);
+
+  const result = await getDB(env)
+    .prepare(sql)
+    .bind(...binds)
+    .all();
+
+  return ok({
+    users: (result.results || [])
+      .map(normalizeUser)
+  });
+}
+
+async function adminUser(request, env) {
+  await requireAdmin(request, env);
+
+  const url = new URL(request.url);
+
+  const id =
+    url.searchParams.get("id") ||
+    url.searchParams.get("user_id");
+
+  if (!id) {
+    return error("id обязателен");
+  }
+
+  const db = getDB(env);
+
+  const user = await db.prepare(`
+    SELECT * FROM users
+    WHERE id = ?
+  `)
+    .bind(id)
+    .first();
+
+  if (!user) {
+    return error("Пользователь не найден", 404);
+  }
+
+  const publications = await db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM publications
+    WHERE user_id = ?
+  `)
+    .bind(id)
+    .first();
+
+  const comments = await db.prepare(`
+    SELECT COUNT(*) AS count
+    FROM comments
+    WHERE user_id = ?
+  `)
+    .bind(id)
+    .first();
+
+  return ok({
+    user: normalizeUser(user),
+    stats: {
+      publications: int(publications?.count),
+      comments: int(comments?.count)
+    }
+  });
+}
+
+/* =========================================================
+   ADMIN EDIT USER
+========================================================= */
+
+async function adminEditUser(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.id ||
+    data.user_id,
+    100
+  );
+
+  if (!id) {
+    return error("id обязателен");
+  }
+
+  const fields = [];
+  const values = [];
+
+  const allowed = [
+    ["name", 120],
+    ["email", 200],
+    ["avatar", 2000],
+    ["bio", 5000],
+    ["city", 120],
+    ["country", 120],
+    ["language", 20],
+    ["role", 50]
   ];
 
-  TO.reactions = [
-    "like",
+  for (const [field, max] of allowed) {
+    if (data[field] !== undefined) {
+      fields.push(`${field} = ?`);
+      values.push(cleanString(data[field], max));
+    }
+  }
+
+  if (data.verified !== undefined) {
+    fields.push("verified = ?");
+    values.push(bool(data.verified) ? 1 : 0);
+  }
+
+  if (data.blocked !== undefined) {
+    fields.push("blocked = ?");
+    values.push(bool(data.blocked) ? 1 : 0);
+  }
+
+  if (!fields.length) {
+    return error("Нет изменений");
+  }
+
+  fields.push("updated_at = ?");
+  values.push(now());
+  values.push(id);
+
+  await getDB(env).prepare(`
+    UPDATE users
+    SET ${fields.join(", ")}
+    WHERE id = ?
+  `)
+    .bind(...values)
+    .run();
+
+  await audit(
+    env,
+    admin.id,
+    "user_edit",
+    "user",
+    id,
+    data
+  );
+
+  const user = await getDB(env)
+    .prepare(`
+      SELECT * FROM users WHERE id = ?
+    `)
+    .bind(id)
+    .first();
+
+  return ok({
+    user: normalizeUser(user)
+  });
+}
+
+/* =========================================================
+   ADMIN USER ACTION
+========================================================= */
+
+async function adminUserAction(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.id ||
+    data.user_id,
+    100
+  );
+
+  const action = cleanString(
+    data.action,
+    100
+  ).toLowerCase();
+
+  if (!id || !action) {
+    return error("id и action обязательны");
+  }
+
+  const db = getDB(env);
+
+  const actions = {
+    block: `
+      UPDATE users
+      SET blocked = 1, updated_at = ?
+      WHERE id = ?
+    `,
+
+    unblock: `
+      UPDATE users
+      SET blocked = 0, updated_at = ?
+      WHERE id = ?
+    `,
+
+    verify: `
+      UPDATE users
+      SET verified = 1, updated_at = ?
+      WHERE id = ?
+    `,
+
+    unverify: `
+      UPDATE users
+      SET verified = 0, updated_at = ?
+      WHERE id = ?
+    `,
+
+    moderator: `
+      UPDATE users
+      SET role = 'moderator', updated_at = ?
+      WHERE id = ?
+    `,
+
+    removeModerator: `
+      UPDATE users
+      SET role = 'user', updated_at = ?
+      WHERE id = ?
+    `,
+
+    delete: `
+      UPDATE users
+      SET blocked = 1, updated_at = ?
+      WHERE id = ?
+    `
+  };
+
+  if (!actions[action]) {
+    return error("Неизвестное действие");
+  }
+
+  await db.prepare(actions[action])
+    .bind(now(), id)
+    .run();
+
+  await audit(
+    env,
+    admin.id,
+    "user_action",
+    "user",
+    id,
+    { action }
+  );
+
+  return ok({
+    action,
+    user_id: id
+  });
+}
+
+/* =========================================================
+   ADMIN PUBLICATIONS
+========================================================= */
+
+async function adminPublications(request, env) {
+  await requireAdmin(request, env);
+
+  const url = new URL(request.url);
+
+  const status = cleanString(
+    url.searchParams.get("status"),
+    50
+  );
+
+  const search = cleanString(
+    url.searchParams.get("search") ||
+    url.searchParams.get("q"),
+    200
+  );
+
+  const limit = Math.min(
+    300,
+    Math.max(
+      1,
+      int(url.searchParams.get("limit"), 100)
+    )
+  );
+
+  let sql = `
+    SELECT
+      p.*,
+      u.username AS author_username,
+      u.name AS author_name,
+      u.avatar AS author_avatar
+    FROM publications p
+    LEFT JOIN users u
+      ON u.id = p.user_id
+    WHERE 1 = 1
+  `;
+
+  const binds = [];
+
+  if (status && status !== "all") {
+    sql += ` AND p.status = ?`;
+    binds.push(status);
+  }
+
+  if (search) {
+    sql += `
+      AND (
+        p.title LIKE ?
+        OR p.text LIKE ?
+        OR p.id LIKE ?
+        OR u.username LIKE ?
+        OR u.name LIKE ?
+      )
+    `;
+
+    const q = `%${search}%`;
+
+    binds.push(
+      q,
+      q,
+      q,
+      q,
+      q
+    );
+  }
+
+  sql += `
+    ORDER BY p.pinned DESC,
+             p.featured DESC,
+             p.created_at DESC
+    LIMIT ?
+  `;
+
+  binds.push(limit);
+
+  const result = await getDB(env)
+    .prepare(sql)
+    .bind(...binds)
+    .all();
+
+  const publications =
+    (result.results || [])
+      .map(row => ({
+        ...normalizePublication(row),
+        author: {
+          id: row.user_id,
+          username: row.author_username
+            ? "@" + row.author_username
+            : "",
+          name: row.author_name || "",
+          avatar: row.author_avatar || ""
+        }
+      }));
+
+  return ok({
+    publications,
+    posts: publications,
+    items: publications
+  });
+}
+
+/* =========================================================
+   ADMIN EDIT PUBLICATION
+========================================================= */
+
+async function adminEditPublication(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.id ||
+    data.publication_id,
+    100
+  );
+
+  if (!id) {
+    return error("publication_id обязателен");
+  }
+
+  const fields = [];
+  const values = [];
+
+  if (data.title !== undefined) {
+    fields.push("title = ?");
+    values.push(cleanString(data.title, 300));
+  }
+
+  if (
+    data.text !== undefined ||
+    data.description !== undefined
+  ) {
+    fields.push("text = ?");
+    values.push(
+      cleanString(
+        data.text ?? data.description,
+        50000
+      )
+    );
+  }
+
+  if (data.category !== undefined) {
+    fields.push("category = ?");
+    values.push(cleanString(data.category, 80));
+  }
+
+  if (data.city !== undefined) {
+    fields.push("city = ?");
+    values.push(cleanString(data.city, 120));
+  }
+
+  if (data.country !== undefined) {
+    fields.push("country = ?");
+    values.push(cleanString(data.country, 120));
+  }
+
+  if (data.status !== undefined &&
+      STATUSES.includes(data.status)) {
+    fields.push("status = ?");
+    values.push(data.status);
+  }
+
+  if (data.media !== undefined) {
+    fields.push("media = ?");
+    values.push(
+      JSON.stringify(
+        Array.isArray(data.media)
+          ? data.media
+          : []
+      )
+    );
+  }
+
+  if (data.hashtags !== undefined) {
+    fields.push("hashtags = ?");
+    values.push(
+      JSON.stringify(
+        Array.isArray(data.hashtags)
+          ? data.hashtags
+          : []
+      )
+    );
+  }
+
+  if (!fields.length) {
+    return error("Нет изменений");
+  }
+
+  fields.push("updated_at = ?");
+  values.push(now());
+  values.push(id);
+
+  const result = await getDB(env)
+    .prepare(`
+      UPDATE publications
+      SET ${fields.join(", ")}
+      WHERE id = ?
+    `)
+    .bind(...values)
+    .run();
+
+  if (!result.meta.changes) {
+    return error("Публикация не найдена", 404);
+  }
+
+  await audit(
+    env,
+    admin.id,
+    "publication_edit",
+    "publication",
+    id,
+    data
+  );
+
+  const publication =
+    await getDB(env)
+      .prepare(`
+        SELECT * FROM publications WHERE id = ?
+      `)
+      .bind(id)
+      .first();
+
+  return ok({
+    publication:
+      normalizePublication(publication)
+  });
+}
+
+/* =========================================================
+   ADMIN PUBLICATION ACTION
+========================================================= */
+
+async function adminPublicationAction(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.id ||
+    data.publication_id,
+    100
+  );
+
+  const action = cleanString(
+    data.action,
+    100
+  ).toLowerCase();
+
+  if (!id || !action) {
+    return error("id и action обязательны");
+  }
+
+  const db = getDB(env);
+
+  const actions = {
+    approve: {
+      status: "published"
+    },
+
+    publish: {
+      status: "published"
+    },
+
+    reject: {
+      status: "rejected"
+    },
+
+    hide: {
+      status: "hidden"
+    },
+
+    delete: {
+      status: "deleted"
+    },
+
+    trash: {
+      status: "deleted"
+    },
+
+    restore: {
+      status: "published"
+    },
+
+    pin: {
+      pinned: 1
+    },
+
+    unpin: {
+      pinned: 0
+    },
+
+    feature: {
+      featured: 1
+    },
+
+    unfeature: {
+      featured: 0
+    },
+
+    waiting_payment: {
+      status: "waiting_payment"
+    },
+
+    paid: {
+      status: "paid"
+    }
+  };
+
+  const operation = actions[action];
+
+  if (!operation) {
+    return error("Неизвестное действие");
+  }
+
+  const fields = [];
+  const values = [];
+
+  if (
+    operation.status !== undefined
+  ) {
+    fields.push("status = ?");
+    values.push(operation.status);
+  }
+
+  if (
+    operation.pinned !== undefined
+  ) {
+    fields.push("pinned = ?");
+    values.push(operation.pinned);
+  }
+
+  if (
+    operation.featured !== undefined
+  ) {
+    fields.push("featured = ?");
+    values.push(operation.featured);
+  }
+
+  fields.push("updated_at = ?");
+  values.push(now());
+  values.push(id);
+
+  await db.prepare(`
+    UPDATE publications
+    SET ${fields.join(", ")}
+    WHERE id = ?
+  `)
+    .bind(...values)
+    .run();
+
+  await audit(
+    env,
+    admin.id,
+    "publication_action",
+    "publication",
+    id,
+    { action }
+  );
+
+  return ok({
+    publication_id: id,
+    action
+  });
+}
+
+/* =========================================================
+   ⭐ ADMIN COUNTERS
+========================================================= */
+
+async function adminPublicationCounters(
+  request,
+  env
+) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.publication_id ||
+    data.id,
+    100
+  );
+
+  if (!id) {
+    return error(
+      "publication_id обязателен"
+    );
+  }
+
+  /*
+   * ВАЖНО:
+   * Здесь значения сохраняются непосредственно
+   * в D1.
+   *
+   * Поэтому если администратор установит:
+   *
+   * likes = 9999999999999
+   *
+   * это число будет сохранено на сервере.
+   *
+   * После этого все пользователи,
+   * получающие публикацию через API,
+   * увидят это значение.
+   */
+
+  const fields = [];
+  const values = [];
+
+  const counters = [
+    "views",
+    "likes",
+    "comments",
+    "saves",
+    "shares",
     "love",
     "support",
     "funny",
@@ -77,5128 +2939,1251 @@
     "angry"
   ];
 
-  TO.statuses = {
-    pending: "На проверке",
-    waiting_payment: "Ожидает оплаты",
-    paid: "Оплачено",
-    published: "Опубликовано",
-    rejected: "Отклонено",
-    hidden: "Скрыто",
-    deleted: "Удалено"
-  };
+  for (const field of counters) {
+    if (data[field] !== undefined) {
+      const value =
+        Number.isFinite(Number(data[field]))
+          ? Math.max(
+              0,
+              Math.floor(
+                Number(data[field])
+              )
+            )
+          : 0;
 
-  TO.storage = {
-    actor: "to_actor",
-    testMode: "to_test_mode",
-    stats: "to_manual_stats",
-    theme: "to_theme",
-    language: "to_language",
-    translationCache: "to_translation_cache",
-    viewed: "to_viewed_publications",
-    saved: "to_saved_publications",
-    drafts: "to_publication_drafts",
-    lastNotificationCheck: "to_last_notification_check"
-  };
-
-  /* ============================================================
-     3. BASIC HELPERS
-     ============================================================ */
-
-  TO.isBrowser = typeof window !== "undefined";
-
-  TO.log = function (...args) {
-    if (TO.config.debug && console && console.log) {
-      console.log("[TO]", ...args);
+      fields.push(`${field} = ?`);
+      values.push(value);
     }
-  };
-
-  TO.warn = function (...args) {
-    if (console && console.warn) {
-      console.warn("[Tajik Opportunities]", ...args);
-    }
-  };
-
-  TO.error = function (...args) {
-    if (console && console.error) {
-      console.error("[Tajik Opportunities]", ...args);
-    }
-  };
-
-  TO.q = function (selector, root = document) {
-    try {
-      return root.querySelector(selector);
-    } catch {
-      return null;
-    }
-  };
-
-  TO.qa = function (selector, root = document) {
-    try {
-      return Array.from(root.querySelectorAll(selector));
-    } catch {
-      return [];
-    }
-  };
-
-  TO.byId = function (id) {
-    return document.getElementById(id);
-  };
-
-  TO.exists = function (selector) {
-    return !!TO.q(selector);
-  };
-
-  TO.escape = function (value) {
-    if (value === null || value === undefined) return "";
-
-    return String(value)
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  };
-
-  TO.text = function (value, fallback = "") {
-    if (value === null || value === undefined || value === "") {
-      return fallback;
-    }
-
-    return String(value);
-  };
-
-  TO.number = function (value, fallback = 0) {
-    const n = Number(value);
-    return Number.isFinite(n) ? n : fallback;
-  };
-
-  TO.bool = function (value) {
-    if (typeof value === "boolean") return value;
-
-    if (
-      value === "true" ||
-      value === "1" ||
-      value === 1 ||
-      value === "yes"
-    ) {
-      return true;
-    }
-
-    return false;
-  };
-
-  TO.now = function () {
-    return new Date();
-  };
-
-  TO.isoNow = function () {
-    return new Date().toISOString();
-  };
-
-  TO.sleep = function (ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  };
-
-  TO.debounce = function (fn, delay = 300) {
-    let timer;
-
-    return function (...args) {
-      clearTimeout(timer);
-
-      timer = setTimeout(() => {
-        fn.apply(this, args);
-      }, delay);
-    };
-  };
-
-  TO.throttle = function (fn, delay = 300) {
-    let waiting = false;
-
-    return function (...args) {
-      if (waiting) return;
-
-      waiting = true;
-
-      fn.apply(this, args);
-
-      setTimeout(() => {
-        waiting = false;
-      }, delay);
-    };
-  };
-
-  /* ============================================================
-     4. LOCAL STORAGE
-     ============================================================ */
-
-  TO.store = {
-    get(key, fallback = null) {
-      try {
-        const value = localStorage.getItem(key);
-
-        if (value === null) {
-          return fallback;
-        }
-
-        return JSON.parse(value);
-      } catch {
-        return fallback;
-      }
-    },
-
-    set(key, value) {
-      try {
-        localStorage.setItem(key, JSON.stringify(value));
-        return true;
-      } catch {
-        return false;
-      }
-    },
-
-    remove(key) {
-      try {
-        localStorage.removeItem(key);
-      } catch {}
-    }
-  };
-
-  /* ============================================================
-     5. TOAST / NOTIFICATIONS
-     ============================================================ */
-
-  TO.toast = function (message, type = "info", duration = 3500) {
-    if (!document.body) return;
-
-    let container = TO.byId("toToastContainer");
-
-    if (!container) {
-      container = document.createElement("div");
-      container.id = "toToastContainer";
-
-      container.style.cssText = `
-        position:fixed;
-        right:18px;
-        bottom:18px;
-        z-index:999999;
-        display:flex;
-        flex-direction:column;
-        gap:10px;
-        max-width:min(420px,calc(100vw - 36px));
-        pointer-events:none;
-      `;
-
-      document.body.appendChild(container);
-    }
-
-    const toast = document.createElement("div");
-
-    toast.style.cssText = `
-      pointer-events:auto;
-      padding:13px 16px;
-      border-radius:14px;
-      background:#111827;
-      color:white;
-      box-shadow:0 10px 35px rgba(0,0,0,.25);
-      font-size:14px;
-      line-height:1.45;
-      animation:toToastIn .2s ease;
-    `;
-
-    if (type === "success") {
-      toast.style.background = "#166534";
-    }
-
-    if (type === "error") {
-      toast.style.background = "#991b1b";
-    }
-
-    if (type === "warning") {
-      toast.style.background = "#92400e";
-    }
-
-    toast.textContent = message;
-
-    container.appendChild(toast);
-
-    setTimeout(() => {
-      toast.style.opacity = "0";
-      toast.style.transform = "translateY(10px)";
-      toast.style.transition = ".2s";
-
-      setTimeout(() => toast.remove(), 250);
-    }, duration);
-  };
-
-  if (!document.getElementById("toToastStyle")) {
-    const style = document.createElement("style");
-
-    style.id = "toToastStyle";
-
-    style.textContent = `
-      @keyframes toToastIn {
-        from {
-          opacity:0;
-          transform:translateY(10px);
-        }
-        to {
-          opacity:1;
-          transform:translateY(0);
-        }
-      }
-    `;
-
-    document.head.appendChild(style);
   }
 
-  TO.confirm = async function (message) {
-    return window.confirm(message);
-  };
+  if (!fields.length) {
+    return error(
+      "Не передан ни один счётчик"
+    );
+  }
 
-  /* ============================================================
-     6. API CORE
-     ============================================================ */
+  fields.push("updated_at = ?");
+  values.push(now());
+  values.push(id);
 
-  TO.api = async function (
-    endpoint,
-    options = {}
+  const db = getDB(env);
+
+  const result = await db.prepare(`
+    UPDATE publications
+    SET ${fields.join(", ")}
+    WHERE id = ?
+  `)
+    .bind(...values)
+    .run();
+
+  if (!result.meta.changes) {
+    return error(
+      "Публикация не найдена",
+      404
+    );
+  }
+
+  const updated = await db.prepare(`
+    SELECT *
+    FROM publications
+    WHERE id = ?
+  `)
+    .bind(id)
+    .first();
+
+  await audit(
+    env,
+    admin.id,
+    "publication_counters_edit",
+    "publication",
+    id,
+    data
+  );
+
+  return ok({
+    publication:
+      normalizePublication(updated),
+
+    counters: {
+      views: int(updated.views),
+      likes: int(updated.likes),
+      comments: int(updated.comments),
+      saves: int(updated.saves),
+      shares: int(updated.shares),
+      love: int(updated.love),
+      support: int(updated.support),
+      funny: int(updated.funny),
+      wow: int(updated.wow),
+      sad: int(updated.sad),
+      angry: int(updated.angry)
+    }
+  });
+}
+
+/* =========================================================
+   ADMIN COMMENTS
+========================================================= */
+
+async function adminComments(request, env) {
+  await requireAdmin(request, env);
+
+  const url = new URL(request.url);
+
+  const limit = Math.min(
+    500,
+    Math.max(
+      1,
+      int(url.searchParams.get("limit"), 100)
+    )
+  );
+
+  const result = await getDB(env).prepare(`
+    SELECT
+      c.*,
+      u.username,
+      u.name,
+      u.avatar,
+      p.title AS publication_title
+    FROM comments c
+    LEFT JOIN users u
+      ON u.id = c.user_id
+    LEFT JOIN publications p
+      ON p.id = c.publication_id
+    ORDER BY c.created_at DESC
+    LIMIT ?
+  `)
+    .bind(limit)
+    .all();
+
+  return ok({
+    comments: result.results || []
+  });
+}
+
+async function adminEditComment(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.id ||
+    data.comment_id,
+    100
+  );
+
+  const commentText = cleanString(
+    data.text,
+    10000
+  );
+
+  if (!id || !commentText) {
+    return error("id и text обязательны");
+  }
+
+  await getDB(env).prepare(`
+    UPDATE comments
+    SET text = ?,
+        updated_at = ?
+    WHERE id = ?
+  `)
+    .bind(
+      commentText,
+      now(),
+      id
+    )
+    .run();
+
+  await audit(
+    env,
+    admin.id,
+    "comment_edit",
+    "comment",
+    id
+  );
+
+  return ok({
+    comment_id: id
+  });
+}
+
+async function adminCommentAction(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const id = cleanString(
+    data.id ||
+    data.comment_id,
+    100
+  );
+
+  const action = cleanString(
+    data.action,
+    100
+  ).toLowerCase();
+
+  if (!id || !action) {
+    return error("id и action обязательны");
+  }
+
+  const db = getDB(env);
+
+  if (action === "hide") {
+    await db.prepare(`
+      UPDATE comments
+      SET hidden = 1,
+          updated_at = ?
+      WHERE id = ?
+    `)
+      .bind(now(), id)
+      .run();
+  }
+
+  else if (
+    action === "show" ||
+    action === "unhide"
   ) {
-    const controller = new AbortController();
-
-    const timeout = setTimeout(() => {
-      controller.abort();
-    }, options.timeout || TO.config.requestTimeout);
-
-    const method = options.method || "GET";
-
-    const headers = {
-      Accept: "application/json",
-      ...(options.headers || {})
-    };
-
-    let body = options.body;
-
-    if (
-      body &&
-      typeof body === "object" &&
-      !(body instanceof FormData) &&
-      !(body instanceof Blob)
-    ) {
-      headers["Content-Type"] = "application/json";
-      body = JSON.stringify(body);
-    }
-
-    try {
-      const response = await fetch(
-        endpoint.startsWith("/")
-          ? endpoint
-          : TO.config.apiPrefix + endpoint,
-        {
-          method,
-          headers,
-          body,
-          credentials: "include",
-          signal: controller.signal
-        }
-      );
-
-      const text = await response.text();
-
-      let data = null;
-
-      try {
-        data = text ? JSON.parse(text) : {};
-      } catch {
-        data = {
-          raw: text
-        };
-      }
-
-      if (!response.ok) {
-        const error = new Error(
-          data?.error ||
-          data?.message ||
-          `HTTP ${response.status}`
-        );
-
-        error.status = response.status;
-        error.data = data;
-
-        throw error;
-      }
-
-      return data;
-    } finally {
-      clearTimeout(timeout);
-    }
-  };
-
-  TO.tryApi = async function (endpoint, options = {}, fallback = null) {
-    try {
-      return await TO.api(endpoint, options);
-    } catch (error) {
-      TO.log("API unavailable:", endpoint, error);
-
-      return fallback;
-    }
-  };
-
-  /* ============================================================
-     7. NORMALIZE API DATA
-     ============================================================ */
-
-  TO.pick = function (object, keys, fallback = null) {
-    if (!object) return fallback;
-
-    for (const key of keys) {
-      if (
-        object[key] !== undefined &&
-        object[key] !== null &&
-        object[key] !== ""
-      ) {
-        return object[key];
-      }
-    }
-
-    return fallback;
-  };
-
-  TO.normalizeUser = function (user = {}) {
-    return {
-      id: TO.pick(user, ["id", "user_id", "uid"]),
-      name: TO.pick(
-        user,
-        ["name", "full_name", "display_name"],
-        ""
-      ),
-      surname: TO.pick(user, ["surname", "last_name"], ""),
-      username: TO.pick(
-        user,
-        ["username", "user_name", "handle"],
-        ""
-      ),
-      avatar: TO.pick(
-        user,
-        ["avatar", "avatar_url", "photo", "photo_url"],
-        ""
-      ),
-      bio: TO.pick(user, ["bio", "description"], ""),
-      country: TO.pick(user, ["country"], ""),
-      city: TO.pick(user, ["city"], ""),
-      verified: TO.bool(
-        TO.pick(user, ["verified", "is_verified"], false)
-      ),
-      online: TO.bool(
-        TO.pick(user, ["online", "is_online"], false)
-      ),
-      createdAt: TO.pick(
-        user,
-        ["created_at", "registration_date", "registered_at"],
-        null
-      )
-    };
-  };
-
-  TO.normalizePublication = function (post = {}) {
-    return {
-      id: TO.pick(post, [
-        "id",
-        "publication_id",
-        "post_id"
-      ]),
-
-      title: TO.pick(
-        post,
-        ["title", "name", "headline"],
-        ""
-      ),
-
-      text: TO.pick(
-        post,
-        ["text", "content", "description", "body"],
-        ""
-      ),
-
-      category: TO.pick(
-        post,
-        ["category", "category_id", "type"],
-        "other"
-      ),
-
-      status: TO.pick(
-        post,
-        ["status", "publication_status"],
-        "published"
-      ),
-
-      authorId: TO.pick(
-        post,
-        ["author_id", "user_id", "owner_id"],
-        null
-      ),
-
-      authorName: TO.pick(
-        post,
-        ["author_name", "name", "author"],
-        ""
-      ),
-
-      authorUsername: TO.pick(
-        post,
-        [
-          "author_username",
-          "username",
-          "author_handle"
-        ],
-        ""
-      ),
-
-      authorAvatar: TO.pick(
-        post,
-        [
-          "author_avatar",
-          "avatar",
-          "avatar_url"
-        ],
-        ""
-      ),
-
-      country: TO.pick(post, ["country"], ""),
-      city: TO.pick(post, ["city"], ""),
-
-      price: TO.pick(
-        post,
-        ["price", "amount", "salary"],
-        null
-      ),
-
-      currency: TO.pick(
-        post,
-        ["currency", "currency_code"],
-        ""
-      ),
-
-      views: TO.number(
-        TO.pick(
-          post,
-          ["views", "views_count", "view_count"],
-          0
-        )
-      ),
-
-      likes: TO.number(
-        TO.pick(
-          post,
-          ["likes", "likes_count"],
-          0
-        )
-      ),
-
-      comments: TO.number(
-        TO.pick(
-          post,
-          ["comments", "comments_count"],
-          0
-        )
-      ),
-
-      shares: TO.number(
-        TO.pick(
-          post,
-          ["shares", "shares_count"],
-          0
-        )
-      ),
-
-      saves: TO.number(
-        TO.pick(
-          post,
-          ["saves", "saves_count"],
-          0
-        )
-      ),
-
-      reactions: TO.number(
-        TO.pick(
-          post,
-          ["reactions", "reactions_count"],
-          0
-        )
-      ),
-
-      createdAt: TO.pick(
-        post,
-        [
-          "created_at",
-          "published_at",
-          "date",
-          "created"
-        ],
-        null
-      ),
-
-      updatedAt: TO.pick(
-        post,
-        ["updated_at", "edited_at"],
-        null
-      ),
-
-      media: Array.isArray(post.media)
-        ? post.media
-        : [],
-
-      url: TO.pick(
-        post,
-        ["url", "link", "external_url"],
-        ""
-      ),
-
-      raw: post
-    };
-  };
-
-  /* ============================================================
-     8. AUTH
-     ============================================================ */
-
-  TO.auth = {
-    user: null,
-    admin: null,
-    initialized: false,
-
-    async me() {
-      const data = await TO.tryApi(
-        "/api/auth/me",
-        {},
-        null
-      );
-
-      if (!data) {
-        this.user = null;
-        return null;
-      }
-
-      this.user =
-        data.user ||
-        data.profile ||
-        data.me ||
-        data;
-
-      return this.user;
-    },
-
-    async adminMe() {
-      const data = await TO.tryApi(
-        "/api/admin/me",
-        {},
-        null
-      );
-
-      if (!data) {
-        this.admin = null;
-        return null;
-      }
-
-      this.admin =
-        data.admin ||
-        data.user ||
-        data.me ||
-        data;
-
-      return this.admin;
-    },
-
-    async logout() {
-      await TO.tryApi(
-        "/api/auth/logout",
-        {
-          method: "POST"
-        }
-      );
-
-      this.user = null;
-
-      TO.toast(
-        "Вы вышли из аккаунта",
-        "success"
-      );
-
-      setTimeout(() => {
-        if (
-          location.pathname !== "/index.html" &&
-          location.pathname !== "/"
-        ) {
-          location.href = "/";
-        }
-      }, 500);
-    },
-
-    isLoggedIn() {
-      return !!this.user;
-    },
-
-    isAdmin() {
-      return !!this.admin;
-    },
-
-    getUser() {
-      return TO.normalizeUser(this.user || {});
-    }
-  };
-
-  /* ============================================================
-     9. ACTOR / TEST MODE
-     ============================================================ */
-
-  TO.actor = {
-    selected: null,
-
-    load() {
-      this.selected = TO.store.get(
-        TO.storage.actor,
-        null
-      );
-
-      return this.selected;
-    },
-
-    select(user) {
-      if (!user) {
-        this.clear();
-        return;
-      }
-
-      this.selected = TO.normalizeUser(user);
-
-      TO.store.set(
-        TO.storage.actor,
-        this.selected
-      );
-
-      TO.toast(
-        `Выбран участник: ${
-          this.selected.name ||
-          this.selected.username ||
-          this.selected.id
-        }`,
-        "success"
-      );
-
-      this.renderIndicator();
-    },
-
-    clear() {
-      this.selected = null;
-
-      TO.store.remove(
-        TO.storage.actor
-      );
-
-      this.renderIndicator();
-    },
-
-    enableTestMode() {
-      TO.store.set(
-        TO.storage.testMode,
-        true
-      );
-
-      this.renderIndicator();
-
-      TO.toast(
-        "Тестовый режим администратора включён",
-        "warning"
-      );
-    },
-
-    disableTestMode() {
-      TO.store.set(
-        TO.storage.testMode,
-        false
-      );
-
-      this.renderIndicator();
-    },
-
-    testMode() {
-      return !!TO.store.get(
-        TO.storage.testMode,
-        false
-      );
-    },
-
-    get() {
-      return this.selected;
-    },
-
-    active() {
-      return (
-        this.testMode() &&
-        !!this.selected
-      );
-    },
-
-    renderIndicator() {
-      const old = TO.byId(
-        "toActorIndicator"
-      );
-
-      if (old) old.remove();
-
-      if (!this.active()) return;
-
-      const el = document.createElement("div");
-
-      el.id = "toActorIndicator";
-
-      el.style.cssText = `
-        position:fixed;
-        left:50%;
-        top:10px;
-        transform:translateX(-50%);
-        z-index:999998;
-        padding:9px 14px;
-        border-radius:999px;
-        background:#7c2d12;
-        color:white;
-        font:600 13px Arial,sans-serif;
-        box-shadow:0 6px 20px rgba(0,0,0,.25);
-      `;
-
-      el.textContent =
-        "🧪 ТЕСТОВЫЙ РЕЖИМ · " +
-        (
-          this.selected.name ||
-          this.selected.username ||
-          this.selected.id
-        );
-
-      document.body.appendChild(el);
-    }
-  };
-
-  /* ============================================================
-     10. CATEGORIES
-     ============================================================ */
-
-  TO.category = {
-    label(id) {
-      const found = TO.categories.find(
-        item => item[0] === id
-      );
-
-      return found
-        ? found[1]
-        : id || "➕ Другое";
-    },
-
-    async load() {
-      const data = await TO.tryApi(
-        "/api/categories",
-        {},
-        null
-      );
-
-      if (!data) {
-        return TO.categories;
-      }
-
-      const list =
-        data.categories ||
-        data.items ||
-        data;
-
-      if (Array.isArray(list)) {
-        return list;
-      }
-
-      return TO.categories;
-    }
-  };
-
-  /* ============================================================
-     11. PUBLICATIONS
-     ============================================================ */
-
-  TO.publications = {
-    async list(params = {}) {
-      const query = new URLSearchParams();
-
-      Object.entries(params).forEach(
-        ([key, value]) => {
-          if (
-            value !== undefined &&
-            value !== null &&
-            value !== ""
-          ) {
-            query.set(key, value);
-          }
-        }
-      );
-
-      const endpoint =
-        "/api/publications" +
-        (query.toString()
-          ? "?" + query.toString()
-          : "");
-
-      const data = await TO.api(endpoint);
-
-      const list =
-        data.publications ||
-        data.posts ||
-        data.items ||
-        data.data ||
-        data;
-
-      return Array.isArray(list)
-        ? list.map(TO.normalizePublication)
-        : [];
-    },
-
-    async get(id) {
-      if (!id) return null;
-
-      const data = await TO.api(
-        `/api/publications/${encodeURIComponent(id)}`
-      );
-
-      return TO.normalizePublication(
-        data.publication ||
-        data.post ||
-        data
-      );
-    },
-
-    async create(payload) {
-      const data = await TO.api(
-        "/api/publications",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-
-      TO.toast(
-        "Публикация отправлена на проверку",
-        "success"
-      );
-
-      return data;
-    },
-
-    async view(id) {
-      if (!id) return;
-
-      const viewed =
-        TO.store.get(
-          TO.storage.viewed,
-          []
-        );
-
-      if (viewed.includes(String(id))) {
-        return;
-      }
-
-      try {
-        await TO.api(
-          "/api/publications/view",
-          {
-            method: "POST",
-            body: {
-              publication_id: id,
-              id
-            }
-          }
-        );
-
-        viewed.push(String(id));
-
-        TO.store.set(
-          TO.storage.viewed,
-          viewed.slice(-1000)
-        );
-      } catch {}
-    },
-
-    async react(id, reaction = "like") {
-      if (!id) return null;
-
-      const data = await TO.api(
-        "/api/publications/react",
-        {
-          method: "POST",
-          body: {
-            publication_id: id,
-            id,
-            reaction,
-            type: reaction
-          }
-        }
-      );
-
-      TO.toast(
-        "Реакция сохранена",
-        "success"
-      );
-
-      return data;
-    },
-
-    async save(id) {
-      if (!id) return null;
-
-      const data = await TO.api(
-        "/api/publications/save",
-        {
-          method: "POST",
-          body: {
-            publication_id: id,
-            id
-          }
-        }
-      );
-
-      const saved =
-        TO.store.get(
-          TO.storage.saved,
-          []
-        );
-
-      if (!saved.includes(String(id))) {
-        saved.push(String(id));
-      }
-
-      TO.store.set(
-        TO.storage.saved,
-        saved
-      );
-
-      TO.toast(
-        "Публикация сохранена",
-        "success"
-      );
-
-      return data;
-    },
-
-    async share(id) {
-      if (!id) return null;
-
-      const data = await TO.api(
-        "/api/publications/share",
-        {
-          method: "POST",
-          body: {
-            publication_id: id,
-            id
-          }
-        }
-      );
-
-      const url =
-        `${location.origin}/publication.html?id=${encodeURIComponent(id)}`;
-
-      try {
-        if (navigator.share) {
-          await navigator.share({
-            title: TO.config.siteName,
-            url
-          });
-        } else if (navigator.clipboard) {
-          await navigator.clipboard.writeText(url);
-
-          TO.toast(
-            "Ссылка скопирована",
-            "success"
-          );
-        }
-      } catch {}
-
-      return data;
-    }
-  };
-
-  /* ============================================================
-     12. COMMENTS
-     ============================================================ */
-
-  TO.comments = {
-    async list(publicationId) {
-      if (!publicationId) return [];
-
-      const data = await TO.api(
-        `/api/comments?publication_id=${encodeURIComponent(
-          publicationId
-        )}`
-      );
-
-      const list =
-        data.comments ||
-        data.items ||
-        data;
-
-      return Array.isArray(list)
-        ? list
-        : [];
-    },
-
-    async create(publicationId, text, parentId = null) {
-      if (!publicationId || !text?.trim()) {
-        throw new Error(
-          "Введите текст комментария"
-        );
-      }
-
-      const payload = {
-        publication_id: publicationId,
-        text: text.trim(),
-        content: text.trim()
-      };
-
-      if (parentId) {
-        payload.parent_id = parentId;
-        payload.reply_to = parentId;
-      }
-
-      const data = await TO.api(
-        "/api/comments",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-
-      TO.toast(
-        "Комментарий опубликован",
-        "success"
-      );
-
-      return data;
-    }
-  };
-
-  /* ============================================================
-     13. SAVED
-     ============================================================ */
-
-  TO.saved = {
-    has(id) {
-      const saved =
-        TO.store.get(
-          TO.storage.saved,
-          []
-        );
-
-      return saved.includes(String(id));
-    },
-
-    all() {
-      return TO.store.get(
-        TO.storage.saved,
-        []
-      );
-    },
-
-    clear() {
-      TO.store.remove(
-        TO.storage.saved
-      );
-    }
-  };
-
-  /* ============================================================
-     14. CHAT
-     ============================================================ */
-
-  TO.chat = {
-    async list() {
-      const data = await TO.api(
-        "/api/chat"
-      );
-
-      return (
-        data.chats ||
-        data.dialogs ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async messages(userId) {
-      if (!userId) return [];
-
-      const data = await TO.api(
-        `/api/chat/messages?user_id=${encodeURIComponent(
-          userId
-        )}`
-      );
-
-      return (
-        data.messages ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async send(userId, text, extra = {}) {
-      if (!text?.trim()) {
-        throw new Error(
-          "Сообщение пустое"
-        );
-      }
-
-      if (!userId) {
-        throw new Error(
-          "Не выбран получатель"
-        );
-      }
-
-      const payload = {
+    await db.prepare(`
+      UPDATE comments
+      SET hidden = 0,
+          deleted = 0,
+          updated_at = ?
+      WHERE id = ?
+    `)
+      .bind(now(), id)
+      .run();
+  }
+
+  else if (
+    action === "delete" ||
+    action === "trash"
+  ) {
+    await db.prepare(`
+      UPDATE comments
+      SET deleted = 1,
+          updated_at = ?
+      WHERE id = ?
+    `)
+      .bind(now(), id)
+      .run();
+  }
+
+  else if (action === "restore") {
+    await db.prepare(`
+      UPDATE comments
+      SET deleted = 0,
+          hidden = 0,
+          updated_at = ?
+      WHERE id = ?
+    `)
+      .bind(now(), id)
+      .run();
+  }
+
+  else {
+    return error("Неизвестное действие");
+  }
+
+  await audit(
+    env,
+    admin.id,
+    "comment_action",
+    "comment",
+    id,
+    { action }
+  );
+
+  return ok({
+    comment_id: id,
+    action
+  });
+}
+
+/* =========================================================
+   ADMIN CHATS
+========================================================= */
+
+async function adminChats(request, env) {
+  await requireAdmin(request, env);
+
+  const result = await getDB(env).prepare(`
+    SELECT
+      m.*,
+      u.username,
+      u.name,
+      u.avatar
+    FROM messages m
+    LEFT JOIN users u
+      ON u.id = m.sender_id
+    ORDER BY m.created_at DESC
+    LIMIT 500
+  `).all();
+
+  const map = new Map();
+
+  for (const row of result.results || []) {
+    const userId =
+      row.sender_id ||
+      row.receiver_id;
+
+    if (!userId) continue;
+
+    if (!map.has(userId)) {
+      map.set(userId, {
         user_id: userId,
-        recipient_id: userId,
-        text: text.trim(),
-        content: text.trim(),
-        ...extra
-      };
-
-      return TO.api(
-        "/api/chat/messages",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-    },
-
-    async read(userId) {
-      if (!userId) return null;
-
-      return TO.tryApi(
-        "/api/chat/read",
-        {
-          method: "POST",
-          body: {
-            user_id: userId,
-            recipient_id: userId
-          }
-        },
-        null
-      );
-    }
-  };
-
-  /* ============================================================
-     15. ADMIN CHAT
-     ============================================================ */
-
-  TO.adminChat = {
-    async list() {
-      const data = await TO.api(
-        "/api/admin/chats"
-      );
-
-      return (
-        data.chats ||
-        data.dialogs ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async messages(userId) {
-      const data = await TO.api(
-        `/api/admin/chat/messages?user_id=${encodeURIComponent(
-          userId
-        )}`
-      );
-
-      return (
-        data.messages ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async send(userId, text, extra = {}) {
-      if (!userId) {
-        throw new Error(
-          "Не выбран участник"
-        );
-      }
-
-      if (!text?.trim()) {
-        throw new Error(
-          "Введите сообщение"
-        );
-      }
-
-      return TO.api(
-        "/api/admin/chat/send",
-        {
-          method: "POST",
-          body: {
-            user_id: userId,
-            recipient_id: userId,
-
-            sender_name:
-              TO.config.officialName,
-
-            sender_username:
-              TO.config.officialUsername,
-
-            text: text.trim(),
-            content: text.trim(),
-
-            ...extra
-          }
-        }
-      );
-    }
-  };
-
-  /* ============================================================
-     16. OFFICIAL ADMIN IDENTITY
-     ============================================================ */
-
-  TO.official = {
-    name: TO.config.officialName,
-    username: TO.config.officialUsername,
-
-    normalize(message = {}) {
-      const copy = {
-        ...message
-      };
-
-      if (
-        copy.is_admin ||
-        copy.sender_type === "admin" ||
-        copy.author_type === "admin"
-      ) {
-        copy.sender_name =
-          TO.config.officialName;
-
-        copy.sender_username =
-          TO.config.officialUsername;
-
-        copy.author_name =
-          TO.config.officialName;
-
-        copy.author_username =
-          TO.config.officialUsername;
-      }
-
-      return copy;
-    }
-  };
-
-  /* ============================================================
-     17. NOTIFICATIONS
-     ============================================================ */
-
-  TO.notifications = {
-    async list() {
-      const data = await TO.api(
-        "/api/notifications"
-      );
-
-      return (
-        data.notifications ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async read(id) {
-      if (!id) return;
-
-      return TO.api(
-        "/api/notifications/read",
-        {
-          method: "POST",
-          body: {
-            id,
-            notification_id: id
-          }
-        }
-      );
-    },
-
-    async readAll() {
-      const list =
-        await this.list();
-
-      for (const item of list) {
-        const id =
-          TO.pick(
-            item,
-            ["id", "notification_id"],
-            null
-          );
-
-        if (id) {
-          await this.read(id);
-        }
-      }
-
-      TO.toast(
-        "Уведомления отмечены как прочитанные",
-        "success"
-      );
-    }
-  };
-
-  /* ============================================================
-     18. REPORTS
-     ============================================================ */
-
-  TO.reports = {
-    async create(payload) {
-      const possibleEndpoints = [
-        "/api/reports",
-        "/api/report"
-      ];
-
-      for (const endpoint of possibleEndpoints) {
-        try {
-          const result = await TO.api(
-            endpoint,
-            {
-              method: "POST",
-              body: payload
-            }
-          );
-
-          TO.toast(
-            "Жалоба отправлена",
-            "success"
-          );
-
-          return result;
-        } catch {}
-      }
-
-      throw new Error(
-        "API жалоб пока недоступно"
-      );
-    },
-
-    async listAdmin() {
-      const data = await TO.tryApi(
-        "/api/admin/reports",
-        {},
-        null
-      );
-
-      if (!data) return [];
-
-      return (
-        data.reports ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    }
-  };
-
-  /* ============================================================
-     19. FOLLOW
-     ============================================================ */
-
-  TO.follow = {
-    async toggle(userId) {
-      if (!userId) {
-        throw new Error(
-          "Не указан пользователь"
-        );
-      }
-
-      const endpoints = [
-        "/api/follow",
-        "/api/followers/toggle",
-        "/api/profile/follow"
-      ];
-
-      let lastError = null;
-
-      for (const endpoint of endpoints) {
-        try {
-          return await TO.api(
-            endpoint,
-            {
-              method: "POST",
-              body: {
-                user_id: userId,
-                target_user_id: userId
-              }
-            }
-          );
-        } catch (error) {
-          lastError = error;
-        }
-      }
-
-      throw lastError ||
-        new Error(
-          "Функция подписки пока недоступна"
-        );
-    }
-  };
-
-  /* ============================================================
-     20. PROFILE
-     ============================================================ */
-
-  TO.profile = {
-    async get() {
-      const data = await TO.api(
-        "/api/profile"
-      );
-
-      return (
-        data.profile ||
-        data.user ||
-        data
-      );
-    },
-
-    async update(payload) {
-      return TO.api(
-        "/api/profile",
-        {
-          method: "PUT",
-          body: payload
-        }
-      );
-    },
-
-    async public(username) {
-      if (!username) return null;
-
-      const data = await TO.api(
-        `/api/profile/public?username=${encodeURIComponent(
-          username
-        )}`
-      );
-
-      return (
-        data.profile ||
-        data.user ||
-        data
-      );
-    }
-  };
-
-  /* ============================================================
-     21. ADMIN DASHBOARD
-     ============================================================ */
-
-  TO.admin = {
-    async dashboard() {
-      const data = await TO.api(
-        "/api/admin/dashboard"
-      );
-
-      return (
-        data.dashboard ||
-        data.stats ||
-        data
-      );
-    },
-
-    async notifications() {
-      const data = await TO.api(
-        "/api/admin/notifications"
-      );
-
-      return (
-        data.notifications ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async users(params = {}) {
-      const query =
-        new URLSearchParams(params);
-
-      const data = await TO.api(
-        "/api/admin/users" +
-        (
-          query.toString()
-            ? "?" + query.toString()
-            : ""
-        )
-      );
-
-      return (
-        data.users ||
-        data.participants ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async user(id) {
-      return TO.api(
-        `/api/admin/user?id=${encodeURIComponent(id)}`
-      );
-    },
-
-    async editUser(payload) {
-      return TO.api(
-        "/api/admin/user/edit",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-    },
-
-    async userAction(id, action, extra = {}) {
-      return TO.api(
-        "/api/admin/user/action",
-        {
-          method: "POST",
-          body: {
-            id,
-            user_id: id,
-            action,
-            ...extra
-          }
-        }
-      );
-    },
-
-    async publications(params = {}) {
-      const query =
-        new URLSearchParams(params);
-
-      const data = await TO.api(
-        "/api/admin/publications" +
-        (
-          query.toString()
-            ? "?" + query.toString()
-            : ""
-        )
-      );
-
-      return (
-        data.publications ||
-        data.posts ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async editPublication(payload) {
-      return TO.api(
-        "/api/admin/publication/edit",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-    },
-
-    async publicationAction(
-      id,
-      action,
-      extra = {}
-    ) {
-      return TO.api(
-        "/api/admin/publication/action",
-        {
-          method: "POST",
-          body: {
-            id,
-            publication_id: id,
-            action,
-            ...extra
-          }
-        }
-      );
-    },
-
-    async counters(payload) {
-      return TO.api(
-        "/api/admin/publication/counters",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-    },
-
-    async comments() {
-      const data = await TO.tryApi(
-        "/api/admin/comments",
-        {},
-        null
-      );
-
-      if (!data) return [];
-
-      return (
-        data.comments ||
-        data.items ||
-        data.data ||
-        data ||
-        []
-      );
-    },
-
-    async editComment(payload) {
-      return TO.api(
-        "/api/admin/comment/edit",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-    },
-
-    async commentAction(
-      id,
-      action,
-      extra = {}
-    ) {
-      return TO.api(
-        "/api/admin/comment/action",
-        {
-          method: "POST",
-          body: {
-            id,
-            comment_id: id,
-            action,
-            ...extra
-          }
-        }
-      );
-    },
-
-    async payment(payload) {
-      return TO.api(
-        "/api/admin/payment",
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-    }
-  };
-
-  /* ============================================================
-     22. ADMIN PUBLICATION QUICK ACTIONS
-     ============================================================ */
-
-  TO.adminPublicationActions = {
-    approve(id) {
-      return TO.admin.publicationAction(
-        id,
-        "approve_free"
-      );
-    },
-
-    publish(id) {
-      return TO.admin.publicationAction(
-        id,
-        "publish"
-      );
-    },
-
-    reject(id, reason = "") {
-      return TO.admin.publicationAction(
-        id,
-        "reject",
-        { reason }
-      );
-    },
-
-    hide(id) {
-      return TO.admin.publicationAction(
-        id,
-        "hide"
-      );
-    },
-
-    delete(id) {
-      return TO.admin.publicationAction(
-        id,
-        "delete"
-      );
-    },
-
-    restore(id) {
-      return TO.admin.publicationAction(
-        id,
-        "restore"
-      );
-    },
-
-    pin(id) {
-      return TO.admin.publicationAction(
-        id,
-        "pin"
-      );
-    },
-
-    feature(id) {
-      return TO.admin.publicationAction(
-        id,
-        "feature"
-      );
-    },
-
-    payment(id, amount) {
-      return TO.admin.publicationAction(
-        id,
-        "request_payment",
-        {
-          amount
-        }
-      );
-    }
-  };
-
-  /* ============================================================
-     23. MANUAL STATISTICS
-     ============================================================ */
-
-  TO.stats = {
-    defaults: {
-      participants: 0,
-      publications: 0,
-      reactions: 0,
-      views: 0,
-      shares: 0,
-      saves: 0,
-      followers: 0,
-      subscribers: 0,
-      comments: 0,
-      notifications: 0,
-      messages: 0,
-      reports: 0,
-      payments: 0,
-      jobs: 0,
-      projects: 0,
-      services: 0,
-      usersOnline: 0
-    },
-
-    load() {
-      return {
-        ...this.defaults,
-        ...TO.store.get(
-          TO.storage.stats,
-          {}
-        )
-      };
-    },
-
-    save(stats) {
-      TO.store.set(
-        TO.storage.stats,
-        stats
-      );
-
-      return stats;
-    },
-
-    get(name) {
-      const stats = this.load();
-
-      return TO.number(
-        stats[name],
-        0
-      );
-    },
-
-    set(name, value) {
-      const stats = this.load();
-
-      stats[name] =
-        Math.max(
-          0,
-          TO.number(value, 0)
-        );
-
-      return this.save(stats);
-    },
-
-    increment(name, amount = 1) {
-      const stats = this.load();
-
-      stats[name] =
-        TO.number(
-          stats[name],
-          0
-        ) +
-        TO.number(
-          amount,
-          1
-        );
-
-      return this.save(stats);
-    },
-
-    render() {
-      const stats =
-        this.load();
-
-      Object.entries(stats)
-        .forEach(
-          ([name, value]) => {
-            TO.qa(
-              `[data-to-stat="${name}"]`
-            ).forEach(
-              el => {
-                el.textContent =
-                  Number(value).toLocaleString(
-                    "ru-RU"
-                  );
-              }
-            );
-          }
-        );
-    }
-  };
-
-  /* ============================================================
-     24. DATE / TIME
-     ============================================================ */
-
-  TO.date = {
-    format(value, options = {}) {
-      if (!value) return "";
-
-      const date =
-        new Date(value);
-
-      if (Number.isNaN(
-        date.getTime()
-      )) {
-        return String(value);
-      }
-
-      return new Intl.DateTimeFormat(
-        options.locale || "ru-RU",
-        {
-          dateStyle:
-            options.dateStyle ||
-            "medium",
-          timeStyle:
-            options.timeStyle ||
-            undefined
-        }
-      ).format(date);
-    },
-
-    relative(value) {
-      if (!value) return "";
-
-      const date =
-        new Date(value);
-
-      if (Number.isNaN(
-        date.getTime()
-      )) {
-        return "";
-      }
-
-      const diff =
-        Date.now() -
-        date.getTime();
-
-      const minute = 60000;
-      const hour = minute * 60;
-      const day = hour * 24;
-
-      if (diff < minute) {
-        return "только что";
-      }
-
-      if (diff < hour) {
-        return (
-          Math.floor(diff / minute) +
-          " мин назад"
-        );
-      }
-
-      if (diff < day) {
-        return (
-          Math.floor(diff / hour) +
-          " ч назад"
-        );
-      }
-
-      if (diff < day * 7) {
-        return (
-          Math.floor(diff / day) +
-          " дн назад"
-        );
-      }
-
-      return this.format(value);
-    }
-  };
-
-  /* ============================================================
-     25. SEARCH
-     ============================================================ */
-
-  TO.search = {
-    async publications(query, options = {}) {
-      return TO.publications.list({
-        search: query,
-        q: query,
-        ...options
-      });
-    },
-
-    async users(query) {
-      return TO.admin.users({
-        search: query,
-        q: query,
-        username: query
-      });
-    },
-
-    async all(query) {
-      const [
-        publications,
-        users
-      ] = await Promise.allSettled([
-        this.publications(query),
-        this.users(query)
-      ]);
-
-      return {
-        publications:
-          publications.status === "fulfilled"
-            ? publications.value
-            : [],
-
-        users:
-          users.status === "fulfilled"
-            ? users.value
-            : []
-      };
-    }
-  };
-
-  /* ============================================================
-     26. TRANSLATION
-     ============================================================ */
-
-  TO.translation = {
-    cache: TO.store.get(
-      TO.storage.translationCache,
-      {}
-    ),
-
-    detect(text) {
-      if (!text) return "unknown";
-
-      if (
-        /[\u0400-\u04FF]/.test(text)
-      ) {
-        return "ru";
-      }
-
-      if (
-        /[اآأإء-ي]/.test(text)
-      ) {
-        return "fa";
-      }
-
-      return "en";
-    },
-
-    async translate(
-      text,
-      target = "ru",
-      source = "auto"
-    ) {
-      if (!text) return "";
-
-      const key =
-        `${source}:${target}:${text}`;
-
-      if (this.cache[key]) {
-        return this.cache[key];
-      }
-
-      /*
-       * Translation API is intentionally optional.
-       * If backend later provides /api/translate,
-       * it will automatically be used.
-       */
-
-      try {
-        const data =
-          await TO.api(
-            "/api/translate",
-            {
-              method: "POST",
-              body: {
-                text,
-                source,
-                target
-              }
-            }
-          );
-
-        const result =
-          data.translation ||
-          data.translated_text ||
-          data.text;
-
-        if (result) {
-          this.cache[key] = result;
-
-          TO.store.set(
-            TO.storage.translationCache,
-            this.cache
-          );
-
-          return result;
-        }
-      } catch {}
-
-      return text;
-    },
-
-    async translateElement(
-      element,
-      target
-    ) {
-      if (!element) return;
-
-      const original =
-        element.dataset.toOriginal ||
-        element.textContent;
-
-      element.dataset.toOriginal =
-        original;
-
-      const translated =
-        await this.translate(
-          original,
-          target
-        );
-
-      element.textContent =
-        translated;
-    }
-  };
-
-  /* ============================================================
-     27. THEME
-     ============================================================ */
-
-  TO.theme = {
-    get() {
-      return TO.store.get(
-        TO.storage.theme,
-        "system"
-      );
-    },
-
-    set(theme) {
-      if (
-        ![
-          "light",
-          "dark",
-          "system"
-        ].includes(theme)
-      ) {
-        theme = "system";
-      }
-
-      TO.store.set(
-        TO.storage.theme,
-        theme
-      );
-
-      this.apply();
-    },
-
-    apply() {
-      const theme =
-        this.get();
-
-      let actual = theme;
-
-      if (theme === "system") {
-        actual =
-          window.matchMedia &&
-          window.matchMedia(
-            "(prefers-color-scheme: dark)"
-          ).matches
-            ? "dark"
-            : "light";
-      }
-
-      document.documentElement
-        .setAttribute(
-          "data-theme",
-          actual
-        );
-    },
-
-    toggle() {
-      const current =
-        this.get();
-
-      this.set(
-        current === "dark"
-          ? "light"
-          : "dark"
-      );
-    }
-  };
-
-  /* ============================================================
-     28. URL / NAVIGATION
-     ============================================================ */
-
-  TO.nav = {
-    go(url) {
-      if (!url) return;
-
-      location.href = url;
-    },
-
-    publication(id) {
-      if (!id) return;
-
-      const urls = [
-        `/publication.html?id=${encodeURIComponent(id)}`,
-        `/post.html?id=${encodeURIComponent(id)}`,
-        `/?publication=${encodeURIComponent(id)}`
-      ];
-
-      location.href = urls[0];
-    },
-
-    profile(username) {
-      if (!username) return;
-
-      location.href =
-        `/profile.html?user=${encodeURIComponent(
-          username
-        )}`;
-    },
-
-    chat(userId) {
-      if (!userId) return;
-
-      location.href =
-        `/messages.html?user=${encodeURIComponent(
-          userId
-        )}`;
-    }
-  };
-
-  /* ============================================================
-     29. PUBLICATION CARD GENERATOR
-     ============================================================ */
-
-  TO.ui = {
-    publicationCard(post) {
-      const p =
-        TO.normalizePublication(post);
-
-      const media =
-        p.media?.[0];
-
-      let mediaHTML = "";
-
-      if (
-        media &&
-        media.url
-      ) {
-        const type =
-          media.type || "";
-
-        if (
-          type.startsWith("image") ||
-          /\.(jpg|jpeg|png|webp|gif)$/i.test(
-            media.url
-          )
-        ) {
-          mediaHTML = `
-            <div class="to-publication-media">
-              <img
-                src="${TO.escape(media.url)}"
-                alt="${TO.escape(p.title)}"
-                loading="lazy"
-              >
-            </div>
-          `;
-        } else if (
-          type.startsWith("video")
-        ) {
-          mediaHTML = `
-            <div class="to-publication-media">
-              <video
-                src="${TO.escape(media.url)}"
-                controls
-                preload="metadata"
-              ></video>
-            </div>
-          `;
-        }
-      }
-
-      const author =
-        p.authorName ||
-        p.authorUsername ||
-        "Пользователь";
-
-      return `
-        <article
-          class="to-publication-card"
-          data-publication-id="${TO.escape(p.id)}"
-        >
-
-          ${mediaHTML}
-
-          <div class="to-publication-content">
-
-            <div class="to-publication-meta">
-
-              <span>
-                ${TO.escape(
-                  TO.category.label(
-                    p.category
-                  )
-                )}
-              </span>
-
-              ${
-                p.status &&
-                p.status !== "published"
-                  ? `
-                    <span>
-                      ${TO.escape(
-                        TO.statuses[
-                          p.status
-                        ] ||
-                        p.status
-                      )}
-                    </span>
-                  `
-                  : ""
-              }
-
-            </div>
-
-            <h3>
-              ${TO.escape(p.title)}
-            </h3>
-
-            ${
-              p.text
-                ? `
-                  <p>
-                    ${TO.escape(
-                      p.text.slice(
-                        0,
-                        400
-                      )
-                    )}
-                  </p>
-                `
-                : ""
-            }
-
-            <div class="to-publication-author">
-              ${TO.escape(author)}
-
-              ${
-                p.authorUsername
-                  ? `
-                    <span>
-                      ${TO.escape(
-                        p.authorUsername
-                      )}
-                    </span>
-                  `
-                  : ""
-              }
-            </div>
-
-            <div class="to-publication-stats">
-
-              <span>
-                👁️ ${p.views}
-              </span>
-
-              <span>
-                ❤️ ${
-                  p.reactions ||
-                  p.likes
-                }
-              </span>
-
-              <span>
-                💬 ${p.comments}
-              </span>
-
-              <span>
-                🔖 ${p.saves}
-              </span>
-
-            </div>
-
-            <div class="to-publication-actions">
-
-              <button
-                type="button"
-                data-to-action="open-publication"
-                data-id="${TO.escape(p.id)}"
-              >
-                Смотреть
-              </button>
-
-              <button
-                type="button"
-                data-to-action="react"
-                data-id="${TO.escape(p.id)}"
-              >
-                ❤️
-              </button>
-
-              <button
-                type="button"
-                data-to-action="save"
-                data-id="${TO.escape(p.id)}"
-              >
-                🔖
-              </button>
-
-              <button
-                type="button"
-                data-to-action="share"
-                data-id="${TO.escape(p.id)}"
-              >
-                ↗️
-              </button>
-
-            </div>
-
-          </div>
-
-        </article>
-      `;
-    },
-
-    renderPublications(
-      container,
-      publications
-    ) {
-      if (!container) return;
-
-      if (!Array.isArray(
-        publications
-      ) ||
-      !publications.length
-      ) {
-        container.innerHTML = `
-          <div class="to-empty">
-            Пока ничего нет.
-          </div>
-        `;
-
-        return;
-      }
-
-      container.innerHTML =
-        publications
-          .map(
-            p =>
-              this.publicationCard(p)
-          )
-          .join("");
-    }
-  };
-
-  /* ============================================================
-     30. DELEGATED ACTION SYSTEM
-     ============================================================ */
-
-  TO.actions = {};
-
-  TO.actions.openPublication =
-    async function (button) {
-      const id =
-        button.dataset.id ||
-        button.dataset.publicationId;
-
-      if (!id) return;
-
-      TO.nav.publication(id);
-    };
-
-  TO.actions.react =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      const reaction =
-        button.dataset.reaction ||
-        "like";
-
-      if (!id) return;
-
-      try {
-        await TO.publications.react(
-          id,
-          reaction
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось поставить реакцию",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.save =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      if (!id) return;
-
-      try {
-        await TO.publications.save(
-          id
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось сохранить",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.share =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      if (!id) return;
-
-      try {
-        await TO.publications.share(
-          id
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось поделиться",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.follow =
-    async function (button) {
-      const id =
-        button.dataset.userId ||
-        button.dataset.id;
-
-      if (!id) return;
-
-      try {
-        await TO.follow.toggle(id);
-
-        TO.toast(
-          "Подписка обновлена",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось изменить подписку",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.openProfile =
-    function (button) {
-      const username =
-        button.dataset.username ||
-        button.dataset.user;
-
-      if (username) {
-        TO.nav.profile(
-          username
-        );
-      }
-    };
-
-  TO.actions.openChat =
-    function (button) {
-      const id =
-        button.dataset.userId ||
-        button.dataset.id;
-
-      if (id) {
-        TO.nav.chat(id);
-      }
-    };
-
-  TO.actions.markNotification =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.notifications.read(
-          id
-        );
-
-        button.disabled = true;
-
-        TO.toast(
-          "Уведомление прочитано",
-          "success"
-        );
-      } catch {}
-    };
-
-  TO.actions.adminApprove =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.adminPublicationActions
-          .approve(id);
-
-        TO.toast(
-          "Публикация одобрена",
-          "success"
-        );
-
-        button.disabled = true;
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось одобрить",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.adminReject =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      const reason =
-        prompt(
-          "Причина отклонения:"
-        );
-
-      if (reason === null) return;
-
-      try {
-        await TO.adminPublicationActions
-          .reject(
-            id,
-            reason
-          );
-
-        TO.toast(
-          "Публикация отклонена",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось отклонить",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.adminDelete =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      if (
-        !await TO.confirm(
-          "Удалить публикацию?"
-        )
-      ) {
-        return;
-      }
-
-      try {
-        await TO.adminPublicationActions
-          .delete(id);
-
-        TO.toast(
-          "Публикация удалена",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось удалить",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.adminRestore =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.adminPublicationActions
-          .restore(id);
-
-        TO.toast(
-          "Публикация восстановлена",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось восстановить",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.adminPin =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.adminPublicationActions
-          .pin(id);
-
-        TO.toast(
-          "Публикация закреплена",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось закрепить",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.adminFeature =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.adminPublicationActions
-          .feature(id);
-
-        TO.toast(
-          "Публикация добавлена в избранное",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось выполнить действие",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.adminBlockUser =
-    async function (button) {
-      const id =
-        button.dataset.userId ||
-        button.dataset.id;
-
-      try {
-        await TO.admin.userAction(
-          id,
-          "block"
-        );
-
-        TO.toast(
-          "Пользователь заблокирован",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось заблокировать",
-          "error"
-        );
-      }
-    };
-
-  TO.actions.adminUnblockUser =
-    async function (button) {
-      const id =
-        button.dataset.userId ||
-        button.dataset.id;
-
-      try {
-        await TO.admin.userAction(
-          id,
-          "unblock"
-        );
-
-        TO.toast(
-          "Пользователь разблокирован",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось разблокировать",
-          "error"
-        );
-      }
-    };
-
-  /* ============================================================
-     31. GLOBAL CLICK HANDLER
-     ============================================================ */
-
-  document.addEventListener(
-    "click",
-    async event => {
-      const button =
-        event.target.closest(
-          "[data-to-action]"
-        );
-
-      if (!button) return;
-
-      const action =
-        button.dataset.toAction;
-
-      const handler =
-        TO.actions[action];
-
-      if (
-        typeof handler !==
-        "function"
-      ) {
-        TO.log(
-          "Unknown action:",
-          action
-        );
-
-        return;
-      }
-
-      try {
-        button.dataset.toBusy = "1";
-
-        await handler(button);
-      } catch (error) {
-        TO.error(error);
-
-        TO.toast(
-          error.message ||
-          "Произошла ошибка",
-          "error"
-        );
-      } finally {
-        delete button.dataset.toBusy;
-      }
-    }
-  );
-
-  /* ============================================================
-     32. VIEW TRACKING
-     ============================================================ */
-
-  TO.viewTracking = {
-    observer: null,
-
-    init() {
-      if (
-        !("IntersectionObserver" in window)
-      ) {
-        return;
-      }
-
-      this.observer =
-        new IntersectionObserver(
-          entries => {
-            entries.forEach(entry => {
-              if (
-                !entry.isIntersecting
-              ) {
-                return;
-              }
-
-              const id =
-                entry.target.dataset
-                  .publicationId;
-
-              if (!id) return;
-
-              clearTimeout(
-                entry.target.__toViewTimer
-              );
-
-              entry.target.__toViewTimer =
-                setTimeout(
-                  () => {
-                    TO.publications.view(
-                      id
-                    );
-                  },
-                  TO.config.viewDelay
-                );
-
-              this.observer.unobserve(
-                entry.target
-              );
-            });
-          },
-          {
-            threshold: 0.35
-          }
-        );
-
-      this.observe();
-    },
-
-    observe() {
-      if (!this.observer) return;
-
-      TO.qa(
-        "[data-publication-id]"
-      ).forEach(
-        el =>
-          this.observer.observe(el)
-      );
-    }
-  };
-
-  /* ============================================================
-     33. SEARCH UI
-     ============================================================ */
-
-  TO.searchUI = {
-    init() {
-      const inputs =
-        TO.qa(
-          '[data-to-search]'
-        );
-
-      inputs.forEach(input => {
-        input.addEventListener(
-          "input",
-          TO.debounce(
-            async () => {
-              const query =
-                input.value.trim();
-
-              if (!query) return;
-
-              const targetSelector =
-                input.dataset.toSearchTarget;
-
-              const target =
-                targetSelector
-                  ? TO.q(
-                      targetSelector
-                    )
-                  : null;
-
-              if (!target) return;
-
-              try {
-                const posts =
-                  await TO.search
-                    .publications(
-                      query
-                    );
-
-                TO.ui
-                  .renderPublications(
-                    target,
-                    posts
-                  );
-              } catch (error) {
-                TO.toast(
-                  "Поиск временно недоступен",
-                  "error"
-                );
-              }
-            },
-            500
-          )
-        );
+        username: row.username
+          ? "@" + row.username
+          : "",
+        name: row.name || "",
+        avatar: row.avatar || "",
+        last_message: row.text || "",
+        last_message_at: row.created_at
       });
     }
-  };
-
-  /* ============================================================
-     34. NOTIFICATION BADGE
-     ============================================================ */
-
-  TO.notificationBadge = {
-    async refresh() {
-      try {
-        const list =
-          await TO.notifications
-            .list();
-
-        const unread =
-          Array.isArray(list)
-            ? list.filter(
-                item =>
-                  !TO.bool(
-                    TO.pick(
-                      item,
-                      [
-                        "read",
-                        "is_read",
-                        "seen"
-                      ],
-                      false
-                    )
-                  )
-              ).length
-            : 0;
-
-        TO.qa(
-          "[data-to-notifications-count]"
-        ).forEach(
-          el => {
-            el.textContent =
-              unread;
-
-            el.hidden =
-              unread <= 0;
-          }
-        );
-      } catch {}
-    }
-  };
-
-  /* ============================================================
-     35. ADMIN STATS AUTO RENDER
-     ============================================================ */
-
-  TO.adminStatsUI = {
-    async refresh() {
-      try {
-        const server =
-          await TO.admin
-            .dashboard();
-
-        const local =
-          TO.stats.load();
-
-        const merged = {
-          ...local,
-          ...server
-        };
-
-        Object.entries(
-          merged
-        ).forEach(
-          ([key, value]) => {
-            TO.qa(
-              `[data-to-stat="${key}"]`
-            ).forEach(
-              el => {
-                el.textContent =
-                  TO.number(
-                    value,
-                    0
-                  ).toLocaleString(
-                    "ru-RU"
-                  );
-              }
-            );
-          }
-        );
-
-        return merged;
-      } catch {
-        TO.stats.render();
-
-        return TO.stats.load();
-      }
-    }
-  };
-
-  /* ============================================================
-     36. ADMIN MANUAL COUNTERS UI
-     ============================================================ */
-
-  TO.manualStatsUI = {
-    init() {
-      TO.qa(
-        "[data-to-stat-edit]"
-      ).forEach(
-        input => {
-          const name =
-            input.dataset.toStatEdit;
-
-          input.value =
-            TO.stats.get(name);
-
-          input.addEventListener(
-            "change",
-            () => {
-              TO.stats.set(
-                name,
-                input.value
-              );
-
-              TO.stats.render();
-
-              TO.toast(
-                "Статистика сохранена",
-                "success"
-              );
-            }
-          );
-        }
-      );
-    }
-  };
-
-  /* ============================================================
-     37. DRAFT SYSTEM
-     ============================================================ */
-
-  TO.drafts = {
-    all() {
-      return TO.store.get(
-        TO.storage.drafts,
-        []
-      );
-    },
-
-    save(draft) {
-      const drafts =
-        this.all();
-
-      const id =
-        draft.id ||
-        `draft_${Date.now()}`;
-
-      const item = {
-        ...draft,
-        id,
-        updated_at:
-          TO.isoNow()
-      };
-
-      const index =
-        drafts.findIndex(
-          x => x.id === id
-        );
-
-      if (index >= 0) {
-        drafts[index] = item;
-      } else {
-        drafts.push(item);
-      }
-
-      TO.store.set(
-        TO.storage.drafts,
-        drafts
-      );
-
-      return item;
-    },
-
-    remove(id) {
-      const drafts =
-        this.all()
-          .filter(
-            x => x.id !== id
-          );
-
-      TO.store.set(
-        TO.storage.drafts,
-        drafts
-      );
-    },
-
-    get(id) {
-      return this.all()
-        .find(
-          x => x.id === id
-        ) || null;
-    }
-  };
-
-  /* ============================================================
-     38. PUBLICATION FORM AUTOSAVE
-     ============================================================ */
-
-  TO.formAutosave = {
-    init() {
-      TO.qa(
-        "form[data-to-publication-form]"
-      ).forEach(form => {
-        const handler =
-          TO.debounce(
-            () => {
-              const data =
-                Object.fromEntries(
-                  new FormData(form)
-                    .entries()
-                );
-
-              TO.drafts.save({
-                form: data
-              });
-            },
-            800
-          );
-
-        form.addEventListener(
-          "input",
-          handler
-        );
-      });
-    }
-  };
-
-  /* ============================================================
-     39. PUBLICATION FORM SUBMISSION
-     ============================================================ */
-
-  TO.forms = {
-    async publication(form) {
-      if (!form) return;
-
-      const data =
-        Object.fromEntries(
-          new FormData(form)
-            .entries()
-        );
-
-      if (!data.title) {
-        TO.toast(
-          "Введите заголовок",
-          "warning"
-        );
-
-        return;
-      }
-
-      if (
-        !data.text &&
-        !data.content &&
-        !data.description
-      ) {
-        TO.toast(
-          "Введите описание",
-          "warning"
-        );
-
-        return;
-      }
-
-      try {
-        const result =
-          await TO.publications
-            .create(data);
-
-        TO.toast(
-          "Готово! Публикация отправлена администрации.",
-          "success"
-        );
-
-        return result;
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось создать публикацию",
-          "error"
-        );
-      }
-    }
-  };
-
-  /* ============================================================
-     40. ADMIN TEST CENTER
-     ============================================================ */
-
-  TO.testing = {
-    participant: null,
-
-    selectParticipant(user) {
-      this.participant =
-        TO.normalizeUser(user);
-
-      TO.actor.select(
-        this.participant
-      );
-
-      TO.actor.enableTestMode();
-
-      return this.participant;
-    },
-
-    clearParticipant() {
-      this.participant = null;
-
-      TO.actor.clear();
-      TO.actor.disableTestMode();
-    },
-
-    requireParticipant() {
-      if (
-        !TO.actor.active()
-      ) {
-        throw new Error(
-          "Сначала выберите участника и включите тестовый режим"
-        );
-      }
-
-      return TO.actor.get();
-    },
-
-    async like(publicationId) {
-      const actor =
-        this.requireParticipant();
-
-      return TO.publications.react(
-        publicationId,
-        "like"
-      );
-    },
-
-    async react(
-      publicationId,
-      reaction
-    ) {
-      this.requireParticipant();
-
-      return TO.publications.react(
-        publicationId,
-        reaction
-      );
-    },
-
-    async save(publicationId) {
-      this.requireParticipant();
-
-      return TO.publications.save(
-        publicationId
-      );
-    },
-
-    async share(publicationId) {
-      this.requireParticipant();
-
-      return TO.publications.share(
-        publicationId
-      );
-    },
-
-    async view(publicationId) {
-      this.requireParticipant();
-
-      /*
-       * Remove local viewed marker temporarily
-       * so testing can trigger a view request.
-       */
-
-      const old =
-        TO.store.get(
-          TO.storage.viewed,
-          []
-        );
-
-      TO.store.set(
-        TO.storage.viewed,
-        old.filter(
-          x =>
-            String(x) !==
-            String(publicationId)
-        )
-      );
-
-      return TO.publications.view(
-        publicationId
-      );
-    },
-
-    async comment(
-      publicationId,
-      text,
-      parentId = null
-    ) {
-      this.requireParticipant();
-
-      return TO.comments.create(
-        publicationId,
-        text,
-        parentId
-      );
-    },
-
-    async message(
+  }
+
+  return ok({
+    chats: [...map.values()]
+  });
+}
+
+async function adminChatMessages(
+  request,
+  env
+) {
+  await requireAdmin(request, env);
+
+  const url = new URL(request.url);
+
+  const userId =
+    url.searchParams.get("user_id");
+
+  if (!userId) {
+    return error("user_id обязателен");
+  }
+
+  const official =
+    await getOfficialUser(env);
+
+  const officialId = official?.id;
+
+  const result = await getDB(env).prepare(`
+    SELECT *
+    FROM messages
+    WHERE
+      (sender_id = ? AND receiver_id = ?)
+      OR
+      (sender_id = ? AND receiver_id = ?)
+    ORDER BY created_at ASC
+    LIMIT 500
+  `)
+    .bind(
       userId,
-      text
-    ) {
-      this.requireParticipant();
+      officialId || "OFFICIAL",
+      officialId || "OFFICIAL",
+      userId
+    )
+    .all();
 
-      return TO.chat.send(
-        userId,
-        text,
-        {
-          test_mode: true,
-          actor_user_id:
-            TO.actor.get()?.id
-        }
-      );
-    },
-
-    async follow(userId) {
-      this.requireParticipant();
-
-      return TO.follow.toggle(
-        userId
-      );
-    },
-
-    async createPublication(
-      payload
-    ) {
-      this.requireParticipant();
-
-      return TO.publications.create({
-        ...payload,
-
-        test_mode: true,
-
-        actor_user_id:
-          TO.actor.get()?.id
-      });
+  return ok({
+    messages: result.results || [],
+    official: {
+      name: OFFICIAL_NAME,
+      username: OFFICIAL_USERNAME
     }
-  };
+  });
+}
 
-  /* ============================================================
-     41. ADMIN USER ACTIONS
-     ============================================================ */
-
-  TO.userManagement = {
-    async block(id) {
-      return TO.admin.userAction(
-        id,
-        "block"
-      );
-    },
-
-    async unblock(id) {
-      return TO.admin.userAction(
-        id,
-        "unblock"
-      );
-    },
-
-    async verify(id) {
-      return TO.admin.userAction(
-        id,
-        "verify"
-      );
-    },
-
-    async delete(id) {
-      return TO.admin.userAction(
-        id,
-        "delete"
-      );
-    },
-
-    async restore(id) {
-      return TO.admin.userAction(
-        id,
-        "restore"
-      );
-    },
-
-    async moderator(id) {
-      return TO.admin.userAction(
-        id,
-        "make_moderator"
-      );
-    },
-
-    async removeModerator(id) {
-      return TO.admin.userAction(
-        id,
-        "remove_moderator"
-      );
-    }
-  };
-
-  /* ============================================================
-     42. KEYBOARD SHORTCUTS
-     ============================================================ */
-
-  document.addEventListener(
-    "keydown",
-    event => {
-      if (
-        (event.ctrlKey ||
-          event.metaKey) &&
-        event.key.toLowerCase() ===
-          "k"
-      ) {
-        event.preventDefault();
-
-        const search =
-          TO.q(
-            '[data-to-search]'
-          );
-
-        if (search) {
-          search.focus();
-        }
-      }
-
-      if (
-        event.key === "Escape"
-      ) {
-        TO.qa(
-          ".to-modal-open"
-        ).forEach(
-          el =>
-            el.classList.remove(
-              "to-modal-open"
-            )
-        );
-      }
-    }
-  );
-
-  /* ============================================================
-     43. ONLINE STATUS
-     ============================================================ */
-
-  TO.online = {
-    update() {
-      const online =
-        navigator.onLine;
-
-      document.documentElement
-        .classList.toggle(
-          "to-offline",
-          !online
-        );
-
-      TO.qa(
-        "[data-to-online-status]"
-      ).forEach(
-        el => {
-          el.textContent =
-            online
-              ? "Онлайн"
-              : "Нет соединения";
-        }
-      );
-    }
-  };
-
-  window.addEventListener(
-    "online",
-    () => {
-      TO.online.update();
-
-      TO.toast(
-        "Соединение восстановлено",
-        "success"
-      );
-    }
-  );
-
-  window.addEventListener(
-    "offline",
-    () => {
-      TO.online.update();
-
-      TO.toast(
-        "Нет подключения к интернету",
-        "warning"
-      );
-    }
-  );
-
-  /* ============================================================
-     44. ERROR HANDLING
-     ============================================================ */
-
-  window.addEventListener(
-    "unhandledrejection",
-    event => {
-      TO.error(
-        "Unhandled promise:",
-        event.reason
-      );
-    }
-  );
-
-  window.addEventListener(
-    "error",
-    event => {
-      TO.error(
-        "Global error:",
-        event.error ||
-        event.message
-      );
-    }
-  );
-
-  /* ============================================================
-     45. PAGE INITIALIZATION
-     ============================================================ */
-
-  TO.init = async function () {
-    TO.log(
-      `Initializing ${TO.name} v${TO.version}`
-    );
-
-    TO.actor.load();
-
-    TO.theme.apply();
-
-    TO.online.update();
-
-    TO.stats.render();
-
-    TO.manualStatsUI.init();
-
-    TO.searchUI.init();
-
-    TO.formAutosave.init();
-
-    TO.viewTracking.init();
-
-    /*
-     * Auth must never break the page.
-     */
-
-    await TO.auth.me();
-
-    /*
-     * Admin check is also optional.
-     */
-
-    await TO.auth.adminMe();
-
-    TO.actor.renderIndicator();
-
-    /*
-     * Render notification badges only
-     * when authentication is available.
-     */
-
-    if (TO.auth.isLoggedIn()) {
-      TO.notificationBadge
-        .refresh();
-    }
-
-    /*
-     * Admin statistics only on pages
-     * that actually expose admin elements.
-     */
-
-    if (
-      TO.auth.isAdmin() ||
-      TO.exists(
-        "[data-to-stat]"
+async function getOfficialUser(env) {
+  return getDB(env)
+    .prepare(`
+      SELECT *
+      FROM users
+      WHERE username = ?
+      LIMIT 1
+    `)
+    .bind(
+      normalizeUsername(
+        OFFICIAL_USERNAME
       )
-    ) {
-      TO.adminStatsUI.refresh();
-    }
+    )
+    .first();
+}
 
-    /*
-     * Automatically initialize buttons
-     * and publication view tracking.
-     */
+async function ensureOfficialUser(env) {
+  const db = getDB(env);
 
-    setTimeout(() => {
-      TO.viewTracking.observe();
-    }, 500);
+  let official =
+    await getOfficialUser(env);
 
-    TO.log(
-      "Initialization complete"
+  if (official) {
+    return official;
+  }
+
+  const id = randomId("official_");
+  const timestamp = now();
+
+  await db.prepare(`
+    INSERT INTO users
+    (
+      id,
+      username,
+      name,
+      verified,
+      role,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, 1, 'official', ?, ?)
+  `)
+    .bind(
+      id,
+      normalizeUsername(
+        OFFICIAL_USERNAME
+      ),
+      OFFICIAL_NAME,
+      timestamp,
+      timestamp
+    )
+    .run();
+
+  return db.prepare(`
+    SELECT *
+    FROM users
+    WHERE id = ?
+  `)
+    .bind(id)
+    .first();
+}
+
+async function adminChatSend(
+  request,
+  env
+) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const userId = cleanString(
+    data.user_id ||
+    data.receiver_id,
+    100
+  );
+
+  const messageText = cleanString(
+    data.text ||
+    data.message,
+    20000
+  );
+
+  if (!userId || !messageText) {
+    return error(
+      "user_id и text обязательны"
     );
-  };
+  }
 
-  /* ============================================================
-     46. POLLING
-     ============================================================ */
+  const official =
+    await ensureOfficialUser(env);
 
-  TO.startPolling = function () {
-    if (
-      TO.__pollingStarted
-    ) {
-      return;
+  const cid = conversationId(
+    official.id,
+    userId
+  );
+
+  const id = randomId("msg_");
+  const timestamp = now();
+
+  await getDB(env).prepare(`
+    INSERT INTO messages
+    (
+      id,
+      sender_id,
+      receiver_id,
+      conversation_id,
+      text,
+      media,
+      reply_to,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+    .bind(
+      id,
+      official.id,
+      userId,
+      cid,
+      messageText,
+      JSON.stringify(data.media || []),
+      cleanString(
+        data.reply_to,
+        100
+      ) || null,
+      timestamp,
+      timestamp
+    )
+    .run();
+
+  await getDB(env).prepare(`
+    INSERT INTO notifications
+    (
+      id,
+      user_id,
+      type,
+      title,
+      text,
+      data,
+      created_at
+    )
+    VALUES (?, ?, 'admin_message', ?, ?, ?, ?)
+  `)
+    .bind(
+      randomId("not_"),
+      userId,
+      OFFICIAL_NAME,
+      messageText.slice(0, 200),
+      JSON.stringify({
+        message_id: id,
+        admin_id: admin.id,
+        official: true
+      }),
+      timestamp
+    )
+    .run();
+
+  await audit(
+    env,
+    admin.id,
+    "admin_chat_send",
+    "user",
+    userId
+  );
+
+  return json({
+    ok: true,
+    message: {
+      id,
+      sender_id: official.id,
+      receiver_id: userId,
+      conversation_id: cid,
+      text: messageText,
+      created_at: timestamp,
+      official: true,
+      sender_name: OFFICIAL_NAME,
+      sender_username: OFFICIAL_USERNAME
     }
+  }, 201);
+}
 
-    TO.__pollingStarted = true;
+/* =========================================================
+   ADMIN PAYMENT
+========================================================= */
 
-    setInterval(
-      async () => {
-        if (
-          TO.auth.isLoggedIn()
-        ) {
-          await TO.notificationBadge
-            .refresh();
-        }
-      },
-      TO.config.notificationInterval
+async function adminPayment(request, env) {
+  const admin =
+    await requireAdmin(request, env);
+
+  const data = await bodyJson(request);
+
+  const publicationId =
+    cleanString(
+      data.publication_id,
+      100
     );
-  };
 
-  /* ============================================================
-     47. AUTO-REFRESH ADMIN
-     ============================================================ */
-
-  TO.startAdminPolling =
-    function () {
-      if (
-        TO.__adminPollingStarted
-      ) {
-        return;
-      }
-
-      TO.__adminPollingStarted =
-        true;
-
-      setInterval(
-        async () => {
-          if (
-            TO.auth.isAdmin()
-          ) {
-            await TO.adminStatsUI
-              .refresh();
-          }
-        },
-        TO.config.pollingInterval
-      );
-    };
-
-  /* ============================================================
-     48. HTML HELPERS
-     ============================================================ */
-
-  TO.html = {
-    avatar(user, size = 42) {
-      const u =
-        TO.normalizeUser(user);
-
-      if (u.avatar) {
-        return `
-          <img
-            src="${TO.escape(u.avatar)}"
-            width="${size}"
-            height="${size}"
-            alt="${TO.escape(
-              u.name
-            )}"
-            loading="lazy"
-            style="
-              width:${size}px;
-              height:${size}px;
-              border-radius:50%;
-              object-fit:cover;
-            "
-          >
-        `;
-      }
-
-      const letter =
-        (
-          u.name ||
-          u.username ||
-          "?"
-        )
-          .trim()
-          .charAt(0)
-          .toUpperCase();
-
-      return `
-        <div
-          style="
-            width:${size}px;
-            height:${size}px;
-            border-radius:50%;
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            font-weight:700;
-          "
-        >
-          ${TO.escape(letter)}
-        </div>
-      `;
-    },
-
-    verified() {
-      return "✅";
-    },
-
-    official() {
-      return `
-        <span
-          class="to-official-account"
-          title="Официальный аккаунт"
-        >
-          🇹🇯 Tajik Opportunities✅
-        </span>
-      `;
-    }
-  };
-
-  /* ============================================================
-     49. MESSAGE RENDERING
-     ============================================================ */
-
-  TO.ui.message = function (
-    message
-  ) {
-    const m =
-      TO.official.normalize(
-        message
-      );
-
-    const isAdmin =
-      m.is_admin ||
-      m.sender_type === "admin" ||
-      m.author_type === "admin";
-
-    const sender =
-      isAdmin
-        ? TO.config.officialName
-        : TO.pick(
-            m,
-            [
-              "sender_name",
-              "author_name",
-              "name",
-              "username"
-            ],
-            "Пользователь"
-          );
-
-    const text =
-      TO.pick(
-        m,
-        [
-          "text",
-          "content",
-          "message"
-        ],
-        ""
-      );
-
-    const time =
-      TO.pick(
-        m,
-        [
-          "created_at",
-          "sent_at",
-          "date"
-        ],
-        null
-      );
-
-    return `
-      <div
-        class="
-          to-message
-          ${
-            isAdmin
-              ? "to-message-admin"
-              : "to-message-user"
-          }
-        "
-        data-message-id="${TO.escape(
-          TO.pick(
-            m,
-            ["id", "message_id"],
-            ""
-          )
-        )}"
-      >
-
-        <div
-          class="to-message-author"
-        >
-          ${TO.escape(sender)}
-        </div>
-
-        <div
-          class="to-message-text"
-        >
-          ${TO.escape(text)}
-        </div>
-
-        ${
-          time
-            ? `
-              <time>
-                ${TO.escape(
-                  TO.date.relative(
-                    time
-                  )
-                )}
-              </time>
-            `
-            : ""
-        }
-
-      </div>
-    `;
-  };
-
-  /* ============================================================
-     50. ADMIN PARTICIPANT CARD
-     ============================================================ */
-
-  TO.ui.participantCard =
-    function (user) {
-      const u =
-        TO.normalizeUser(user);
-
-      return `
-        <div
-          class="to-participant-card"
-          data-user-id="${TO.escape(
-            u.id
-          )}"
-        >
-
-          <div class="to-participant-avatar">
-            ${TO.html.avatar(u, 52)}
-          </div>
-
-          <div class="to-participant-info">
-
-            <strong>
-              ${TO.escape(
-                u.name ||
-                "Без имени"
-              )}
-
-              ${
-                u.verified
-                  ? " ✅"
-                  : ""
-              }
-            </strong>
-
-            ${
-              u.username
-                ? `
-                  <div>
-                    ${TO.escape(
-                      u.username
-                    )}
-                  </div>
-                `
-                : ""
-            }
-
-            ${
-              u.city ||
-              u.country
-                ? `
-                  <div>
-                    📍
-                    ${TO.escape(
-                      [
-                        u.city,
-                        u.country
-                      ]
-                        .filter(Boolean)
-                        .join(", ")
-                    )}
-                  </div>
-                `
-                : ""
-            }
-
-          </div>
-
-          <div
-            class="to-participant-actions"
-          >
-
-            <button
-              type="button"
-              data-to-action="open-profile"
-              data-username="${TO.escape(
-                u.username
-              )}"
-            >
-              Профиль
-            </button>
-
-            <button
-              type="button"
-              data-to-action="open-chat"
-              data-user-id="${TO.escape(
-                u.id
-              )}"
-            >
-              Чат
-            </button>
-
-            <button
-              type="button"
-              data-to-action="admin-block-user"
-              data-user-id="${TO.escape(
-                u.id
-              )}"
-            >
-              Заблокировать
-            </button>
-
-          </div>
-
-        </div>
-      `;
-    };
-
-  /* ============================================================
-     51. ADMIN PUBLICATION CARD
-     ============================================================ */
-
-  TO.ui.adminPublicationCard =
-    function (publication) {
-      const p =
-        TO.normalizePublication(
-          publication
-        );
-
-      return `
-        <div
-          class="to-admin-publication-card"
-          data-publication-id="${TO.escape(
-            p.id
-          )}"
-        >
-
-          <div>
-
-            <strong>
-              ${TO.escape(
-                p.title ||
-                "Без названия"
-              )}
-            </strong>
-
-            <div>
-              ${TO.escape(
-                p.authorName ||
-                "Неизвестный автор"
-              )}
-
-              ${
-                p.authorUsername
-                  ? `
-                    · ${TO.escape(
-                      p.authorUsername
-                    )}
-                  `
-                  : ""
-              }
-            </div>
-
-            <div>
-              Статус:
-              ${TO.escape(
-                TO.statuses[
-                  p.status
-                ] ||
-                p.status
-              )}
-            </div>
-
-            <div>
-              👁️ ${p.views}
-              · ❤️ ${
-                p.reactions ||
-                p.likes
-              }
-              · 💬 ${p.comments}
-              · 🔖 ${p.saves}
-            </div>
-
-          </div>
-
-          <div
-            class="to-admin-publication-actions"
-          >
-
-            <button
-              type="button"
-              data-to-action="open-publication"
-              data-id="${TO.escape(
-                p.id
-              )}"
-            >
-              Читать
-            </button>
-
-            <button
-              type="button"
-              data-to-action="admin-approve"
-              data-id="${TO.escape(
-                p.id
-              )}"
-            >
-              Одобрить
-            </button>
-
-            <button
-              type="button"
-              data-to-action="admin-reject"
-              data-id="${TO.escape(
-                p.id
-              )}"
-            >
-              Отклонить
-            </button>
-
-            <button
-              type="button"
-              data-to-action="admin-pin"
-              data-id="${TO.escape(
-                p.id
-              )}"
-            >
-              Закрепить
-            </button>
-
-            <button
-              type="button"
-              data-to-action="admin-delete"
-              data-id="${TO.escape(
-                p.id
-              )}"
-            >
-              Удалить
-            </button>
-
-          </div>
-
-        </div>
-      `;
-    };
-
-  /* ============================================================
-     52. ADMIN TEST ACTIONS
-     ============================================================ */
-
-  TO.actions.testLike =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.testing.like(id);
-
-        TO.toast(
-          "Тестовая реакция поставлена",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message,
-          "error"
-        );
-      }
-    };
-
-  TO.actions.testSave =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.testing.save(id);
-
-        TO.toast(
-          "Тестовое сохранение выполнено",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message,
-          "error"
-        );
-      }
-    };
-
-  TO.actions.testView =
-    async function (button) {
-      const id =
-        button.dataset.id;
-
-      try {
-        await TO.testing.view(id);
-
-        TO.toast(
-          "Тестовый просмотр засчитан",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message,
-          "error"
-        );
-      }
-    };
-
-  TO.actions.testFollow =
-    async function (button) {
-      const id =
-        button.dataset.userId ||
-        button.dataset.id;
-
-      try {
-        await TO.testing.follow(id);
-
-        TO.toast(
-          "Тестовая подписка выполнена",
-          "success"
-        );
-      } catch (error) {
-        TO.toast(
-          error.message,
-          "error"
-        );
-      }
-    };
-
-  /* ============================================================
-     53. ADMIN PAYMENT HELPERS
-     ============================================================ */
-
-  TO.payment = {
-    async request(
-      publicationId,
+  const amount = int(
+    data.amount ||
+    data.price
+  );
+
+  if (!publicationId) {
+    return error(
+      "publication_id обязателен"
+    );
+  }
+
+  const publication =
+    await getDB(env)
+      .prepare(`
+        SELECT *
+        FROM publications
+        WHERE id = ?
+      `)
+      .bind(publicationId)
+      .first();
+
+  if (!publication) {
+    return error(
+      "Публикация не найдена",
+      404
+    );
+  }
+
+  const orderId =
+    randomId("order_");
+
+  await getDB(env).prepare(`
+    INSERT INTO publication_orders
+    (
+      id,
+      publication_id,
+      user_id,
       amount,
-      currency = "TJS"
-    ) {
-      return TO.admin.payment({
-        publication_id:
-          publicationId,
-
-        id:
-          publicationId,
-
-        amount,
-
-        currency,
-
-        action:
-          "request_payment"
-      });
-    },
-
-    async confirm(
+      status,
+      created_at,
+      updated_at
+    )
+    VALUES (?, ?, ?, ?, 'paid', ?, ?)
+  `)
+    .bind(
+      orderId,
       publicationId,
+      publication.user_id,
       amount,
-      currency = "TJS"
-    ) {
-      return TO.admin.payment({
-        publication_id:
-          publicationId,
+      now(),
+      now()
+    )
+    .run();
 
-        id:
-          publicationId,
+  await getDB(env).prepare(`
+    UPDATE publications
+    SET status = 'paid',
+        updated_at = ?
+    WHERE id = ?
+  `)
+    .bind(
+      now(),
+      publicationId
+    )
+    .run();
 
-        amount,
-
-        currency,
-
-        action:
-          "confirm_payment"
-      });
+  await audit(
+    env,
+    admin.id,
+    "payment_confirm",
+    "publication",
+    publicationId,
+    {
+      amount,
+      order_id: orderId
     }
-  };
+  );
 
-  /* ============================================================
-     54. ADMIN MODERATION HELPERS
-     ============================================================ */
+  return ok({
+    order_id: orderId,
+    publication_id: publicationId,
+    amount,
+    status: "paid"
+  });
+}
 
-  TO.moderation = {
-    async approveFree(id) {
-      return TO.adminPublicationActions
-        .approve(id);
-    },
+/* =========================================================
+   ADMIN DELETE / RESTORE
+========================================================= */
 
-    async requestPayment(
-      id,
-      amount
-    ) {
-      return TO.adminPublicationActions
-        .payment(
-          id,
-          amount
-        );
-    },
+async function adminTrashAllPosts(
+  request,
+  env
+) {
+  const admin =
+    await requireAdmin(request, env);
 
-    async confirmPayment(
-      id,
-      amount
-    ) {
-      return TO.payment.confirm(
-        id,
-        amount
-      );
-    },
+  await getDB(env).prepare(`
+    UPDATE publications
+    SET status = 'deleted',
+        updated_at = ?
+    WHERE status != 'deleted'
+  `)
+    .bind(now())
+    .run();
 
-    async publish(id) {
-      return TO.adminPublicationActions
-        .publish(id);
-    },
+  await audit(
+    env,
+    admin.id,
+    "trash_all_publications"
+  );
 
-    async reject(
-      id,
-      reason
-    ) {
-      return TO.adminPublicationActions
-        .reject(
-          id,
-          reason
-        );
-    },
+  return ok();
+}
 
-    async hide(id) {
-      return TO.adminPublicationActions
-        .hide(id);
-    },
+/* =========================================================
+   ROUTER
+========================================================= */
 
-    async pin(id) {
-      return TO.adminPublicationActions
-        .pin(id);
-    },
+async function router(request, env) {
+  await initDB(env);
 
-    async feature(id) {
-      return TO.adminPublicationActions
-        .feature(id);
-    }
-  };
+  const url = new URL(request.url);
 
-  /* ============================================================
-     55. SAFE JSON DOWNLOAD / EXPORT
-     ============================================================ */
+  const pathname =
+    url.pathname.replace(/\/+$/, "") ||
+    "/";
 
-  TO.export = {
-    json(data, filename = "tajik-opportunities.json") {
-      const blob =
-        new Blob(
-          [
-            JSON.stringify(
-              data,
-              null,
-              2
-            )
-          ],
-          {
-            type:
-              "application/json"
-          }
-        );
+  const method = request.method.toUpperCase();
 
-      const url =
-        URL.createObjectURL(blob);
+  /* ---------- AUTH ---------- */
 
-      const a =
-        document.createElement("a");
-
-      a.href = url;
-      a.download = filename;
-
-      document.body.appendChild(a);
-
-      a.click();
-
-      a.remove();
-
-      URL.revokeObjectURL(url);
-    }
-  };
-
-  /* ============================================================
-     56. COPY TO CLIPBOARD
-     ============================================================ */
-
-  TO.copy = async function (
-    text
+  if (
+    pathname === "/api/auth/register" &&
+    method === "POST"
   ) {
-    if (!text) return false;
+    return register(request, env);
+  }
 
+  if (
+    pathname === "/api/auth/login" &&
+    method === "POST"
+  ) {
+    return login(request, env);
+  }
+
+  if (
+    pathname === "/api/auth/logout" &&
+    method === "POST"
+  ) {
+    return logoutUser(request, env);
+  }
+
+  if (
+    pathname === "/api/auth/me" &&
+    method === "GET"
+  ) {
+    return authMe(request, env);
+  }
+
+  if (
+    pathname === "/api/username/check" &&
+    method === "GET"
+  ) {
+    return usernameCheck(
+      request,
+      env
+    );
+  }
+
+  /* ---------- PROFILE ---------- */
+
+  if (
+    pathname === "/api/profile" &&
+    method === "GET"
+  ) {
+    return getProfile(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/profile" &&
+    method === "PUT"
+  ) {
+    return updateProfile(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/profile/public" &&
+    method === "GET"
+  ) {
+    return publicProfile(
+      request,
+      env
+    );
+  }
+
+  /* ---------- CATEGORIES ---------- */
+
+  if (
+    pathname === "/api/categories" &&
+    method === "GET"
+  ) {
+    return categories();
+  }
+
+  /* ---------- PUBLICATIONS ---------- */
+
+  if (
+    pathname === "/api/publications" &&
+    method === "POST"
+  ) {
+    return createPublication(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/publications" &&
+    method === "GET"
+  ) {
+    return listPublications(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/publications/view" &&
+    method === "POST"
+  ) {
+    return publicationView(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/publications/react" &&
+    method === "POST"
+  ) {
+    return publicationReact(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/publications/save" &&
+    method === "POST"
+  ) {
+    return publicationSave(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/publications/share" &&
+    method === "POST"
+  ) {
+    return publicationShare(
+      request,
+      env
+    );
+  }
+
+  const publicationMatch =
+    pathname.match(
+      /^\/api\/publications\/([^/]+)$/
+    );
+
+  if (
+    publicationMatch &&
+    method === "GET"
+  ) {
+    return getPublication(
+      request,
+      env,
+      decodeURIComponent(
+        publicationMatch[1]
+      )
+    );
+  }
+
+  /* ---------- COMMENTS ---------- */
+
+  if (
+    pathname === "/api/comments" &&
+    method === "GET"
+  ) {
+    return listComments(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/comments" &&
+    method === "POST"
+  ) {
+    return createComment(
+      request,
+      env
+    );
+  }
+
+  /* ---------- CHAT ---------- */
+
+  if (
+    pathname === "/api/chat" &&
+    method === "GET"
+  ) {
+    return chatList(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/chat/messages" &&
+    method === "GET"
+  ) {
+    return chatMessages(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/chat/messages" &&
+    method === "POST"
+  ) {
+    return sendChatMessage(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/chat/read" &&
+    method === "POST"
+  ) {
+    return markChatRead(
+      request,
+      env
+    );
+  }
+
+  /* ---------- NOTIFICATIONS ---------- */
+
+  if (
+    pathname === "/api/notifications" &&
+    method === "GET"
+  ) {
+    return notifications(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/notifications/read" &&
+    method === "POST"
+  ) {
+    return notificationRead(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN AUTH ---------- */
+
+  if (
+    pathname === "/api/admin/login" &&
+    method === "POST"
+  ) {
+    return adminLogin(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/logout" &&
+    method === "POST"
+  ) {
+    return adminLogout(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/me" &&
+    method === "GET"
+  ) {
+    return adminMe(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN DASHBOARD ---------- */
+
+  if (
+    pathname === "/api/admin/dashboard" &&
+    method === "GET"
+  ) {
+    return adminDashboard(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/notifications" &&
+    method === "GET"
+  ) {
+    return adminNotifications(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN USERS ---------- */
+
+  if (
+    pathname === "/api/admin/users" &&
+    method === "GET"
+  ) {
+    return adminUsers(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/user" &&
+    method === "GET"
+  ) {
+    return adminUser(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/user/edit" &&
+    method === "POST"
+  ) {
+    return adminEditUser(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/user/action" &&
+    method === "POST"
+  ) {
+    return adminUserAction(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN PUBLICATIONS ---------- */
+
+  if (
+    pathname === "/api/admin/publications" &&
+    method === "GET"
+  ) {
+    return adminPublications(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/publication/edit" &&
+    method === "POST"
+  ) {
+    return adminEditPublication(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/publication/action" &&
+    method === "POST"
+  ) {
+    return adminPublicationAction(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/publication/counters" &&
+    method === "POST"
+  ) {
+    return adminPublicationCounters(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN COMMENTS ---------- */
+
+  if (
+    pathname === "/api/admin/comments" &&
+    method === "GET"
+  ) {
+    return adminComments(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/comment/edit" &&
+    method === "POST"
+  ) {
+    return adminEditComment(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/comment/action" &&
+    method === "POST"
+  ) {
+    return adminCommentAction(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN CHAT ---------- */
+
+  if (
+    pathname === "/api/admin/chats" &&
+    method === "GET"
+  ) {
+    return adminChats(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/chat/messages" &&
+    method === "GET"
+  ) {
+    return adminChatMessages(
+      request,
+      env
+    );
+  }
+
+  if (
+    pathname === "/api/admin/chat/send" &&
+    method === "POST"
+  ) {
+    return adminChatSend(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN PAYMENT ---------- */
+
+  if (
+    pathname === "/api/admin/payment" &&
+    method === "POST"
+  ) {
+    return adminPayment(
+      request,
+      env
+    );
+  }
+
+  /* ---------- ADMIN TRASH ---------- */
+
+  if (
+    pathname === "/api/admin/publications/trash-all" &&
+    method === "POST"
+  ) {
+    return adminTrashAllPosts(
+      request,
+      env
+    );
+  }
+
+  /* ---------- HEALTH ---------- */
+
+  if (
+    pathname === "/api/health" &&
+    method === "GET"
+  ) {
+    return ok({
+      service: "Tajik Opportunities API",
+      status: "online",
+      version: "5.0.0",
+      time: now()
+    });
+  }
+
+  if (pathname === "/") {
+    return text(
+      "🇹🇯 Tajik Opportunities API is running."
+    );
+  }
+
+  return error(
+    "API endpoint not found",
+    404
+  );
+}
+
+/* =========================================================
+   MAIN WORKER
+========================================================= */
+
+export default {
+  async fetch(request, env, ctx) {
     try {
-      await navigator.clipboard
-        .writeText(text);
-
-      TO.toast(
-        "Скопировано",
-        "success"
-      );
-
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  /* ============================================================
-     57. PUBLICATION URL
-     ============================================================ */
-
-  TO.publicationUrl =
-    function (id) {
-      return (
-        location.origin +
-        `/publication.html?id=${encodeURIComponent(
-          id
-        )}`
-      );
-    };
-
-  /* ============================================================
-     58. SOCIAL SHARING
-     ============================================================ */
-
-  TO.social = {
-    telegram(url, text = "") {
-      return (
-        "https://t.me/share/url?url=" +
-        encodeURIComponent(url) +
-        "&text=" +
-        encodeURIComponent(text)
-      );
-    },
-
-    whatsapp(url, text = "") {
-      return (
-        "https://wa.me/?text=" +
-        encodeURIComponent(
-          `${text} ${url}`
-        )
-      );
-    }
-  };
-
-  /* ============================================================
-     59. PWA / SERVICE WORKER
-     ============================================================ */
-
-  TO.pwa = {
-    async register() {
-      if (
-        !("serviceWorker" in navigator)
-      ) {
-        return;
-      }
+      const response =
+        await router(request, env);
 
       /*
-       * Only register if the project
-       * already contains sw.js.
-       * This avoids generating a 404.
+       * CORS для собственного сайта.
+       * Cookie используются только через same-origin.
        */
 
-      try {
-        const response =
-          await fetch(
-            "/sw.js",
-            {
-              method: "HEAD",
-              cache: "no-store"
-            }
-          );
+      const headers =
+        new Headers(response.headers);
 
-        if (response.ok) {
-          await navigator.serviceWorker
-            .register("/sw.js");
-        }
-      } catch {}
-    }
-  };
-
-  /* ============================================================
-     60. URL PARAMETER HELPERS
-     ============================================================ */
-
-  TO.url = {
-    get(name) {
-      return new URLSearchParams(
-        location.search
-      ).get(name);
-    },
-
-    all() {
-      return Object.fromEntries(
-        new URLSearchParams(
-          location.search
-        ).entries()
-      );
-    },
-
-    set(name, value) {
-      const url =
-        new URL(location.href);
-
-      url.searchParams.set(
-        name,
-        value
+      headers.set(
+        "access-control-allow-origin",
+        request.headers.get("Origin") || "*"
       );
 
-      history.pushState(
-        {},
-        "",
-        url
-      );
-    },
-
-    remove(name) {
-      const url =
-        new URL(location.href);
-
-      url.searchParams.delete(
-        name
+      headers.set(
+        "access-control-allow-credentials",
+        "true"
       );
 
-      history.pushState(
-        {},
-        "",
-        url
+      headers.set(
+        "access-control-allow-methods",
+        "GET,POST,PUT,DELETE,OPTIONS"
       );
-    }
-  };
 
-  /* ============================================================
-     61. PAGE CONTEXT
-     ============================================================ */
-
-  TO.page = {
-    name() {
-      const path =
-        location.pathname
-          .split("/")
-          .pop();
-
-      return path ||
-        "index.html";
-    },
-
-    isAdmin() {
-      return (
-        location.pathname
-          .includes("admin")
+      headers.set(
+        "access-control-allow-headers",
+        "Content-Type, Authorization"
       );
-    },
 
-    isProfile() {
-      return (
-        location.pathname
-          .includes("profile")
-      );
-    },
-
-    isMessages() {
-      return (
-        location.pathname
-          .includes("messages")
-      );
-    },
-
-    isNotifications() {
-      return (
-        location.pathname
-          .includes("notifications")
-      );
-    },
-
-    isAdd() {
-      return (
-        location.pathname
-          .includes("add")
-      );
-    }
-  };
-
-  /* ============================================================
-     62. ADMIN QUICK DATA LOADER
-     ============================================================ */
-
-  TO.adminUI = {
-    async loadParticipants(
-      container
-    ) {
-      if (!container) return;
-
-      try {
-        const users =
-          await TO.admin.users();
-
-        container.innerHTML =
-          users
-            .map(
-              user =>
-                TO.ui.participantCard(
-                  user
-                )
-            )
-            .join("");
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось загрузить участников",
-          "error"
-        );
-      }
-    },
-
-    async loadPublications(
-      container,
-      params = {}
-    ) {
-      if (!container) return;
-
-      try {
-        const posts =
-          await TO.admin
-            .publications(
-              params
-            );
-
-        container.innerHTML =
-          posts
-            .map(
-              post =>
-                TO.ui
-                  .adminPublicationCard(
-                    post
-                  )
-            )
-            .join("");
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось загрузить публикации",
-          "error"
-        );
-      }
-    },
-
-    async loadNotifications(
-      container
-    ) {
-      if (!container) return;
-
-      try {
-        const list =
-          await TO.admin
-            .notifications();
-
-        container.innerHTML =
-          list
-            .map(
-              item => `
-                <div
-                  class="to-admin-notification"
-                  data-id="${TO.escape(
-                    TO.pick(
-                      item,
-                      [
-                        "id",
-                        "notification_id"
-                      ],
-                      ""
-                    )
-                  )}"
-                >
-                  <strong>
-                    ${TO.escape(
-                      TO.pick(
-                        item,
-                        [
-                          "title",
-                          "type"
-                        ],
-                        "Уведомление"
-                      )
-                    )}
-                  </strong>
-
-                  <div>
-                    ${TO.escape(
-                      TO.pick(
-                        item,
-                        [
-                          "text",
-                          "message",
-                          "content"
-                        ],
-                        ""
-                      )
-                    )}
-                  </div>
-                </div>
-              `
-            )
-            .join("");
-      } catch (error) {
-        TO.toast(
-          error.message ||
-          "Не удалось загрузить уведомления",
-          "error"
-        );
-      }
-    }
-  };
-
-  /* ============================================================
-     63. GLOBAL DATA ATTRIBUTES
-     ============================================================ */
-
-  /*
-   * The following HTML attributes can be used
-   * anywhere without additional JS.
-   *
-   * data-to-action="react"
-   * data-id="123"
-   *
-   * data-to-action="save"
-   * data-id="123"
-   *
-   * data-to-action="share"
-   * data-id="123"
-   *
-   * data-to-action="open-profile"
-   * data-username="@user"
-   *
-   * data-to-action="open-chat"
-   * data-user-id="123"
-   */
-
-  /* ============================================================
-     64. LOGIN / REGISTER HELPERS
-     ============================================================ */
-
-  TO.login = async function (
-    payload
-  ) {
-    const data =
-      await TO.api(
-        "/api/auth/login",
+      return new Response(
+        response.body,
         {
-          method: "POST",
-          body: payload
+          status: response.status,
+          statusText: response.statusText,
+          headers
         }
       );
 
-    await TO.auth.me();
-
-    return data;
-  };
-
-  TO.register = async function (
-    payload
-  ) {
-    const data =
-      await TO.api(
-        "/api/auth/register",
-        {
-          method: "POST",
-          body: payload
-        }
+    } catch (err) {
+      console.error(
+        "Tajik Opportunities Worker error:",
+        err
       );
 
-    await TO.auth.me();
-
-    return data;
-  };
-
-  TO.checkUsername =
-    async function (
-      username
-    ) {
-      return TO.api(
-        `/api/username/check?username=${encodeURIComponent(
-          username
-        )}`
-      );
-    };
-
-  /* ============================================================
-     65. ADMIN LOGIN
-     ============================================================ */
-
-  TO.adminLogin =
-    async function (
-      payload
-    ) {
-      const data =
-        await TO.api(
-          "/api/admin/login",
-          {
-            method: "POST",
-            body: payload
-          }
-        );
-
-      await TO.auth.adminMe();
-
-      return data;
-    };
-
-  TO.adminLogout =
-    async function () {
-      await TO.tryApi(
-        "/api/admin/logout",
-        {
-          method: "POST"
-        }
-      );
-
-      TO.auth.admin = null;
-
-      location.href =
-        "/admin.html";
-    };
-
-  /* ============================================================
-     66. ADMIN USER SEARCH
-     ============================================================ */
-
-  TO.adminSearchUsers =
-    async function (
-      query
-    ) {
-      return TO.admin.users({
-        search: query,
-        q: query,
-        username: query,
-        id: query
-      });
-    };
-
-  /* ============================================================
-     67. ADMIN PUBLICATION SEARCH
-     ============================================================ */
-
-  TO.adminSearchPublications =
-    async function (
-      query
-    ) {
-      return TO.admin.publications({
-        search: query,
-        q: query,
-        title: query,
-        author: query,
-        id: query
-      });
-    };
-
-  /* ============================================================
-     68. REAL-TIME STYLE REFRESH
-     ============================================================ */
-
-  TO.refreshEverything =
-    async function () {
-      await TO.notificationBadge
-        .refresh();
-
-      await TO.adminStatsUI
-        .refresh();
-
-      TO.viewTracking.observe();
-    };
-
-  /* ============================================================
-     69. ACCESSIBILITY
-     ============================================================ */
-
-  TO.accessibility = {
-    init() {
-      TO.qa(
-        "img:not([alt])"
-      ).forEach(
-        img => {
-          img.alt =
-            TO.config.siteName;
-        }
-      );
-
-      TO.qa(
-        "button"
-      ).forEach(
-        button => {
-          if (
-            !button.getAttribute(
-              "aria-label"
-            ) &&
-            !button.textContent.trim()
-          ) {
-            button.setAttribute(
-              "aria-label",
-              "Кнопка"
-            );
-          }
-        }
-      );
-    }
-  };
-
-  /* ============================================================
-     70. SECURITY HELPERS
-     ============================================================ */
-
-  TO.security = {
-    safeUrl(url) {
-      if (!url) return "";
-
-      try {
-        const parsed =
-          new URL(
-            url,
-            location.origin
-          );
-
-        if (
-          ![
-            "http:",
-            "https:"
-          ].includes(
-            parsed.protocol
-          )
-        ) {
-          return "";
-        }
-
-        return parsed.href;
-      } catch {
-        return "";
-      }
-    },
-
-    sanitizeText(text) {
-      return TO.escape(
-        text
-      );
-    }
-  };
-
-  /* ============================================================
-     71. PERFORMANCE
-     ============================================================ */
-
-  TO.performance = {
-    lazyImages() {
-      if (
-        !("IntersectionObserver" in window)
-      ) {
-        return;
+      if (err instanceof Response) {
+        return err;
       }
 
-      const images =
-        TO.qa(
-          "img[data-src]"
-        );
-
-      const observer =
-        new IntersectionObserver(
-          entries => {
-            entries.forEach(
-              entry => {
-                if (
-                  !entry.isIntersecting
-                ) {
-                  return;
-                }
-
-                const img =
-                  entry.target;
-
-                img.src =
-                  img.dataset.src;
-
-                delete img.dataset.src;
-
-                observer.unobserve(
-                  img
-                );
-              }
-            );
-          }
-        );
-
-      images.forEach(
-        img =>
-          observer.observe(img)
-      );
-    }
-  };
-
-  /* ============================================================
-     72. AUTO PAGE FEATURES
-     ============================================================ */
-
-  TO.auto = {
-    init() {
-      TO.performance
-        .lazyImages();
-
-      TO.accessibility
-        .init();
-
-      TO.searchUI
-        .init();
-
-      TO.viewTracking
-        .observe();
-
-      TO.stats
-        .render();
-    }
-  };
-
-  /* ============================================================
-     73. STORAGE EVENT SYNC
-     ============================================================ */
-
-  window.addEventListener(
-    "storage",
-    event => {
-      if (
-        event.key ===
-        TO.storage.theme
-      ) {
-        TO.theme.apply();
-      }
-
-      if (
-        event.key ===
-        TO.storage.stats
-      ) {
-        TO.stats.render();
-      }
-
-      if (
-        event.key ===
-        TO.storage.actor
-      ) {
-        TO.actor.load();
-        TO.actor.renderIndicator();
-      }
-    }
-  );
-
-  /* ============================================================
-     74. SYSTEM THEME CHANGE
-     ============================================================ */
-
-  if (
-    window.matchMedia
-  ) {
-    const media =
-      window.matchMedia(
-        "(prefers-color-scheme: dark)"
-      );
-
-    if (
-      media.addEventListener
-    ) {
-      media.addEventListener(
-        "change",
-        () => {
-          if (
-            TO.theme.get() ===
-            "system"
-          ) {
-            TO.theme.apply();
-          }
-        }
+      return error(
+        "Внутренняя ошибка сервера",
+        500
       );
     }
   }
-
-  /* ============================================================
-     75. INIT
-     ============================================================ */
-
-  if (
-    document.readyState ===
-    "loading"
-  ) {
-    document.addEventListener(
-      "DOMContentLoaded",
-      async () => {
-        await TO.init();
-
-        TO.auto.init();
-
-        TO.startPolling();
-
-        TO.startAdminPolling();
-
-        TO.pwa.register();
-      },
-      {
-        once: true
-      }
-    );
-  } else {
-    (async () => {
-      await TO.init();
-
-      TO.auto.init();
-
-      TO.startPolling();
-
-      TO.startAdminPolling();
-
-      TO.pwa.register();
-    })();
-  }
-
-})();
+};
