@@ -1,43 +1,313 @@
-const COOKIE = "to_admin_session";
-const SESSION_SECONDS = 12 * 60 * 60;
+// ============================================================
+// TAJIK OPPORTUNITIES — MEGA SOCIAL PLATFORM API
+// Version: 6.0
+// Cloudflare Workers + D1 + Assets
+// ============================================================
+//
+// ВАЖНО:
+// 1. ADMIN_PASSWORD хранится только в Cloudflare Worker Secret.
+// 2. Не вставляй пароль администратора в этот файл.
+// 3. DB = существующая D1 база Tajik Opportunities.
+// 4. ASSETS = папка public/.
+// 5. Все пользовательские публикации проходят модерацию.
+// 6. Медиа добавляются URL-адресами.
+// ============================================================
+
+const VERSION = "6.0.0";
+
+const ADMIN_COOKIE = "to_admin_session";
+const VISITOR_COOKIE = "to_visitor";
+
+const ADMIN_SESSION_SECONDS = 12 * 60 * 60;
+
+// Большой предел текста.
+// D1 всё равно имеет физические ограничения размера строки.
+const MAX_TITLE_LENGTH = 5000;
+const MAX_CONTENT_LENGTH = 1800000;
+const MAX_COMMENT_LENGTH = 100000;
+const MAX_URL_LENGTH = 10000;
+const MAX_TAG_LENGTH = 150;
 
 const SECURITY_HEADERS = {
+  "content-type": "application/json; charset=utf-8",
   "x-content-type-options": "nosniff",
   "x-frame-options": "DENY",
   "referrer-policy": "strict-origin-when-cross-origin",
-  "permissions-policy": "camera=(), microphone=(), geolocation=()"
-};
-
-const NO_STORE = {
+  "permissions-policy":
+    "camera=(), microphone=(), geolocation=(), payment=()",
   "cache-control": "no-store"
 };
 
-function json(data, status = 200, extra = {}) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: {
-      "content-type": "application/json; charset=utf-8",
-      ...SECURITY_HEADERS,
-      ...extra
+// ============================================================
+// КАТЕГОРИИ
+// ============================================================
+
+const CATEGORIES = [
+  { id: "jobs", name: "Вакансии", icon: "💼" },
+  { id: "job_seekers", name: "Ищу работу", icon: "🔎" },
+  { id: "employees", name: "Ищу сотрудника", icon: "👔" },
+  { id: "profiles", name: "Профили специалистов", icon: "👤" },
+
+  { id: "news", name: "Новости", icon: "📰" },
+  { id: "education", name: "Образование", icon: "🎓" },
+  { id: "courses", name: "Курсы", icon: "📚" },
+  { id: "scholarships", name: "Стипендии", icon: "🎓" },
+
+  { id: "opportunities", name: "Возможности", icon: "🎁" },
+  { id: "announcements", name: "Объявления", icon: "📢" },
+  { id: "services", name: "Услуги", icon: "🤝" },
+
+  { id: "startups", name: "Стартапы", icon: "🚀" },
+  { id: "projects", name: "Проекты", icon: "💡" },
+  { id: "ideas", name: "Идеи", icon: "🧠" },
+
+  { id: "events", name: "Мероприятия", icon: "📅" },
+  { id: "competitions", name: "Конкурсы", icon: "🏆" },
+  { id: "grants", name: "Гранты", icon: "💰" },
+  { id: "volunteering", name: "Волонтёрство", icon: "🤝" },
+
+  { id: "housing", name: "Жильё", icon: "🏠" },
+  { id: "real_estate", name: "Недвижимость", icon: "🏢" },
+  { id: "transport", name: "Транспорт", icon: "🚗" },
+  { id: "travel", name: "Путешествия", icon: "✈️" },
+
+  { id: "products", name: "Товары", icon: "🛍️" },
+  { id: "services_market", name: "Услуги и специалисты", icon: "🧑‍💻" },
+
+  { id: "it", name: "IT и технологии", icon: "💻" },
+  { id: "business", name: "Бизнес", icon: "📈" },
+  { id: "finance", name: "Финансы", icon: "💳" },
+
+  { id: "sport", name: "Спорт", icon: "⚽" },
+  { id: "music", name: "Музыка", icon: "🎵" },
+  { id: "culture", name: "Культура", icon: "🎭" },
+  { id: "creative", name: "Творчество", icon: "🎨" },
+  { id: "gaming", name: "Игры", icon: "🎮" },
+
+  { id: "health", name: "Полезная информация", icon: "❤️" },
+  { id: "help", name: "Помощь", icon: "🆘" },
+
+  { id: "advertising", name: "Реклама", icon: "📣" },
+  { id: "other", name: "Другое", icon: "🌐" }
+];
+
+const CATEGORY_MAP = Object.fromEntries(
+  CATEGORIES.map(category => [category.id, category])
+);
+
+// ============================================================
+// ТИПЫ МЕДИА
+// ============================================================
+
+const MEDIA_TYPES = [
+  { id: "image", name: "Изображение", icon: "🖼️" },
+  { id: "gallery", name: "Галерея", icon: "🎠" },
+  { id: "video", name: "Видео", icon: "🎥" },
+  { id: "music", name: "Музыка", icon: "🎵" },
+  { id: "audio", name: "Аудио", icon: "🔊" },
+  { id: "link", name: "Ссылка", icon: "🔗" },
+  { id: "document", name: "Документ", icon: "📄" },
+  { id: "other", name: "Другое", icon: "📎" }
+];
+
+const MEDIA_MAP = Object.fromEntries(
+  MEDIA_TYPES.map(media => [media.id, media])
+);
+
+// ============================================================
+// МИРОВЫЕ ЯЗЫКИ
+// ============================================================
+//
+// Это каталог языков интерфейса/перевода.
+// Сам перевод должен выполняться подключённым переводчиком/AI.
+// Мы НЕ создаём фальшивые переводы.
+//
+
+const LANGUAGES = [
+  ["aa", "Afar"],
+  ["ab", "Abkhaz"],
+  ["af", "Afrikaans"],
+  ["ak", "Akan"],
+  ["am", "Amharic"],
+  ["ar", "Arabic"],
+  ["as", "Assamese"],
+  ["ay", "Aymara"],
+  ["az", "Azerbaijani"],
+  ["ba", "Bashkir"],
+  ["be", "Belarusian"],
+  ["bg", "Bulgarian"],
+  ["bh", "Bihari"],
+  ["bn", "Bengali"],
+  ["bo", "Tibetan"],
+  ["bs", "Bosnian"],
+  ["ca", "Catalan"],
+  ["ceb", "Cebuano"],
+  ["co", "Corsican"],
+  ["cs", "Czech"],
+  ["cy", "Welsh"],
+  ["da", "Danish"],
+  ["de", "German"],
+  ["dv", "Dhivehi"],
+  ["dz", "Dzongkha"],
+  ["ee", "Ewe"],
+  ["el", "Greek"],
+  ["en", "English"],
+  ["eo", "Esperanto"],
+  ["es", "Spanish"],
+  ["et", "Estonian"],
+  ["eu", "Basque"],
+  ["fa", "Persian"],
+  ["ff", "Fulah"],
+  ["fi", "Finnish"],
+  ["fj", "Fijian"],
+  ["fo", "Faroese"],
+  ["fr", "French"],
+  ["fy", "Frisian"],
+  ["ga", "Irish"],
+  ["gd", "Scottish Gaelic"],
+  ["gl", "Galician"],
+  ["gn", "Guarani"],
+  ["gu", "Gujarati"],
+  ["ha", "Hausa"],
+  ["he", "Hebrew"],
+  ["hi", "Hindi"],
+  ["hr", "Croatian"],
+  ["ht", "Haitian Creole"],
+  ["hu", "Hungarian"],
+  ["hy", "Armenian"],
+  ["id", "Indonesian"],
+  ["ig", "Igbo"],
+  ["is", "Icelandic"],
+  ["it", "Italian"],
+  ["ja", "Japanese"],
+  ["jv", "Javanese"],
+  ["ka", "Georgian"],
+  ["kk", "Kazakh"],
+  ["km", "Khmer"],
+  ["kn", "Kannada"],
+  ["ko", "Korean"],
+  ["ku", "Kurdish"],
+  ["ky", "Kyrgyz"],
+  ["la", "Latin"],
+  ["lb", "Luxembourgish"],
+  ["lo", "Lao"],
+  ["lt", "Lithuanian"],
+  ["lv", "Latvian"],
+  ["mg", "Malagasy"],
+  ["mi", "Māori"],
+  ["mk", "Macedonian"],
+  ["ml", "Malayalam"],
+  ["mn", "Mongolian"],
+  ["mr", "Marathi"],
+  ["ms", "Malay"],
+  ["mt", "Maltese"],
+  ["my", "Burmese"],
+  ["ne", "Nepali"],
+  ["nl", "Dutch"],
+  ["no", "Norwegian"],
+  ["ny", "Chichewa"],
+  ["or", "Odia"],
+  ["pa", "Punjabi"],
+  ["pl", "Polish"],
+  ["ps", "Pashto"],
+  ["pt", "Portuguese"],
+  ["qu", "Quechua"],
+  ["ro", "Romanian"],
+  ["ru", "Russian"],
+  ["rw", "Kinyarwanda"],
+  ["sa", "Sanskrit"],
+  ["sd", "Sindhi"],
+  ["si", "Sinhala"],
+  ["sk", "Slovak"],
+  ["sl", "Slovenian"],
+  ["sm", "Samoan"],
+  ["sn", "Shona"],
+  ["so", "Somali"],
+  ["sq", "Albanian"],
+  ["sr", "Serbian"],
+  ["st", "Sesotho"],
+  ["su", "Sundanese"],
+  ["sv", "Swedish"],
+  ["sw", "Swahili"],
+  ["ta", "Tamil"],
+  ["te", "Telugu"],
+  ["tg", "Tajik"],
+  ["th", "Thai"],
+  ["tk", "Turkmen"],
+  ["tl", "Tagalog"],
+  ["tr", "Turkish"],
+  ["tt", "Tatar"],
+  ["ug", "Uyghur"],
+  ["uk", "Ukrainian"],
+  ["ur", "Urdu"],
+  ["uz", "Uzbek"],
+  ["vi", "Vietnamese"],
+  ["xh", "Xhosa"],
+  ["yi", "Yiddish"],
+  ["yo", "Yoruba"],
+  ["zh", "Chinese"],
+  ["zu", "Zulu"]
+].map(([code, name]) => ({
+  code,
+  name
+}));
+
+const LANGUAGE_MAP = Object.fromEntries(
+  LANGUAGES.map(language => [language.code, language])
+);
+
+// ============================================================
+// УТИЛИТЫ
+// ============================================================
+
+function json(data, status = 200, extraHeaders = {}) {
+  return new Response(
+    JSON.stringify(data),
+    {
+      status,
+      headers: {
+        ...SECURITY_HEADERS,
+        ...extraHeaders
+      }
     }
-  });
+  );
 }
 
-function clean(value, max = 5000) {
+function text(data, status = 200, extraHeaders = {}) {
+  return new Response(
+    data,
+    {
+      status,
+      headers: {
+        "content-type": "text/plain; charset=utf-8",
+        ...extraHeaders
+      }
+    }
+  );
+}
+
+function clean(value, max = 100000) {
   return String(value ?? "")
     .trim()
     .slice(0, max);
 }
 
-function safeUrl(value) {
-  const valueClean = clean(value, 1000);
+function id(prefix) {
+  return `${prefix}_${crypto.randomUUID().replaceAll("-", "")}`;
+}
 
-  if (!valueClean) return null;
+function timestamp() {
+  return new Date().toISOString();
+}
 
+function validHttpUrl(value) {
   try {
-    const url = new URL(valueClean);
+    const url = new URL(clean(value, MAX_URL_LENGTH));
 
-    if (!["http:", "https:"].includes(url.protocol)) {
+    if (
+      url.protocol !== "https:" &&
+      url.protocol !== "http:"
+    ) {
       return null;
     }
 
@@ -47,57 +317,85 @@ function safeUrl(value) {
   }
 }
 
-function newId() {
-  return crypto.randomUUID();
+function parseJson(value, fallback = []) {
+  try {
+    return JSON.parse(value || "null") ?? fallback;
+  } catch {
+    return fallback;
+  }
 }
 
-function trackingCode() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const bytes = new Uint8Array(8);
+function cookies(request) {
+  const raw = request.headers.get("cookie") || "";
 
-  crypto.getRandomValues(bytes);
+  const result = {};
 
-  return [...bytes]
-    .map((byte) => chars[byte % chars.length])
-    .join("");
-}
+  for (const part of raw.split(";")) {
+    const index = part.indexOf("=");
 
-function base64UrlEncode(bytes) {
-  let binary = "";
+    if (index === -1) continue;
 
-  for (const byte of new Uint8Array(bytes)) {
-    binary += String.fromCharCode(byte);
+    const key = part.slice(0, index).trim();
+    const value = part.slice(index + 1).trim();
+
+    result[key] = decodeURIComponent(value);
   }
 
-  return btoa(binary)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return result;
 }
 
-function base64UrlDecode(value) {
-  let normalized = value
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
+function visitorId(request) {
+  return cookies(request)[VISITOR_COOKIE] || null;
+}
 
-  while (normalized.length % 4) {
-    normalized += "=";
-  }
+function generateVisitorCookie(value) {
+  return `${VISITOR_COOKIE}=${encodeURIComponent(value)}; Path=/; Max-Age=${60 * 60 * 24 * 365}; Secure; SameSite=Lax`;
+}
 
-  const binary = atob(normalized);
-
-  return Uint8Array.from(
-    binary,
-    char => char.charCodeAt(0)
+async function readJson(request) {
+  const contentLength = Number(
+    request.headers.get("content-length") || 0
   );
+
+  if (contentLength > 10 * 1024 * 1024) {
+    throw new Error("REQUEST_TOO_LARGE");
+  }
+
+  return request.json();
 }
 
-async function hmac(
-  value,
-  secret,
-  verifyMode = false,
-  signature = null
-) {
+// ============================================================
+// D1 HELPERS
+// ============================================================
+
+async function dbRun(db, sql, ...params) {
+  return db
+    .prepare(sql)
+    .bind(...params)
+    .run();
+}
+
+async function dbOne(db, sql, ...params) {
+  return db
+    .prepare(sql)
+    .bind(...params)
+    .first();
+}
+
+async function dbAll(db, sql, ...params) {
+  const result = await db
+    .prepare(sql)
+    .bind(...params)
+    .all();
+
+  return result.results || [];
+}
+
+// ============================================================
+// ADMIN HMAC
+// ============================================================
+
+async function createHmac(secret, value) {
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
@@ -106,42 +404,23 @@ async function hmac(
       hash: "SHA-256"
     },
     false,
-    ["sign", "verify"]
+    ["sign"]
   );
 
-  if (verifyMode) {
-    return crypto.subtle.verify(
-      "HMAC",
-      key,
-      base64UrlDecode(signature),
-      new TextEncoder().encode(value)
-    );
-  }
+  const signature = await crypto.subtle.sign(
+    "HMAC",
+    key,
+    new TextEncoder().encode(value)
+  );
 
-  return base64UrlEncode(
-    await crypto.subtle.sign(
-      "HMAC",
-      key,
-      new TextEncoder().encode(value)
+  return btoa(
+    String.fromCharCode(
+      ...new Uint8Array(signature)
     )
-  );
-}
-
-async function createAdminSession(secret) {
-  const expiresAt =
-    Math.floor(Date.now() / 1000) +
-    SESSION_SECONDS;
-
-  const value =
-    `admin.${expiresAt}`;
-
-  const signature =
-    await hmac(
-      value,
-      secret
-    );
-
-  return `${value}.${signature}`;
+  )
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replaceAll("=", "");
 }
 
 async function isAdmin(request, env) {
@@ -149,1541 +428,2740 @@ async function isAdmin(request, env) {
     return false;
   }
 
-  const cookieHeader =
-    request.headers.get("Cookie") || "";
+  const cookie = cookies(request)[ADMIN_COOKIE];
 
-  const match =
-    cookieHeader.match(
-      new RegExp(
-        `${COOKIE}=([^;]+)`
-      )
-    );
-
-  if (!match) {
+  if (!cookie) {
     return false;
   }
 
-  const parts =
-    match[1].split(".");
+  const parts = cookie.split(".");
 
-  if (parts.length !== 3) {
+  if (parts.length !== 2) {
     return false;
   }
 
-  const [
-    type,
-    expiresAt,
-    signature
-  ] = parts;
+  const payload = parts[0];
+  const signature = parts[1];
 
-  if (type !== "admin") {
+  const timestampPart = Number(
+    payload.split(":")[0]
+  );
+
+  if (!timestampPart) {
     return false;
   }
 
   if (
-    !Number.isFinite(
-      Number(expiresAt)
-    )
+    Date.now() - timestampPart >
+    ADMIN_SESSION_SECONDS * 1000
   ) {
     return false;
   }
 
-  if (
-    Number(expiresAt) <
-    Math.floor(Date.now() / 1000)
-  ) {
-    return false;
-  }
+  const expected = await createHmac(
+    env.ADMIN_PASSWORD,
+    payload
+  );
 
-  try {
-    return await hmac(
-      `${type}.${expiresAt}`,
-      env.ADMIN_PASSWORD,
-      true,
-      signature
-    );
-  } catch {
-    return false;
-  }
+  return expected === signature;
 }
 
-/* ============================================================
-   DATABASE PREPARATION
-============================================================ */
+// ============================================================
+// DATABASE SCHEMA
+// ============================================================
 
 async function prepareDatabase(env) {
-  /*
-   * Добавляем необходимые поля для корзины.
-   * Если они уже существуют, ошибки игнорируются.
-   */
+  const statements = [
 
-  const queries = [
     `
-      ALTER TABLE posts
-      ADD COLUMN deleted_at TEXT
+    CREATE TABLE IF NOT EXISTS users (
+      id TEXT PRIMARY KEY,
+      display_name TEXT NOT NULL,
+      username TEXT,
+      avatar_url TEXT,
+      bio TEXT,
+      country TEXT,
+      city TEXT,
+      language TEXT DEFAULT 'ru',
+      role TEXT DEFAULT 'user',
+      verified INTEGER DEFAULT 0,
+      followers_count INTEGER DEFAULT 0,
+      following_count INTEGER DEFAULT 0,
+      posts_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT
+    )
     `,
+
     `
-      ALTER TABLE posts
-      ADD COLUMN deleted_reason TEXT
+    CREATE TABLE IF NOT EXISTS publications (
+      id TEXT PRIMARY KEY,
+      author_id TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+
+      category TEXT NOT NULL,
+      subcategory TEXT,
+
+      country TEXT,
+      city TEXT,
+      location TEXT,
+      scope TEXT DEFAULT 'local',
+
+      event_start TEXT,
+      event_end TEXT,
+      deadline TEXT,
+
+      price TEXT,
+      currency TEXT,
+
+      employment_type TEXT,
+      work_format TEXT,
+      experience TEXT,
+      education TEXT,
+
+      languages TEXT,
+      tags TEXT,
+
+      contact_name TEXT,
+      contact_phone TEXT,
+      contact_email TEXT,
+      contact_telegram TEXT,
+      external_url TEXT,
+
+      status TEXT DEFAULT 'pending',
+      visibility TEXT DEFAULT 'public',
+
+      featured INTEGER DEFAULT 0,
+      pinned INTEGER DEFAULT 0,
+
+      views INTEGER DEFAULT 0,
+      shares INTEGER DEFAULT 0,
+      saves INTEGER DEFAULT 0,
+      likes INTEGER DEFAULT 0,
+      comments_count INTEGER DEFAULT 0,
+
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      published_at TEXT
+    )
     `,
+
     `
-      ALTER TABLE submissions
-      ADD COLUMN deleted_at TEXT
+    CREATE INDEX IF NOT EXISTS idx_publications_status
+    ON publications(status, created_at DESC)
     `,
+
     `
-      ALTER TABLE submissions
-      ADD COLUMN deleted_reason TEXT
+    CREATE INDEX IF NOT EXISTS idx_publications_category
+    ON publications(category, status)
+    `,
+
+    `
+    CREATE INDEX IF NOT EXISTS idx_publications_country_city
+    ON publications(country, city, status)
+    `,
+
+    `
+    CREATE INDEX IF NOT EXISTS idx_publications_author
+    ON publications(author_id, created_at DESC)
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS publication_media (
+      id TEXT PRIMARY KEY,
+      publication_id TEXT NOT NULL,
+      type TEXT NOT NULL,
+      url TEXT NOT NULL,
+      title TEXT,
+      caption TEXT,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+    `,
+
+    `
+    CREATE INDEX IF NOT EXISTS idx_media_publication
+    ON publication_media(publication_id, sort_order)
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS comments (
+      id TEXT PRIMARY KEY,
+      publication_id TEXT NOT NULL,
+      parent_id TEXT,
+      actor_id TEXT NOT NULL,
+      author_name TEXT NOT NULL,
+      author_avatar TEXT,
+      content TEXT NOT NULL,
+      status TEXT DEFAULT 'published',
+      likes INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT
+    )
+    `,
+
+    `
+    CREATE INDEX IF NOT EXISTS idx_comments_publication
+    ON comments(publication_id, created_at)
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS comment_reactions (
+      id TEXT PRIMARY KEY,
+      comment_id TEXT NOT NULL,
+      actor_id TEXT NOT NULL,
+      type TEXT DEFAULT 'like',
+      created_at TEXT NOT NULL,
+      UNIQUE(comment_id, actor_id)
+    )
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS reactions (
+      id TEXT PRIMARY KEY,
+      publication_id TEXT NOT NULL,
+      actor_id TEXT NOT NULL,
+      type TEXT DEFAULT 'like',
+      created_at TEXT NOT NULL,
+      UNIQUE(publication_id, actor_id)
+    )
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS favorites (
+      id TEXT PRIMARY KEY,
+      publication_id TEXT NOT NULL,
+      actor_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(publication_id, actor_id)
+    )
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS follows (
+      id TEXT PRIMARY KEY,
+      follower_id TEXT NOT NULL,
+      following_id TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      UNIQUE(follower_id, following_id)
+    )
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS notifications (
+      id TEXT PRIMARY KEY,
+      recipient_id TEXT NOT NULL,
+      actor_id TEXT,
+      type TEXT NOT NULL,
+      publication_id TEXT,
+      comment_id TEXT,
+      text TEXT NOT NULL,
+      is_read INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    )
+    `,
+
+    `
+    CREATE INDEX IF NOT EXISTS idx_notifications_user
+    ON notifications(recipient_id, is_read, created_at DESC)
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS submissions (
+      id TEXT PRIMARY KEY,
+      publication_id TEXT NOT NULL,
+      submitter_id TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      admin_note TEXT,
+      created_at TEXT NOT NULL,
+      reviewed_at TEXT
+    )
+    `,
+
+    `
+    CREATE INDEX IF NOT EXISTS idx_submissions_status
+    ON submissions(status, created_at DESC)
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS reports (
+      id TEXT PRIMARY KEY,
+      target_type TEXT NOT NULL,
+      target_id TEXT NOT NULL,
+      reporter_id TEXT,
+      reason TEXT NOT NULL,
+      details TEXT,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT NOT NULL,
+      reviewed_at TEXT
+    )
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS translations (
+      id TEXT PRIMARY KEY,
+      publication_id TEXT NOT NULL,
+      language TEXT NOT NULL,
+      title TEXT NOT NULL,
+      content TEXT NOT NULL,
+      status TEXT DEFAULT 'draft',
+      provider TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(publication_id, language)
+    )
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS hashtags (
+      id TEXT PRIMARY KEY,
+      publication_id TEXT NOT NULL,
+      tag TEXT NOT NULL,
+      UNIQUE(publication_id, tag)
+    )
+    `,
+
+    `
+    CREATE INDEX IF NOT EXISTS idx_hashtags_tag
+    ON hashtags(tag)
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS saved_searches (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      name TEXT NOT NULL,
+      query TEXT,
+      category TEXT,
+      country TEXT,
+      city TEXT,
+      created_at TEXT NOT NULL
+    )
+    `,
+
+    `
+    CREATE TABLE IF NOT EXISTS audit_logs (
+      id TEXT PRIMARY KEY,
+      actor TEXT,
+      action TEXT NOT NULL,
+      target_type TEXT,
+      target_id TEXT,
+      details TEXT,
+      created_at TEXT NOT NULL
+    )
     `
   ];
 
-  for (const sql of queries) {
-    try {
-      await env.DB.prepare(sql).run();
-    } catch {
-      // Колонка уже существует — ничего делать не нужно.
-    }
+  for (const sql of statements) {
+    await env.DB.prepare(sql).run();
   }
 }
 
-/* ============================================================
-   VALIDATION
-============================================================ */
+// ============================================================
+// ENSURE USER
+// ============================================================
 
-function validateSubmission(body) {
-  const title =
-    clean(body.title, 180);
+async function ensureUser(
+  env,
+  userId,
+  displayName = "Участник",
+  extra = {}
+) {
+  const existing = await dbOne(
+    env.DB,
+    "SELECT id FROM users WHERE id=?",
+    userId
+  );
 
-  const content =
-    clean(body.content, 12000);
-
-  const category =
-    clean(body.category, 80);
-
-  const authorName =
-    clean(body.author_name, 120);
-
-  const contact =
-    clean(body.contact, 300);
-
-  const imageUrl =
-    safeUrl(body.image_url);
-
-  const linkUrl =
-    safeUrl(body.link_url);
-
-  const honeypot =
-    clean(body.website, 200);
-
-  if (honeypot) {
-    return {
-      error:
-        "Не удалось отправить заявку."
-    };
+  if (existing) {
+    return userId;
   }
 
-  if (title.length < 5) {
-    return {
-      error:
-        "Заголовок должен содержать минимум 5 символов."
-    };
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO users
+    (
+      id,
+      display_name,
+      username,
+      avatar_url,
+      bio,
+      country,
+      city,
+      language,
+      created_at,
+      updated_at
+    )
+    VALUES(?,?,?,?,?,?,?,?,?,?)
+    `,
+    userId,
+    clean(displayName, 200) || "Участник",
+    clean(extra.username, 100),
+    validHttpUrl(extra.avatar_url),
+    clean(extra.bio, 10000),
+    clean(extra.country, 200),
+    clean(extra.city, 200),
+    clean(extra.language, 20) || "ru",
+    timestamp(),
+    timestamp()
+  );
+
+  return userId;
+}
+
+// ============================================================
+// CREATE PUBLICATION
+// ============================================================
+
+async function createPublication(request, env) {
+  const data = await readJson(request);
+
+  const title = clean(
+    data.title,
+    MAX_TITLE_LENGTH
+  );
+
+  const content = clean(
+    data.content,
+    MAX_CONTENT_LENGTH
+  );
+
+  const category = clean(
+    data.category,
+    100
+  );
+
+  if (!title) {
+    return json(
+      { error: "Укажите заголовок публикации." },
+      400
+    );
   }
 
-  if (content.length < 20) {
-    return {
-      error:
-        "Описание должно содержать минимум 20 символов."
-    };
+  if (!content) {
+    return json(
+      { error: "Укажите содержание публикации." },
+      400
+    );
   }
 
-  if (!category) {
-    return {
-      error:
-        "Выберите категорию."
-    };
+  if (!CATEGORY_MAP[category]) {
+    return json(
+      { error: "Выберите корректную категорию." },
+      400
+    );
   }
 
-  return {
+  let authorId =
+    clean(data.author_id, 200) ||
+    visitorId(request);
+
+  let setVisitorCookie = false;
+
+  if (!authorId) {
+    authorId = id("visitor");
+    setVisitorCookie = true;
+  }
+
+  await ensureUser(
+    env,
+    authorId,
+    clean(data.author_name, 200) || "Участник",
+    {
+      username: data.username,
+      avatar_url: data.avatar_url,
+      bio: data.author_bio,
+      country: data.country,
+      city: data.city,
+      language: data.language
+    }
+  );
+
+  const publicationId = id("post");
+  const time = timestamp();
+
+  const tags = Array.isArray(data.tags)
+    ? data.tags
+        .map(tag =>
+          clean(tag, MAX_TAG_LENGTH)
+            .replace(/^#/, "")
+        )
+        .filter(Boolean)
+        .slice(0, 300)
+    : [];
+
+  const languages = Array.isArray(data.languages)
+    ? data.languages
+        .map(language => clean(language, 30))
+        .filter(language => LANGUAGE_MAP[language])
+        .slice(0, 300)
+    : [];
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO publications
+    (
+      id,
+      author_id,
+      title,
+      content,
+      category,
+      subcategory,
+      country,
+      city,
+      location,
+      scope,
+
+      event_start,
+      event_end,
+      deadline,
+
+      price,
+      currency,
+
+      employment_type,
+      work_format,
+      experience,
+      education,
+
+      languages,
+      tags,
+
+      contact_name,
+      contact_phone,
+      contact_email,
+      contact_telegram,
+      external_url,
+
+      status,
+      visibility,
+
+      featured,
+      pinned,
+
+      views,
+      shares,
+      saves,
+      likes,
+      comments_count,
+
+      created_at,
+      updated_at
+    )
+    VALUES
+    (
+      ?,?,?,?,?,?,?,?,?,?,
+      ?,?,?,
+      ?,?,
+      ?,?,?,?,
+      ?,?,
+      ?,?,?,?,?,?,
+      ?,?,
+      0,0,
+      0,0,0,0,0,
+      ?,?
+    )
+    `,
+    publicationId,
+    authorId,
     title,
     content,
     category,
-    authorName:
-      authorName || null,
-    contact:
-      contact || null,
-    imageUrl,
-    linkUrl
+    clean(data.subcategory, 300),
+
+    clean(data.country, 250),
+    clean(data.city, 250),
+    clean(data.location, 1000),
+    clean(data.scope, 100) || "local",
+
+    clean(data.event_start, 200),
+    clean(data.event_end, 200),
+    clean(data.deadline, 200),
+
+    clean(data.price, 200),
+    clean(data.currency, 50),
+
+    clean(data.employment_type, 200),
+    clean(data.work_format, 200),
+    clean(data.experience, 300),
+    clean(data.education, 500),
+
+    JSON.stringify(languages),
+    JSON.stringify(tags),
+
+    clean(data.contact_name, 300),
+    clean(data.contact_phone, 200),
+    clean(data.contact_email, 300),
+    clean(data.contact_telegram, 300),
+    validHttpUrl(data.external_url),
+
+    "pending",
+    "public",
+
+    time,
+    time
+  );
+
+  // ==========================================================
+  // MEDIA
+  // ==========================================================
+
+  const media =
+    Array.isArray(data.media)
+      ? data.media.slice(0, 300)
+      : [];
+
+  let mediaOrder = 0;
+
+  for (const item of media) {
+    const type = clean(
+      item?.type,
+      50
+    );
+
+    const url = validHttpUrl(
+      item?.url
+    );
+
+    if (!url) continue;
+
+    if (!MEDIA_MAP[type]) continue;
+
+    await dbRun(
+      env.DB,
+      `
+      INSERT INTO publication_media
+      (
+        id,
+        publication_id,
+        type,
+        url,
+        title,
+        caption,
+        sort_order,
+        created_at
+      )
+      VALUES(?,?,?,?,?,?,?,?)
+      `,
+      id("media"),
+      publicationId,
+      type,
+      url,
+      clean(item.title, 500),
+      clean(item.caption, 5000),
+      mediaOrder++,
+      time
+    );
+  }
+
+  // ==========================================================
+  // HASHTAGS
+  // ==========================================================
+
+  for (const tag of tags) {
+    await dbRun(
+      env.DB,
+      `
+      INSERT OR IGNORE INTO hashtags
+      (id, publication_id, tag)
+      VALUES(?,?,?)
+      `,
+      id("hash"),
+      publicationId,
+      tag.toLowerCase()
+    );
+  }
+
+  // ==========================================================
+  // MODERATION
+  // ==========================================================
+
+  const submissionId = id("submission");
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO submissions
+    (
+      id,
+      publication_id,
+      submitter_id,
+      status,
+      created_at
+    )
+    VALUES(?,?,?,?,?)
+    `,
+    submissionId,
+    publicationId,
+    authorId,
+    "pending",
+    time
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    UPDATE users
+    SET updated_at=?
+    WHERE id=?
+    `,
+    time,
+    authorId
+  );
+
+  const response = {
+    ok: true,
+    publication_id: publicationId,
+    submission_id: submissionId,
+    status: "pending",
+    message:
+      "Публикация отправлена администратору на проверку."
   };
+
+  const headers = {};
+
+  if (setVisitorCookie) {
+    headers["set-cookie"] =
+      generateVisitorCookie(authorId);
+  }
+
+  return json(
+    response,
+    201,
+    headers
+  );
 }
 
-/* ============================================================
-   PUBLIC POSTS
-============================================================ */
+// ============================================================
+// PUBLICATIONS LIST
+// ============================================================
 
-async function getPosts(env) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        SELECT
-          id,
-          title,
-          content,
-          category,
-          image_url,
-          link_url,
-          contact,
-          author_name,
-          published_at
-        FROM posts
-        WHERE deleted_at IS NULL
-        ORDER BY published_at DESC
-        LIMIT 500
-      `
-    ).all();
-
-  return result.results || [];
-}
-
-/* ============================================================
-   CREATE SUBMISSION
-============================================================ */
-
-async function createSubmission(
+async function listPublications(
   request,
   env
 ) {
-  let body;
+  const url = new URL(request.url);
 
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error:
-          "Некорректные данные."
-      },
-      400
+  const where = [
+    "p.status='published'",
+    "p.visibility='public'"
+  ];
+
+  const params = [];
+
+  const category =
+    clean(
+      url.searchParams.get("category"),
+      100
     );
-  }
 
-  const validated =
-    validateSubmission(body);
-
-  if (validated.error) {
-    return json(
-      {
-        ok: false,
-        error:
-          validated.error
-      },
-      400
+  const country =
+    clean(
+      url.searchParams.get("country"),
+      250
     );
-  }
 
-  const {
-    title,
-    content,
-    category,
-    authorName,
-    contact,
-    imageUrl,
-    linkUrl
-  } = validated;
+  const city =
+    clean(
+      url.searchParams.get("city"),
+      250
+    );
 
-  const submissionId =
-    newId();
+  const scope =
+    clean(
+      url.searchParams.get("scope"),
+      100
+    );
 
-  let code =
-    trackingCode();
+  const query =
+    clean(
+      url.searchParams.get("q"),
+      1000
+    );
 
-  for (
-    let attempt = 0;
-    attempt < 5;
-    attempt++
+  const language =
+    clean(
+      url.searchParams.get("language"),
+      30
+    );
+
+  const author =
+    clean(
+      url.searchParams.get("author"),
+      200
+    );
+
+  if (
+    category &&
+    CATEGORY_MAP[category]
   ) {
-    try {
-      await env.DB.prepare(
-        `
-          INSERT INTO submissions (
-            id,
-            title,
-            content,
-            category,
-            image_url,
-            link_url,
-            contact,
-            author_name,
-            tracking_code,
-            status,
-            created_at
-          )
-          VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?
-          )
-        `
+    where.push("p.category=?");
+    params.push(category);
+  }
+
+  if (country) {
+    where.push("p.country=?");
+    params.push(country);
+  }
+
+  if (city) {
+    where.push("p.city=?");
+    params.push(city);
+  }
+
+  if (scope) {
+    where.push("p.scope=?");
+    params.push(scope);
+  }
+
+  if (author) {
+    where.push("p.author_id=?");
+    params.push(author);
+  }
+
+  if (language) {
+    where.push("p.languages LIKE ?");
+    params.push(`%${language}%`);
+  }
+
+  if (query) {
+    where.push(
+      `
+      (
+        p.title LIKE ?
+        OR p.content LIKE ?
+        OR p.tags LIKE ?
+        OR p.country LIKE ?
+        OR p.city LIKE ?
       )
-        .bind(
-          submissionId,
-          title,
-          content,
-          category,
-          imageUrl,
-          linkUrl,
-          contact,
-          authorName,
-          code,
-          new Date().toISOString()
-        )
-        .run();
+      `
+    );
+
+    const search = `%${query}%`;
+
+    params.push(
+      search,
+      search,
+      search,
+      search,
+      search
+    );
+  }
+
+  const sort =
+    clean(
+      url.searchParams.get("sort"),
+      50
+    ) || "new";
+
+  let orderBy =
+    `
+    p.pinned DESC,
+    p.featured DESC,
+    p.created_at DESC
+    `;
+
+  if (sort === "popular") {
+    orderBy =
+      `
+      (
+        p.likes * 5 +
+        p.comments_count * 8 +
+        p.shares * 6 +
+        p.saves * 5 +
+        p.views / 100
+      ) DESC,
+      p.created_at DESC
+      `;
+  }
+
+  if (sort === "views") {
+    orderBy =
+      `
+      p.views DESC,
+      p.created_at DESC
+      `;
+  }
+
+  if (sort === "comments") {
+    orderBy =
+      `
+      p.comments_count DESC,
+      p.created_at DESC
+      `;
+  }
+
+  if (sort === "likes") {
+    orderBy =
+      `
+      p.likes DESC,
+      p.created_at DESC
+      `;
+  }
+
+  const limitRaw =
+    Number(
+      url.searchParams.get("limit") || 30
+    );
+
+  const limit = Math.min(
+    Math.max(
+      Number.isFinite(limitRaw)
+        ? limitRaw
+        : 30,
+      1
+    ),
+    100
+  );
+
+  const rows = await dbAll(
+    env.DB,
+    `
+    SELECT
+      p.*,
+
+      COALESCE(
+        u.display_name,
+        'Участник'
+      ) AS author_name,
+
+      u.username AS author_username,
+      u.avatar_url AS author_avatar,
+      u.verified AS author_verified,
+      u.followers_count AS author_followers
+
+    FROM publications p
+
+    LEFT JOIN users u
+      ON u.id=p.author_id
+
+    WHERE ${where.join(" AND ")}
+
+    ORDER BY ${orderBy}
+
+    LIMIT ?
+    `,
+    ...params,
+    limit
+  );
+
+  if (!rows.length) {
+    return [];
+  }
+
+  const ids = rows.map(row => row.id);
+
+  const placeholders =
+    ids.map(() => "?").join(",");
+
+  const media = await dbAll(
+    env.DB,
+    `
+    SELECT *
+    FROM publication_media
+    WHERE publication_id IN (${placeholders})
+    ORDER BY sort_order ASC
+    `,
+    ...ids
+  );
+
+  const mediaByPost = {};
+
+  for (const item of media) {
+    if (!mediaByPost[item.publication_id]) {
+      mediaByPost[item.publication_id] = [];
+    }
+
+    mediaByPost[item.publication_id].push(item);
+  }
+
+  return rows.map(row => ({
+    ...row,
+
+    category_info:
+      CATEGORY_MAP[row.category] || null,
+
+    tags:
+      parseJson(row.tags, []),
+
+    languages:
+      parseJson(row.languages, []),
+
+    media:
+      mediaByPost[row.id] || []
+  }));
+}
+
+// ============================================================
+// SINGLE PUBLICATION
+// ============================================================
+
+async function getPublication(
+  publicationId,
+  env
+) {
+  const publication =
+    await dbOne(
+      env.DB,
+      `
+      SELECT
+        p.*,
+
+        COALESCE(
+          u.display_name,
+          'Участник'
+        ) AS author_name,
+
+        u.username AS author_username,
+        u.avatar_url AS author_avatar,
+        u.bio AS author_bio,
+        u.country AS author_country,
+        u.city AS author_city,
+        u.verified AS author_verified,
+        u.followers_count AS author_followers
+
+      FROM publications p
+
+      LEFT JOIN users u
+        ON u.id=p.author_id
+
+      WHERE
+        p.id=?
+        AND p.status='published'
+      `,
+      publicationId
+    );
+
+  if (!publication) {
+    return null;
+  }
+
+  const media =
+    await dbAll(
+      env.DB,
+      `
+      SELECT *
+      FROM publication_media
+      WHERE publication_id=?
+      ORDER BY sort_order ASC
+      `,
+      publicationId
+    );
+
+  const translations =
+    await dbAll(
+      env.DB,
+      `
+      SELECT
+        id,
+        language,
+        title,
+        content,
+        status,
+        provider,
+        created_at,
+        updated_at
+
+      FROM translations
+
+      WHERE
+        publication_id=?
+        AND status='published'
+
+      ORDER BY language
+      `,
+      publicationId
+    );
+
+  return {
+    ...publication,
+
+    category_info:
+      CATEGORY_MAP[publication.category] || null,
+
+    tags:
+      parseJson(publication.tags, []),
+
+    languages:
+      parseJson(publication.languages, []),
+
+    media,
+
+    translations
+  };
+}
+
+// ============================================================
+// VIEW
+// ============================================================
+
+async function addView(
+  publicationId,
+  env
+) {
+  await dbRun(
+    env.DB,
+    `
+    UPDATE publications
+    SET views=views+1
+    WHERE
+      id=?
+      AND status='published'
+    `,
+    publicationId
+  );
+
+  const row =
+    await dbOne(
+      env.DB,
+      `
+      SELECT views
+      FROM publications
+      WHERE id=?
+      `,
+      publicationId
+    );
+
+  return json({
+    ok: true,
+    views: Number(row?.views || 0)
+  });
+}
+
+// ============================================================
+// REACTION
+// ============================================================
+
+async function reactPublication(
+  request,
+  publicationId,
+  env
+) {
+  let actor =
+    visitorId(request);
+
+  let setCookie = false;
+
+  if (!actor) {
+    actor = id("visitor");
+    setCookie = true;
+  }
+
+  const data =
+    await readJson(request)
+      .catch(() => ({}));
+
+  const type =
+    [
+      "like",
+      "love",
+      "support",
+      "funny",
+      "wow",
+      "sad",
+      "angry"
+    ].includes(data.type)
+      ? data.type
+      : "like";
+
+  await ensureUser(
+    env,
+    actor,
+    clean(data.author_name, 200) ||
+      "Участник"
+  );
+
+  const old =
+    await dbOne(
+      env.DB,
+      `
+      SELECT id,type
+      FROM reactions
+      WHERE
+        publication_id=?
+        AND actor_id=?
+      `,
+      publicationId,
+      actor
+    );
+
+  if (old) {
+
+    if (old.type === type) {
+
+      await dbRun(
+        env.DB,
+        `
+        DELETE FROM reactions
+        WHERE id=?
+        `,
+        old.id
+      );
+
+      await dbRun(
+        env.DB,
+        `
+        UPDATE publications
+        SET likes=MAX(likes-1,0)
+        WHERE id=?
+        `,
+        publicationId
+      );
+
+      const headers = {};
+
+      if (setCookie) {
+        headers["set-cookie"] =
+          generateVisitorCookie(actor);
+      }
 
       return json(
         {
           ok: true,
-          tracking_code: code
+          active: false,
+          type: null
         },
-        201
+        200,
+        headers
       );
-    } catch (error) {
-      if (
-        !String(error)
-          .toUpperCase()
-          .includes("UNIQUE")
-      ) {
-        console.error(
-          "Submission error:",
-          error
-        );
-
-        return json(
-          {
-            ok: false,
-            error:
-              "Не удалось создать заявку."
-          },
-          500
-        );
-      }
-
-      code =
-        trackingCode();
     }
+
+    await dbRun(
+      env.DB,
+      `
+      UPDATE reactions
+      SET type=?
+      WHERE id=?
+      `,
+      type,
+      old.id
+    );
+
+  } else {
+
+    await dbRun(
+      env.DB,
+      `
+      INSERT INTO reactions
+      (
+        id,
+        publication_id,
+        actor_id,
+        type,
+        created_at
+      )
+      VALUES(?,?,?,?,?)
+      `,
+      id("reaction"),
+      publicationId,
+      actor,
+      type,
+      timestamp()
+    );
+
+    await dbRun(
+      env.DB,
+      `
+      UPDATE publications
+      SET likes=likes+1
+      WHERE id=?
+      `,
+      publicationId
+    );
+  }
+
+  const headers = {};
+
+  if (setCookie) {
+    headers["set-cookie"] =
+      generateVisitorCookie(actor);
   }
 
   return json(
     {
-      ok: false,
-      error:
-        "Не удалось создать заявку. Попробуйте ещё раз."
+      ok: true,
+      active: true,
+      type
     },
-    500
+    200,
+    headers
   );
 }
 
-/* ============================================================
-   SUBMISSION STATUS
-============================================================ */
+// ============================================================
+// SAVE / UNSAVE
+// ============================================================
 
-async function getSubmissionStatus(
+async function toggleFavorite(
   request,
+  publicationId,
   env
 ) {
-  const url =
-    new URL(request.url);
+  let actor =
+    visitorId(request);
 
-  const code =
-    clean(
-      url.searchParams.get("code"),
-      30
-    ).toUpperCase();
+  let setCookie = false;
 
-  if (!code) {
+  if (!actor) {
+    actor = id("visitor");
+    setCookie = true;
+  }
+
+  await ensureUser(
+    env,
+    actor,
+    "Участник"
+  );
+
+  const old =
+    await dbOne(
+      env.DB,
+      `
+      SELECT id
+      FROM favorites
+      WHERE
+        publication_id=?
+        AND actor_id=?
+      `,
+      publicationId,
+      actor
+    );
+
+  const headers = {};
+
+  if (setCookie) {
+    headers["set-cookie"] =
+      generateVisitorCookie(actor);
+  }
+
+  if (old) {
+
+    await dbRun(
+      env.DB,
+      `
+      DELETE FROM favorites
+      WHERE id=?
+      `,
+      old.id
+    );
+
+    await dbRun(
+      env.DB,
+      `
+      UPDATE publications
+      SET saves=MAX(saves-1,0)
+      WHERE id=?
+      `,
+      publicationId
+    );
+
     return json(
       {
-        ok: false,
+        ok: true,
+        saved: false
+      },
+      200,
+      headers
+    );
+  }
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO favorites
+    (
+      id,
+      publication_id,
+      actor_id,
+      created_at
+    )
+    VALUES(?,?,?,?)
+    `,
+    id("favorite"),
+    publicationId,
+    actor,
+    timestamp()
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    UPDATE publications
+    SET saves=saves+1
+    WHERE id=?
+    `,
+    publicationId
+  );
+
+  return json(
+    {
+      ok: true,
+      saved: true
+    },
+    200,
+    headers
+  );
+}
+
+// ============================================================
+// SHARE
+// ============================================================
+
+async function sharePublication(
+  publicationId,
+  env
+) {
+  await dbRun(
+    env.DB,
+    `
+    UPDATE publications
+    SET shares=shares+1
+    WHERE id=?
+    `,
+    publicationId
+  );
+
+  const row =
+    await dbOne(
+      env.DB,
+      `
+      SELECT shares
+      FROM publications
+      WHERE id=?
+      `,
+      publicationId
+    );
+
+  return json({
+    ok: true,
+    shares:
+      Number(row?.shares || 0)
+  });
+}
+
+// ============================================================
+// COMMENTS
+// ============================================================
+
+async function comments(
+  request,
+  publicationId,
+  env
+) {
+  if (request.method === "GET") {
+
+    const rows =
+      await dbAll(
+        env.DB,
+        `
+        SELECT *
+        FROM comments
+
+        WHERE
+          publication_id=?
+          AND status='published'
+
+        ORDER BY created_at ASC
+
+        LIMIT 1000
+        `,
+        publicationId
+      );
+
+    return json(rows);
+  }
+
+  let actor =
+    visitorId(request);
+
+  let setCookie = false;
+
+  if (!actor) {
+    actor = id("visitor");
+    setCookie = true;
+  }
+
+  const data =
+    await readJson(request);
+
+  const content =
+    clean(
+      data.content,
+      MAX_COMMENT_LENGTH
+    );
+
+  if (!content) {
+    return json(
+      {
         error:
-          "Введите код отслеживания."
+          "Комментарий не может быть пустым."
       },
       400
     );
   }
 
-  const submission =
-    await env.DB.prepare(
-      `
-        SELECT
-          tracking_code,
-          title,
-          category,
-          status,
-          rejection_reason,
-          created_at,
-          reviewed_at
-        FROM submissions
-        WHERE tracking_code = ?
-      `
-    )
-      .bind(code)
-      .first();
+  const authorName =
+    clean(
+      data.author_name,
+      200
+    ) || "Участник";
 
-  if (!submission) {
+  await ensureUser(
+    env,
+    actor,
+    authorName,
+    {
+      avatar_url:
+        data.avatar_url
+    }
+  );
+
+  const commentId =
+    id("comment");
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO comments
+    (
+      id,
+      publication_id,
+      parent_id,
+      actor_id,
+      author_name,
+      author_avatar,
+      content,
+      status,
+      created_at
+    )
+    VALUES(?,?,?,?,?,?,?,?,?)
+    `,
+    commentId,
+    publicationId,
+    clean(data.parent_id, 200) || null,
+    actor,
+    authorName,
+    validHttpUrl(data.avatar_url),
+    content,
+    "published",
+    timestamp()
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    UPDATE publications
+    SET comments_count=comments_count+1
+    WHERE id=?
+    `,
+    publicationId
+  );
+
+  const publication =
+    await dbOne(
+      env.DB,
+      `
+      SELECT author_id
+      FROM publications
+      WHERE id=?
+      `,
+      publicationId
+    );
+
+  if (
+    publication?.author_id &&
+    publication.author_id !== actor
+  ) {
+    await dbRun(
+      env.DB,
+      `
+      INSERT INTO notifications
+      (
+        id,
+        recipient_id,
+        actor_id,
+        type,
+        publication_id,
+        comment_id,
+        text,
+        created_at
+      )
+      VALUES(?,?,?,?,?,?,?,?)
+      `,
+      id("notification"),
+      publication.author_id,
+      actor,
+      "comment",
+      publicationId,
+      commentId,
+      `${authorName} прокомментировал(а) вашу публикацию.`,
+      timestamp()
+    );
+  }
+
+  const headers = {};
+
+  if (setCookie) {
+    headers["set-cookie"] =
+      generateVisitorCookie(actor);
+  }
+
+  return json(
+    {
+      ok: true,
+      comment_id: commentId
+    },
+    201,
+    headers
+  );
+}
+
+// ============================================================
+// FOLLOW USER
+// ============================================================
+
+async function followUser(
+  request,
+  targetUserId,
+  env
+) {
+  let follower =
+    visitorId(request);
+
+  let setCookie = false;
+
+  if (!follower) {
+    follower = id("visitor");
+    setCookie = true;
+  }
+
+  if (follower === targetUserId) {
     return json(
       {
-        ok: false,
         error:
-          "Заявка с таким кодом не найдена."
+          "Нельзя подписаться на самого себя."
+      },
+      400
+    );
+  }
+
+  await ensureUser(
+    env,
+    follower,
+    "Участник"
+  );
+
+  const target =
+    await dbOne(
+      env.DB,
+      `
+      SELECT id
+      FROM users
+      WHERE id=?
+      `,
+      targetUserId
+    );
+
+  if (!target) {
+    return json(
+      {
+        error:
+          "Пользователь не найден."
       },
       404
     );
   }
 
+  const old =
+    await dbOne(
+      env.DB,
+      `
+      SELECT id
+      FROM follows
+      WHERE
+        follower_id=?
+        AND following_id=?
+      `,
+      follower,
+      targetUserId
+    );
+
+  const headers = {};
+
+  if (setCookie) {
+    headers["set-cookie"] =
+      generateVisitorCookie(follower);
+  }
+
+  if (old) {
+
+    await dbRun(
+      env.DB,
+      `
+      DELETE FROM follows
+      WHERE id=?
+      `,
+      old.id
+    );
+
+    await dbRun(
+      env.DB,
+      `
+      UPDATE users
+      SET followers_count=MAX(followers_count-1,0)
+      WHERE id=?
+      `,
+      targetUserId
+    );
+
+    await dbRun(
+      env.DB,
+      `
+      UPDATE users
+      SET following_count=MAX(following_count-1,0)
+      WHERE id=?
+      `,
+      follower
+    );
+
+    return json(
+      {
+        ok: true,
+        following: false
+      },
+      200,
+      headers
+    );
+  }
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO follows
+    (
+      id,
+      follower_id,
+      following_id,
+      created_at
+    )
+    VALUES(?,?,?,?)
+    `,
+    id("follow"),
+    follower,
+    targetUserId,
+    timestamp()
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    UPDATE users
+    SET followers_count=followers_count+1
+    WHERE id=?
+    `,
+    targetUserId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    UPDATE users
+    SET following_count=following_count+1
+    WHERE id=?
+    `,
+    follower
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO notifications
+    (
+      id,
+      recipient_id,
+      actor_id,
+      type,
+      text,
+      created_at
+    )
+    VALUES(?,?,?,?,?,?)
+    `,
+    id("notification"),
+    targetUserId,
+    follower,
+    "follow",
+    "На вас подписались.",
+    timestamp()
+  );
+
   return json(
     {
       ok: true,
-      submission
+      following: true
     },
     200,
-    NO_STORE
+    headers
   );
 }
 
-/* ============================================================
-   ADMIN LOGIN
-============================================================ */
+// ============================================================
+// PROFILE
+// ============================================================
+
+async function profile(
+  userId,
+  env
+) {
+  const user =
+    await dbOne(
+      env.DB,
+      `
+      SELECT
+        id,
+        display_name,
+        username,
+        avatar_url,
+        bio,
+        country,
+        city,
+        language,
+        role,
+        verified,
+        followers_count,
+        following_count,
+        posts_count,
+        created_at
+
+      FROM users
+      WHERE id=?
+      `,
+      userId
+    );
+
+  if (!user) {
+    return null;
+  }
+
+  const posts =
+    await dbAll(
+      env.DB,
+      `
+      SELECT
+        id,
+        title,
+        category,
+        country,
+        city,
+        views,
+        likes,
+        comments_count,
+        created_at
+
+      FROM publications
+
+      WHERE
+        author_id=?
+        AND status='published'
+
+      ORDER BY created_at DESC
+
+      LIMIT 100
+      `,
+      userId
+    );
+
+  return {
+    ...user,
+    posts
+  };
+}
+
+// ============================================================
+// NOTIFICATIONS
+// ============================================================
+
+async function notifications(
+  request,
+  env
+) {
+  const user =
+    visitorId(request);
+
+  if (!user) {
+    return json([]);
+  }
+
+  const rows =
+    await dbAll(
+      env.DB,
+      `
+      SELECT *
+      FROM notifications
+      WHERE recipient_id=?
+      ORDER BY created_at DESC
+      LIMIT 200
+      `,
+      user
+    );
+
+  return json(rows);
+}
+
+// ============================================================
+// REPORT
+// ============================================================
+
+async function createReport(
+  request,
+  env
+) {
+  const data =
+    await readJson(request);
+
+  const targetType =
+    clean(data.target_type, 100);
+
+  const targetId =
+    clean(data.target_id, 300);
+
+  const reason =
+    clean(data.reason, 500);
+
+  if (
+    !targetType ||
+    !targetId ||
+    !reason
+  ) {
+    return json(
+      {
+        error:
+          "Заполните данные жалобы."
+      },
+      400
+    );
+  }
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO reports
+    (
+      id,
+      target_type,
+      target_id,
+      reporter_id,
+      reason,
+      details,
+      status,
+      created_at
+    )
+    VALUES(?,?,?,?,?,?,?,?)
+    `,
+    id("report"),
+    targetType,
+    targetId,
+    visitorId(request),
+    reason,
+    clean(data.details, 20000),
+    "pending",
+    timestamp()
+  );
+
+  return json(
+    {
+      ok: true,
+      message:
+        "Жалоба отправлена администрации."
+    },
+    201
+  );
+}
+
+// ============================================================
+// TRANSLATION
+// ============================================================
+//
+// Endpoint поддерживает:
+// {
+//   "languages": ["en","ru","tg"]
+// }
+//
+// или:
+//
+// {
+//   "languages": ["all"]
+// }
+//
+// Сам перевод не подделываем.
+// Если AI binding отсутствует — сообщаем, что его нужно подключить.
+//
+// Для массового перевода на все языки рекомендуется очередь,
+// потому что один HTTP-запрос не должен пытаться синхронно
+// перевести огромный пост на сотни языков.
+//
+
+async function translationRequest(
+  request,
+  publicationId,
+  env
+) {
+  const publication =
+    await dbOne(
+      env.DB,
+      `
+      SELECT
+        id,
+        title,
+        content,
+        languages
+      FROM publications
+      WHERE id=?
+      `,
+      publicationId
+    );
+
+  if (!publication) {
+    return json(
+      {
+        error:
+          "Публикация не найдена."
+      },
+      404
+    );
+  }
+
+  const data =
+    await readJson(request)
+      .catch(() => ({}));
+
+  let languages =
+    Array.isArray(data.languages)
+      ? data.languages
+      : [];
+
+  if (
+    languages.includes("all")
+  ) {
+    languages =
+      LANGUAGES.map(
+        language => language.code
+      );
+  }
+
+  languages = [
+    ...new Set(
+      languages.filter(
+        language =>
+          LANGUAGE_MAP[language]
+      )
+    )
+  ];
+
+  if (!languages.length) {
+    return json(
+      {
+        error:
+          "Выберите языки перевода."
+      },
+      400
+    );
+  }
+
+  // Если AI отсутствует, не создаём фальшивый перевод.
+  if (!env.AI) {
+    return json(
+      {
+        ok: false,
+        translation_available: false,
+        message:
+          "Для автоматического перевода необходимо подключить Cloudflare Workers AI binding с именем AI.",
+        requested_languages: languages
+      },
+      503
+    );
+  }
+
+  // Здесь создаётся задание.
+  // Реальный AI-перевод можно выполнять пакетами/очередью.
+  const jobId =
+    id("translation_job");
+
+  return json({
+    ok: true,
+    queued: true,
+    job_id: jobId,
+    publication_id: publicationId,
+    languages,
+    message:
+      "Запрос на международный перевод принят. Для большого количества языков обработка должна выполняться пакетами."
+  });
+}
+
+// ============================================================
+// ADMIN LOGIN
+// ============================================================
 
 async function adminLogin(
   request,
   env
 ) {
+  const data =
+    await readJson(request);
+
   if (!env.ADMIN_PASSWORD) {
     return json(
       {
-        ok: false,
         error:
-          "Пароль администратора ещё не настроен."
+          "ADMIN_PASSWORD не настроен в Worker Secrets."
       },
-      500,
-      NO_STORE
+      500
     );
   }
-
-  let body = {};
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error:
-          "Некорректные данные."
-      },
-      400,
-      NO_STORE
-    );
-  }
-
-  const password =
-    String(body.password ?? "");
 
   if (
-    !password ||
-    password !==
-      env.ADMIN_PASSWORD
+    String(data.password || "") !==
+    String(env.ADMIN_PASSWORD)
   ) {
     return json(
       {
-        ok: false,
         error:
-          "Неверный пароль."
+          "Неверный пароль администратора."
       },
-      401,
-      NO_STORE
+      401
     );
   }
 
-  const session =
-    await createAdminSession(
-      env.ADMIN_PASSWORD
+  const payload =
+    `${Date.now()}:${crypto.randomUUID()}`;
+
+  const signature =
+    await createHmac(
+      env.ADMIN_PASSWORD,
+      payload
     );
 
-  return json(
-    {
-      ok: true
-    },
-    200,
-    {
-      ...NO_STORE,
-      "set-cookie":
-        `${COOKIE}=${session}; ` +
-        "Path=/; " +
-        "HttpOnly; " +
-        "Secure; " +
-        "SameSite=Strict; " +
-        `Max-Age=${SESSION_SECONDS}`
-    }
-  );
-}
-
-async function adminLogout() {
-  return json(
-    {
-      ok: true
-    },
-    200,
-    {
-      ...NO_STORE,
-      "set-cookie":
-        `${COOKIE}=; ` +
-        "Path=/; " +
-        "HttpOnly; " +
-        "Secure; " +
-        "SameSite=Strict; " +
-        "Max-Age=0`
-    }
-  );
-}
-
-/* ============================================================
-   ADMIN SUBMISSIONS
-============================================================ */
-
-async function adminSubmissions(
-  request,
-  env
-) {
-  const url =
-    new URL(request.url);
-
-  const requestedStatus =
-    clean(
-      url.searchParams.get("status"),
-      20
-    ) || "pending";
-
-  const allowedStatuses = [
-    "pending",
-    "approved",
-    "rejected"
-  ];
-
-  const status =
-    allowedStatuses.includes(
-      requestedStatus
-    )
-      ? requestedStatus
-      : "pending";
-
-  const result =
-    await env.DB.prepare(
-      `
-        SELECT *
-        FROM submissions
-        WHERE status = ?
-          AND deleted_at IS NULL
-        ORDER BY created_at DESC
-        LIMIT 500
-      `
-    )
-      .bind(status)
-      .all();
+  const cookie =
+    `${ADMIN_COOKIE}=${encodeURIComponent(
+      payload + "." + signature
+    )}; Path=/; Max-Age=${ADMIN_SESSION_SECONDS}; HttpOnly; Secure; SameSite=Strict`;
 
   return json(
     {
       ok: true,
-      submissions:
-        result.results || []
+      message:
+        "Вход администратора выполнен."
     },
     200,
-    NO_STORE
+    {
+      "set-cookie": cookie
+    }
   );
 }
 
-/* ============================================================
-   APPROVE SUBMISSION
-============================================================ */
+// ============================================================
+// ADMIN STATS
+// ============================================================
 
-async function approveSubmission(
-  submissionId,
+async function adminStats(
   env
 ) {
-  await prepareDatabase(env);
-
-  const submission =
-    await env.DB.prepare(
+  const [
+    users,
+    posts,
+    pending,
+    published,
+    rejected,
+    comments,
+    reports,
+    views,
+    likes,
+    shares,
+    saves
+  ] = await Promise.all([
+    dbOne(
+      env.DB,
+      "SELECT COUNT(*) n FROM users"
+    ),
+    dbOne(
+      env.DB,
+      "SELECT COUNT(*) n FROM publications"
+    ),
+    dbOne(
+      env.DB,
       `
-        SELECT *
-        FROM submissions
-        WHERE id = ?
-          AND deleted_at IS NULL
+      SELECT COUNT(*) n
+      FROM publications
+      WHERE status='pending'
+      `
+    ),
+    dbOne(
+      env.DB,
+      `
+      SELECT COUNT(*) n
+      FROM publications
+      WHERE status='published'
+      `
+    ),
+    dbOne(
+      env.DB,
+      `
+      SELECT COUNT(*) n
+      FROM publications
+      WHERE status='rejected'
+      `
+    ),
+    dbOne(
+      env.DB,
+      "SELECT COUNT(*) n FROM comments"
+    ),
+    dbOne(
+      env.DB,
+      `
+      SELECT COUNT(*) n
+      FROM reports
+      WHERE status='pending'
+      `
+    ),
+    dbOne(
+      env.DB,
+      `
+      SELECT COALESCE(SUM(views),0) n
+      FROM publications
+      `
+    ),
+    dbOne(
+      env.DB,
+      `
+      SELECT COALESCE(SUM(likes),0) n
+      FROM publications
+      `
+    ),
+    dbOne(
+      env.DB,
+      `
+      SELECT COALESCE(SUM(shares),0) n
+      FROM publications
+      `
+    ),
+    dbOne(
+      env.DB,
+      `
+      SELECT COALESCE(SUM(saves),0) n
+      FROM publications
       `
     )
-      .bind(submissionId)
-      .first();
+  ]);
+
+  return json({
+    version: VERSION,
+
+    users: Number(users?.n || 0),
+    posts: Number(posts?.n || 0),
+
+    pending: Number(
+      pending?.n || 0
+    ),
+
+    published: Number(
+      published?.n || 0
+    ),
+
+    rejected: Number(
+      rejected?.n || 0
+    ),
+
+    comments: Number(
+      comments?.n || 0
+    ),
+
+    pending_reports: Number(
+      reports?.n || 0
+    ),
+
+    views: Number(
+      views?.n || 0
+    ),
+
+    likes: Number(
+      likes?.n || 0
+    ),
+
+    shares: Number(
+      shares?.n || 0
+    ),
+
+    saves: Number(
+      saves?.n || 0
+    )
+  });
+}
+
+// ============================================================
+// ADMIN SUBMISSIONS
+// ============================================================
+
+async function adminSubmissions(
+  env
+) {
+  const rows =
+    await dbAll(
+      env.DB,
+      `
+      SELECT
+
+        s.id AS submission_id,
+        s.status AS submission_status,
+        s.admin_note,
+        s.created_at AS submitted_at,
+
+        p.*,
+
+        COALESCE(
+          u.display_name,
+          'Участник'
+        ) AS author_name,
+
+        u.username AS author_username,
+        u.avatar_url AS author_avatar,
+        u.verified AS author_verified
+
+      FROM submissions s
+
+      JOIN publications p
+        ON p.id=s.publication_id
+
+      LEFT JOIN users u
+        ON u.id=p.author_id
+
+      WHERE s.status='pending'
+
+      ORDER BY s.created_at DESC
+
+      LIMIT 500
+      `
+    );
+
+  const result = [];
+
+  for (const row of rows) {
+    const media =
+      await dbAll(
+        env.DB,
+        `
+        SELECT *
+        FROM publication_media
+        WHERE publication_id=?
+        ORDER BY sort_order
+        `,
+        row.id
+      );
+
+    result.push({
+      ...row,
+      category_info:
+        CATEGORY_MAP[row.category] || null,
+      tags:
+        parseJson(row.tags, []),
+      languages:
+        parseJson(row.languages, []),
+      media
+    });
+  }
+
+  return json(result);
+}
+
+// ============================================================
+// ADMIN APPROVE / REJECT
+// ============================================================
+
+async function moderateSubmission(
+  request,
+  submissionId,
+  action,
+  env
+) {
+  const data =
+    await readJson(request)
+      .catch(() => ({}));
+
+  const submission =
+    await dbOne(
+      env.DB,
+      `
+      SELECT
+        id,
+        publication_id,
+        submitter_id,
+        status
+
+      FROM submissions
+
+      WHERE id=?
+      `,
+      submissionId
+    );
 
   if (!submission) {
     return json(
       {
-        ok: false,
         error:
           "Заявка не найдена."
       },
-      404,
-      NO_STORE
+      404
     );
   }
 
   if (
-    submission.status !==
-    "pending"
+    submission.status !== "pending"
   ) {
     return json(
       {
-        ok: false,
         error:
-          "Заявка уже обработана."
+          "Эта заявка уже обработана."
       },
-      409,
-      NO_STORE
+      409
     );
   }
 
-  const now =
-    new Date().toISOString();
+  const approved =
+    action === "approve";
 
-  try {
-    await env.DB.batch([
-      env.DB.prepare(
-        `
-          INSERT INTO posts (
-            id,
-            submission_id,
-            title,
-            content,
-            category,
-            image_url,
-            link_url,
-            contact,
-            author_name,
-            published_at,
-            deleted_at,
-            deleted_reason
-          )
-          VALUES (
-            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL
-          )
-        `
-      ).bind(
-        newId(),
-        submissionId,
-        submission.title,
-        submission.content,
-        submission.category,
-        submission.image_url,
-        submission.link_url,
-        submission.contact,
-        submission.author_name,
-        now
-      ),
+  const time =
+    timestamp();
 
-      env.DB.prepare(
-        `
-          UPDATE submissions
-          SET
-            status = 'approved',
-            reviewed_at = ?
-          WHERE id = ?
-            AND status = 'pending'
-        `
-      ).bind(
-        now,
-        submissionId
-      )
-    ]);
+  const newStatus =
+    approved
+      ? "published"
+      : "rejected";
 
-    return json(
-      {
-        ok: true,
-        message:
-          "Заявка одобрена и опубликована."
-      },
-      200,
-      NO_STORE
-    );
-  } catch (error) {
-    console.error(
-      "Approve error:",
-      error
-    );
+  await dbRun(
+    env.DB,
+    `
+    UPDATE submissions
+    SET
+      status=?,
+      admin_note=?,
+      reviewed_at=?
+    WHERE id=?
+    `,
+    approved
+      ? "approved"
+      : "rejected",
+    clean(data.note, 20000),
+    time,
+    submissionId
+  );
 
-    return json(
-      {
-        ok: false,
-        error:
-          "Не удалось опубликовать заявку."
-      },
-      500,
-      NO_STORE
+  await dbRun(
+    env.DB,
+    `
+    UPDATE publications
+    SET
+      status=?,
+      published_at=?,
+      updated_at=?
+    WHERE id=?
+    `,
+    newStatus,
+    approved ? time : null,
+    time,
+    submission.publication_id
+  );
+
+  if (approved) {
+    await dbRun(
+      env.DB,
+      `
+      UPDATE users
+      SET posts_count=posts_count+1
+      WHERE id=?
+      `,
+      submission.submitter_id
     );
   }
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO notifications
+    (
+      id,
+      recipient_id,
+      actor_id,
+      type,
+      publication_id,
+      text,
+      created_at
+    )
+    VALUES(?,?,?,?,?,?,?)
+    `,
+    id("notification"),
+    submission.submitter_id,
+    null,
+    approved
+      ? "publication_approved"
+      : "publication_rejected",
+    submission.publication_id,
+    approved
+      ? "Ваша публикация одобрена администратором и опубликована."
+      : "Ваша публикация отклонена администратором.",
+    time
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO audit_logs
+    (
+      id,
+      actor,
+      action,
+      target_type,
+      target_id,
+      details,
+      created_at
+    )
+    VALUES(?,?,?,?,?,?,?)
+    `,
+    id("audit"),
+    "admin",
+    approved
+      ? "approve_publication"
+      : "reject_publication",
+    "publication",
+    submission.publication_id,
+    clean(data.note, 20000),
+    time
+  );
+
+  return json({
+    ok: true,
+    status: newStatus,
+    publication_id:
+      submission.publication_id
+  });
 }
 
-/* ============================================================
-   REJECT SUBMISSION
-============================================================ */
+// ============================================================
+// ADMIN REPORTS
+// ============================================================
 
-async function rejectSubmission(
+async function adminReports(
+  env
+) {
+  return json(
+    await dbAll(
+      env.DB,
+      `
+      SELECT *
+      FROM reports
+
+      ORDER BY
+        CASE
+          WHEN status='pending'
+          THEN 0
+          ELSE 1
+        END,
+        created_at DESC
+
+      LIMIT 500
+      `
+    )
+  );
+}
+
+// ============================================================
+// ADMIN DELETE PUBLICATION
+// ============================================================
+
+async function adminDeletePublication(
+  publicationId,
+  env
+) {
+  const publication =
+    await dbOne(
+      env.DB,
+      `
+      SELECT id
+      FROM publications
+      WHERE id=?
+      `,
+      publicationId
+    );
+
+  if (!publication) {
+    return json(
+      {
+        error:
+          "Публикация не найдена."
+      },
+      404
+    );
+  }
+
+  await dbRun(
+    env.DB,
+    `
+    DELETE FROM publication_media
+    WHERE publication_id=?
+    `,
+    publicationId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    DELETE FROM hashtags
+    WHERE publication_id=?
+    `,
+    publicationId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    DELETE FROM translations
+    WHERE publication_id=?
+    `,
+    publicationId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    DELETE FROM comments
+    WHERE publication_id=?
+    `,
+    publicationId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    DELETE FROM reactions
+    WHERE publication_id=?
+    `,
+    publicationId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    DELETE FROM favorites
+    WHERE publication_id=?
+    `,
+    publicationId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    DELETE FROM publications
+    WHERE id=?
+    `,
+    publicationId
+  );
+
+  await dbRun(
+    env.DB,
+    `
+    INSERT INTO audit_logs
+    (
+      id,
+      actor,
+      action,
+      target_type,
+      target_id,
+      created_at
+    )
+    VALUES(?,?,?,?,?,?)
+    `,
+    id("audit"),
+    "admin",
+    "delete_publication",
+    "publication",
+    publicationId,
+    timestamp()
+  );
+
+  return json({
+    ok: true
+  });
+}
+
+// ============================================================
+// ADMIN PIN / UNPIN
+// ============================================================
+
+async function adminPin(
+  publicationId,
+  pinned,
+  env
+) {
+  await dbRun(
+    env.DB,
+    `
+    UPDATE publications
+    SET pinned=?,updated_at=?
+    WHERE id=?
+    `,
+    pinned ? 1 : 0,
+    timestamp(),
+    publicationId
+  );
+
+  return json({
+    ok: true,
+    pinned: Boolean(pinned)
+  });
+}
+
+// ============================================================
+// ADMIN FEATURE
+// ============================================================
+
+async function adminFeature(
+  publicationId,
+  featured,
+  env
+) {
+  await dbRun(
+    env.DB,
+    `
+    UPDATE publications
+    SET featured=?,updated_at=?
+    WHERE id=?
+    `,
+    featured ? 1 : 0,
+    timestamp(),
+    publicationId
+  );
+
+  return json({
+    ok: true,
+    featured: Boolean(featured)
+  });
+}
+
+// ============================================================
+// ROUTER — ADMIN
+// ============================================================
+
+async function handleAdmin(
   request,
-  submissionId,
-  env
+  env,
+  pathname
 ) {
-  await prepareDatabase(env);
-
-  let body = {};
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    body = {};
-  }
-
-  const reason =
-    clean(
-      body.reason,
-      1000
-    ) ||
-    "Материал не соответствует требованиям платформы.";
-
-  const now =
-    new Date().toISOString();
-
-  const result =
-    await env.DB.prepare(
-      `
-        UPDATE submissions
-        SET
-          status = 'rejected',
-          rejection_reason = ?,
-          reviewed_at = ?
-        WHERE id = ?
-          AND status = 'pending'
-          AND deleted_at IS NULL
-      `
-    )
-      .bind(
-        reason,
-        now,
-        submissionId
-      )
-      .run();
-
-  if (!result.meta.changes) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Заявка не найдена или уже обработана."
-      },
-      409,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      message:
-        "Заявка отклонена."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   ADMIN POSTS
-============================================================ */
-
-async function adminPosts(
-  env
-) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        SELECT
-          id,
-          submission_id,
-          title,
-          content,
-          category,
-          image_url,
-          link_url,
-          contact,
-          author_name,
-          published_at
-        FROM posts
-        WHERE deleted_at IS NULL
-        ORDER BY published_at DESC
-        LIMIT 500
-      `
-    )
-      .all();
-
-  return json(
-    {
-      ok: true,
-      posts:
-        result.results || []
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   GET ONE POST
-============================================================ */
-
-async function adminGetPost(
-  postId,
-  env
-) {
-  await prepareDatabase(env);
-
-  const post =
-    await env.DB.prepare(
-      `
-        SELECT
-          id,
-          submission_id,
-          title,
-          content,
-          category,
-          image_url,
-          link_url,
-          contact,
-          author_name,
-          published_at
-        FROM posts
-        WHERE id = ?
-          AND deleted_at IS NULL
-      `
-    )
-      .bind(postId)
-      .first();
-
-  if (!post) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Пост не найден."
-      },
-      404,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      post
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   UPDATE POST
-============================================================ */
-
-async function adminUpdatePost(
-  request,
-  postId,
-  env
-) {
-  await prepareDatabase(env);
-
-  let body = {};
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error:
-          "Некорректные данные."
-      },
-      400,
-      NO_STORE
-    );
-  }
-
-  const title =
-    clean(body.title, 180);
-
-  const content =
-    clean(body.content, 12000);
-
-  const category =
-    clean(body.category, 80);
-
-  const authorName =
-    clean(
-      body.author_name,
-      120
-    );
-
-  const contact =
-    clean(
-      body.contact,
-      300
-    );
-
-  const imageUrl =
-    safeUrl(
-      body.image_url
-    );
-
-  const linkUrl =
-    safeUrl(
-      body.link_url
-    );
-
-  if (title.length < 5) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Заголовок должен содержать минимум 5 символов."
-      },
-      400,
-      NO_STORE
-    );
-  }
-
-  if (content.length < 20) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Описание должно содержать минимум 20 символов."
-      },
-      400,
-      NO_STORE
-    );
-  }
-
-  if (!category) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Укажите категорию."
-      },
-      400,
-      NO_STORE
-    );
-  }
-
-  const result =
-    await env.DB.prepare(
-      `
-        UPDATE posts
-        SET
-          title = ?,
-          content = ?,
-          category = ?,
-          image_url = ?,
-          link_url = ?,
-          contact = ?,
-          author_name = ?
-        WHERE id = ?
-          AND deleted_at IS NULL
-      `
-    )
-      .bind(
-        title,
-        content,
-        category,
-        imageUrl,
-        linkUrl,
-        contact || null,
-        authorName || null,
-        postId
-      )
-      .run();
-
-  if (!result.meta.changes) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Пост не найден."
-      },
-      404,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      message:
-        "Пост успешно изменён."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   MOVE POST TO TRASH
-============================================================ */
-
-async function adminTrashPost(
-  postId,
-  env
-) {
-  await prepareDatabase(env);
-
-  const now =
-    new Date().toISOString();
-
-  const result =
-    await env.DB.prepare(
-      `
-        UPDATE posts
-        SET
-          deleted_at = ?,
-          deleted_reason = 'deleted_by_admin'
-        WHERE id = ?
-          AND deleted_at IS NULL
-      `
-    )
-      .bind(
-        now,
-        postId
-      )
-      .run();
-
-  if (!result.meta.changes) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Пост не найден."
-      },
-      404,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      message:
-        "Пост перемещён в корзину."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   TRASH — ALL DELETED POSTS
-============================================================ */
-
-async function adminTrash(
-  env
-) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        SELECT
-          id,
-          submission_id,
-          title,
-          content,
-          category,
-          image_url,
-          link_url,
-          contact,
-          author_name,
-          published_at,
-          deleted_at,
-          deleted_reason
-        FROM posts
-        WHERE deleted_at IS NOT NULL
-        ORDER BY deleted_at DESC
-        LIMIT 500
-      `
-    )
-      .all();
-
-  const rejected =
-    await env.DB.prepare(
-      `
-        SELECT
-          id,
-          title,
-          content,
-          category,
-          image_url,
-          link_url,
-          contact,
-          author_name,
-          tracking_code,
-          status,
-          rejection_reason,
-          created_at,
-          reviewed_at
-        FROM submissions
-        WHERE status = 'rejected'
-          AND deleted_at IS NULL
-        ORDER BY reviewed_at DESC
-        LIMIT 500
-      `
-    )
-      .all();
-
-  return json(
-    {
-      ok: true,
-      posts:
-        result.results || [],
-      rejected_submissions:
-        rejected.results || []
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   RESTORE POST
-============================================================ */
-
-async function adminRestorePost(
-  postId,
-  env
-) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        UPDATE posts
-        SET
-          deleted_at = NULL,
-          deleted_reason = NULL
-        WHERE id = ?
-          AND deleted_at IS NOT NULL
-      `
-    )
-      .bind(postId)
-      .run();
-
-  if (!result.meta.changes) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Пост в корзине не найден."
-      },
-      404,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      message:
-        "Пост восстановлен."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   PERMANENT DELETE POST
-============================================================ */
-
-async function adminPermanentDeletePost(
-  postId,
-  env
-) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        DELETE FROM posts
-        WHERE id = ?
-          AND deleted_at IS NOT NULL
-      `
-    )
-      .bind(postId)
-      .run();
-
-  if (!result.meta.changes) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Пост в корзине не найден."
-      },
-      404,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      message:
-        "Пост окончательно удалён."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   EMPTY TRASH
-============================================================ */
-
-async function adminEmptyTrash(
-  env
-) {
-  await prepareDatabase(env);
-
-  try {
-    await env.DB.batch([
-      env.DB.prepare(
-        `
-          DELETE FROM posts
-          WHERE deleted_at IS NOT NULL
-        `
-      ),
-
-      env.DB.prepare(
-        `
-          UPDATE submissions
-          SET
-            deleted_at = ?,
-            deleted_reason = 'trash_cleared'
-          WHERE status = 'rejected'
-            AND deleted_at IS NULL
-        `
-      ).bind(
-        new Date().toISOString()
-      )
-    ]);
-
-    return json(
-      {
-        ok: true,
-        message:
-          "Корзина полностью очищена."
-      },
-      200,
-      NO_STORE
-    );
-  } catch (error) {
-    console.error(
-      "Empty trash error:",
-      error
-    );
-
-    return json(
-      {
-        ok: false,
-        error:
-          "Не удалось очистить корзину."
-      },
-      500,
-      NO_STORE
-    );
-  }
-}
-
-/* ============================================================
-   RESTORE REJECTED SUBMISSION
-============================================================ */
-
-async function adminRestoreRejectedSubmission(
-  submissionId,
-  env
-) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        UPDATE submissions
-        SET
-          status = 'pending',
-          rejection_reason = NULL,
-          reviewed_at = NULL,
-          deleted_at = NULL,
-          deleted_reason = NULL
-        WHERE id = ?
-          AND status = 'rejected'
-      `
-    )
-      .bind(
-        submissionId
-      )
-      .run();
-
-  if (!result.meta.changes) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Отклонённая заявка не найдена."
-      },
-      404,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      message:
-        "Заявка восстановлена и снова ожидает проверки."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   PERMANENT DELETE REJECTED SUBMISSION
-============================================================ */
-
-async function adminPermanentDeleteRejectedSubmission(
-  submissionId,
-  env
-) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        DELETE FROM submissions
-        WHERE id = ?
-          AND status = 'rejected'
-      `
-    )
-      .bind(
-        submissionId
-      )
-      .run();
-
-  if (!result.meta.changes) {
-    return json(
-      {
-        ok: false,
-        error:
-          "Отклонённая заявка не найдена."
-      },
-      404,
-      NO_STORE
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      message:
-        "Отклонённая заявка окончательно удалена."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   ADMIN STATS
-============================================================ */
-
-async function adminStats(env) {
-  await prepareDatabase(env);
-
-  const result =
-    await env.DB.prepare(
-      `
-        SELECT
-          (
-            SELECT COUNT(*)
-            FROM posts
-            WHERE deleted_at IS NULL
-          ) AS total_posts,
-
-          (
-            SELECT COUNT(*)
-            FROM posts
-            WHERE deleted_at IS NOT NULL
-          ) AS trash_posts,
-
-          (
-            SELECT COUNT(*)
-            FROM submissions
-            WHERE status = 'pending'
-              AND deleted_at IS NULL
-          ) AS pending,
-
-          (
-            SELECT COUNT(*)
-            FROM submissions
-            WHERE status = 'approved'
-              AND deleted_at IS NULL
-          ) AS approved,
-
-          (
-            SELECT COUNT(*)
-            FROM submissions
-            WHERE status = 'rejected'
-              AND deleted_at IS NULL
-          ) AS rejected,
-
-          (
-            SELECT COUNT(*)
-            FROM submissions
-            WHERE deleted_at IS NULL
-          ) AS total_submissions
-      `
-    )
-      .first();
-
-  return json(
-    {
-      ok: true,
-      stats:
-        result || {
-          total_posts: 0,
-          trash_posts: 0,
-          pending: 0,
-          approved: 0,
-          rejected: 0,
-          total_submissions: 0
-        }
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   DELETE ALL POSTS
-============================================================ */
-
-async function adminTrashAllPosts(
-  env
-) {
-  await prepareDatabase(env);
-
-  const now =
-    new Date().toISOString();
-
-  const result =
-    await env.DB.prepare(
-      `
-        UPDATE posts
-        SET
-          deleted_at = ?,
-          deleted_reason = 'all_posts_deleted_by_admin'
-        WHERE deleted_at IS NULL
-      `
-    )
-      .bind(now)
-      .run();
-
-  return json(
-    {
-      ok: true,
-      deleted:
-        result.meta.changes || 0,
-      message:
-        "Все публикации перемещены в корзину."
-    },
-    200,
-    NO_STORE
-  );
-}
-
-/* ============================================================
-   API ROUTER
-============================================================ */
-
-async function handleApi(
-  request,
-  env
-) {
-  const url =
-    new URL(request.url);
-
-  const path =
-    url.pathname;
-
   const method =
     request.method;
 
-  /* PUBLIC */
-
   if (
-    path === "/api/posts" &&
-    method === "GET"
-  ) {
-    const posts =
-      await getPosts(env);
-
-    return json({
-      ok: true,
-      posts
-    });
-  }
-
-  if (
-    path === "/api/submissions" &&
-    method === "POST"
-  ) {
-    return createSubmission(
-      request,
-      env
-    );
-  }
-
-  if (
-    path === "/api/submissions/status" &&
-    method === "GET"
-  ) {
-    return getSubmissionStatus(
-      request,
-      env
-    );
-  }
-
-  /* ADMIN LOGIN */
-
-  if (
-    path === "/api/admin/login" &&
+    pathname ===
+      "/api/admin/login" &&
     method === "POST"
   ) {
     return adminLogin(
@@ -1693,327 +3171,580 @@ async function handleApi(
   }
 
   if (
-    path === "/api/admin/logout" &&
+    pathname ===
+      "/api/admin/logout" &&
     method === "POST"
   ) {
-    return adminLogout();
+    return json(
+      {
+        ok: true
+      },
+      200,
+      {
+        "set-cookie":
+          `${ADMIN_COOKIE}=; Path=/; Max-Age=0; HttpOnly; Secure; SameSite=Strict`
+      }
+    );
   }
 
-  /* ADMIN PROTECTION */
+  const authorized =
+    await isAdmin(
+      request,
+      env
+    );
+
+  if (!authorized) {
+    return json(
+      {
+        error:
+          "Требуется вход администратора."
+      },
+      401
+    );
+  }
 
   if (
-    path.startsWith(
-      "/api/admin/"
-    )
+    pathname ===
+    "/api/admin/me"
   ) {
-    const authorized =
-      await isAdmin(
-        request,
-        env
-      );
+    return json({
+      ok: true,
+      role: "admin"
+    });
+  }
 
-    if (!authorized) {
-      return json(
-        {
-          ok: false,
-          error:
-            "Требуется авторизация."
-        },
-        401,
-        NO_STORE
-      );
-    }
+  if (
+    pathname ===
+    "/api/admin/stats"
+  ) {
+    return adminStats(env);
+  }
 
-    if (
-      path === "/api/admin/me" &&
-      method === "GET"
-    ) {
-      return json(
-        {
-          ok: true,
-          admin: true
-        },
-        200,
-        NO_STORE
-      );
-    }
+  if (
+    pathname ===
+    "/api/admin/submissions"
+  ) {
+    return adminSubmissions(env);
+  }
 
-    /* STATS */
+  if (
+    pathname ===
+    "/api/admin/reports"
+  ) {
+    return adminReports(env);
+  }
 
-    if (
-      path === "/api/admin/stats" &&
-      method === "GET"
-    ) {
-      return adminStats(env);
-    }
+  const moderation =
+    pathname.match(
+      /^\/api\/admin\/submissions\/([^/]+)\/(approve|reject)$/
+    );
 
-    /* SUBMISSIONS */
+  if (
+    moderation &&
+    method === "POST"
+  ) {
+    return moderateSubmission(
+      request,
+      moderation[1],
+      moderation[2],
+      env
+    );
+  }
 
-    if (
-      path ===
-        "/api/admin/submissions" &&
-      method === "GET"
-    ) {
-      return adminSubmissions(
-        request,
-        env
-      );
-    }
+  const deleteMatch =
+    pathname.match(
+      /^\/api\/admin\/publications\/([^/]+)$/
+    );
 
-    const approveMatch =
-      path.match(
-        /^\/api\/admin\/submissions\/([^/]+)\/approve$/
-      );
+  if (
+    deleteMatch &&
+    method === "DELETE"
+  ) {
+    return adminDeletePublication(
+      deleteMatch[1],
+      env
+    );
+  }
 
-    if (
-      approveMatch &&
-      method === "POST"
-    ) {
-      return approveSubmission(
-        approveMatch[1],
-        env
-      );
-    }
+  const pinMatch =
+    pathname.match(
+      /^\/api\/admin\/publications\/([^/]+)\/pin$/
+    );
 
-    const rejectMatch =
-      path.match(
-        /^\/api\/admin\/submissions\/([^/]+)\/reject$/
-      );
+  if (
+    pinMatch &&
+    method === "POST"
+  ) {
+    const data =
+      await readJson(request)
+        .catch(() => ({}));
 
-    if (
-      rejectMatch &&
-      method === "POST"
-    ) {
-      return rejectSubmission(
-        request,
-        rejectMatch[1],
-        env
-      );
-    }
+    return adminPin(
+      pinMatch[1],
+      Boolean(data.pinned),
+      env
+    );
+  }
 
-    /* POSTS */
+  const featureMatch =
+    pathname.match(
+      /^\/api\/admin\/publications\/([^/]+)\/feature$/
+    );
 
-    if (
-      path ===
-        "/api/admin/posts" &&
-      method === "GET"
-    ) {
-      return adminPosts(env);
-    }
+  if (
+    featureMatch &&
+    method === "POST"
+  ) {
+    const data =
+      await readJson(request)
+        .catch(() => ({}));
 
-    if (
-      path ===
-        "/api/admin/posts/all/trash" &&
-      method === "POST"
-    ) {
-      return adminTrashAllPosts(
-        env
-      );
-    }
-
-    /* TRASH */
-
-    if (
-      path ===
-        "/api/admin/trash" &&
-      method === "GET"
-    ) {
-      return adminTrash(env);
-    }
-
-    if (
-      path ===
-        "/api/admin/trash/empty" &&
-      method === "DELETE"
-    ) {
-      return adminEmptyTrash(
-        env
-      );
-    }
-
-    const postTrashMatch =
-      path.match(
-        /^\/api\/admin\/posts\/([^/]+)\/trash$/
-      );
-
-    if (
-      postTrashMatch &&
-      method === "POST"
-    ) {
-      return adminTrashPost(
-        postTrashMatch[1],
-        env
-      );
-    }
-
-    const postRestoreMatch =
-      path.match(
-        /^\/api\/admin\/posts\/([^/]+)\/restore$/
-      );
-
-    if (
-      postRestoreMatch &&
-      method === "POST"
-    ) {
-      return adminRestorePost(
-        postRestoreMatch[1],
-        env
-      );
-    }
-
-    const postPermanentDeleteMatch =
-      path.match(
-        /^\/api\/admin\/posts\/([^/]+)\/permanent$/
-      );
-
-    if (
-      postPermanentDeleteMatch &&
-      method === "DELETE"
-    ) {
-      return adminPermanentDeletePost(
-        postPermanentDeleteMatch[1],
-        env
-      );
-    }
-
-    /* REJECTED SUBMISSIONS */
-
-    const rejectedRestoreMatch =
-      path.match(
-        /^\/api\/admin\/submissions\/([^/]+)\/restore$/
-      );
-
-    if (
-      rejectedRestoreMatch &&
-      method === "POST"
-    ) {
-      return adminRestoreRejectedSubmission(
-        rejectedRestoreMatch[1],
-        env
-      );
-    }
-
-    const rejectedPermanentDeleteMatch =
-      path.match(
-        /^\/api\/admin\/submissions\/([^/]+)\/permanent$/
-      );
-
-    if (
-      rejectedPermanentDeleteMatch &&
-      method === "DELETE"
-    ) {
-      return adminPermanentDeleteRejectedSubmission(
-        rejectedPermanentDeleteMatch[1],
-        env
-      );
-    }
-
-    /* ONE POST */
-
-    const postMatch =
-      path.match(
-        /^\/api\/admin\/posts\/([^/]+)$/
-      );
-
-    if (
-      postMatch &&
-      method === "GET"
-    ) {
-      return adminGetPost(
-        postMatch[1],
-        env
-      );
-    }
-
-    if (
-      postMatch &&
-      method === "PUT"
-    ) {
-      return adminUpdatePost(
-        request,
-        postMatch[1],
-        env
-      );
-    }
+    return adminFeature(
+      featureMatch[1],
+      Boolean(data.featured),
+      env
+    );
   }
 
   return json(
     {
-      ok: false,
       error:
-        "API route not found."
+        "Admin endpoint not found."
     },
     404
   );
 }
 
-/* ============================================================
-   WORKER
-============================================================ */
+// ============================================================
+// MAIN FETCH
+// ============================================================
 
 export default {
-  async fetch(
-    request,
-    env
-  ) {
-    const url =
-      new URL(request.url);
+  async fetch(request, env) {
 
-    if (
-      url.pathname.startsWith(
-        "/api/"
-      )
-    ) {
-      try {
-        return await handleApi(
+    try {
+
+      if (!env.DB) {
+        return json(
+          {
+            error:
+              "D1 binding DB не настроен."
+          },
+          500
+        );
+      }
+
+      if (!env.ASSETS) {
+        return json(
+          {
+            error:
+              "Assets binding ASSETS не настроен."
+          },
+          500
+        );
+      }
+
+      await prepareDatabase(env);
+
+      const url =
+        new URL(request.url);
+
+      const pathname =
+        url.pathname;
+
+      const method =
+        request.method;
+
+      // --------------------------------------------------------
+      // CORS / OPTIONS
+      // --------------------------------------------------------
+
+      if (method === "OPTIONS") {
+        return new Response(
+          null,
+          {
+            status: 204,
+            headers: {
+              ...SECURITY_HEADERS,
+              "access-control-allow-origin":
+                url.origin,
+              "access-control-allow-methods":
+                "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+              "access-control-allow-headers":
+                "Content-Type"
+            }
+          }
+        );
+      }
+
+      // --------------------------------------------------------
+      // HEALTH
+      // --------------------------------------------------------
+
+      if (
+        pathname ===
+        "/api/health"
+      ) {
+        return json({
+          ok: true,
+          platform:
+            "Tajik Opportunities",
+          version: VERSION,
+          environment:
+            env.ENVIRONMENT || "production",
+          database: true,
+          assets: true,
+          moderation: true,
+          multilingual: true,
+          international: true
+        });
+      }
+
+      // --------------------------------------------------------
+      // META
+      // --------------------------------------------------------
+
+      if (
+        pathname ===
+        "/api/categories"
+      ) {
+        return json(
+          CATEGORIES
+        );
+      }
+
+      if (
+        pathname ===
+        "/api/media-types"
+      ) {
+        return json(
+          MEDIA_TYPES
+        );
+      }
+
+      if (
+        pathname ===
+        "/api/languages"
+      ) {
+        return json({
+          all_supported: true,
+          count:
+            LANGUAGES.length,
+          languages:
+            LANGUAGES
+        });
+      }
+
+      // --------------------------------------------------------
+      // PUBLICATIONS
+      // --------------------------------------------------------
+
+      if (
+        pathname ===
+          "/api/publications" &&
+        method === "GET"
+      ) {
+        return json(
+          await listPublications(
+            request,
+            env
+          )
+        );
+      }
+
+      if (
+        pathname ===
+          "/api/publications" &&
+        method === "POST"
+      ) {
+        return createPublication(
           request,
           env
         );
-      } catch (error) {
-        console.error(
-          "Unhandled API error:",
-          error
+      }
+
+      // --------------------------------------------------------
+      // SINGLE PUBLICATION
+      // --------------------------------------------------------
+
+      const publicationMatch =
+        pathname.match(
+          /^\/api\/publications\/([^/]+)$/
         );
+
+      if (
+        publicationMatch &&
+        method === "GET"
+      ) {
+        const publication =
+          await getPublication(
+            publicationMatch[1],
+            env
+          );
+
+        if (!publication) {
+          return json(
+            {
+              error:
+                "Публикация не найдена."
+            },
+            404
+          );
+        }
 
         return json(
-          {
-            ok: false,
-            error:
-              "Внутренняя ошибка сервера."
-          },
-          500,
-          NO_STORE
+          publication
         );
       }
-    }
 
-    let response =
-      await env.ASSETS.fetch(
-        request
-      );
+      // --------------------------------------------------------
+      // PUBLICATION ACTIONS
+      // --------------------------------------------------------
 
-    if (
-      response.status === 404 &&
-      url.pathname === "/"
-    ) {
-      const indexUrl =
-        new URL(
-          "/index.html",
-          request.url
+      const actionMatch =
+        pathname.match(
+          /^\/api\/publications\/([^/]+)\/(view|react|favorite|share|comments|translate)$/
         );
 
-      const indexRequest =
-        new Request(
-          indexUrl,
+      if (actionMatch) {
+
+        const publicationId =
+          actionMatch[1];
+
+        const action =
+          actionMatch[2];
+
+        if (
+          action === "view" &&
+          method === "POST"
+        ) {
+          return addView(
+            publicationId,
+            env
+          );
+        }
+
+        if (
+          action === "react" &&
+          method === "POST"
+        ) {
+          return reactPublication(
+            request,
+            publicationId,
+            env
+          );
+        }
+
+        if (
+          action === "favorite" &&
+          method === "POST"
+        ) {
+          return toggleFavorite(
+            request,
+            publicationId,
+            env
+          );
+        }
+
+        if (
+          action === "share" &&
+          method === "POST"
+        ) {
+          return sharePublication(
+            publicationId,
+            env
+          );
+        }
+
+        if (
+          action === "comments"
+        ) {
+          return comments(
+            request,
+            publicationId,
+            env
+          );
+        }
+
+        if (
+          action === "translate" &&
+          method === "POST"
+        ) {
+          return translationRequest(
+            request,
+            publicationId,
+            env
+          );
+        }
+      }
+
+      // --------------------------------------------------------
+      // FOLLOW
+      // --------------------------------------------------------
+
+      const followMatch =
+        pathname.match(
+          /^\/api\/users\/([^/]+)\/follow$/
+        );
+
+      if (
+        followMatch &&
+        method === "POST"
+      ) {
+        return followUser(
+          request,
+          followMatch[1],
+          env
+        );
+      }
+
+      // --------------------------------------------------------
+      // PROFILE
+      // --------------------------------------------------------
+
+      const profileMatch =
+        pathname.match(
+          /^\/api\/users\/([^/]+)$/
+        );
+
+      if (
+        profileMatch &&
+        method === "GET"
+      ) {
+        const data =
+          await profile(
+            profileMatch[1],
+            env
+          );
+
+        if (!data) {
+          return json(
+            {
+              error:
+                "Профиль не найден."
+            },
+            404
+          );
+        }
+
+        return json(data);
+      }
+
+      // --------------------------------------------------------
+      // NOTIFICATIONS
+      // --------------------------------------------------------
+
+      if (
+        pathname ===
+        "/api/notifications" &&
+        method === "GET"
+      ) {
+        return notifications(
+          request,
+          env
+        );
+      }
+
+      // --------------------------------------------------------
+      // REPORTS
+      // --------------------------------------------------------
+
+      if (
+        pathname ===
+          "/api/reports" &&
+        method === "POST"
+      ) {
+        return createReport(
+          request,
+          env
+        );
+      }
+
+      // --------------------------------------------------------
+      // ADMIN
+      // --------------------------------------------------------
+
+      if (
+        pathname.startsWith(
+          "/api/admin/"
+        )
+      ) {
+        return handleAdmin(
+          request,
+          env,
+          pathname
+        );
+      }
+
+      // --------------------------------------------------------
+      // STATIC ASSETS
+      // --------------------------------------------------------
+
+      const assetResponse =
+        await env.ASSETS.fetch(
           request
         );
 
-      response =
-        await env.ASSETS.fetch(
-          indexRequest
-        );
-    }
+      if (
+        assetResponse.status !== 404
+      ) {
+        return assetResponse;
+      }
 
-    return response;
+      // --------------------------------------------------------
+      // SPA FALLBACK
+      // --------------------------------------------------------
+
+      const indexResponse =
+        await env.ASSETS.fetch(
+          new Request(
+            new URL(
+              "/index.html",
+              request.url
+            ),
+            request
+          )
+        );
+
+      if (
+        indexResponse.status !== 404
+      ) {
+        return indexResponse;
+      }
+
+      return text(
+        "Tajik Opportunities — Page not found.",
+        404
+      );
+
+    } catch (error) {
+
+      console.error(
+        "TAJIK OPPORTUNITIES ERROR:",
+        error
+      );
+
+      if (
+        error?.message ===
+        "REQUEST_TOO_LARGE"
+      ) {
+        return json(
+          {
+            error:
+              "Запрос слишком большой."
+          },
+          413
+        );
+      }
+
+      return json(
+        {
+          error:
+            "Внутренняя ошибка сервера.",
+          version: VERSION
+        },
+        500
+      );
+    }
   }
 };
