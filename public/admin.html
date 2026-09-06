@@ -10,591 +10,880 @@
 
   <meta
     name="robots"
-    content="noindex, nofollow, noarchive"
-  >
-
-  <meta
-    name="description"
-    content="Закрытая панель модерации Tajik Opportunities."
+    content="noindex,nofollow"
   >
 
   <title>Админ-панель — Tajik Opportunities</title>
 
   <link
-    rel="icon"
-    href="/images/Image_2026_09_05_19_01_30.jpg"
-  >
-
-  <link
     rel="stylesheet"
     href="/css/style.css"
   >
+
+  <style>
+    [hidden] {
+      display: none !important;
+    }
+
+    .admin-page {
+      min-height: 100vh;
+      padding: 24px 16px 50px;
+    }
+
+    .admin-container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .admin-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+    }
+
+    .admin-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .admin-brand img {
+      width: 48px;
+      height: 48px;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    .admin-brand h1 {
+      margin: 0;
+      font-size: 24px;
+    }
+
+    .admin-brand p {
+      margin: 3px 0 0;
+      opacity: .7;
+      font-size: 14px;
+    }
+
+    .admin-header-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .admin-button {
+      border: 0;
+      border-radius: 10px;
+      padding: 11px 16px;
+      cursor: pointer;
+      font-weight: 600;
+      background: #111827;
+      color: white;
+    }
+
+    .admin-button:hover {
+      opacity: .9;
+    }
+
+    .admin-button.secondary {
+      background: #e5e7eb;
+      color: #111827;
+    }
+
+    .admin-button.danger {
+      background: #dc2626;
+      color: white;
+    }
+
+    .admin-button.success {
+      background: #16a34a;
+      color: white;
+    }
+
+    .admin-button:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+    }
+
+    .admin-login-card {
+      width: 100%;
+      max-width: 450px;
+      margin: 70px auto;
+      padding: 28px;
+      border-radius: 18px;
+      background: white;
+      box-shadow: 0 10px 35px rgba(0,0,0,.10);
+    }
+
+    .admin-login-card h2 {
+      margin-top: 0;
+    }
+
+    .admin-login-card input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 13px 14px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      margin: 10px 0 14px;
+      font-size: 16px;
+    }
+
+    .admin-login-card button {
+      width: 100%;
+    }
+
+    .admin-message {
+      margin-top: 12px;
+      font-size: 14px;
+    }
+
+    .admin-message.error {
+      color: #dc2626;
+    }
+
+    .admin-message.success {
+      color: #16a34a;
+    }
+
+    .admin-stats {
+      display: grid;
+      grid-template-columns:
+        repeat(5, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    .admin-stat {
+      background: white;
+      border-radius: 14px;
+      padding: 18px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+    }
+
+    .admin-stat-title {
+      font-size: 13px;
+      opacity: .65;
+      margin-bottom: 8px;
+    }
+
+    .admin-stat-value {
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .admin-section {
+      background: white;
+      border-radius: 18px;
+      padding: 20px;
+      margin-bottom: 22px;
+      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+    }
+
+    .admin-section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .admin-section-header h2 {
+      margin: 0;
+      font-size: 21px;
+    }
+
+    .admin-filters {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+      margin-bottom: 18px;
+    }
+
+    .admin-filter {
+      border: 1px solid #d1d5db;
+      background: white;
+      color: #111827;
+      border-radius: 9px;
+      padding: 8px 13px;
+      cursor: pointer;
+    }
+
+    .admin-filter.active {
+      background: #111827;
+      color: white;
+      border-color: #111827;
+    }
+
+    .admin-submission-card,
+    .admin-post-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    .admin-submission-card {
+      display: flex;
+      justify-content: space-between;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .admin-card-content h3,
+    .admin-post-info h3 {
+      margin: 0 0 8px;
+      font-size: 18px;
+    }
+
+    .admin-card-meta,
+    .admin-post-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 13px;
+      opacity: .65;
+      margin-bottom: 8px;
+    }
+
+    .admin-status {
+      display: inline-block;
+      font-size: 12px;
+      padding: 5px 9px;
+      border-radius: 7px;
+      background: #f3f4f6;
+    }
+
+    .admin-card-actions,
+    .admin-post-actions {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .admin-card-actions button,
+    .admin-post-actions button {
+      border: 0;
+      border-radius: 8px;
+      padding: 9px 12px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+
+    .admin-view-button,
+    .admin-post-open {
+      background: #111827;
+      color: white;
+    }
+
+    .admin-post-edit {
+      background: #2563eb;
+      color: white;
+    }
+
+    .admin-post-delete {
+      background: #dc2626;
+      color: white;
+    }
+
+    .admin-post-main {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 15px;
+    }
+
+    .admin-post-image {
+      width: 120px;
+      height: 90px;
+      object-fit: cover;
+      border-radius: 10px;
+      flex-shrink: 0;
+    }
+
+    .admin-post-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .admin-post-info p {
+      margin: 8px 0 0;
+      line-height: 1.5;
+      opacity: .8;
+    }
+
+    .admin-loading,
+    .admin-empty,
+    .admin-error {
+      padding: 25px;
+      text-align: center;
+      border-radius: 12px;
+      background: #f9fafb;
+    }
+
+    .admin-error {
+      color: #dc2626;
+    }
+
+    .admin-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: rgba(0,0,0,.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 15px;
+    }
+
+    .admin-modal-content {
+      width: 100%;
+      max-width: 700px;
+      max-height: 90vh;
+      overflow-y: auto;
+      background: white;
+      border-radius: 18px;
+      padding: 22px;
+      box-sizing: border-box;
+    }
+
+    .admin-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .admin-modal-header h2 {
+      margin: 0;
+    }
+
+    .admin-close {
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 9px;
+      cursor: pointer;
+      font-size: 20px;
+      background: #f3f4f6;
+    }
+
+    .admin-modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 20px;
+    }
+
+    .submission-text,
+    .post-details {
+      line-height: 1.65;
+    }
+
+    .post-edit-form {
+      display: grid;
+      gap: 13px;
+    }
+
+    .post-edit-form label {
+      display: grid;
+      gap: 6px;
+      font-weight: 600;
+    }
+
+    .post-edit-form input,
+    .post-edit-form textarea,
+    .post-edit-form select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 11px 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 9px;
+      font: inherit;
+    }
+
+    .post-edit-form textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+
+    .admin-footer {
+      text-align: center;
+      opacity: .6;
+      padding-top: 15px;
+      font-size: 13px;
+    }
+
+    @media (max-width: 900px) {
+      .admin-stats {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 600px) {
+      .admin-page {
+        padding: 15px 10px 35px;
+      }
+
+      .admin-section {
+        padding: 14px;
+      }
+
+      .admin-submission-card {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .admin-post-main {
+        flex-direction: column;
+      }
+
+      .admin-post-image {
+        width: 100%;
+        height: 180px;
+      }
+
+      .admin-stats {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .admin-modal-content {
+        padding: 16px;
+      }
+    }
+  </style>
 </head>
 
-<body class="admin-page">
+<body>
 
-  <!-- ========================================================
-       ШАПКА
-       ======================================================== -->
+  <main class="admin-page">
 
-  <header class="site-header admin-header">
+    <div class="admin-container">
 
-    <div class="container header-inner">
+      <!-- =====================================================
+           HEADER
+      ====================================================== -->
 
-      <a
-        href="/"
-        class="brand"
-        aria-label="Tajik Opportunities — главная"
-      >
-        <img
-          src="/images/Image_2026_09_05_19_01_30.jpg"
-          alt="Tajik Opportunities"
-          class="brand-logo"
+      <header class="admin-header">
+
+        <div class="admin-brand">
+
+          <img
+            src="/images/logo.png"
+            alt="Tajik Opportunities"
+            onerror="this.style.display='none'"
+          >
+
+          <div>
+            <h1>Панель администратора</h1>
+            <p>Tajik Opportunities</p>
+          </div>
+
+        </div>
+
+        <div
+          class="admin-header-actions"
+          id="adminHeaderActions"
         >
 
-        <span class="brand-text">
-          Tajik Opportunities
-        </span>
-      </a>
+          <a
+            href="/"
+            class="admin-button secondary"
+          >
+            На сайт
+          </a>
 
-      <div class="admin-header-title">
-        <span
-          class="admin-lock-icon"
-          aria-hidden="true"
-        >
-          🔐
-        </span>
+          <button
+            type="button"
+            class="admin-button"
+            id="adminRefresh"
+          >
+            🔄 Обновить
+          </button>
 
-        <span>
-          Панель администратора
-        </span>
-      </div>
+          <button
+            type="button"
+            class="admin-button danger"
+            id="adminLogout"
+          >
+            Выйти
+          </button>
 
-      <a
-        href="/"
-        class="header-home-link"
-      >
-        На сайт
-      </a>
+        </div>
 
-    </div>
-
-  </header>
+      </header>
 
 
-  <!-- ========================================================
-       ОСНОВНОЕ СОДЕРЖИМОЕ
-       ======================================================== -->
-
-  <main class="admin-main">
-
-    <div class="container">
-
-
-      <!-- ====================================================
-           ВХОД
-           ==================================================== -->
+      <!-- =====================================================
+           LOGIN
+      ====================================================== -->
 
       <section
         id="adminLogin"
-        class="admin-login-section"
-        aria-labelledby="adminLoginTitle"
+        class="admin-login-card"
       >
 
-        <div class="admin-login-card">
-
-          <div
-            class="admin-login-icon"
-            aria-hidden="true"
-          >
-            🔐
-          </div>
-
-          <div class="admin-login-heading">
-
-            <span class="section-kicker">
-              Закрытый доступ
-            </span>
-
-            <h1 id="adminLoginTitle">
-              Панель администратора
-            </h1>
-
-            <p>
-              Войдите, чтобы просматривать и модерировать
-              публикации пользователей.
-            </p>
-
-          </div>
-
-
-          <form
-            id="adminLoginForm"
-            class="admin-login-form"
-            autocomplete="off"
-          >
-
-            <div class="form-group">
-
-              <label
-                for="adminPassword"
-                class="form-label"
-              >
-                Пароль администратора
-              </label>
-
-              <input
-                type="password"
-                id="adminPassword"
-                name="password"
-                class="form-input"
-                placeholder="Введите пароль"
-                autocomplete="current-password"
-                required
-                minlength="1"
-              >
-
-            </div>
-
-
-            <button
-              type="submit"
-              id="adminLoginButton"
-              class="btn btn-primary btn-large admin-login-submit"
-            >
-              <span class="button-text">
-                Войти в панель
-              </span>
-            </button>
-
-
-            <div
-              id="adminLoginMessage"
-              class="form-message"
-              hidden
-              role="alert"
-            ></div>
-
-          </form>
-
-
-          <div class="admin-security-note">
-
-            <span aria-hidden="true">
-              🛡️
-            </span>
-
-            <span>
-              Доступ защищён серверной авторизацией.
-              Пароль не хранится в этой странице.
-            </span>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- ====================================================
-           ПАНЕЛЬ
-           ==================================================== -->
-
-      <section
-        id="adminDashboard"
-        class="admin-dashboard"
-        hidden
-      >
-
-
-        <!-- ==================================================
-             ЗАГОЛОВОК
-             ================================================== -->
-
-        <div class="admin-page-heading">
-
-          <div>
-
-            <span class="section-kicker">
-              Управление контентом
-            </span>
-
-            <h1>
-              Модерация публикаций
-            </h1>
-
-            <p>
-              Здесь находятся материалы, отправленные
-              пользователями. Только после одобрения публикация
-              появляется на сайте.
-            </p>
-
-          </div>
-
-
-          <div class="admin-heading-actions">
-
-            <button
-              type="button"
-              id="adminRefresh"
-              class="btn btn-secondary"
-            >
-              🔄 Обновить
-            </button>
-
-            <button
-              type="button"
-              id="adminLogout"
-              class="btn btn-danger"
-            >
-              🚪 Выйти
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- ==================================================
-             СТАТИСТИКА
-             ================================================== -->
-
-        <div class="admin-stats-grid">
-
-          <button
-            type="button"
-            class="admin-stat-card active"
-            data-admin-filter="pending"
-            aria-pressed="true"
-          >
-
-            <span class="admin-stat-icon">
-              🕐
-            </span>
-
-            <span class="admin-stat-content">
-
-              <span class="admin-stat-label">
-                На модерации
-              </span>
-
-              <strong
-                id="pendingCount"
-                class="admin-stat-number"
-              >
-                0
-              </strong>
-
-            </span>
-
-          </button>
-
-
-          <button
-            type="button"
-            class="admin-stat-card"
-            data-admin-filter="approved"
-            aria-pressed="false"
-          >
-
-            <span class="admin-stat-icon">
-              ✅
-            </span>
-
-            <span class="admin-stat-content">
-
-              <span class="admin-stat-label">
-                Одобрено
-              </span>
-
-              <strong
-                id="approvedCount"
-                class="admin-stat-number"
-              >
-                0
-              </strong>
-
-            </span>
-
-          </button>
-
-
-          <button
-            type="button"
-            class="admin-stat-card"
-            data-admin-filter="rejected"
-            aria-pressed="false"
-          >
-
-            <span class="admin-stat-icon">
-              ❌
-            </span>
-
-            <span class="admin-stat-content">
-
-              <span class="admin-stat-label">
-                Отклонено
-              </span>
-
-              <strong
-                id="rejectedCount"
-                class="admin-stat-number"
-              >
-                0
-              </strong>
-
-            </span>
-
-          </button>
-
-
-          <button
-            type="button"
-            class="admin-stat-card"
-            data-admin-filter="all"
-            aria-pressed="false"
-          >
-
-            <span class="admin-stat-icon">
-              📊
-            </span>
-
-            <span class="admin-stat-content">
-
-              <span class="admin-stat-label">
-                Всего
-              </span>
-
-              <strong
-                id="totalCount"
-                class="admin-stat-number"
-              >
-                0
-              </strong>
-
-            </span>
-
-          </button>
-
-        </div>
-
-
-        <!-- ==================================================
-             ФИЛЬТРЫ
-             ================================================== -->
-
-        <div class="admin-filter-bar">
-
-          <div class="admin-filter-title">
-            Заявки
-          </div>
-
-          <div class="admin-filter-buttons">
-
-            <button
-              type="button"
-              class="admin-filter-button active"
-              data-admin-filter="pending"
-              aria-pressed="true"
-            >
-              🕐 На модерации
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter-button"
-              data-admin-filter="approved"
-              aria-pressed="false"
-            >
-              ✅ Одобрено
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter-button"
-              data-admin-filter="rejected"
-              aria-pressed="false"
-            >
-              ❌ Отклонено
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter-button"
-              data-admin-filter="all"
-              aria-pressed="false"
-            >
-              📋 Все
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <!-- ==================================================
-             ЗАГРУЗКА
-             ================================================== -->
+        <h2>🔐 Вход администратора</h2>
+
+        <p>
+          Только администратор может управлять
+          публикациями и заявками.
+        </p>
+
+        <input
+          type="password"
+          id="adminPassword"
+          placeholder="Пароль администратора"
+          autocomplete="current-password"
+        >
+
+        <button
+          type="button"
+          class="admin-button"
+          id="adminLoginButton"
+        >
+          Войти
+        </button>
 
         <div
-          id="adminLoading"
-          class="state-box loading-state"
-          hidden
+          id="adminLoginMessage"
+          class="admin-message"
           aria-live="polite"
-        >
-
-          <div
-            class="loading-spinner"
-            aria-hidden="true"
-          ></div>
-
-          <h2>
-            Загружаем заявки…
-          </h2>
-
-          <p>
-            Пожалуйста, подождите.
-          </p>
-
-        </div>
-
-
-        <!-- ==================================================
-             ОШИБКА
-             ================================================== -->
-
-        <div
-          id="adminError"
-          class="state-box error-state"
-          hidden
-          role="alert"
-        >
-
-          <div
-            class="state-icon"
-            aria-hidden="true"
-          >
-            ⚠️
-          </div>
-
-          <h2>
-            Произошла ошибка
-          </h2>
-
-          <p id="adminErrorMessage">
-            Не удалось загрузить заявки.
-          </p>
-
-          <button
-            type="button"
-            id="adminRetry"
-            class="btn btn-primary"
-          >
-            🔄 Попробовать снова
-          </button>
-
-        </div>
-
-
-        <!-- ==================================================
-             ПУСТО
-             ================================================== -->
-
-        <div
-          id="adminEmpty"
-          class="state-box empty-state"
-          hidden
-        >
-
-          <div
-            class="state-icon"
-            aria-hidden="true"
-          >
-            📭
-          </div>
-
-          <h2>
-            Здесь пока ничего нет
-          </h2>
-
-          <p>
-            Для выбранного фильтра заявки отсутствуют.
-          </p>
-
-        </div>
-
-
-        <!-- ==================================================
-             СПИСОК ЗАЯВОК
-             ================================================== -->
-
-        <div
-          id="submissionsList"
-          class="admin-submissions-list"
         ></div>
 
       </section>
+
+
+      <!-- =====================================================
+           DASHBOARD
+      ====================================================== -->
+
+      <section
+        id="adminDashboard"
+        hidden
+      >
+
+        <!-- ===================================================
+             STATS
+        ==================================================== -->
+
+        <div class="admin-stats">
+
+          <div class="admin-stat">
+            <div class="admin-stat-title">
+              Ожидают проверки
+            </div>
+
+            <div
+              class="admin-stat-value"
+              id="pendingCount"
+            >
+              0
+            </div>
+          </div>
+
+          <div class="admin-stat">
+            <div class="admin-stat-title">
+              Одобрено
+            </div>
+
+            <div
+              class="admin-stat-value"
+              id="approvedCount"
+            >
+              0
+            </div>
+          </div>
+
+          <div class="admin-stat">
+            <div class="admin-stat-title">
+              Отклонено
+            </div>
+
+            <div
+              class="admin-stat-value"
+              id="rejectedCount"
+            >
+              0
+            </div>
+          </div>
+
+          <div class="admin-stat">
+            <div class="admin-stat-title">
+              Опубликованные посты
+            </div>
+
+            <div
+              class="admin-stat-value"
+              id="totalCount"
+            >
+              0
+            </div>
+          </div>
+
+          <div class="admin-stat">
+            <div class="admin-stat-title">
+              Всего заявок
+            </div>
+
+            <div
+              class="admin-stat-value"
+              id="totalSubmissionsCount"
+            >
+              0
+            </div>
+          </div>
+
+        </div>
+
+
+        <!-- ===================================================
+             ЗАЯВКИ
+        ==================================================== -->
+
+        <section class="admin-section">
+
+          <div class="admin-section-header">
+
+            <h2>
+              📥 Заявки пользователей
+            </h2>
+
+          </div>
+
+          <div class="admin-filters">
+
+            <button
+              type="button"
+              class="admin-filter active"
+              data-admin-filter="pending"
+            >
+              Ожидают
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-admin-filter="approved"
+            >
+              Одобрены
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-admin-filter="rejected"
+            >
+              Отклонены
+            </button>
+
+          </div>
+
+          <div
+            id="submissionsLoading"
+            class="admin-loading"
+            hidden
+          >
+            Загружаем заявки...
+          </div>
+
+          <div
+            id="submissionsError"
+            class="admin-error"
+            hidden
+          ></div>
+
+          <div
+            id="submissionsEmpty"
+            class="admin-empty"
+            hidden
+          >
+            Заявок нет.
+          </div>
+
+          <div
+            id="submissionsList"
+          ></div>
+
+        </section>
+
+
+        <!-- ===================================================
+             ВСЕ ПОСТЫ
+        ==================================================== -->
+
+        <section class="admin-section">
+
+          <div class="admin-section-header">
+
+            <h2>
+              📰 Все опубликованные посты
+            </h2>
+
+            <button
+              type="button"
+              class="admin-button"
+              id="adminPostsRefresh"
+            >
+              🔄 Обновить посты
+            </button>
+
+          </div>
+
+          <div class="admin-filters">
+
+            <button
+              type="button"
+              class="admin-filter active"
+              data-post-filter="all"
+            >
+              Все
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-post-filter="Вакансии"
+            >
+              Вакансии
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-post-filter="События"
+            >
+              События
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-post-filter="Новости"
+            >
+              Новости
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-post-filter="Образование"
+            >
+              Образование
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-post-filter="Другое"
+            >
+              Другое
+            </button>
+
+          </div>
+
+          <div
+            id="adminPostsLoading"
+            class="admin-loading"
+            hidden
+          >
+            Загружаем посты...
+          </div>
+
+          <div
+            id="adminPostsError"
+            class="admin-error"
+            hidden
+          ></div>
+
+          <div
+            id="adminPostsEmpty"
+            class="admin-empty"
+            hidden
+          >
+            Опубликованных постов пока нет.
+          </div>
+
+          <div
+            id="adminPostsList"
+          ></div>
+
+        </section>
+
+      </section>
+
+      <footer class="admin-footer">
+        Tajik Opportunities — Панель администратора
+      </footer>
 
     </div>
 
   </main>
 
 
-  <!-- ========================================================
-       МОДАЛЬНОЕ ОКНО ЗАЯВКИ
-       ======================================================== -->
+  <!-- =======================================================
+       MODAL: ЗАЯВКА
+  ======================================================== -->
 
   <div
     id="submissionModal"
-    class="modal-overlay"
+    class="admin-modal"
     hidden
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="submissionModalTitle"
   >
 
-    <div class="modal-dialog">
+    <div class="admin-modal-content">
 
-      <div class="modal-header">
+      <div class="admin-modal-header">
 
-        <h2 id="submissionModalTitle">
+        <h2>
           Заявка
         </h2>
 
         <button
           type="button"
-          id="submissionModalClose"
-          class="modal-close"
-          aria-label="Закрыть"
+          class="admin-close"
+          id="submissionClose"
         >
           ×
         </button>
 
       </div>
 
-
       <div
         id="submissionModalBody"
-        class="modal-body"
       ></div>
 
-
-      <div class="modal-footer">
+      <div class="admin-modal-actions">
 
         <button
           type="button"
-          id="submissionReject"
-          class="btn btn-danger"
+          class="admin-button secondary"
+          id="submissionCancel"
         >
-          ✕ Отклонить
+          Закрыть
         </button>
 
         <button
           type="button"
-          id="submissionApprove"
-          class="btn btn-primary"
+          class="admin-button danger"
+          id="submissionReject"
         >
-          ✓ Одобрить и опубликовать
+          Отклонить
+        </button>
+
+        <button
+          type="button"
+          class="admin-button success"
+          id="submissionApprove"
+        >
+          Опубликовать
         </button>
 
       </div>
@@ -604,92 +893,198 @@
   </div>
 
 
-  <!-- ========================================================
-       МОДАЛЬНОЕ ОКНО ОТКЛОНЕНИЯ
-       ======================================================== -->
+  <!-- =======================================================
+       MODAL: ПРОСМОТР ПОСТА
+  ======================================================== -->
 
   <div
-    id="rejectModal"
-    class="modal-overlay"
+    id="postModal"
+    class="admin-modal"
     hidden
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="rejectModalTitle"
   >
 
-    <div class="modal-dialog modal-small">
+    <div class="admin-modal-content">
 
-      <div class="modal-header">
+      <div class="admin-modal-header">
 
-        <h2 id="rejectModalTitle">
-          Отклонение публикации
+        <h2>
+          Просмотр поста
         </h2>
 
         <button
           type="button"
-          id="rejectClose"
-          class="modal-close"
-          aria-label="Закрыть"
+          class="admin-close"
+          id="postModalClose"
         >
           ×
         </button>
 
       </div>
 
+      <div
+        id="postModalBody"
+      ></div>
 
-      <form id="rejectForm">
+      <div class="admin-modal-actions">
 
-        <div class="modal-body">
+        <button
+          type="button"
+          class="admin-button secondary"
+          id="postModalCancel"
+        >
+          Закрыть
+        </button>
 
-          <p class="modal-description">
-            Укажите причину, по которой публикация
-            не может быть опубликована.
-          </p>
+      </div>
 
-          <div class="form-group">
+    </div>
 
-            <label
-              for="rejectReason"
-              class="form-label"
-            >
-              Причина отклонения
-            </label>
-
-            <textarea
-              id="rejectReason"
-              name="reason"
-              class="form-textarea"
-              rows="6"
-              maxlength="2000"
-              placeholder="Например: необходимо добавить источник, исправить контактные данные или уточнить информацию."
-              required
-            ></textarea>
-
-            <div class="form-hint">
-              Минимум 5 символов, максимум 2000.
-            </div>
-
-          </div>
-
-        </div>
+  </div>
 
 
-        <div class="modal-footer">
+  <!-- =======================================================
+       MODAL: РЕДАКТИРОВАНИЕ ПОСТА
+  ======================================================== -->
+
+  <div
+    id="postEditModal"
+    class="admin-modal"
+    hidden
+  >
+
+    <div class="admin-modal-content">
+
+      <div class="admin-modal-header">
+
+        <h2>
+          ✏️ Редактирование поста
+        </h2>
+
+        <button
+          type="button"
+          class="admin-close"
+          id="postEditClose"
+        >
+          ×
+        </button>
+
+      </div>
+
+      <form
+        id="postEditForm"
+        class="post-edit-form"
+      >
+
+        <label>
+          Заголовок
+
+          <input
+            type="text"
+            id="editPostTitle"
+            maxlength="180"
+            required
+          >
+        </label>
+
+        <label>
+          Категория
+
+          <select
+            id="editPostCategory"
+            required
+          >
+            <option value="">
+              Выберите категорию
+            </option>
+
+            <option value="Вакансии">
+              Вакансии
+            </option>
+
+            <option value="События">
+              События
+            </option>
+
+            <option value="Новости">
+              Новости
+            </option>
+
+            <option value="Образование">
+              Образование
+            </option>
+
+            <option value="Другое">
+              Другое
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Описание
+
+          <textarea
+            id="editPostContent"
+            maxlength="12000"
+            required
+          ></textarea>
+        </label>
+
+        <label>
+          Ссылка на изображение
+
+          <input
+            type="url"
+            id="editPostImage"
+            placeholder="https://..."
+          >
+        </label>
+
+        <label>
+          Ссылка поста
+
+          <input
+            type="url"
+            id="editPostLink"
+            placeholder="https://..."
+          >
+        </label>
+
+        <label>
+          Контакт
+
+          <input
+            type="text"
+            id="editPostContact"
+            maxlength="300"
+          >
+        </label>
+
+        <label>
+          Автор
+
+          <input
+            type="text"
+            id="editPostAuthor"
+            maxlength="120"
+          >
+        </label>
+
+        <div class="admin-modal-actions">
 
           <button
             type="button"
-            id="rejectCancel"
-            class="btn btn-secondary"
+            class="admin-button secondary"
+            id="postEditCancel"
           >
             Отмена
           </button>
 
           <button
             type="submit"
-            id="rejectSubmit"
-            class="btn btn-danger"
+            class="admin-button success"
+            id="postEditSave"
           >
-            ✕ Отклонить публикацию
+            💾 Сохранить изменения
           </button>
 
         </div>
@@ -701,39 +1096,56 @@
   </div>
 
 
-  <!-- ========================================================
-       FOOTER
-       ======================================================== -->
-
-  <footer class="site-footer admin-footer">
-
-    <div class="container">
-
-      <div class="footer-bottom">
-
-        <span>
-          ©
-          <span id="currentYear"></span>
-          Tajik Opportunities
-        </span>
-
-        <span>
-          Закрытая административная панель
-        </span>
-
-      </div>
-
-    </div>
-
-  </footer>
-
-
-  <!-- ========================================================
-       JAVASCRIPT
-       ======================================================== -->
+  <!-- =======================================================
+       SCRIPTS
+  ======================================================== -->
 
   <script src="/js/app.js"></script>
   <script src="/js/admin.js"></script>
 
+  <script>
+    /*
+     * Дополнительные кнопки страницы администратора.
+     * Основная логика находится в /js/admin.js
+     */
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => {
+
+        const refreshPosts =
+          document.getElementById(
+            "adminPostsRefresh"
+          );
+
+        if (refreshPosts) {
+
+          refreshPosts.addEventListener(
+            "click",
+            async () => {
+
+              if (
+                typeof loadPosts ===
+                "function"
+              ) {
+                await loadPosts();
+              }
+
+              if (
+                typeof loadStats ===
+                "function"
+              ) {
+                await loadStats();
+              }
+
+            }
+          );
+
+        }
+
+      }
+    );
+  </script>
+
 </body>
-              </html>
+        </html>
