@@ -5,17 +5,1090 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="theme-color" content="#0b3d2e">
-  <meta name="description" content="Tajik Opportunities — международная платформа возможностей, общения, публикаций, работы, образования, проектов, услуг, новостей и многого другого.">
+  <meta name="color-scheme" content="light dark">
+
+  <meta
+    name="description"
+    content="Tajik Opportunities — международная платформа возможностей, где можно находить работу, образование, гранты, конкурсы, проекты, услуги, новости, мероприятия и общаться с участниками."
+  >
+
+  <meta
+    name="keywords"
+    content="Tajik Opportunities, Таджикистан, работа, вакансии, образование, гранты, конкурсы, проекты, стартапы, услуги, мероприятия, возможности"
+  >
 
   <meta property="og:title" content="Tajik Opportunities">
-  <meta property="og:description" content="Находите возможности. Создавайте возможности. Общайтесь. Делитесь.">
+  <meta
+    property="og:description"
+    content="Находите возможности. Создавайте возможности. Общайтесь. Делитесь."
+  >
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tajik Opportunities">
+  <meta property="og:image" content="/images/Image_2026_09_05_19_01_30.jpg">
 
-  <title>Tajik Opportunities</title>
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Tajik Opportunities">
+  <meta
+    name="twitter:description"
+    content="Международная платформа возможностей."
+  >
+  <meta name="twitter:image" content="/images/Image_2026_09_05_19_01_30.jpg">
 
-  <link rel="icon" href="/images/Image_2026_09_05_19_01_30.jpg">
+  <link rel="canonical" href="/">
+
+  <link
+    rel="icon"
+    type="image/jpeg"
+    href="/images/Image_2026_09_05_19_01_30.jpg"
+  >
+
+  <link
+    rel="apple-touch-icon"
+    href="/images/Image_2026_09_05_19_01_30.jpg"
+  >
+
   <link rel="stylesheet" href="/css/style.css">
+
+  <style>
+    /* =========================================================
+       INDEX ENHANCEMENTS
+       Эти стили не заменяют style.css.
+       Они только добавляют новые элементы этой страницы.
+    ========================================================= */
+
+    :root {
+      --to-green: #0b3d2e;
+      --to-green-2: #12664c;
+      --to-gold: #d7a928;
+      --to-white: #ffffff;
+      --to-bg: #f5f8f6;
+      --to-border: rgba(11, 61, 46, .12);
+      --to-shadow: 0 15px 45px rgba(11, 61, 46, .08);
+      --to-radius: 22px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    /* =========================================================
+       HEADER
+    ========================================================= */
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 1000;
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+    }
+
+    .header-inner {
+      min-height: 72px;
+    }
+
+    .brand {
+      text-decoration: none;
+    }
+
+    .brand-logo img {
+      object-fit: cover;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-icon-button {
+      position: relative;
+      min-width: 44px;
+      min-height: 44px;
+      border: 0;
+      border-radius: 14px;
+      cursor: pointer;
+      transition: transform .2s ease, background .2s ease;
+    }
+
+    .header-icon-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .notification-badge {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 5px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #d92828;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      border: 2px solid #fff;
+    }
+
+    .header-profile {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      border-radius: 14px;
+      padding: 6px 10px 6px 6px;
+    }
+
+    .profile-avatar {
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      overflow: hidden;
+      flex: 0 0 38px;
+    }
+
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    /* =========================================================
+       NOTIFICATIONS
+    ========================================================= */
+
+    .notification-panel {
+      position: fixed;
+      z-index: 1500;
+      top: 78px;
+      right: 20px;
+      width: min(420px, calc(100vw - 30px));
+      max-height: min(650px, calc(100vh - 100px));
+      overflow: hidden;
+      border-radius: 22px;
+      box-shadow: 0 25px 80px rgba(0,0,0,.18);
+      border: 1px solid var(--to-border);
+      background: var(--to-white);
+    }
+
+    .notification-panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 17px 18px;
+      border-bottom: 1px solid var(--to-border);
+    }
+
+    .notification-panel-header button {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-size: 28px;
+      line-height: 1;
+    }
+
+    .notification-list {
+      max-height: 560px;
+      overflow-y: auto;
+    }
+
+    .notification-empty {
+      padding: 35px 20px;
+      text-align: center;
+      opacity: .7;
+    }
+
+    .to-notification {
+      display: flex;
+      gap: 12px;
+      padding: 15px 17px;
+      border-bottom: 1px solid var(--to-border);
+      cursor: pointer;
+      transition: background .2s ease;
+    }
+
+    .to-notification:hover {
+      background: rgba(11,61,46,.04);
+    }
+
+    .to-notification-icon {
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      border-radius: 14px;
+      display: grid;
+      place-items: center;
+      background: rgba(11,61,46,.08);
+    }
+
+    .to-notification-body {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .to-notification-title {
+      font-weight: 800;
+      margin-bottom: 4px;
+    }
+
+    .to-notification-text {
+      font-size: 13px;
+      line-height: 1.45;
+      opacity: .78;
+    }
+
+    .to-notification-time {
+      margin-top: 5px;
+      font-size: 11px;
+      opacity: .55;
+    }
+
+    /* =========================================================
+       HERO
+    ========================================================= */
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before,
+    .hero::after {
+      content: "";
+      position: absolute;
+      pointer-events: none;
+      border-radius: 50%;
+      filter: blur(3px);
+      opacity: .45;
+    }
+
+    .hero::before {
+      width: 340px;
+      height: 340px;
+      right: -130px;
+      top: -110px;
+      background: rgba(18,102,76,.12);
+    }
+
+    .hero::after {
+      width: 250px;
+      height: 250px;
+      left: -100px;
+      bottom: -100px;
+      background: rgba(215,169,40,.10);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 18px;
+      padding: 8px 13px;
+      border-radius: 999px;
+      background: rgba(11,61,46,.08);
+      border: 1px solid rgba(11,61,46,.1);
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    .hero h1 {
+      max-width: 900px;
+      margin-bottom: 18px;
+      letter-spacing: -.035em;
+    }
+
+    .hero h1 span {
+      display: inline;
+    }
+
+    .hero-description {
+      max-width: 760px;
+      font-size: clamp(16px, 2vw, 20px);
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 26px;
+    }
+
+    .hero-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+      margin-top: 20px;
+    }
+
+    .hero-links a {
+      font-size: 14px;
+      font-weight: 700;
+      text-decoration: none;
+    }
+
+    /* =========================================================
+       PLATFORM STATS
+    ========================================================= */
+
+    .platform-stats {
+      position: relative;
+      z-index: 5;
+      margin-top: -4px;
+      padding: 0 0 35px;
+    }
+
+    .platform-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .platform-stat {
+      min-width: 0;
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid var(--to-border);
+      background: var(--to-white);
+      box-shadow: var(--to-shadow);
+    }
+
+    .platform-stat-icon {
+      font-size: 25px;
+      margin-bottom: 9px;
+    }
+
+    .platform-stat-value {
+      font-size: 25px;
+      font-weight: 900;
+      line-height: 1;
+      margin-bottom: 7px;
+    }
+
+    .platform-stat-label {
+      font-size: 13px;
+      opacity: .7;
+    }
+
+    /* =========================================================
+       QUICK ACTIONS
+    ========================================================= */
+
+    .quick-actions-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+    }
+
+    .quick-action-card {
+      position: relative;
+      overflow: hidden;
+      min-height: 150px;
+      padding: 22px;
+      border-radius: var(--to-radius);
+      border: 1px solid var(--to-border);
+      text-decoration: none;
+      box-shadow: 0 10px 35px rgba(0,0,0,.05);
+      transition: transform .22s ease, box-shadow .22s ease;
+    }
+
+    .quick-action-card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 20px 45px rgba(0,0,0,.09);
+    }
+
+    .quick-action-card > span {
+      display: block;
+      font-size: 28px;
+      margin-bottom: 14px;
+    }
+
+    .quick-action-card strong {
+      display: block;
+      margin-bottom: 7px;
+    }
+
+    .quick-action-card small {
+      opacity: .7;
+      line-height: 1.4;
+    }
+
+    /* =========================================================
+       CATEGORIES
+    ========================================================= */
+
+    .categories-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+    }
+
+    .category-card {
+      position: relative;
+      min-height: 125px;
+      padding: 17px;
+      border-radius: 18px;
+      border: 1px solid var(--to-border);
+      cursor: pointer;
+      text-align: left;
+      transition: transform .2s ease, border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .category-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 35px rgba(0,0,0,.07);
+    }
+
+    .category-card.active {
+      border-color: rgba(11,61,46,.4);
+      box-shadow: 0 12px 35px rgba(11,61,46,.10);
+    }
+
+    .category-card > span {
+      display: block;
+      font-size: 27px;
+      margin-bottom: 11px;
+    }
+
+    .category-card strong {
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .category-card small {
+      display: block;
+      line-height: 1.35;
+      opacity: .68;
+    }
+
+    /* =========================================================
+       SEARCH
+    ========================================================= */
+
+    .search-box {
+      position: relative;
+      margin-top: 20px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 17px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+    }
+
+    .search-box input {
+      width: 100%;
+      min-height: 58px;
+      padding: 0 52px 0 48px;
+      border-radius: 18px;
+      border: 1px solid var(--to-border);
+      outline: none;
+      font-size: 16px;
+      background: var(--to-white);
+      transition: border-color .2s ease, box-shadow .2s ease;
+    }
+
+    .search-box input:focus {
+      border-color: rgba(11,61,46,.45);
+      box-shadow: 0 0 0 4px rgba(11,61,46,.07);
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 38px;
+      height: 38px;
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 23px;
+    }
+
+    .advanced-filters {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    .filter-group label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 12px;
+      font-weight: 800;
+      opacity: .75;
+    }
+
+    .filter-group input,
+    .filter-group select {
+      width: 100%;
+      min-height: 48px;
+      border-radius: 14px;
+      border: 1px solid var(--to-border);
+      padding: 0 13px;
+      outline: none;
+      background: var(--to-white);
+    }
+
+    .filter-group input:focus,
+    .filter-group select:focus {
+      border-color: rgba(11,61,46,.4);
+    }
+
+    .active-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+      margin-top: 13px;
+    }
+
+    .active-filter-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(11,61,46,.08);
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .active-filter-chip button {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .results-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-top: 18px;
+      margin-bottom: 15px;
+    }
+
+    .reset-filters {
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    /* =========================================================
+       LOADING
+    ========================================================= */
+
+    .loading-state {
+      padding: 45px 20px;
+      text-align: center;
+    }
+
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+      margin: 0 auto 15px;
+      border-radius: 50%;
+      border: 4px solid rgba(11,61,46,.12);
+      border-top-color: var(--to-green);
+      animation: toSpin .8s linear infinite;
+    }
+
+    @keyframes toSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* =========================================================
+       FEED ENHANCEMENTS
+    ========================================================= */
+
+    .posts-grid {
+      position: relative;
+    }
+
+    .to-feed-help {
+      margin-bottom: 15px;
+      padding: 13px 15px;
+      border-radius: 16px;
+      background: rgba(11,61,46,.055);
+      border: 1px solid rgba(11,61,46,.08);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .to-feed-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .to-feed-action {
+      min-height: 40px;
+      padding: 0 13px;
+      border-radius: 12px;
+      border: 1px solid var(--to-border);
+      background: var(--to-white);
+      cursor: pointer;
+      font-weight: 700;
+      transition: transform .18s ease;
+    }
+
+    .to-feed-action:hover {
+      transform: translateY(-1px);
+    }
+
+    /* =========================================================
+       FEATURES
+    ========================================================= */
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 15px;
+    }
+
+    .feature-card {
+      min-height: 240px;
+      padding: 24px;
+      border-radius: var(--to-radius);
+      border: 1px solid var(--to-border);
+      background: var(--to-white);
+      box-shadow: 0 10px 30px rgba(0,0,0,.04);
+    }
+
+    .feature-icon {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      margin-bottom: 17px;
+      border-radius: 16px;
+      background: rgba(11,61,46,.08);
+      font-size: 25px;
+    }
+
+    .feature-card p {
+      line-height: 1.6;
+      opacity: .76;
+    }
+
+    .feature-card a {
+      font-weight: 800;
+      text-decoration: none;
+    }
+
+    /* =========================================================
+       OPPORTUNITY TYPES
+    ========================================================= */
+
+    .opportunity-types {
+      padding: 65px 0;
+    }
+
+    .opportunity-types-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+    }
+
+    .opportunity-type {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 17px;
+      border: 1px solid var(--to-border);
+      border-radius: 18px;
+      text-decoration: none;
+      transition: transform .2s ease;
+    }
+
+    .opportunity-type:hover {
+      transform: translateY(-2px);
+    }
+
+    .opportunity-type-icon {
+      width: 46px;
+      height: 46px;
+      flex: 0 0 46px;
+      display: grid;
+      place-items: center;
+      border-radius: 14px;
+      background: rgba(11,61,46,.07);
+      font-size: 23px;
+    }
+
+    .opportunity-type strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    .opportunity-type small {
+      opacity: .65;
+    }
+
+    /* =========================================================
+       CREATE CTA
+    ========================================================= */
+
+    .cta-card {
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-card::after {
+      content: "🇹🇯";
+      position: absolute;
+      right: 35px;
+      bottom: -35px;
+      font-size: 125px;
+      opacity: .09;
+      pointer-events: none;
+    }
+
+    .cta-content {
+      position: relative;
+      z-index: 2;
+    }
+
+    .cta-icon {
+      font-size: 43px;
+    }
+
+    /* =========================================================
+       OFFICIAL ACCOUNT
+    ========================================================= */
+
+    .official-card {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .official-avatar {
+      width: 66px;
+      height: 66px;
+      flex: 0 0 66px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      font-size: 31px;
+      background: linear-gradient(135deg, rgba(11,61,46,.13), rgba(215,169,40,.18));
+    }
+
+    .official-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .official-name {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    .verified-badge {
+      display: inline-grid;
+      place-items: center;
+      width: 19px;
+      height: 19px;
+      border-radius: 50%;
+      background: #1379ff;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 900;
+    }
+
+    .official-username {
+      margin-top: 3px;
+      opacity: .6;
+      font-size: 13px;
+    }
+
+    .official-content p {
+      margin-bottom: 0;
+      line-height: 1.5;
+      opacity: .75;
+    }
+
+    /* =========================================================
+       TELEGRAM
+    ========================================================= */
+
+    .telegram-card {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .telegram-icon {
+      width: 62px;
+      height: 62px;
+      flex: 0 0 62px;
+      display: grid;
+      place-items: center;
+      border-radius: 20px;
+      font-size: 30px;
+      background: rgba(37,150,190,.12);
+    }
+
+    .telegram-content {
+      flex: 1;
+    }
+
+    .telegram-content p {
+      line-height: 1.55;
+      opacity: .72;
+    }
+
+    .telegram-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+    }
+
+    .telegram-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 45px;
+      padding: 0 15px;
+      border-radius: 13px;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    /* =========================================================
+       DISCOVER TOP BAR
+    ========================================================= */
+
+    .discover-tools {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 12px;
+      margin-bottom: 14px;
+    }
+
+    .discover-tools-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .discover-mini-button {
+      border: 1px solid var(--to-border);
+      background: var(--to-white);
+      min-height: 40px;
+      padding: 0 13px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    /* =========================================================
+       FOOTER
+    ========================================================= */
+
+    .site-footer {
+      margin-bottom: 75px;
+    }
+
+    .footer-column a {
+      text-decoration: none;
+    }
+
+    /* =========================================================
+       MOBILE
+    ========================================================= */
+
+    @media (max-width: 1100px) {
+      .categories-grid {
+        grid-template-columns: repeat(4, 1fr);
+      }
+
+      .platform-stats-grid,
+      .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .advanced-filters {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 800px) {
+      .desktop-nav {
+        display: none !important;
+      }
+
+      .categories-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .features-grid,
+      .opportunity-types-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .official-card,
+      .telegram-card {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .official-card .btn {
+        width: 100%;
+      }
+
+      .telegram-actions {
+        width: 100%;
+      }
+
+      .telegram-button {
+        flex: 1;
+      }
+
+      .notification-panel {
+        top: 70px;
+        right: 10px;
+        width: calc(100vw - 20px);
+      }
+    }
+
+    @media (max-width: 560px) {
+      .header-profile-text,
+      #headerProfileText {
+        display: none;
+      }
+
+      .platform-stats-grid,
+      .quick-actions-grid,
+      .advanced-filters {
+        grid-template-columns: 1fr;
+      }
+
+      .categories-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .category-card {
+        min-height: 112px;
+        padding: 13px;
+      }
+
+      .category-card > span {
+        font-size: 23px;
+      }
+
+      .hero-actions {
+        flex-direction: column;
+      }
+
+      .hero-actions .btn {
+        width: 100%;
+      }
+
+      .hero-links {
+        gap: 8px 14px;
+      }
+
+      .results-toolbar {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .discover-tools {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .discover-tools-left {
+        width: 100%;
+      }
+
+      .discover-mini-button {
+        flex: 1;
+      }
+
+      .mobile-nav {
+        z-index: 1200;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: .001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .001ms !important;
+      }
+    }
+  </style>
 </head>
 
 <body>
@@ -28,12 +1101,14 @@
 
   <div class="container header-inner">
 
-    <a href="/" class="brand">
+    <a href="/" class="brand" aria-label="Tajik Opportunities — Главная">
 
       <span class="brand-logo">
         <img
           src="/images/Image_2026_09_05_19_01_30.jpg"
           alt="Tajik Opportunities"
+          width="48"
+          height="48"
         >
       </span>
 
@@ -44,7 +1119,7 @@
 
     </a>
 
-    <nav class="desktop-nav">
+    <nav class="desktop-nav" aria-label="Основная навигация">
 
       <a href="/" class="nav-link active">
         🏠 Главная
@@ -58,7 +1133,11 @@
         📚 Категории
       </a>
 
-      <a href="#create" class="nav-link">
+      <a href="#features" class="nav-link">
+        🌍 Возможности
+      </a>
+
+      <a href="/add.html" class="nav-link">
         ＋ Создать
       </a>
 
@@ -71,21 +1150,27 @@
         class="header-icon-button"
         id="notificationsButton"
         title="Уведомления"
+        aria-label="Уведомления"
+        aria-expanded="false"
       >
         🔔
+
         <span
           id="notificationBadge"
           class="notification-badge hidden"
         >
           0
         </span>
+
       </button>
 
       <a
         href="/profile.html"
         class="header-profile"
         id="headerProfile"
+        aria-label="Профиль"
       >
+
         <span class="profile-avatar" id="headerAvatar">
           👤
         </span>
@@ -93,6 +1178,7 @@
         <span id="headerProfileText">
           Войти
         </span>
+
       </a>
 
     </div>
@@ -109,6 +1195,8 @@
 <div
   id="notificationPanel"
   class="notification-panel hidden"
+  role="dialog"
+  aria-label="Уведомления"
 >
 
   <div class="notification-panel-header">
@@ -120,6 +1208,7 @@
     <button
       type="button"
       id="closeNotifications"
+      aria-label="Закрыть уведомления"
     >
       ×
     </button>
@@ -169,10 +1258,11 @@
       </h1>
 
       <p class="hero-description">
-        Международная платформа, где люди находят
-        работу, образование, новости, гранты,
-        конкурсы, мероприятия, проекты, услуги,
-        идеи и множество других возможностей.
+        Международная платформа, объединяющая людей,
+        специалистов, компании, проекты и сообщества.
+        Здесь можно найти работу, образование, гранты,
+        конкурсы, мероприятия, услуги, новости,
+        проекты, стартапы и множество других возможностей.
       </p>
 
       <div class="hero-actions">
@@ -208,7 +1298,107 @@
           🔖 Сохранённое
         </a>
 
+        <a href="/notifications.html">
+          🔔 Все уведомления
+        </a>
+
       </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- =========================================================
+     PLATFORM STATS
+========================================================= -->
+
+<section class="platform-stats">
+
+  <div class="container">
+
+    <div class="platform-stats-grid">
+
+      <article class="platform-stat">
+
+        <div class="platform-stat-icon">
+          👥
+        </div>
+
+        <div
+          class="platform-stat-value"
+          id="publicParticipantsCount"
+        >
+          —
+        </div>
+
+        <div class="platform-stat-label">
+          Участники платформы
+        </div>
+
+      </article>
+
+
+      <article class="platform-stat">
+
+        <div class="platform-stat-icon">
+          📚
+        </div>
+
+        <div
+          class="platform-stat-value"
+          id="publicPublicationsCount"
+        >
+          —
+        </div>
+
+        <div class="platform-stat-label">
+          Публикации
+        </div>
+
+      </article>
+
+
+      <article class="platform-stat">
+
+        <div class="platform-stat-icon">
+          👁️
+        </div>
+
+        <div
+          class="platform-stat-value"
+          id="publicViewsCount"
+        >
+          —
+        </div>
+
+        <div class="platform-stat-label">
+          Просмотры возможностей
+        </div>
+
+      </article>
+
+
+      <article class="platform-stat">
+
+        <div class="platform-stat-icon">
+          ❤️
+        </div>
+
+        <div
+          class="platform-stat-value"
+          id="publicReactionsCount"
+        >
+          —
+        </div>
+
+        <div class="platform-stat-label">
+          Реакции участников
+        </div>
+
+      </article>
 
     </div>
 
@@ -227,28 +1417,87 @@
 
     <div class="quick-actions-grid">
 
-      <a href="/add.html" class="quick-action-card">
-        <span>📢</span>
-        <strong>Предложить публикацию</strong>
-        <small>Поделитесь полезной информацией</small>
+      <a
+        href="/add.html"
+        class="quick-action-card"
+      >
+
+        <span>
+          📢
+        </span>
+
+        <strong>
+          Предложить публикацию
+        </strong>
+
+        <small>
+          Вакансия, новость, грант,
+          проект, услуга или другая возможность.
+        </small>
+
       </a>
 
-      <a href="/profile.html" class="quick-action-card">
-        <span>👤</span>
-        <strong>Рассказать о себе</strong>
-        <small>Создайте свой профиль</small>
+
+      <a
+        href="/profile.html"
+        class="quick-action-card"
+      >
+
+        <span>
+          👤
+        </span>
+
+        <strong>
+          Рассказать о себе
+        </strong>
+
+        <small>
+          Создайте профиль и покажите
+          свои навыки, опыт и интересы.
+        </small>
+
       </a>
 
-      <a href="#categories" class="quick-action-card">
-        <span>🔎</span>
-        <strong>Найти возможность</strong>
-        <small>Ищите среди публикаций</small>
+
+      <a
+        href="#discover"
+        class="quick-action-card"
+      >
+
+        <span>
+          🔎
+        </span>
+
+        <strong>
+          Найти возможность
+        </strong>
+
+        <small>
+          Ищите публикации по категории,
+          стране, городу и формату.
+        </small>
+
       </a>
 
-      <a href="/messages.html" class="quick-action-card">
-        <span>💬</span>
-        <strong>Сообщения</strong>
-        <small>Общайтесь с участниками</small>
+
+      <a
+        href="/messages.html"
+        class="quick-action-card"
+      >
+
+        <span>
+          💬
+        </span>
+
+        <strong>
+          Сообщения
+        </strong>
+
+        <small>
+          Общайтесь с участниками
+          и находите полезные контакты.
+        </small>
+
       </a>
 
     </div>
@@ -314,6 +1563,12 @@
         <small>Профили соискателей</small>
       </button>
 
+      <button class="category-card" data-category="employees">
+        <span>👔</span>
+        <strong>Ищу сотрудника</strong>
+        <small>Поиск специалистов</small>
+      </button>
+
       <button class="category-card" data-category="profiles">
         <span>👤</span>
         <strong>Профили</strong>
@@ -356,14 +1611,20 @@
         <small>Услуги специалистов</small>
       </button>
 
-      <button class="category-card" data-category="projects">
+      <button class="category-card" data-category="ideas">
         <span>💡</span>
+        <strong>Идеи</strong>
+        <small>Новые идеи</small>
+      </button>
+
+      <button class="category-card" data-category="projects">
+        <span>🚀</span>
         <strong>Проекты</strong>
         <small>Идеи и проекты</small>
       </button>
 
       <button class="category-card" data-category="startups">
-        <span>🚀</span>
+        <span>🌱</span>
         <strong>Стартапы</strong>
         <small>Стартапы и бизнес</small>
       </button>
@@ -387,7 +1648,7 @@
       </button>
 
       <button class="category-card" data-category="volunteering">
-        <span>❤️</span>
+        <span>🤝</span>
         <strong>Волонтёрство</strong>
         <small>Помощь и волонтёры</small>
       </button>
@@ -469,7 +1730,7 @@
       <div>
 
         <span class="section-kicker">
-          Лента
+          Лента платформы
         </span>
 
         <h2>
@@ -479,9 +1740,52 @@
       </div>
 
       <p class="section-description">
-        Новости, возможности, объявления,
-        проекты и другие полезные публикации.
+        Находите интересные предложения,
+        возможности и полезную информацию.
       </p>
+
+    </div>
+
+
+    <!-- FEED QUICK TOOLS -->
+
+    <div class="discover-tools">
+
+      <div class="discover-tools-left">
+
+        <button
+          type="button"
+          class="discover-mini-button"
+          data-feed-sort="newest"
+        >
+          🆕 Новые
+        </button>
+
+        <button
+          type="button"
+          class="discover-mini-button"
+          data-feed-sort="popular"
+        >
+          🔥 Популярные
+        </button>
+
+        <button
+          type="button"
+          class="discover-mini-button"
+          data-feed-sort="views"
+        >
+          👁️ Просмотры
+        </button>
+
+      </div>
+
+      <button
+        type="button"
+        class="discover-mini-button"
+        id="refreshPublications"
+      >
+        🔄 Обновить
+      </button>
 
     </div>
 
@@ -497,14 +1801,16 @@
       <input
         id="searchInput"
         type="search"
-        placeholder="Поиск публикаций, возможностей, людей..."
+        placeholder="Поиск публикаций, возможностей, людей, категорий..."
         autocomplete="off"
+        aria-label="Поиск"
       >
 
       <button
         id="clearSearch"
         type="button"
         class="search-clear hidden"
+        aria-label="Очистить поиск"
       >
         ×
       </button>
@@ -526,6 +1832,7 @@
           id="countryFilter"
           type="text"
           placeholder="Любая страна"
+          autocomplete="off"
         >
 
       </div>
@@ -541,6 +1848,7 @@
           id="cityFilter"
           type="text"
           placeholder="Любой город"
+          autocomplete="off"
         >
 
       </div>
@@ -686,7 +1994,7 @@
       </h3>
 
       <p>
-        Попробуйте изменить поиск,
+        Попробуйте изменить запрос,
         категорию или фильтры.
       </p>
 
@@ -717,7 +2025,8 @@
       </h3>
 
       <p>
-        Попробуйте обновить страницу.
+        Возможно, сервер временно недоступен.
+        Попробуйте ещё раз.
       </p>
 
       <button
@@ -736,10 +2045,249 @@
 
 
 <!-- =========================================================
+     OPPORTUNITY TYPES
+========================================================= -->
+
+<section class="opportunity-types">
+
+  <div class="container">
+
+    <div class="section-heading">
+
+      <div>
+
+        <span class="section-kicker">
+          Что можно найти
+        </span>
+
+        <h2>
+          Возможности для разных целей
+        </h2>
+
+      </div>
+
+      <p class="section-description">
+        Платформа объединяет разные направления
+        в одном месте.
+      </p>
+
+    </div>
+
+
+    <div class="opportunity-types-grid">
+
+      <a
+        href="/?category=jobs"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          💼
+        </span>
+
+        <span>
+          <strong>
+            Работа
+          </strong>
+
+          <small>
+            Вакансии, специалисты и карьера
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=education"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          🎓
+        </span>
+
+        <span>
+          <strong>
+            Образование
+          </strong>
+
+          <small>
+            Учёба, знания и развитие
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=grants"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          💰
+        </span>
+
+        <span>
+          <strong>
+            Гранты
+          </strong>
+
+          <small>
+            Финансирование и поддержка
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=competitions"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          🏆
+        </span>
+
+        <span>
+          <strong>
+            Конкурсы
+          </strong>
+
+          <small>
+            Отборы и соревнования
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=projects"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          🚀
+        </span>
+
+        <span>
+          <strong>
+            Проекты
+          </strong>
+
+          <small>
+            Идеи, команды и проекты
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=services"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          🤝
+        </span>
+
+        <span>
+          <strong>
+            Услуги
+          </strong>
+
+          <small>
+            Специалисты и предложения
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=events"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          📅
+        </span>
+
+        <span>
+          <strong>
+            Мероприятия
+          </strong>
+
+          <small>
+            События, встречи и конференции
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=startups"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          🌱
+        </span>
+
+        <span>
+          <strong>
+            Стартапы
+          </strong>
+
+          <small>
+            Бизнес и новые проекты
+          </small>
+        </span>
+
+      </a>
+
+
+      <a
+        href="/?category=announcements"
+        class="opportunity-type"
+      >
+
+        <span class="opportunity-type-icon">
+          📢
+        </span>
+
+        <span>
+          <strong>
+            Объявления
+          </strong>
+
+          <small>
+            Полезная информация
+          </small>
+        </span>
+
+      </a>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- =========================================================
      SOCIAL FEATURES
 ========================================================= -->
 
-<section class="features-section">
+<section
+  class="features-section"
+  id="features"
+>
 
   <div class="container">
 
@@ -757,6 +2305,11 @@
 
       </div>
 
+      <p class="section-description">
+        Tajik Opportunities объединяет
+        возможности и социальное взаимодействие.
+      </p>
+
     </div>
 
 
@@ -773,10 +2326,9 @@
         </h3>
 
         <p>
-          Узнавайте, с кем вы общаетесь:
-          имя, username и дополнительные
-          сведения, которые пользователь
-          решил указать.
+          Создавайте профессиональный профиль,
+          показывайте навыки, опыт, образование,
+          интересы и другие сведения.
         </p>
 
         <a href="/profile.html">
@@ -797,8 +2349,9 @@
         </h3>
 
         <p>
-          Общайтесь с участниками напрямую
-          через платформу.
+          Общайтесь с участниками напрямую,
+          обсуждайте публикации и возможности
+          и устанавливайте полезные контакты.
         </p>
 
         <a href="/messages.html">
@@ -819,9 +2372,9 @@
         </h3>
 
         <p>
-          Ставьте разные реакции,
-          сохраняйте публикации и
-          показывайте своё отношение.
+          Реагируйте на публикации,
+          выражайте поддержку и показывайте
+          своё отношение к содержанию.
         </p>
 
       </article>
@@ -830,16 +2383,18 @@
       <article class="feature-card">
 
         <div class="feature-icon">
-          📤
+          💬
         </div>
 
         <h3>
-          Делитесь
+          Комментарии
         </h3>
 
         <p>
-          Отправляйте интересные публикации
-          друзьям и другим людям.
+          Обсуждайте публикации,
+          задавайте вопросы, отвечайте
+          другим участникам и участвуйте
+          в обсуждениях.
         </p>
 
       </article>
@@ -856,12 +2411,54 @@
         </h3>
 
         <p>
-          Сохраняйте важные публикации,
-          чтобы вернуться к ним позже.
+          Сохраняйте интересные публикации,
+          чтобы быстро вернуться к ним позже.
         </p>
 
         <a href="/saved.html">
           Мои сохранения →
+        </a>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          📤
+        </div>
+
+        <h3>
+          Делитесь
+        </h3>
+
+        <p>
+          Отправляйте интересные возможности
+          друзьям и знакомым или делитесь
+          публикациями в социальных сетях.
+        </p>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          🔔
+        </div>
+
+        <h3>
+          Уведомления
+        </h3>
+
+        <p>
+          Получайте уведомления о новых
+          сообщениях, реакциях, комментариях
+          и других событиях.
+        </p>
+
+        <a href="/notifications.html">
+          Открыть уведомления →
         </a>
 
       </article>
@@ -881,6 +2478,25 @@
           Публикации могут быть местными,
           национальными, международными
           или полностью онлайн.
+        </p>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          ✨
+        </div>
+
+        <h3>
+          Единая платформа
+        </h3>
+
+        <p>
+          Работа, образование, бизнес,
+          проекты, новости, услуги и другие
+          направления собраны в одном месте.
         </p>
 
       </article>
@@ -1058,6 +2674,7 @@
 
 </section>
 
+
 </main>
 
 
@@ -1076,10 +2693,12 @@
         <a href="/" class="brand">
 
           <span class="brand-logo">
+
             <img
               src="/images/Image_2026_09_05_19_01_30.jpg"
               alt="Tajik Opportunities"
             >
+
           </span>
 
           <span class="brand-text">
@@ -1338,7 +2957,2103 @@
 
 
 <!-- =========================================================
-     SCRIPTS
+     PAGE ENHANCEMENT SCRIPT
+========================================================= -->
+
+<script>
+(function () {
+  "use strict";
+
+  /*
+   * Tajik Opportunities — index.html enhancement layer
+   *
+   * Важно:
+   * - не заменяет app.js;
+   * - не заменяет index.js;
+   * - не хранит пароль или токены;
+   * - использует существующий backend API;
+   * - если какой-либо дополнительный endpoint недоступен,
+   *   страница продолжает работать.
+   */
+
+  var API = {
+    me: "/api/auth/me",
+    publications: "/api/publications",
+    notifications: "/api/notifications",
+    notificationsRead: "/api/notifications/read",
+    dashboard: "/api/admin/dashboard"
+  };
+
+  var state = {
+    user: null,
+    notifications: [],
+    initialized: false,
+    statsLoaded: false
+  };
+
+  /* =========================================================
+     HELPERS
+  ========================================================= */
+
+  function $(selector) {
+    return document.querySelector(selector);
+  }
+
+  function $all(selector) {
+    return Array.prototype.slice.call(
+      document.querySelectorAll(selector)
+    );
+  }
+
+  function escapeHTML(value) {
+    return String(value == null ? "" : value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function formatNumber(value) {
+    var number = Number(value);
+
+    if (!Number.isFinite(number)) {
+      return "—";
+    }
+
+    return new Intl.NumberFormat("ru-RU").format(number);
+  }
+
+  function formatDate(value) {
+    if (!value) {
+      return "";
+    }
+
+    try {
+      return new Intl.DateTimeFormat("ru-RU", {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }).format(new Date(value));
+    } catch (error) {
+      return "";
+    }
+  }
+
+  function showToast(message) {
+    var toast = $("#toast");
+
+    if (!toast) {
+      return;
+    }
+
+    toast.textContent = message || "";
+
+    toast.classList.add("show");
+
+    clearTimeout(window.__TO_TOAST_TIMER);
+
+    window.__TO_TOAST_TIMER = setTimeout(function () {
+      toast.classList.remove("show");
+    }, 3200);
+  }
+
+  async function apiRequest(url, options) {
+    options = options || {};
+
+    var config = {
+      method: options.method || "GET",
+      credentials: "include",
+      headers: Object.assign(
+        {
+          "Accept": "application/json"
+        },
+        options.headers || {}
+      )
+    };
+
+    if (
+      options.body !== undefined &&
+      options.body !== null
+    ) {
+      config.headers["Content-Type"] = "application/json";
+
+      config.body =
+        typeof options.body === "string"
+          ? options.body
+          : JSON.stringify(options.body);
+    }
+
+    var response = await fetch(url, config);
+
+    var contentType =
+      response.headers.get("content-type") || "";
+
+    var data = null;
+
+    if (contentType.indexOf("application/json") !== -1) {
+      try {
+        data = await response.json();
+      } catch (error) {
+        data = null;
+      }
+    } else {
+      try {
+        data = await response.text();
+      } catch (error) {
+        data = null;
+      }
+    }
+
+    if (!response.ok) {
+      var error = new Error(
+        (data && data.message) ||
+        (data && data.error) ||
+        "HTTP " + response.status
+      );
+
+      error.status = response.status;
+      error.data = data;
+
+      throw error;
+    }
+
+    return data;
+  }
+
+  function firstValue(object, keys, fallback) {
+    if (!object) {
+      return fallback;
+    }
+
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+
+      if (
+        object[key] !== undefined &&
+        object[key] !== null &&
+        object[key] !== ""
+      ) {
+        return object[key];
+      }
+    }
+
+    return fallback;
+  }
+
+  /* =========================================================
+     PUBLIC GLOBAL API
+  ========================================================= */
+
+  window.TajikOpportunities =
+    window.TajikOpportunities || {};
+
+  window.TO =
+    window.TO || window.TajikOpportunities;
+
+  window.TO.apiRequest = apiRequest;
+
+  window.TO.showToast = showToast;
+
+  window.TO.escapeHTML = escapeHTML;
+
+  /* =========================================================
+     CURRENT YEAR
+  ========================================================= */
+
+  function initYear() {
+    var year = $("#currentYear");
+
+    if (year) {
+      year.textContent =
+        new Date().getFullYear();
+    }
+  }
+
+  /* =========================================================
+     AUTH / PROFILE
+  ========================================================= */
+
+  async function loadCurrentUser() {
+    try {
+      var data = await apiRequest(API.me);
+
+      var user =
+        data &&
+        (
+          data.user ||
+          data.profile ||
+          data.data ||
+          data
+        );
+
+      if (
+        !user ||
+        (
+          !user.id &&
+          !user.user_id &&
+          !user.username &&
+          !user.email
+        )
+      ) {
+        return null;
+      }
+
+      state.user = user;
+
+      updateHeaderProfile(user);
+
+      return user;
+
+    } catch (error) {
+
+      updateHeaderLoggedOut();
+
+      return null;
+    }
+  }
+
+  function updateHeaderLoggedOut() {
+    var text = $("#headerProfileText");
+    var avatar = $("#headerAvatar");
+
+    if (text) {
+      text.textContent = "Войти";
+    }
+
+    if (avatar) {
+      avatar.innerHTML = "👤";
+    }
+  }
+
+  function updateHeaderProfile(user) {
+    if (!user) {
+      updateHeaderLoggedOut();
+      return;
+    }
+
+    var text = $("#headerProfileText");
+    var avatar = $("#headerAvatar");
+
+    var name =
+      firstValue(
+        user,
+        [
+          "display_name",
+          "full_name",
+          "name",
+          "username"
+        ],
+        "Профиль"
+      );
+
+    var avatarUrl =
+      firstValue(
+        user,
+        [
+          "avatar_url",
+          "avatar",
+          "photo_url",
+          "image"
+        ],
+        ""
+      );
+
+    if (text) {
+      text.textContent =
+        name.charAt(0) === "@"
+          ? name
+          : name;
+    }
+
+    if (avatar) {
+
+      if (avatarUrl) {
+
+        avatar.innerHTML =
+          '<img src="' +
+          escapeHTML(avatarUrl) +
+          '" alt="' +
+          escapeHTML(name) +
+          '">';
+
+      } else {
+
+        var first =
+          String(name)
+            .trim()
+            .charAt(0)
+            .toUpperCase();
+
+        avatar.textContent =
+          first || "👤";
+      }
+    }
+  }
+
+  /* =========================================================
+     NOTIFICATIONS
+  ========================================================= */
+
+  async function loadNotifications() {
+    try {
+
+      var data =
+        await apiRequest(API.notifications);
+
+      var notifications =
+        firstValue(
+          data,
+          [
+            "notifications",
+            "items",
+            "data"
+          ],
+          []
+        );
+
+      if (!Array.isArray(notifications)) {
+        notifications = [];
+      }
+
+      state.notifications = notifications;
+
+      renderNotifications(notifications);
+
+    } catch (error) {
+
+      state.notifications = [];
+
+      renderNotifications([]);
+
+    }
+  }
+
+  function notificationIcon(notification) {
+    var type =
+      String(
+        firstValue(
+          notification,
+          ["type", "kind", "category"],
+          ""
+        )
+      ).toLowerCase();
+
+    if (type.indexOf("message") !== -1) {
+      return "💬";
+    }
+
+    if (
+      type.indexOf("reaction") !== -1 ||
+      type.indexOf("like") !== -1
+    ) {
+      return "❤️";
+    }
+
+    if (type.indexOf("comment") !== -1) {
+      return "💭";
+    }
+
+    if (
+      type.indexOf("publication") !== -1 ||
+      type.indexOf("post") !== -1
+    ) {
+      return "📚";
+    }
+
+    if (type.indexOf("payment") !== -1) {
+      return "💰";
+    }
+
+    if (type.indexOf("report") !== -1) {
+      return "⚠️";
+    }
+
+    return "🔔";
+  }
+
+  function renderNotifications(notifications) {
+    var list = $("#notificationList");
+    var badge = $("#notificationBadge");
+
+    if (!list) {
+      return;
+    }
+
+    if (!notifications.length) {
+
+      list.innerHTML =
+        '<div class="notification-empty">' +
+        "Пока нет новых уведомлений." +
+        "</div>";
+
+      if (badge) {
+        badge.classList.add("hidden");
+        badge.textContent = "0";
+      }
+
+      return;
+    }
+
+    var unread = notifications.filter(function (item) {
+      return !(
+        item.read === true ||
+        item.is_read === true ||
+        item.read_at
+      );
+    }).length;
+
+    if (badge) {
+
+      if (unread > 0) {
+        badge.classList.remove("hidden");
+        badge.textContent =
+          unread > 99
+            ? "99+"
+            : String(unread);
+      } else {
+        badge.classList.add("hidden");
+        badge.textContent = "0";
+      }
+    }
+
+    list.innerHTML =
+      notifications
+        .slice(0, 50)
+        .map(function (notification) {
+
+          var title =
+            firstValue(
+              notification,
+              ["title", "name"],
+              "Уведомление"
+            );
+
+          var text =
+            firstValue(
+              notification,
+              [
+                "message",
+                "text",
+                "body",
+                "description"
+              ],
+              ""
+            );
+
+          var date =
+            firstValue(
+              notification,
+              [
+                "created_at",
+                "createdAt",
+                "date"
+              ],
+              ""
+            );
+
+          var id =
+            firstValue(
+              notification,
+              ["id", "notification_id"],
+              ""
+            );
+
+          var unreadClass =
+            (
+              notification.read === true ||
+              notification.is_read === true ||
+              notification.read_at
+            )
+              ? ""
+              : " style=\"background:rgba(11,61,46,.045)\"";
+
+          return (
+            '<div class="to-notification"' +
+            unreadClass +
+            ' data-notification-id="' +
+            escapeHTML(id) +
+            '">' +
+
+              '<div class="to-notification-icon">' +
+                notificationIcon(notification) +
+              "</div>" +
+
+              '<div class="to-notification-body">' +
+
+                '<div class="to-notification-title">' +
+                  escapeHTML(title) +
+                "</div>" +
+
+                '<div class="to-notification-text">' +
+                  escapeHTML(text) +
+                "</div>" +
+
+                '<div class="to-notification-time">' +
+                  escapeHTML(formatDate(date)) +
+                "</div>" +
+
+              "</div>" +
+
+            "</div>"
+          );
+
+        })
+        .join("");
+  }
+
+  async function markNotificationRead(id) {
+    if (!id) {
+      return;
+    }
+
+    try {
+
+      await apiRequest(
+        API.notificationsRead,
+        {
+          method: "POST",
+          body: {
+            notification_id: id
+          }
+        }
+      );
+
+    } catch (error) {
+      /* Сервер может использовать другую схему —
+         интерфейс всё равно продолжает работать. */
+    }
+  }
+
+  function initNotifications() {
+
+    var button =
+      $("#notificationsButton");
+
+    var panel =
+      $("#notificationPanel");
+
+    var close =
+      $("#closeNotifications");
+
+    if (!button || !panel) {
+      return;
+    }
+
+    button.addEventListener(
+      "click",
+      async function (event) {
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        var opened =
+          !panel.classList.contains("hidden");
+
+        panel.classList.toggle(
+          "hidden",
+          opened
+        );
+
+        button.setAttribute(
+          "aria-expanded",
+          opened ? "false" : "true"
+        );
+
+        if (!opened) {
+          await loadNotifications();
+        }
+
+      }
+    );
+
+    if (close) {
+
+      close.addEventListener(
+        "click",
+        function () {
+
+          panel.classList.add("hidden");
+
+          button.setAttribute(
+            "aria-expanded",
+            "false"
+          );
+
+        }
+      );
+    }
+
+    document.addEventListener(
+      "click",
+      function (event) {
+
+        if (
+          panel.classList.contains("hidden")
+        ) {
+          return;
+        }
+
+        if (
+          panel.contains(event.target) ||
+          button.contains(event.target)
+        ) {
+          return;
+        }
+
+        panel.classList.add("hidden");
+
+        button.setAttribute(
+          "aria-expanded",
+          "false"
+        );
+      }
+    );
+
+    var list =
+      $("#notificationList");
+
+    if (list) {
+
+      list.addEventListener(
+        "click",
+        async function (event) {
+
+          var item =
+            event.target.closest(
+              "[data-notification-id]"
+            );
+
+          if (!item) {
+            return;
+          }
+
+          await markNotificationRead(
+            item.getAttribute(
+              "data-notification-id"
+            )
+          );
+
+          item.style.background =
+            "transparent";
+        }
+      );
+    }
+  }
+
+  /* =========================================================
+     PUBLIC DASHBOARD STATS
+  ========================================================= */
+
+  async function loadPublicStats() {
+
+    /*
+     * Публичная главная страница не должна
+     * требовать admin-доступ.
+     *
+     * Сначала пытаемся получить статистику
+     * из уже доступного dashboard.
+     * Если backend не разрешает этот endpoint,
+     * статистика остаётся "—".
+     */
+
+    try {
+
+      var data =
+        await apiRequest(API.dashboard);
+
+      var stats =
+        firstValue(
+          data,
+          [
+            "stats",
+            "statistics",
+            "data"
+          ],
+          data
+        );
+
+      if (!stats) {
+        return;
+      }
+
+      setStat(
+        "publicParticipantsCount",
+        firstValue(
+          stats,
+          [
+            "participants",
+            "users",
+            "users_count",
+            "participants_count"
+          ],
+          null
+        )
+      );
+
+      setStat(
+        "publicPublicationsCount",
+        firstValue(
+          stats,
+          [
+            "publications",
+            "posts",
+            "publications_count",
+            "posts_count"
+          ],
+          null
+        )
+      );
+
+      setStat(
+        "publicViewsCount",
+        firstValue(
+          stats,
+          [
+            "views",
+            "views_count",
+            "total_views"
+          ],
+          null
+        )
+      );
+
+      setStat(
+        "publicReactionsCount",
+        firstValue(
+          stats,
+          [
+            "reactions",
+            "reactions_count",
+            "total_reactions"
+          ],
+          null
+        )
+      );
+
+      state.statsLoaded = true;
+
+    } catch (error) {
+
+      /*
+       * Это нормально.
+       * Если dashboard закрыт для обычного пользователя,
+       * главная страница продолжает работать.
+       */
+
+    }
+  }
+
+  function setStat(id, value) {
+
+    var element = $("#" + id);
+
+    if (!element) {
+      return;
+    }
+
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      return;
+    }
+
+    element.textContent =
+      formatNumber(value);
+  }
+
+  /* =========================================================
+     CATEGORY UI
+  ========================================================= */
+
+  function initCategoryEnhancement() {
+
+    var buttons =
+      $all(
+        ".category-card[data-category]"
+      );
+
+    if (!buttons.length) {
+      return;
+    }
+
+    buttons.forEach(function (button) {
+
+      button.addEventListener(
+        "click",
+        function () {
+
+          buttons.forEach(
+            function (item) {
+              item.classList.remove("active");
+            }
+          );
+
+          button.classList.add("active");
+
+          var category =
+            button.getAttribute(
+              "data-category"
+            );
+
+          if (
+            category &&
+            category !== "all"
+          ) {
+
+            var url =
+              new URL(
+                window.location.href
+              );
+
+            url.searchParams.set(
+              "category",
+              category
+            );
+
+            /*
+             * index.js уже может обрабатывать
+             * category самостоятельно.
+             * Здесь только синхронизируем URL,
+             * если это необходимо.
+             */
+
+            try {
+              window.history.replaceState(
+                {},
+                "",
+                url.pathname +
+                url.search +
+                url.hash
+              );
+            } catch (error) {}
+
+          }
+
+        }
+      );
+
+    });
+  }
+
+  /* =========================================================
+     SEARCH CLEAR
+  ========================================================= */
+
+  function initSearchEnhancement() {
+
+    var input =
+      $("#searchInput");
+
+    var clear =
+      $("#clearSearch");
+
+    if (!input || !clear) {
+      return;
+    }
+
+    function updateClear() {
+
+      if (
+        input.value &&
+        input.value.trim()
+      ) {
+        clear.classList.remove("hidden");
+      } else {
+        clear.classList.add("hidden");
+      }
+    }
+
+    input.addEventListener(
+      "input",
+      updateClear
+    );
+
+    clear.addEventListener(
+      "click",
+      function () {
+
+        input.value = "";
+
+        updateClear();
+
+        input.dispatchEvent(
+          new Event(
+            "input",
+            {
+              bubbles: true
+            }
+          )
+        );
+
+        input.focus();
+
+      }
+    );
+
+    updateClear();
+  }
+
+  /* =========================================================
+     RESET FILTERS
+  ========================================================= */
+
+  function resetFilters() {
+
+    var search =
+      $("#searchInput");
+
+    var country =
+      $("#countryFilter");
+
+    var city =
+      $("#cityFilter");
+
+    var scope =
+      $("#scopeFilter");
+
+    var sort =
+      $("#sortSelect");
+
+    if (search) {
+      search.value = "";
+    }
+
+    if (country) {
+      country.value = "";
+    }
+
+    if (city) {
+      city.value = "";
+    }
+
+    if (scope) {
+      scope.value = "";
+    }
+
+    if (sort) {
+      sort.value = "newest";
+    }
+
+    if (search) {
+
+      search.dispatchEvent(
+        new Event(
+          "input",
+          {
+            bubbles: true
+          }
+        )
+      );
+
+    }
+
+    [
+      country,
+      city,
+      scope,
+      sort
+    ].forEach(function (element) {
+
+      if (element) {
+
+        element.dispatchEvent(
+          new Event(
+            "change",
+            {
+              bubbles: true
+            }
+          )
+        );
+
+      }
+
+    });
+
+    var buttons =
+      $all(
+        ".category-card[data-category]"
+      );
+
+    buttons.forEach(function (button) {
+      button.classList.toggle(
+        "active",
+        button.getAttribute(
+          "data-category"
+        ) === "all"
+      );
+    });
+
+    try {
+
+      var url =
+        new URL(
+          window.location.href
+        );
+
+      [
+        "category",
+        "search",
+        "q",
+        "country",
+        "city",
+        "scope",
+        "sort"
+      ].forEach(function (key) {
+        url.searchParams.delete(key);
+      });
+
+      window.history.replaceState(
+        {},
+        "",
+        url.pathname +
+        url.search +
+        url.hash
+      );
+
+    } catch (error) {}
+
+    showToast(
+      "Фильтры сброшены"
+    );
+  }
+
+  function initResetButtons() {
+
+    var ids = [
+      "resetFilters",
+      "emptyReset"
+    ];
+
+    ids.forEach(function (id) {
+
+      var button =
+        document.getElementById(id);
+
+      if (!button) {
+        return;
+      }
+
+      button.addEventListener(
+        "click",
+        function () {
+          resetFilters();
+        }
+      );
+
+    });
+  }
+
+  /* =========================================================
+     REFRESH PUBLICATIONS
+  ========================================================= */
+
+  function initRefreshButton() {
+
+    var button =
+      $("#refreshPublications");
+
+    if (!button) {
+      return;
+    }
+
+    button.addEventListener(
+      "click",
+      function () {
+
+        button.disabled = true;
+
+        var oldText =
+          button.textContent;
+
+        button.textContent =
+          "⏳ Обновление...";
+
+        /*
+         * index.js обычно имеет собственную
+         * функцию загрузки.
+         *
+         * Поэтому сначала пытаемся вызвать
+         * распространённые имена, а затем
+         * используем обычную перезагрузку.
+         */
+
+        try {
+
+          if (
+            typeof window.loadPublications ===
+            "function"
+          ) {
+
+            Promise.resolve(
+              window.loadPublications()
+            ).finally(function () {
+
+              button.disabled = false;
+              button.textContent =
+                oldText;
+
+            });
+
+            return;
+          }
+
+          if (
+            typeof window.fetchPublications ===
+            "function"
+          ) {
+
+            Promise.resolve(
+              window.fetchPublications()
+            ).finally(function () {
+
+              button.disabled = false;
+              button.textContent =
+                oldText;
+
+            });
+
+            return;
+          }
+
+        } catch (error) {}
+
+        setTimeout(
+          function () {
+            window.location.reload();
+          },
+          150
+        );
+
+      }
+    );
+  }
+
+  /* =========================================================
+     FEED SORT SHORTCUTS
+  ========================================================= */
+
+  function initFeedSortShortcuts() {
+
+    var buttons =
+      $all(
+        "[data-feed-sort]"
+      );
+
+    var select =
+      $("#sortSelect");
+
+    buttons.forEach(function (button) {
+
+      button.addEventListener(
+        "click",
+        function () {
+
+          var value =
+            button.getAttribute(
+              "data-feed-sort"
+            );
+
+          if (!value) {
+            return;
+          }
+
+          if (select) {
+
+            select.value = value;
+
+            select.dispatchEvent(
+              new Event(
+                "change",
+                {
+                  bubbles: true
+                }
+              )
+            );
+
+          }
+
+          var discover =
+            $("#discover");
+
+          if (discover) {
+
+            try {
+
+              discover.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+              });
+
+            } catch (error) {}
+
+          }
+
+        }
+      );
+
+    });
+  }
+
+  /* =========================================================
+     URL CATEGORY
+  ========================================================= */
+
+  function applyCategoryFromURL() {
+
+    try {
+
+      var url =
+        new URL(
+          window.location.href
+        );
+
+      var category =
+        url.searchParams.get(
+          "category"
+        );
+
+      if (!category) {
+        return;
+      }
+
+      var button =
+        document.querySelector(
+          '.category-card[data-category="' +
+          CSS.escape(category) +
+          '"]'
+        );
+
+      if (button) {
+        button.click();
+      }
+
+    } catch (error) {}
+  }
+
+  /* =========================================================
+     KEYBOARD SHORTCUTS
+  ========================================================= */
+
+  function initKeyboardShortcuts() {
+
+    document.addEventListener(
+      "keydown",
+      function (event) {
+
+        var target =
+          event.target;
+
+        var isInput =
+          target &&
+          (
+            target.tagName === "INPUT" ||
+            target.tagName === "TEXTAREA" ||
+            target.tagName === "SELECT" ||
+            target.isContentEditable
+          );
+
+        if (isInput) {
+          return;
+        }
+
+        /*
+         * /
+         * открыть поиск
+         */
+
+        if (
+          event.key === "/" &&
+          !event.ctrlKey &&
+          !event.metaKey &&
+          !event.altKey
+        ) {
+
+          var search =
+            $("#searchInput");
+
+          if (search) {
+
+            event.preventDefault();
+
+            search.focus();
+
+          }
+
+        }
+
+        /*
+         * Escape закрывает уведомления
+         */
+
+        if (
+          event.key === "Escape"
+        ) {
+
+          var panel =
+            $("#notificationPanel");
+
+          if (panel) {
+            panel.classList.add("hidden");
+          }
+
+        }
+
+      }
+    );
+  }
+
+  /* =========================================================
+     INTERSECTION VIEW HELPER
+  ========================================================= */
+
+  function initViewObserver() {
+
+    /*
+     * Просмотры публикаций отправляются
+     * только если backend / index.js
+     * создаёт элементы с data-publication-id.
+     *
+     * Повторные просмотры одной публикации
+     * в этой сессии не отправляются.
+     */
+
+    if (
+      !("IntersectionObserver" in window)
+    ) {
+      return;
+    }
+
+    var seen = {};
+
+    try {
+
+      var stored =
+        sessionStorage.getItem(
+          "to_seen_publications"
+        );
+
+      if (stored) {
+        seen = JSON.parse(stored) || {};
+      }
+
+    } catch (error) {}
+
+    var observer =
+      new IntersectionObserver(
+        function (entries) {
+
+          entries.forEach(
+            function (entry) {
+
+              if (!entry.isIntersecting) {
+                return;
+              }
+
+              var element =
+                entry.target;
+
+              var id =
+                element.getAttribute(
+                  "data-publication-id"
+                );
+
+              if (!id || seen[id]) {
+                return;
+              }
+
+              seen[id] = true;
+
+              try {
+
+                sessionStorage.setItem(
+                  "to_seen_publications",
+                  JSON.stringify(seen)
+                );
+
+              } catch (error) {}
+
+              sendPublicationView(id);
+
+            }
+          );
+
+        },
+        {
+          threshold: .45
+        }
+      );
+
+    function observeAll() {
+
+      $all(
+        "[data-publication-id]"
+      ).forEach(function (element) {
+
+        if (
+          element.dataset.toObserved === "1"
+        ) {
+          return;
+        }
+
+        element.dataset.toObserved = "1";
+
+        observer.observe(element);
+
+      });
+
+    }
+
+    observeAll();
+
+    /*
+     * index.js может добавлять публикации
+     * после загрузки. MutationObserver позволяет
+     * автоматически подключать их.
+     */
+
+    if (
+      "MutationObserver" in window
+    ) {
+
+      var mutationObserver =
+        new MutationObserver(
+          function () {
+            observeAll();
+          }
+        );
+
+      mutationObserver.observe(
+        document.body,
+        {
+          childList: true,
+          subtree: true
+        }
+      );
+
+    }
+
+  }
+
+  async function sendPublicationView(id) {
+
+    try {
+
+      await apiRequest(
+        "/api/publications/view",
+        {
+          method: "POST",
+          body: {
+            publication_id: id
+          }
+        }
+      );
+
+    } catch (error) {
+
+      /*
+       * Просмотр не должен ломать ленту.
+       */
+
+    }
+  }
+
+  window.TO.viewPublication =
+    sendPublicationView;
+
+  /* =========================================================
+     SHARE HELPER
+  ========================================================= */
+
+  async function sharePublication(data) {
+
+    data = data || {};
+
+    var id =
+      firstValue(
+        data,
+        ["publication_id", "id"],
+        ""
+      );
+
+    var title =
+      firstValue(
+        data,
+        ["title"],
+        "Tajik Opportunities"
+      );
+
+    var text =
+      firstValue(
+        data,
+        ["text", "description"],
+        "Интересная публикация на Tajik Opportunities"
+      );
+
+    var url =
+      firstValue(
+        data,
+        ["url", "link"],
+        ""
+      );
+
+    if (!url && id) {
+
+      url =
+        window.location.origin +
+        "/?publication=" +
+        encodeURIComponent(id);
+
+    }
+
+    if (!url) {
+      url = window.location.href;
+    }
+
+    try {
+
+      if (
+        navigator.share
+      ) {
+
+        await navigator.share({
+          title: title,
+          text: text,
+          url: url
+        });
+
+      } else if (
+        navigator.clipboard
+      ) {
+
+        await navigator.clipboard.writeText(
+          url
+        );
+
+        showToast(
+          "Ссылка скопирована"
+        );
+
+      } else {
+
+        showToast(
+          "Ссылка: " + url
+        );
+
+      }
+
+    } catch (error) {
+
+      /*
+       * Пользователь мог закрыть системное
+       * окно Share — это не ошибка страницы.
+       */
+
+    }
+
+    if (id) {
+
+      try {
+
+        await apiRequest(
+          "/api/publications/share",
+          {
+            method: "POST",
+            body: {
+              publication_id: id
+            }
+          }
+        );
+
+      } catch (error) {}
+
+    }
+  }
+
+  window.TO.sharePublication =
+    sharePublication;
+
+  /* =========================================================
+     SAVE HELPER
+  ========================================================= */
+
+  async function savePublication(id) {
+
+    if (!id) {
+      return false;
+    }
+
+    try {
+
+      await apiRequest(
+        "/api/publications/save",
+        {
+          method: "POST",
+          body: {
+            publication_id: id
+          }
+        }
+      );
+
+      showToast(
+        "Публикация сохранена"
+      );
+
+      return true;
+
+    } catch (error) {
+
+      if (
+        error.status === 401 ||
+        error.status === 403
+      ) {
+
+        showToast(
+          "Войдите в аккаунт, чтобы сохранять публикации"
+        );
+
+      } else {
+
+        showToast(
+          "Не удалось сохранить публикацию"
+        );
+
+      }
+
+      return false;
+    }
+  }
+
+  window.TO.savePublication =
+    savePublication;
+
+  /* =========================================================
+     REACTION HELPER
+  ========================================================= */
+
+  async function reactToPublication(
+    id,
+    reaction
+  ) {
+
+    if (!id) {
+      return false;
+    }
+
+    reaction =
+      reaction ||
+      "like";
+
+    try {
+
+      await apiRequest(
+        "/api/publications/react",
+        {
+          method: "POST",
+          body: {
+            publication_id: id,
+            reaction: reaction
+          }
+        }
+      );
+
+      showToast(
+        "Реакция добавлена"
+      );
+
+      return true;
+
+    } catch (error) {
+
+      if (
+        error.status === 401 ||
+        error.status === 403
+      ) {
+
+        showToast(
+          "Войдите в аккаунт, чтобы реагировать"
+        );
+
+      } else {
+
+        showToast(
+          "Не удалось добавить реакцию"
+        );
+
+      }
+
+      return false;
+    }
+  }
+
+  window.TO.reactToPublication =
+    reactToPublication;
+
+  /* =========================================================
+     COMMENTS
+  ========================================================= */
+
+  async function addComment(
+    publicationId,
+    text
+  ) {
+
+    if (!publicationId) {
+      return false;
+    }
+
+    text =
+      String(text || "").trim();
+
+    if (!text) {
+      showToast(
+        "Введите комментарий"
+      );
+
+      return false;
+    }
+
+    try {
+
+      await apiRequest(
+        "/api/comments",
+        {
+          method: "POST",
+          body: {
+            publication_id:
+              publicationId,
+            text: text
+          }
+        }
+      );
+
+      showToast(
+        "Комментарий опубликован"
+      );
+
+      return true;
+
+    } catch (error) {
+
+      showToast(
+        "Не удалось добавить комментарий"
+      );
+
+      return false;
+    }
+  }
+
+  window.TO.addComment =
+    addComment;
+
+  /* =========================================================
+     GENERIC PUBLICATION ACTION DELEGATION
+  ========================================================= */
+
+  function initPublicationActions() {
+
+    document.addEventListener(
+      "click",
+      async function (event) {
+
+        var button =
+          event.target.closest(
+            "[data-to-action]"
+          );
+
+        if (!button) {
+          return;
+        }
+
+        var action =
+          button.getAttribute(
+            "data-to-action"
+          );
+
+        var id =
+          button.getAttribute(
+            "data-publication-id"
+          ) ||
+          (
+            button.closest(
+              "[data-publication-id]"
+            ) &&
+            button.closest(
+              "[data-publication-id]"
+            ).getAttribute(
+              "data-publication-id"
+            )
+          );
+
+        if (!action) {
+          return;
+        }
+
+        if (
+          action === "save"
+        ) {
+
+          event.preventDefault();
+
+          await savePublication(id);
+
+          return;
+        }
+
+        if (
+          action === "like" ||
+          action === "react"
+        ) {
+
+          event.preventDefault();
+
+          var reaction =
+            button.getAttribute(
+              "data-reaction"
+            ) ||
+            "like";
+
+          await reactToPublication(
+            id,
+            reaction
+          );
+
+          return;
+        }
+
+        if (
+          action === "share"
+        ) {
+
+          event.preventDefault();
+
+          await sharePublication({
+            publication_id: id,
+            title:
+              button.getAttribute(
+                "data-title"
+              ) ||
+              "Tajik Opportunities",
+            text:
+              button.getAttribute(
+                "data-text"
+              ) ||
+              "",
+            url:
+              button.getAttribute(
+                "data-url"
+              ) ||
+              ""
+          });
+
+          return;
+        }
+
+        if (
+          action === "view"
+        ) {
+
+          if (id) {
+            await sendPublicationView(id);
+          }
+
+          return;
+        }
+
+      }
+    );
+  }
+
+  /* =========================================================
+     ONLINE STATUS
+  ========================================================= */
+
+  function initOnlineStatus() {
+
+    function update() {
+
+      document.documentElement.dataset.online =
+        navigator.onLine
+          ? "true"
+          : "false";
+
+    }
+
+    window.addEventListener(
+      "online",
+      function () {
+        update();
+        showToast(
+          "Соединение восстановлено"
+        );
+      }
+    );
+
+    window.addEventListener(
+      "offline",
+      function () {
+        update();
+        showToast(
+          "Вы сейчас офлайн"
+        );
+      }
+    );
+
+    update();
+  }
+
+  /* =========================================================
+     MOBILE NAV
+  ========================================================= */
+
+  function initMobileNavigation() {
+
+    var links =
+      $all(
+        ".mobile-nav-item"
+      );
+
+    links.forEach(function (link) {
+
+      link.addEventListener(
+        "click",
+        function () {
+
+          links.forEach(
+            function (item) {
+              item.classList.remove(
+                "active"
+              );
+            }
+          );
+
+          link.classList.add(
+            "active"
+          );
+
+        }
+      );
+
+    });
+  }
+
+  /* =========================================================
+     NOTIFICATION POLLING
+  ========================================================= */
+
+  function initNotificationPolling() {
+
+    /*
+     * Не опрашиваем сервер слишком часто.
+     */
+
+    setInterval(
+      function () {
+
+        if (
+          document.hidden
+        ) {
+          return;
+        }
+
+        loadNotifications();
+
+      },
+      60000
+    );
+  }
+
+  /* =========================================================
+     GLOBAL EXPORTS
+  ========================================================= */
+
+  window.TO.resetFilters =
+    resetFilters;
+
+  window.TO.loadNotifications =
+    loadNotifications;
+
+  window.TO.loadCurrentUser =
+    loadCurrentUser;
+
+  window.TO.loadPublicStats =
+    loadPublicStats;
+
+  /* =========================================================
+     INITIALIZATION
+  ========================================================= */
+
+  async function init() {
+
+    if (state.initialized) {
+      return;
+    }
+
+    state.initialized = true;
+
+    initYear();
+
+    initNotifications();
+
+    initCategoryEnhancement();
+
+    initSearchEnhancement();
+
+    initResetButtons();
+
+    initRefreshButton();
+
+    initFeedSortShortcuts();
+
+    initKeyboardShortcuts();
+
+    initViewObserver();
+
+    initPublicationActions();
+
+    initOnlineStatus();
+
+    initMobileNavigation();
+
+    applyCategoryFromURL();
+
+    /*
+     * Авторизация и уведомления запускаются
+     * независимо друг от друга.
+     */
+
+    loadCurrentUser();
+
+    loadNotifications();
+
+    loadPublicStats();
+
+    initNotificationPolling();
+
+  }
+
+  if (
+    document.readyState === "loading"
+  ) {
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      init
+    );
+
+  } else {
+
+    init();
+
+  }
+
+})();
+</script>
+
+
+<!-- =========================================================
+     EXISTING PROJECT SCRIPTS
 ========================================================= -->
 
 <script src="/js/app.js"></script>
