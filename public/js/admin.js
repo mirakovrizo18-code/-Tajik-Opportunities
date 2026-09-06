@@ -1,108 +1,243 @@
 const state = {
   authenticated: false,
+
   loading: false,
+
   submissions: [],
+
   posts: [],
+
+  trashPosts: [],
+
+  rejectedSubmissions: [],
+
   filter: "pending",
+
   postFilter: "all",
+
+  trashFilter: "all",
+
   selectedSubmission: null,
-  selectedPost: null,
+
+  selectedPost: null
 };
 
-const $ = (id) => document.getElementById(id);
 
-async function api(url, options = {}) {
-  const response = await fetch(url, {
-    credentials: "same-origin",
-    ...options,
-    headers: {
-      "content-type": "application/json",
-      ...(options.headers || {}),
-    },
-  });
+/* ============================================================
+   HELPERS
+============================================================ */
+
+const $ = (id) =>
+  document.getElementById(id);
+
+
+async function api(
+  url,
+  options = {}
+) {
+  const response =
+    await fetch(url, {
+      credentials: "same-origin",
+      ...options,
+      headers: {
+        "content-type":
+          "application/json",
+        ...(options.headers || {})
+      }
+    });
 
   let data = {};
 
   try {
-    data = await response.json();
+    data =
+      await response.json();
   } catch {
     data = {};
   }
 
   if (!response.ok) {
-    const error = new Error(
-      data.error || `Ошибка ${response.status}`
-    );
+    const error =
+      new Error(
+        data.error ||
+          `Ошибка ${response.status}`
+      );
 
-    error.status = response.status;
+    error.status =
+      response.status;
+
     throw error;
   }
 
   return data;
 }
 
-function showLogin() {
-  const loginSection = $("adminLogin");
-  const dashboard = $("adminDashboard");
 
-  if (loginSection) {
-    loginSection.hidden = false;
+function showLogin() {
+  const login =
+    $("adminLogin");
+
+  const dashboard =
+    $("adminDashboard");
+
+  if (login) {
+    login.hidden = false;
   }
 
   if (dashboard) {
     dashboard.hidden = true;
   }
 
-  state.authenticated = false;
+  state.authenticated =
+    false;
 }
 
-function showDashboard() {
-  const loginSection = $("adminLogin");
-  const dashboard = $("adminDashboard");
 
-  if (loginSection) {
-    loginSection.hidden = true;
+function showDashboard() {
+  const login =
+    $("adminLogin");
+
+  const dashboard =
+    $("adminDashboard");
+
+  if (login) {
+    login.hidden = true;
   }
 
   if (dashboard) {
     dashboard.hidden = false;
   }
 
-  state.authenticated = true;
+  state.authenticated =
+    true;
 }
 
-function showMessage(element, message, type = "") {
+
+function showMessage(
+  element,
+  message,
+  type = ""
+) {
   if (!element) return;
 
-  element.textContent = message;
-  element.className = type
-    ? `admin-message ${type}`
-    : "admin-message";
+  element.textContent =
+    message;
+
+  element.className =
+    type
+      ? `admin-message ${type}`
+      : "admin-message";
 }
+
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll(
+      "&",
+      "&amp;"
+    )
+    .replaceAll(
+      "<",
+      "&lt;"
+    )
+    .replaceAll(
+      ">",
+      "&gt;"
+    )
+    .replaceAll(
+      '"',
+      "&quot;"
+    )
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+}
+
+
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+
+function formatDate(value) {
+  if (!value) {
+    return "—";
+  }
+
+  const date =
+    new Date(value);
+
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
+  ) {
+    return "—";
+  }
+
+  return date.toLocaleString(
+    "ru-RU",
+    {
+      dateStyle: "medium",
+      timeStyle: "short"
+    }
+  );
+}
+
+
+function getValue(id) {
+  return String(
+    $(id)?.value || ""
+  ).trim();
+}
+
+
+function setValue(
+  id,
+  value
+) {
+  const element =
+    $(id);
+
+  if (element) {
+    element.value =
+      value ?? "";
+  }
+}
+
+
+/* ============================================================
+   AUTH
+============================================================ */
 
 async function checkAuthentication() {
   try {
-    await api("/api/admin/me");
+    await api(
+      "/api/admin/me"
+    );
 
     showDashboard();
 
-    await Promise.all([
-      loadSubmissions(),
-      loadPosts(),
-      loadStats(),
-    ]);
+    await refreshEverything();
+
   } catch {
     showLogin();
   }
 }
 
+
 async function handleLogin() {
-  const passwordInput = $("adminPassword");
-  const button = $("adminLoginButton");
-  const message = $("adminLoginMessage");
+  const input =
+    $("adminPassword");
+
+  const button =
+    $("adminLoginButton");
+
+  const message =
+    $("adminLoginMessage");
 
   const password =
-    passwordInput?.value || "";
+    input?.value || "";
 
   if (!password) {
     showMessage(
@@ -124,15 +259,18 @@ async function handleLogin() {
   );
 
   try {
-    await api("/api/admin/login", {
-      method: "POST",
-      body: JSON.stringify({
-        password,
-      }),
-    });
+    await api(
+      "/api/admin/login",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          password
+        })
+      }
+    );
 
-    if (passwordInput) {
-      passwordInput.value = "";
+    if (input) {
+      input.value = "";
     }
 
     showMessage(
@@ -143,88 +281,170 @@ async function handleLogin() {
 
     showDashboard();
 
-    await Promise.all([
-      loadSubmissions(),
-      loadPosts(),
-      loadStats(),
-    ]);
+    await refreshEverything();
+
   } catch (error) {
     showMessage(
       message,
-      error.message || "Не удалось войти.",
+      error.message ||
+        "Не удалось войти.",
       "error"
     );
+
   } finally {
     if (button) {
-      button.disabled = false;
+      button.disabled =
+        false;
     }
   }
 }
 
+
 async function handleLogout() {
   try {
-    await api("/api/admin/logout", {
-      method: "POST",
-    });
+    await api(
+      "/api/admin/logout",
+      {
+        method: "POST"
+      }
+    );
   } catch {
-    // Даже если запрос завершился ошибкой,
-    // всё равно показываем форму входа.
+    // Выход всё равно выполняется локально.
   }
 
-  state.authenticated = false;
-  state.submissions = [];
-  state.posts = [];
+  state.authenticated =
+    false;
+
+  state.submissions =
+    [];
+
+  state.posts =
+    [];
+
+  state.trashPosts =
+    [];
+
+  state.rejectedSubmissions =
+    [];
 
   showLogin();
 }
 
+
+/* ============================================================
+   REFRESH EVERYTHING
+============================================================ */
+
+async function refreshEverything() {
+  await Promise.all([
+    loadStats(),
+    loadSubmissions(),
+    loadPosts(),
+    loadTrash()
+  ]);
+}
+
+
+/* ============================================================
+   STATISTICS
+============================================================ */
+
 async function loadStats() {
   try {
     const data =
-      await api("/api/admin/stats");
+      await api(
+        "/api/admin/stats"
+      );
 
-    const stats = data.stats || {};
+    const stats =
+      data.stats || {};
 
-    if ($("pendingCount")) {
-      $("pendingCount").textContent =
-        stats.pending ?? 0;
+    if (
+      $("pendingCount")
+    ) {
+      $("pendingCount")
+        .textContent =
+          stats.pending ??
+          0;
     }
 
-    if ($("approvedCount")) {
-      $("approvedCount").textContent =
-        stats.approved ?? 0;
+    if (
+      $("approvedCount")
+    ) {
+      $("approvedCount")
+        .textContent =
+          stats.approved ??
+          0;
     }
 
-    if ($("rejectedCount")) {
-      $("rejectedCount").textContent =
-        stats.rejected ?? 0;
+    if (
+      $("rejectedCount")
+    ) {
+      $("rejectedCount")
+        .textContent =
+          stats.rejected ??
+          0;
     }
 
-    if ($("totalCount")) {
-      $("totalCount").textContent =
-        stats.total_posts ??
-        stats.total_submissions ??
-        0;
+    if (
+      $("totalCount")
+    ) {
+      $("totalCount")
+        .textContent =
+          stats.total_posts ??
+          0;
     }
+
+    if (
+      $("trashCount")
+    ) {
+      $("trashCount")
+        .textContent =
+          stats.trash_posts ??
+          0;
+    }
+
+    if (
+      $("totalSubmissionsCount")
+    ) {
+      $("totalSubmissionsCount")
+        .textContent =
+          stats.total_submissions ??
+          0;
+    }
+
   } catch (error) {
-    if (error.status === 401) {
+    if (
+      error.status === 401
+    ) {
       showLogin();
     }
   }
 }
 
+
+/* ============================================================
+   SUBMISSIONS
+============================================================ */
+
 async function loadSubmissions() {
-  const list = $("submissionsList");
-  const loading = $("submissionsLoading");
-  const errorBox = $("submissionsError");
-  const empty = $("submissionsEmpty");
+  const loading =
+    $("submissionsLoading");
+
+  const errorBox =
+    $("submissionsError");
+
+  const empty =
+    $("submissionsEmpty");
 
   if (loading) {
-    loading.hidden = false;
+    loading.hidden =
+      false;
   }
 
   if (errorBox) {
-    errorBox.hidden = true;
+    errorBox.hidden =
+      true;
   }
 
   try {
@@ -236,11 +456,16 @@ async function loadSubmissions() {
       );
 
     state.submissions =
-      data.submissions || [];
+      data.submissions ||
+      [];
 
     renderSubmissions();
+
   } catch (error) {
-    if (error.status === 401) {
+
+    if (
+      error.status === 401
+    ) {
       showLogin();
       return;
     }
@@ -250,84 +475,104 @@ async function loadSubmissions() {
         error.message ||
         "Не удалось загрузить заявки.";
 
-      errorBox.hidden = false;
+      errorBox.hidden =
+        false;
     }
+
   } finally {
     if (loading) {
-      loading.hidden = true;
+      loading.hidden =
+        true;
     }
   }
 }
 
+
 function renderSubmissions() {
-  const list = $("submissionsList");
-  const empty = $("submissionsEmpty");
+  const list =
+    $("submissionsList");
+
+  const empty =
+    $("submissionsEmpty");
 
   if (!list) return;
 
-  list.innerHTML = "";
+  list.innerHTML =
+    "";
 
-  if (!state.submissions.length) {
+  if (
+    !state.submissions.length
+  ) {
     if (empty) {
-      empty.hidden = false;
+      empty.hidden =
+        false;
     }
 
     return;
   }
 
   if (empty) {
-    empty.hidden = true;
+    empty.hidden =
+      true;
   }
 
-  for (const submission of state.submissions) {
+  for (
+    const submission
+    of state.submissions
+  ) {
     const card =
-      document.createElement("article");
+      document.createElement(
+        "article"
+      );
 
     card.className =
       "admin-submission-card";
 
-    const title =
-      escapeHtml(
-        submission.title || "Без названия"
-      );
-
-    const category =
-      escapeHtml(
-        submission.category || "Без категории"
-      );
-
-    const author =
-      escapeHtml(
-        submission.author_name ||
-          "Не указан"
-      );
-
-    const status =
-      escapeHtml(
-        submission.status || ""
-      );
-
-    const date =
-      formatDate(
-        submission.created_at
-      );
-
     card.innerHTML = `
       <div class="admin-card-content">
-        <h3>${title}</h3>
+
+        <h3>
+          ${escapeHtml(
+            submission.title ||
+              "Без названия"
+          )}
+        </h3>
 
         <div class="admin-card-meta">
-          <span>${category}</span>
-          <span>${date}</span>
-          <span>${author}</span>
+
+          <span>
+            ${escapeHtml(
+              submission.category ||
+                "Без категории"
+            )}
+          </span>
+
+          <span>
+            ${formatDate(
+              submission.created_at
+            )}
+          </span>
+
+          <span>
+            ${escapeHtml(
+              submission.author_name ||
+                "Автор не указан"
+            )}
+          </span>
+
         </div>
 
         <div class="admin-status">
-          ${status}
+          ${escapeHtml(
+            submission.status ||
+              ""
+          )}
         </div>
+
       </div>
 
       <div class="admin-card-actions">
+
         <button
           type="button"
           class="admin-view-button"
@@ -335,34 +580,41 @@ function renderSubmissions() {
             submission.id
           )}"
         >
-          Открыть
+          👁 Открыть
         </button>
+
       </div>
     `;
 
-    const button =
-      card.querySelector(
+    card
+      .querySelector(
         ".admin-view-button"
+      )
+      ?.addEventListener(
+        "click",
+        () =>
+          openSubmission(
+            submission.id
+          )
       );
 
-    button?.addEventListener(
-      "click",
-      () => {
-        openSubmission(submission.id);
-      }
+    list.appendChild(
+      card
     );
-
-    list.appendChild(card);
   }
 }
+
 
 function openSubmission(id) {
   const submission =
     state.submissions.find(
-      (item) => item.id === id
+      item =>
+        item.id === id
     );
 
-  if (!submission) return;
+  if (!submission) {
+    return;
+  }
 
   state.selectedSubmission =
     submission;
@@ -373,35 +625,41 @@ function openSubmission(id) {
   const body =
     $("submissionModalBody");
 
-  if (!modal || !body) return;
+  if (!modal || !body) {
+    return;
+  }
 
   body.innerHTML = `
     <div class="submission-details">
 
       <h2>
         ${escapeHtml(
-          submission.title || "Без названия"
+          submission.title ||
+            "Без названия"
         )}
       </h2>
 
       <p>
         <strong>Категория:</strong>
         ${escapeHtml(
-          submission.category || "—"
+          submission.category ||
+            "—"
         )}
       </p>
 
       <p>
         <strong>Автор:</strong>
         ${escapeHtml(
-          submission.author_name || "—"
+          submission.author_name ||
+            "—"
         )}
       </p>
 
       <p>
         <strong>Контакт:</strong>
         ${escapeHtml(
-          submission.contact || "—"
+          submission.contact ||
+            "—"
         )}
       </p>
 
@@ -415,23 +673,46 @@ function openSubmission(id) {
       <p>
         <strong>Код:</strong>
         ${escapeHtml(
-          submission.tracking_code || "—"
+          submission.tracking_code ||
+            "—"
         )}
       </p>
+
+      ${
+        submission.rejection_reason
+          ? `
+            <p>
+              <strong>
+                Причина отклонения:
+              </strong>
+              ${escapeHtml(
+                submission.rejection_reason
+              )}
+            </p>
+          `
+          : ""
+      }
 
       <hr>
 
       <div class="submission-text">
         ${escapeHtml(
-          submission.content || ""
-        ).replace(/\n/g, "<br>")}
+          submission.content ||
+            ""
+        ).replace(
+          /\n/g,
+          "<br>"
+        )}
       </div>
 
       ${
         submission.image_url
           ? `
             <p>
-              <strong>Изображение:</strong>
+              <strong>
+                Изображение:
+              </strong>
+
               <a
                 href="${escapeAttr(
                   submission.image_url
@@ -450,7 +731,10 @@ function openSubmission(id) {
         submission.link_url
           ? `
             <p>
-              <strong>Ссылка:</strong>
+              <strong>
+                Ссылка:
+              </strong>
+
               <a
                 href="${escapeAttr(
                   submission.link_url
@@ -468,49 +752,63 @@ function openSubmission(id) {
     </div>
   `;
 
-  const approveButton =
+  const approve =
     $("submissionApprove");
 
-  const rejectButton =
+  const reject =
     $("submissionReject");
 
-  if (approveButton) {
-    approveButton.hidden =
-      submission.status !== "pending";
+  if (approve) {
+    approve.hidden =
+      submission.status !==
+      "pending";
   }
 
-  if (rejectButton) {
-    rejectButton.hidden =
-      submission.status !== "pending";
+  if (reject) {
+    reject.hidden =
+      submission.status !==
+      "pending";
   }
 
-  modal.hidden = false;
+  modal.hidden =
+    false;
 }
+
 
 function closeSubmissionModal() {
   const modal =
     $("submissionModal");
 
   if (modal) {
-    modal.hidden = true;
+    modal.hidden =
+      true;
   }
 
   state.selectedSubmission =
     null;
 }
 
+
+/* ============================================================
+   APPROVE
+============================================================ */
+
 async function approveSelectedSubmission() {
   const submission =
     state.selectedSubmission;
 
-  if (!submission) return;
+  if (!submission) {
+    return;
+  }
 
   const confirmed =
     confirm(
-      "Опубликовать эту заявку?"
+      "Опубликовать эту заявку на сайте?"
     );
 
-  if (!confirmed) return;
+  if (!confirmed) {
+    return;
+  }
 
   try {
     await api(
@@ -518,23 +816,23 @@ async function approveSelectedSubmission() {
         submission.id
       )}/approve`,
       {
-        method: "POST",
+        method: "POST"
       }
     );
 
     closeSubmissionModal();
 
-    await Promise.all([
-      loadSubmissions(),
-      loadPosts(),
-      loadStats(),
-    ]);
+    await refreshEverything();
 
     alert(
-      "Заявка опубликована."
+      "✅ Публикация размещена на сайте."
     );
+
   } catch (error) {
-    if (error.status === 401) {
+
+    if (
+      error.status === 401
+    ) {
       showLogin();
       closeSubmissionModal();
       return;
@@ -542,24 +840,32 @@ async function approveSelectedSubmission() {
 
     alert(
       error.message ||
-        "Не удалось опубликовать заявку."
+        "Не удалось опубликовать."
     );
   }
 }
+
+
+/* ============================================================
+   REJECT
+============================================================ */
 
 async function rejectSelectedSubmission() {
   const submission =
     state.selectedSubmission;
 
-  if (!submission) return;
+  if (!submission) {
+    return;
+  }
 
   const reason =
     prompt(
-      "Причина отклонения:",
-      "Материал не соответствует требованиям платформы."
+      "Укажите причину отклонения:"
     );
 
-  if (reason === null) return;
+  if (reason === null) {
+    return;
+  }
 
   try {
     await api(
@@ -569,23 +875,26 @@ async function rejectSelectedSubmission() {
       {
         method: "POST",
         body: JSON.stringify({
-          reason,
-        }),
+          reason:
+            reason.trim() ||
+            "Материал не соответствует требованиям."
+        })
       }
     );
 
     closeSubmissionModal();
 
-    await Promise.all([
-      loadSubmissions(),
-      loadStats(),
-    ]);
+    await refreshEverything();
 
     alert(
-      "Заявка отклонена."
+      "Заявка отклонена и находится в корзине."
     );
+
   } catch (error) {
-    if (error.status === 401) {
+
+    if (
+      error.status === 401
+    ) {
       showLogin();
       closeSubmissionModal();
       return;
@@ -598,14 +907,12 @@ async function rejectSelectedSubmission() {
   }
 }
 
+
 /* ============================================================
-   ВСЕ ОПУБЛИКОВАННЫЕ ПОСТЫ
-   ============================================================ */
+   POSTS
+============================================================ */
 
 async function loadPosts() {
-  const list =
-    $("adminPostsList");
-
   const loading =
     $("adminPostsLoading");
 
@@ -616,11 +923,13 @@ async function loadPosts() {
     $("adminPostsEmpty");
 
   if (loading) {
-    loading.hidden = false;
+    loading.hidden =
+      false;
   }
 
   if (errorBox) {
-    errorBox.hidden = true;
+    errorBox.hidden =
+      true;
   }
 
   try {
@@ -630,11 +939,16 @@ async function loadPosts() {
       );
 
     state.posts =
-      data.posts || [];
+      data.posts ||
+      [];
 
     renderPosts();
+
   } catch (error) {
-    if (error.status === 401) {
+
+    if (
+      error.status === 401
+    ) {
       showLogin();
       return;
     }
@@ -644,14 +958,18 @@ async function loadPosts() {
         error.message ||
         "Не удалось загрузить посты.";
 
-      errorBox.hidden = false;
+      errorBox.hidden =
+        false;
     }
+
   } finally {
     if (loading) {
-      loading.hidden = true;
+      loading.hidden =
+        true;
     }
   }
 }
+
 
 function renderPosts() {
   const list =
@@ -660,19 +978,23 @@ function renderPosts() {
   const empty =
     $("adminPostsEmpty");
 
-  if (!list) return;
+  if (!list) {
+    return;
+  }
 
-  list.innerHTML = "";
+  list.innerHTML =
+    "";
 
   let posts =
     [...state.posts];
 
   if (
-    state.postFilter !== "all"
+    state.postFilter !==
+    "all"
   ) {
     posts =
       posts.filter(
-        (post) =>
+        post =>
           post.category ===
           state.postFilter
       );
@@ -680,45 +1002,28 @@ function renderPosts() {
 
   if (!posts.length) {
     if (empty) {
-      empty.hidden = false;
+      empty.hidden =
+        false;
     }
 
     return;
   }
 
   if (empty) {
-    empty.hidden = true;
+    empty.hidden =
+      true;
   }
 
-  for (const post of posts) {
+  for (
+    const post of posts
+  ) {
     const card =
-      document.createElement("article");
+      document.createElement(
+        "article"
+      );
 
     card.className =
       "admin-post-card";
-
-    const title =
-      escapeHtml(
-        post.title ||
-          "Без названия"
-      );
-
-    const category =
-      escapeHtml(
-        post.category ||
-          "Без категории"
-      );
-
-    const author =
-      escapeHtml(
-        post.author_name ||
-          "Не указан"
-      );
-
-    const date =
-      formatDate(
-        post.published_at
-      );
 
     card.innerHTML = `
       <div class="admin-post-main">
@@ -740,19 +1045,51 @@ function renderPosts() {
 
         <div class="admin-post-info">
 
-          <h3>${title}</h3>
+          <h3>
+            ${escapeHtml(
+              post.title ||
+                "Без названия"
+            )}
+          </h3>
 
           <div class="admin-post-meta">
-            <span>${category}</span>
-            <span>${date}</span>
-            <span>${author}</span>
+
+            <span>
+              ${escapeHtml(
+                post.category ||
+                  "Без категории"
+              )}
+            </span>
+
+            <span>
+              ${formatDate(
+                post.published_at
+              )}
+            </span>
+
+            <span>
+              ${escapeHtml(
+                post.author_name ||
+                  "Автор не указан"
+              )}
+            </span>
+
           </div>
 
           <p>
             ${escapeHtml(
-              (post.content || "")
-                .slice(0, 220)
-            )}${post.content?.length > 220 ? "…" : ""}
+              (post.content ||
+                "").slice(
+                  0,
+                  250
+                )
+            )}${
+              (post.content ||
+                "").length >
+              250
+                ? "…"
+                : ""
+            }
           </p>
 
         </div>
@@ -768,7 +1105,7 @@ function renderPosts() {
             post.id
           )}"
         >
-          Открыть
+          👁 Открыть
         </button>
 
         <button
@@ -778,7 +1115,7 @@ function renderPosts() {
             post.id
           )}"
         >
-          Редактировать
+          ✏️ Редактировать
         </button>
 
         <button
@@ -788,7 +1125,7 @@ function renderPosts() {
             post.id
           )}"
         >
-          Удалить
+          🗑 В корзину
         </button>
 
       </div>
@@ -801,7 +1138,9 @@ function renderPosts() {
       ?.addEventListener(
         "click",
         () =>
-          openPost(post.id)
+          openPost(
+            post.id
+          )
       );
 
     card
@@ -811,7 +1150,9 @@ function renderPosts() {
       ?.addEventListener(
         "click",
         () =>
-          editPost(post.id)
+          editPost(
+            post.id
+          )
       );
 
     card
@@ -821,20 +1162,32 @@ function renderPosts() {
       ?.addEventListener(
         "click",
         () =>
-          deletePost(post.id)
+          trashPost(
+            post.id
+          )
       );
 
-    list.appendChild(card);
+    list.appendChild(
+      card
+    );
   }
 }
+
+
+/* ============================================================
+   OPEN POST
+============================================================ */
 
 function openPost(id) {
   const post =
     state.posts.find(
-      (item) => item.id === id
+      item =>
+        item.id === id
     );
 
-  if (!post) return;
+  if (!post) {
+    return;
+  }
 
   state.selectedPost =
     post;
@@ -846,7 +1199,6 @@ function openPost(id) {
     $("postModalBody");
 
   if (!modal || !body) {
-    editPost(id);
     return;
   }
 
@@ -861,7 +1213,13 @@ function openPost(id) {
                 post.image_url
               )}"
               alt=""
-              style="max-width:100%;border-radius:12px;"
+              style="
+                width:100%;
+                max-height:420px;
+                object-fit:cover;
+                border-radius:12px;
+                margin-bottom:15px;
+              "
             >
           `
           : ""
@@ -869,33 +1227,45 @@ function openPost(id) {
 
       <h2>
         ${escapeHtml(
-          post.title || ""
+          post.title ||
+            ""
         )}
       </h2>
 
       <p>
-        <strong>Категория:</strong>
+        <strong>
+          Категория:
+        </strong>
         ${escapeHtml(
-          post.category || "—"
+          post.category ||
+            "—"
         )}
       </p>
 
       <p>
-        <strong>Автор:</strong>
+        <strong>
+          Автор:
+        </strong>
         ${escapeHtml(
-          post.author_name || "—"
+          post.author_name ||
+            "—"
         )}
       </p>
 
       <p>
-        <strong>Контакт:</strong>
+        <strong>
+          Контакт:
+        </strong>
         ${escapeHtml(
-          post.contact || "—"
+          post.contact ||
+            "—"
         )}
       </p>
 
       <p>
-        <strong>Дата публикации:</strong>
+        <strong>
+          Опубликовано:
+        </strong>
         ${formatDate(
           post.published_at
         )}
@@ -905,7 +1275,8 @@ function openPost(id) {
 
       <div>
         ${escapeHtml(
-          post.content || ""
+          post.content ||
+            ""
         ).replace(
           /\n/g,
           "<br>"
@@ -923,7 +1294,7 @@ function openPost(id) {
                 target="_blank"
                 rel="noopener"
               >
-                Открыть ссылку поста
+                🔗 Открыть ссылку
               </a>
             </p>
           `
@@ -933,27 +1304,39 @@ function openPost(id) {
     </div>
   `;
 
-  modal.hidden = false;
+  modal.hidden =
+    false;
 }
+
 
 function closePostModal() {
   const modal =
     $("postModal");
 
   if (modal) {
-    modal.hidden = true;
+    modal.hidden =
+      true;
   }
 
-  state.selectedPost = null;
+  state.selectedPost =
+    null;
 }
+
+
+/* ============================================================
+   EDIT POST
+============================================================ */
 
 function editPost(id) {
   const post =
     state.posts.find(
-      (item) => item.id === id
+      item =>
+        item.id === id
     );
 
-  if (!post) return;
+  if (!post) {
+    return;
+  }
 
   state.selectedPost =
     post;
@@ -966,7 +1349,7 @@ function editPost(id) {
 
   if (!modal || !form) {
     alert(
-      "В admin.html ещё нет формы редактирования поста."
+      "Форма редактирования не найдена."
     );
 
     return;
@@ -1007,14 +1390,32 @@ function editPost(id) {
     post.author_name
   );
 
-  modal.hidden = false;
+  modal.hidden =
+    false;
 }
+
+
+function closePostEditModal() {
+  const modal =
+    $("postEditModal");
+
+  if (modal) {
+    modal.hidden =
+      true;
+  }
+
+  state.selectedPost =
+    null;
+}
+
 
 async function savePost() {
   const post =
     state.selectedPost;
 
-  if (!post) return;
+  if (!post) {
+    return;
+  }
 
   const title =
     getValue(
@@ -1051,7 +1452,9 @@ async function savePost() {
       "editPostAuthor"
     );
 
-  if (title.length < 5) {
+  if (
+    title.length < 5
+  ) {
     alert(
       "Заголовок должен содержать минимум 5 символов."
     );
@@ -1059,7 +1462,9 @@ async function savePost() {
     return;
   }
 
-  if (content.length < 20) {
+  if (
+    content.length < 20
+  ) {
     alert(
       "Описание должно содержать минимум 20 символов."
     );
@@ -1069,7 +1474,7 @@ async function savePost() {
 
   if (!category) {
     alert(
-      "Укажите категорию."
+      "Выберите категорию."
     );
 
     return;
@@ -1080,13 +1485,17 @@ async function savePost() {
       "Сохранить изменения этого поста?"
     );
 
-  if (!confirmed) return;
+  if (!confirmed) {
+    return;
+  }
 
   const button =
     $("postEditSave");
 
   if (button) {
-    button.disabled = true;
+    button.disabled =
+      true;
+
     button.textContent =
       "Сохраняем...";
   }
@@ -1105,8 +1514,8 @@ async function savePost() {
           image_url,
           link_url,
           contact,
-          author_name,
-        }),
+          author_name
+        })
       }
     );
 
@@ -1114,14 +1523,18 @@ async function savePost() {
 
     await Promise.all([
       loadPosts(),
-      loadStats(),
+      loadStats()
     ]);
 
     alert(
-      "Пост успешно изменён."
+      "✅ Пост успешно изменён."
     );
+
   } catch (error) {
-    if (error.status === 401) {
+
+    if (
+      error.status === 401
+    ) {
       showLogin();
       closePostEditModal();
       return;
@@ -1131,68 +1544,544 @@ async function savePost() {
       error.message ||
         "Не удалось изменить пост."
     );
+
   } finally {
+
     if (button) {
-      button.disabled = false;
+      button.disabled =
+        false;
+
       button.textContent =
         "Сохранить изменения";
     }
   }
 }
 
-function closePostEditModal() {
-  const modal =
-    $("postEditModal");
 
-  if (modal) {
-    modal.hidden = true;
-  }
+/* ============================================================
+   MOVE POST TO TRASH
+============================================================ */
 
-  state.selectedPost = null;
-}
-
-async function deletePost(id) {
+async function trashPost(id) {
   const post =
     state.posts.find(
-      (item) => item.id === id
+      item =>
+        item.id === id
     );
 
-  if (!post) return;
+  if (!post) {
+    return;
+  }
 
   const confirmed =
     confirm(
-      `Удалить пост «${post.title}»?\n\nЭто действие нельзя отменить.`
+      `Переместить «${post.title}» в корзину?`
     );
 
-  if (!confirmed) return;
-
-  const secondConfirm =
-    confirm(
-      "Вы действительно хотите окончательно удалить этот пост?"
-    );
-
-  if (!secondConfirm) return;
+  if (!confirmed) {
+    return;
+  }
 
   try {
     await api(
       `/api/admin/posts/${encodeURIComponent(
         id
-      )}`,
+      )}/trash`,
       {
-        method: "DELETE",
+        method: "POST"
       }
     );
 
     await Promise.all([
       loadPosts(),
-      loadStats(),
+      loadTrash(),
+      loadStats()
     ]);
 
     alert(
-      "Пост удалён."
+      "🗑 Пост перемещён в корзину."
     );
+
   } catch (error) {
-    if (error.status === 401) {
+
+    if (
+      error.status === 401
+    ) {
+      showLogin();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось переместить пост в корзину."
+    );
+  }
+}
+
+
+/* ============================================================
+   TRASH
+============================================================ */
+
+async function loadTrash() {
+  const loading =
+    $("trashLoading");
+
+  const errorBox =
+    $("trashError");
+
+  const empty =
+    $("trashEmpty");
+
+  if (loading) {
+    loading.hidden =
+      false;
+  }
+
+  if (errorBox) {
+    errorBox.hidden =
+      true;
+  }
+
+  try {
+    const data =
+      await api(
+        "/api/admin/trash"
+      );
+
+    state.trashPosts =
+      data.posts ||
+      [];
+
+    state.rejectedSubmissions =
+      data.rejected_submissions ||
+      [];
+
+    renderTrash();
+
+  } catch (error) {
+
+    if (
+      error.status === 401
+    ) {
+      showLogin();
+      return;
+    }
+
+    if (errorBox) {
+      errorBox.textContent =
+        error.message ||
+        "Не удалось загрузить корзину.";
+
+      errorBox.hidden =
+        false;
+    }
+
+  } finally {
+
+    if (loading) {
+      loading.hidden =
+        true;
+    }
+  }
+}
+
+
+function renderTrash() {
+  const list =
+    $("trashList");
+
+  const empty =
+    $("trashEmpty");
+
+  if (!list) {
+    return;
+  }
+
+  list.innerHTML =
+    "";
+
+  const deletedPosts =
+    state.trashPosts || [];
+
+  const rejected =
+    state.rejectedSubmissions || [];
+
+  const total =
+    deletedPosts.length +
+    rejected.length;
+
+  if (!total) {
+
+    if (empty) {
+      empty.hidden =
+        false;
+    }
+
+    return;
+  }
+
+  if (empty) {
+    empty.hidden =
+      true;
+  }
+
+
+  /* УДАЛЁННЫЕ ПОСТЫ */
+
+  for (
+    const post
+    of deletedPosts
+  ) {
+
+    const card =
+      document.createElement(
+        "article"
+      );
+
+    card.className =
+      "admin-post-card";
+
+    card.innerHTML = `
+      <div class="admin-post-main">
+
+        ${
+          post.image_url
+            ? `
+              <img
+                class="admin-post-image"
+                src="${escapeAttr(
+                  post.image_url
+                )}"
+                alt=""
+                loading="lazy"
+              >
+            `
+            : ""
+        }
+
+        <div class="admin-post-info">
+
+          <h3>
+            🗑
+            ${escapeHtml(
+              post.title ||
+                "Без названия"
+            )}
+          </h3>
+
+          <div class="admin-post-meta">
+
+            <span>
+              ${escapeHtml(
+                post.category ||
+                  "Без категории"
+              )}
+            </span>
+
+            <span>
+              Удалён:
+              ${formatDate(
+                post.deleted_at
+              )}
+            </span>
+
+          </div>
+
+          <p>
+            ${escapeHtml(
+              (post.content ||
+                "").slice(
+                  0,
+                  200
+                )
+            )}${
+              (post.content ||
+                "").length >
+              200
+                ? "…"
+                : ""
+            }
+          </p>
+
+        </div>
+
+      </div>
+
+      <div class="admin-post-actions">
+
+        <button
+          type="button"
+          class="admin-trash-restore"
+          data-id="${escapeAttr(
+            post.id
+          )}"
+        >
+          ♻️ Восстановить
+        </button>
+
+        <button
+          type="button"
+          class="admin-trash-delete"
+          data-id="${escapeAttr(
+            post.id
+          )}"
+        >
+          ❌ Удалить из корзины
+        </button>
+
+      </div>
+    `;
+
+    card
+      .querySelector(
+        ".admin-trash-restore"
+      )
+      ?.addEventListener(
+        "click",
+        () =>
+          restorePost(
+            post.id
+          )
+      );
+
+    card
+      .querySelector(
+        ".admin-trash-delete"
+      )
+      ?.addEventListener(
+        "click",
+        () =>
+          permanentDeletePost(
+            post.id
+          )
+      );
+
+    list.appendChild(
+      card
+    );
+  }
+
+
+  /* ОТКЛОНЁННЫЕ ЗАЯВКИ */
+
+  for (
+    const submission
+    of rejected
+  ) {
+
+    const card =
+      document.createElement(
+        "article"
+      );
+
+    card.className =
+      "admin-submission-card";
+
+    card.innerHTML = `
+      <div class="admin-card-content">
+
+        <h3>
+          ❌
+          ${escapeHtml(
+            submission.title ||
+              "Без названия"
+          )}
+        </h3>
+
+        <div class="admin-card-meta">
+
+          <span>
+            ${escapeHtml(
+              submission.category ||
+                "Без категории"
+            )}
+          </span>
+
+          <span>
+            Отклонено:
+            ${formatDate(
+              submission.reviewed_at
+            )}
+          </span>
+
+          <span>
+            ${escapeHtml(
+              submission.author_name ||
+                "Автор не указан"
+            )}
+          </span>
+
+        </div>
+
+        <p>
+          <strong>
+            Причина:
+          </strong>
+          ${escapeHtml(
+            submission.rejection_reason ||
+              "Причина не указана."
+          )}
+        </p>
+
+      </div>
+
+      <div class="admin-card-actions">
+
+        <button
+          type="button"
+          class="admin-trash-restore-submission"
+          data-id="${escapeAttr(
+            submission.id
+          )}"
+        >
+          ♻️ Восстановить
+        </button>
+
+        <button
+          type="button"
+          class="admin-trash-delete-submission"
+          data-id="${escapeAttr(
+            submission.id
+          )}"
+        >
+          ❌ Удалить из корзины
+        </button>
+
+      </div>
+    `;
+
+    card
+      .querySelector(
+        ".admin-trash-restore-submission"
+      )
+      ?.addEventListener(
+        "click",
+        () =>
+          restoreRejectedSubmission(
+            submission.id
+          )
+      );
+
+    card
+      .querySelector(
+        ".admin-trash-delete-submission"
+      )
+      ?.addEventListener(
+        "click",
+        () =>
+          permanentDeleteRejectedSubmission(
+            submission.id
+          )
+      );
+
+    list.appendChild(
+      card
+    );
+  }
+}
+
+
+/* ============================================================
+   RESTORE POST
+============================================================ */
+
+async function restorePost(id) {
+  const confirmed =
+    confirm(
+      "Восстановить этот пост и снова показать его на сайте?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await api(
+      `/api/admin/posts/${encodeURIComponent(
+        id
+      )}/restore`,
+      {
+        method: "POST"
+      }
+    );
+
+    await Promise.all([
+      loadPosts(),
+      loadTrash(),
+      loadStats()
+    ]);
+
+    alert(
+      "♻️ Пост восстановлен."
+    );
+
+  } catch (error) {
+
+    if (
+      error.status === 401
+    ) {
+      showLogin();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось восстановить пост."
+    );
+  }
+}
+
+
+/* ============================================================
+   PERMANENT DELETE POST
+============================================================ */
+
+async function permanentDeletePost(
+  id
+) {
+  const confirmed =
+    confirm(
+      "Удалить этот пост окончательно?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const second =
+    confirm(
+      "ВНИМАНИЕ!\n\nПост будет удалён из базы данных без возможности восстановления.\n\nПродолжить?"
+    );
+
+  if (!second) {
+    return;
+  }
+
+  try {
+    await api(
+      `/api/admin/posts/${encodeURIComponent(
+        id
+      )}/permanent`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    await Promise.all([
+      loadTrash(),
+      loadStats()
+    ]);
+
+    alert(
+      "❌ Пост окончательно удалён."
+    );
+
+  } catch (error) {
+
+    if (
+      error.status === 401
+    ) {
       showLogin();
       return;
     }
@@ -1204,86 +2093,403 @@ async function deletePost(id) {
   }
 }
 
+
+/* ============================================================
+   RESTORE REJECTED SUBMISSION
+============================================================ */
+
+async function restoreRejectedSubmission(
+  id
+) {
+  const confirmed =
+    confirm(
+      "Вернуть эту заявку из корзины на повторную модерацию?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    await api(
+      `/api/admin/submissions/${encodeURIComponent(
+        id
+      )}/restore`,
+      {
+        method: "POST"
+      }
+    );
+
+    await refreshEverything();
+
+    alert(
+      "♻️ Заявка восстановлена и снова ожидает проверки."
+    );
+
+  } catch (error) {
+
+    if (
+      error.status === 401
+    ) {
+      showLogin();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось восстановить заявку."
+    );
+  }
+}
+
+
+/* ============================================================
+   PERMANENT DELETE REJECTED SUBMISSION
+============================================================ */
+
+async function permanentDeleteRejectedSubmission(
+  id
+) {
+  const confirmed =
+    confirm(
+      "Удалить отклонённую заявку окончательно?"
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const second =
+    confirm(
+      "Это действие нельзя отменить.\n\nПродолжить?"
+    );
+
+  if (!second) {
+    return;
+  }
+
+  try {
+    await api(
+      `/api/admin/submissions/${encodeURIComponent(
+        id
+      )}/permanent`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    await Promise.all([
+      loadTrash(),
+      loadStats()
+    ]);
+
+    alert(
+      "❌ Заявка окончательно удалена."
+    );
+
+  } catch (error) {
+
+    if (
+      error.status === 401
+    ) {
+      showLogin();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось удалить заявку."
+    );
+  }
+}
+
+
+/* ============================================================
+   EMPTY TRASH
+============================================================ */
+
+async function emptyTrash() {
+  const total =
+    state.trashPosts.length +
+    state.rejectedSubmissions.length;
+
+  if (!total) {
+    alert(
+      "Корзина уже пустая."
+    );
+
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      `В корзине ${total} материалов.\n\nОчистить всю корзину?`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const second =
+    confirm(
+      "ВНИМАНИЕ!\n\nВсе материалы из корзины будут удалены окончательно и восстановить их будет невозможно.\n\nПродолжить?"
+    );
+
+  if (!second) {
+    return;
+  }
+
+  try {
+    await api(
+      "/api/admin/trash/empty",
+      {
+        method: "DELETE"
+      }
+    );
+
+    await Promise.all([
+      loadTrash(),
+      loadStats()
+    ]);
+
+    alert(
+      "🧹 Корзина полностью очищена."
+    );
+
+  } catch (error) {
+
+    if (
+      error.status === 401
+    ) {
+      showLogin();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось очистить корзину."
+    );
+  }
+}
+
+
+/* ============================================================
+   MOVE ALL POSTS TO TRASH
+============================================================ */
+
+async function trashAllPosts() {
+  if (!state.posts.length) {
+    alert(
+      "Опубликованных постов нет."
+    );
+
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      `Переместить ВСЕ ${state.posts.length} опубликованных постов в корзину?`
+    );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const second =
+    confirm(
+      "ВНИМАНИЕ!\n\nВсе опубликованные посты исчезнут с сайта и будут перемещены в корзину.\n\nПродолжить?"
+    );
+
+  if (!second) {
+    return;
+  }
+
+  try {
+    await api(
+      "/api/admin/posts/all/trash",
+      {
+        method: "POST"
+      }
+    );
+
+    await Promise.all([
+      loadPosts(),
+      loadTrash(),
+      loadStats()
+    ]);
+
+    alert(
+      "🗑 Все публикации перемещены в корзину."
+    );
+
+  } catch (error) {
+
+    if (
+      error.status === 401
+    ) {
+      showLogin();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось переместить публикации."
+    );
+  }
+}
+
+
+/* ============================================================
+   FILTERS
+============================================================ */
+
 function setupFilters() {
+
   document
     .querySelectorAll(
       "[data-admin-filter]"
     )
-    .forEach((button) => {
-      button.addEventListener(
-        "click",
-        async () => {
-          const filter =
-            button.dataset.adminFilter;
+    .forEach(
+      button => {
 
-          if (!filter) return;
+        button.addEventListener(
+          "click",
+          async () => {
 
-          state.filter =
-            filter;
+            const filter =
+              button.dataset
+                .adminFilter;
 
-          document
-            .querySelectorAll(
-              "[data-admin-filter]"
-            )
-            .forEach((item) => {
-              item.classList.toggle(
-                "active",
-                item === button
+            if (!filter) {
+              return;
+            }
+
+            state.filter =
+              filter;
+
+            document
+              .querySelectorAll(
+                "[data-admin-filter]"
+              )
+              .forEach(
+                item => {
+                  item.classList.toggle(
+                    "active",
+                    item ===
+                      button
+                  );
+                }
               );
-            });
 
-          await loadSubmissions();
-        }
-      );
-    });
+            await loadSubmissions();
+          }
+        );
+      }
+    );
+
 
   document
     .querySelectorAll(
       "[data-post-filter]"
     )
-    .forEach((button) => {
-      button.addEventListener(
-        "click",
-        () => {
-          state.postFilter =
-            button.dataset.postFilter ||
-            "all";
+    .forEach(
+      button => {
 
-          document
-            .querySelectorAll(
-              "[data-post-filter]"
-            )
-            .forEach((item) => {
-              item.classList.toggle(
-                "active",
-                item === button
+        button.addEventListener(
+          "click",
+          () => {
+
+            state.postFilter =
+              button.dataset
+                .postFilter ||
+              "all";
+
+            document
+              .querySelectorAll(
+                "[data-post-filter]"
+              )
+              .forEach(
+                item => {
+                  item.classList.toggle(
+                    "active",
+                    item ===
+                      button
+                  );
+                }
               );
-            });
 
-          renderPosts();
-        }
-      );
-    });
+            renderPosts();
+          }
+        );
+      }
+    );
+
+
+  document
+    .querySelectorAll(
+      "[data-trash-filter]"
+    )
+    .forEach(
+      button => {
+
+        button.addEventListener(
+          "click",
+          () => {
+
+            state.trashFilter =
+              button.dataset
+                .trashFilter ||
+              "all";
+
+            document
+              .querySelectorAll(
+                "[data-trash-filter]"
+              )
+              .forEach(
+                item => {
+                  item.classList.toggle(
+                    "active",
+                    item ===
+                      button
+                  );
+                }
+              );
+
+            renderTrash();
+          }
+        );
+      }
+    );
 }
 
+
+/* ============================================================
+   EVENTS
+============================================================ */
+
 function setupEvents() {
+
   $("adminLoginButton")
     ?.addEventListener(
       "click",
       handleLogin
     );
 
+
   $("adminPassword")
     ?.addEventListener(
       "keydown",
-      (event) => {
+      event => {
+
         if (
-          event.key === "Enter"
+          event.key ===
+          "Enter"
         ) {
           handleLogin();
         }
       }
     );
+
 
   $("adminLogout")
     ?.addEventListener(
@@ -1291,17 +2497,51 @@ function setupEvents() {
       handleLogout
     );
 
+
   $("adminRefresh")
+    ?.addEventListener(
+      "click",
+      refreshEverything
+    );
+
+
+  $("adminPostsRefresh")
     ?.addEventListener(
       "click",
       async () => {
         await Promise.all([
-          loadSubmissions(),
           loadPosts(),
-          loadStats(),
+          loadStats()
         ]);
       }
     );
+
+
+  $("adminTrashRefresh")
+    ?.addEventListener(
+      "click",
+      async () => {
+        await Promise.all([
+          loadTrash(),
+          loadStats()
+        ]);
+      }
+    );
+
+
+  $("trashEmptyButton")
+    ?.addEventListener(
+      "click",
+      emptyTrash
+    );
+
+
+  $("trashAllPostsButton")
+    ?.addEventListener(
+      "click",
+      trashAllPosts
+    );
+
 
   $("submissionClose")
     ?.addEventListener(
@@ -1309,11 +2549,13 @@ function setupEvents() {
       closeSubmissionModal
     );
 
+
   $("submissionCancel")
     ?.addEventListener(
       "click",
       closeSubmissionModal
     );
+
 
   $("submissionApprove")
     ?.addEventListener(
@@ -1321,11 +2563,13 @@ function setupEvents() {
       approveSelectedSubmission
     );
 
+
   $("submissionReject")
     ?.addEventListener(
       "click",
       rejectSelectedSubmission
     );
+
 
   $("postModalClose")
     ?.addEventListener(
@@ -1333,11 +2577,13 @@ function setupEvents() {
       closePostModal
     );
 
+
   $("postModalCancel")
     ?.addEventListener(
       "click",
       closePostModal
     );
+
 
   $("postEditClose")
     ?.addEventListener(
@@ -1345,82 +2591,105 @@ function setupEvents() {
       closePostEditModal
     );
 
+
   $("postEditCancel")
     ?.addEventListener(
       "click",
       closePostEditModal
     );
 
+
   $("postEditForm")
     ?.addEventListener(
       "submit",
-      (event) => {
+      event => {
         event.preventDefault();
         savePost();
       }
     );
 
-  setupFilters();
-}
 
-function setValue(id, value) {
-  const element = $(id);
+  /*
+   * Закрытие модальных окон
+   * по клику на затемнение.
+   */
 
-  if (element) {
-    element.value =
-      value ?? "";
-  }
-}
+  [
+    "submissionModal",
+    "postModal",
+    "postEditModal"
+  ].forEach(
+    id => {
 
-function getValue(id) {
-  return String(
-    $(id)?.value || ""
-  ).trim();
-}
+      $(id)
+        ?.addEventListener(
+          "click",
+          event => {
 
-function formatDate(value) {
-  if (!value) return "—";
+            if (
+              event.target ===
+              $(id)
+            ) {
 
-  const date =
-    new Date(value);
+              if (
+                id ===
+                "submissionModal"
+              ) {
+                closeSubmissionModal();
+              }
 
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return "—";
-  }
+              if (
+                id ===
+                "postModal"
+              ) {
+                closePostModal();
+              }
 
-  return date.toLocaleString(
-    "ru-RU",
-    {
-      dateStyle: "medium",
-      timeStyle: "short",
+              if (
+                id ===
+                "postEditModal"
+              ) {
+                closePostEditModal();
+              }
+            }
+          }
+        );
+    }
+  );
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key !==
+        "Escape"
+      ) {
+        return;
+      }
+
+      closeSubmissionModal();
+      closePostModal();
+      closePostEditModal();
     }
   );
 }
 
-function escapeHtml(value) {
-  return String(value ?? "")
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
-}
 
-function escapeAttr(value) {
-  return escapeHtml(value);
-}
+/* ============================================================
+   START
+============================================================ */
 
 document.addEventListener(
   "DOMContentLoaded",
   () => {
+
     setupEvents();
+
+    setupFilters();
+
     checkAuthentication();
+
   }
 );
