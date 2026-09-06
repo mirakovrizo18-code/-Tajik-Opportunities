@@ -8,17 +8,22 @@
 
   <meta
     name="description"
-    content="Профиль пользователя Tajik Opportunities — публикации, подписчики, подписки и сообщения."
+    content="Профиль пользователя Tajik Opportunities."
   >
 
-  <link rel="stylesheet" href="/css/style.css">
+  <meta name="theme-color" content="#0f6b4f">
+
+  <link
+    rel="icon"
+    href="/images/Image_2026_09_05_19_01_30.jpg"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/style.css"
+  >
 
   <style>
-    /* =========================================================
-       PROFILE PAGE
-       Tajik Opportunities
-       ========================================================= */
-
     .profile-page {
       min-height: 100vh;
       background: var(--bg, #f6f7fb);
@@ -27,41 +32,50 @@
     .profile-container {
       width: min(1180px, calc(100% - 32px));
       margin: 0 auto;
-      padding: 32px 0 60px;
-    }
-
-    .profile-top {
-      margin-bottom: 24px;
+      padding: 30px 0 60px;
     }
 
     .profile-back {
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      color: var(--text-secondary, #667085);
-      text-decoration: none;
-      font-weight: 600;
       margin-bottom: 18px;
+      color: #667085;
+      text-decoration: none;
+      font-weight: 700;
     }
 
     .profile-back:hover {
-      color: var(--primary, #2563eb);
+      color: #0f6b4f;
     }
 
-    .profile-card {
-      background: var(--card, #fff);
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: 24px;
-      overflow: hidden;
+    .profile-card,
+    .profile-section,
+    .auth-card {
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 22px;
       box-shadow: 0 8px 30px rgba(15, 23, 42, .06);
     }
 
+    .profile-card {
+      overflow: hidden;
+    }
+
     .profile-cover {
-      height: 170px;
+      height: 175px;
       background:
-        radial-gradient(circle at 20% 20%, rgba(255,255,255,.32), transparent 35%),
-        linear-gradient(135deg, #0f766e, #2563eb 55%, #7c3aed);
-      position: relative;
+        radial-gradient(
+          circle at 20% 20%,
+          rgba(255,255,255,.3),
+          transparent 35%
+        ),
+        linear-gradient(
+          135deg,
+          #0f6b4f,
+          #168f6c 48%,
+          #2563eb
+        );
     }
 
     .profile-main {
@@ -71,8 +85,8 @@
     .profile-head {
       display: flex;
       align-items: flex-end;
-      gap: 22px;
-      margin-top: -58px;
+      gap: 20px;
+      margin-top: -62px;
       position: relative;
     }
 
@@ -81,23 +95,22 @@
       height: 128px;
       flex: 0 0 128px;
       border-radius: 50%;
-      background: #fff;
       border: 5px solid #fff;
-      box-shadow: 0 8px 28px rgba(15, 23, 42, .15);
-      overflow: hidden;
+      background: #eef2f7;
+      box-shadow: 0 8px 28px rgba(15,23,42,.16);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 42px;
+      overflow: hidden;
+      font-size: 40px;
       font-weight: 800;
-      color: #2563eb;
+      color: #0f6b4f;
     }
 
     .profile-avatar img {
       width: 100%;
       height: 100%;
       object-fit: cover;
-      display: block;
     }
 
     .profile-title-area {
@@ -115,24 +128,24 @@
 
     .profile-name {
       margin: 0;
-      font-size: 28px;
+      font-size: 29px;
       line-height: 1.15;
-      font-weight: 800;
-      color: var(--text, #111827);
+      font-weight: 850;
+      color: #111827;
       word-break: break-word;
     }
 
     .verified-badge {
       display: none;
-      width: 22px;
-      height: 22px;
+      width: 23px;
+      height: 23px;
+      border-radius: 50%;
       align-items: center;
       justify-content: center;
-      border-radius: 50%;
       background: #2563eb;
       color: #fff;
       font-size: 13px;
-      font-weight: 800;
+      font-weight: 900;
     }
 
     .verified-badge.visible {
@@ -140,47 +153,52 @@
     }
 
     .profile-username {
-      margin-top: 5px;
-      color: var(--text-secondary, #667085);
+      margin-top: 6px;
+      color: #667085;
       font-size: 16px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .profile-actions {
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
+      gap: 9px;
       padding-bottom: 8px;
     }
 
     .profile-btn {
+      min-height: 44px;
       border: 0;
       border-radius: 12px;
-      min-height: 44px;
       padding: 0 17px;
       cursor: pointer;
       font: inherit;
-      font-weight: 700;
-      transition: .18s ease;
+      font-weight: 800;
+      text-decoration: none;
       display: inline-flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      text-decoration: none;
-      white-space: nowrap;
+      transition: .18s ease;
     }
 
     .profile-btn:hover {
       transform: translateY(-1px);
     }
 
+    .profile-btn:disabled {
+      opacity: .6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
     .profile-btn-primary {
-      background: #2563eb;
+      background: #0f6b4f;
       color: #fff;
     }
 
     .profile-btn-primary:hover {
-      background: #1d4ed8;
+      background: #0b5942;
     }
 
     .profile-btn-secondary {
@@ -192,19 +210,14 @@
       background: #e2e8f0;
     }
 
-    .profile-btn-danger {
-      background: #fee2e2;
-      color: #b91c1c;
-    }
-
     .profile-info {
-      margin-top: 24px;
-      max-width: 780px;
+      max-width: 800px;
+      margin-top: 23px;
     }
 
     .profile-bio {
       margin: 0;
-      color: var(--text, #374151);
+      color: #374151;
       font-size: 16px;
       line-height: 1.65;
       white-space: pre-wrap;
@@ -212,68 +225,52 @@
     }
 
     .profile-location {
-      display: flex;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 7px;
       margin-top: 13px;
-      color: var(--text-secondary, #667085);
+      color: #667085;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 700;
     }
 
     .profile-stats {
       display: flex;
       flex-wrap: wrap;
       gap: 28px;
-      margin-top: 23px;
-      padding-top: 21px;
-      border-top: 1px solid var(--border, #e5e7eb);
+      margin-top: 22px;
+      padding-top: 20px;
+      border-top: 1px solid #e5e7eb;
     }
 
     .profile-stat {
+      border: 0;
+      padding: 0;
+      background: transparent;
       display: flex;
       align-items: baseline;
       gap: 6px;
-      border: 0;
-      background: transparent;
-      padding: 0;
-      cursor: pointer;
       font: inherit;
     }
 
     .profile-stat-number {
+      color: #111827;
       font-size: 20px;
-      font-weight: 800;
-      color: var(--text, #111827);
+      font-weight: 850;
     }
 
     .profile-stat-label {
-      color: var(--text-secondary, #667085);
+      color: #667085;
       font-size: 14px;
-      font-weight: 600;
+      font-weight: 650;
     }
 
     .profile-content {
       display: grid;
-      grid-template-columns: minmax(0, 1fr) 300px;
-      gap: 24px;
-      margin-top: 24px;
+      grid-template-columns: minmax(0, 1fr) 310px;
+      gap: 22px;
+      margin-top: 22px;
     }
 
     .profile-section {
-      background: var(--card, #fff);
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: 20px;
       padding: 22px;
-      box-shadow: 0 5px 20px rgba(15, 23, 42, .04);
-    }
-
-    .profile-section-title {
-      margin: 0;
-      font-size: 20px;
-      font-weight: 800;
-      color: var(--text, #111827);
     }
 
     .profile-section-head {
@@ -284,52 +281,57 @@
       margin-bottom: 18px;
     }
 
+    .profile-section-title {
+      margin: 0;
+      color: #111827;
+      font-size: 20px;
+      font-weight: 850;
+    }
+
     .profile-publications-count {
-      color: var(--text-secondary, #667085);
-      font-size: 14px;
-      font-weight: 600;
+      color: #667085;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .profile-posts {
       display: grid;
-      gap: 15px;
+      gap: 14px;
     }
 
     .profile-post {
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: 16px;
-      padding: 18px;
-      background: #fff;
-      transition: .18s ease;
-      text-decoration: none;
-      color: inherit;
       display: block;
+      padding: 18px;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      color: inherit;
+      text-decoration: none;
+      transition: .18s ease;
     }
 
     .profile-post:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 22px rgba(15, 23, 42, .07);
       border-color: #cbd5e1;
+      box-shadow: 0 8px 22px rgba(15,23,42,.07);
     }
 
     .profile-post-category {
       display: inline-flex;
-      align-items: center;
-      border-radius: 999px;
       padding: 5px 9px;
-      background: #eff6ff;
-      color: #2563eb;
+      margin-bottom: 9px;
+      border-radius: 999px;
+      background: #eaf7f2;
+      color: #0f6b4f;
       font-size: 12px;
-      font-weight: 800;
-      margin-bottom: 10px;
+      font-weight: 850;
     }
 
     .profile-post-title {
       margin: 0;
+      color: #111827;
       font-size: 18px;
       line-height: 1.35;
-      font-weight: 800;
-      color: #111827;
+      font-weight: 850;
     }
 
     .profile-post-description {
@@ -350,7 +352,7 @@
       margin-top: 13px;
       color: #667085;
       font-size: 12px;
-      font-weight: 600;
+      font-weight: 650;
     }
 
     .profile-side {
@@ -368,93 +370,80 @@
     .profile-side-icon {
       width: 40px;
       height: 40px;
-      border-radius: 12px;
-      background: #eff6ff;
+      flex: 0 0 40px;
       display: flex;
       align-items: center;
       justify-content: center;
-      flex: 0 0 40px;
+      border-radius: 12px;
+      background: #eaf7f2;
       font-size: 18px;
     }
 
     .profile-side-label {
+      margin-bottom: 3px;
       color: #667085;
       font-size: 12px;
-      font-weight: 700;
-      margin-bottom: 3px;
+      font-weight: 750;
     }
 
     .profile-side-value {
       color: #111827;
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 750;
       word-break: break-word;
     }
 
     .profile-state {
-      padding: 40px 20px;
+      padding: 38px 20px;
       text-align: center;
       color: #667085;
     }
 
     .profile-state-icon {
-      font-size: 42px;
-      margin-bottom: 10px;
+      margin-bottom: 9px;
+      font-size: 40px;
     }
 
     .profile-state-title {
+      margin-bottom: 6px;
       color: #111827;
       font-size: 18px;
-      font-weight: 800;
-      margin-bottom: 6px;
+      font-weight: 850;
     }
 
     .profile-state-text {
       font-size: 14px;
-      line-height: 1.5;
+      line-height: 1.55;
     }
-
-    /* =========================================================
-       AUTH
-       ========================================================= */
 
     .auth-card {
       max-width: 620px;
       margin: 20px auto;
-      background: #fff;
-      border: 1px solid var(--border, #e5e7eb);
-      border-radius: 24px;
       padding: 30px;
-      box-shadow: 0 10px 35px rgba(15, 23, 42, .07);
     }
 
     .auth-title {
       margin: 0;
-      font-size: 27px;
-      font-weight: 800;
       color: #111827;
+      font-size: 27px;
+      font-weight: 850;
     }
 
     .auth-subtitle {
-      margin: 8px 0 25px;
+      margin: 9px 0 24px;
       color: #667085;
-      line-height: 1.55;
+      line-height: 1.6;
     }
-
-    /* =========================================================
-       MODAL
-       ========================================================= */
 
     .profile-modal {
       position: fixed;
       inset: 0;
       z-index: 1000;
-      background: rgba(15, 23, 42, .55);
       display: none;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      overflow-y: auto;
+      padding: 18px;
+      background: rgba(15,23,42,.58);
     }
 
     .profile-modal.open {
@@ -463,12 +452,12 @@
 
     .profile-modal-card {
       width: min(680px, 100%);
-      max-height: calc(100vh - 40px);
+      max-height: calc(100vh - 36px);
       overflow-y: auto;
-      background: #fff;
-      border-radius: 22px;
       padding: 26px;
-      box-shadow: 0 25px 70px rgba(15, 23, 42, .25);
+      border-radius: 22px;
+      background: #fff;
+      box-shadow: 0 25px 70px rgba(15,23,42,.25);
     }
 
     .profile-modal-head {
@@ -481,8 +470,9 @@
 
     .profile-modal-title {
       margin: 0;
+      color: #111827;
       font-size: 22px;
-      font-weight: 800;
+      font-weight: 850;
     }
 
     .profile-close {
@@ -492,7 +482,7 @@
       border-radius: 10px;
       background: #f1f5f9;
       cursor: pointer;
-      font-size: 20px;
+      font-size: 21px;
     }
 
     .profile-form {
@@ -512,23 +502,22 @@
     }
 
     .profile-field label {
-      font-size: 13px;
-      font-weight: 800;
       color: #344054;
+      font-size: 13px;
+      font-weight: 850;
     }
 
     .profile-field input,
-    .profile-field textarea,
-    .profile-field select {
+    .profile-field textarea {
       width: 100%;
       box-sizing: border-box;
+      padding: 12px 13px;
       border: 1px solid #d0d5dd;
       border-radius: 11px;
-      padding: 12px 13px;
-      font: inherit;
       outline: none;
       background: #fff;
       color: #111827;
+      font: inherit;
     }
 
     .profile-field textarea {
@@ -537,24 +526,19 @@
     }
 
     .profile-field input:focus,
-    .profile-field textarea:focus,
-    .profile-field select:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 3px rgba(37, 99, 235, .10);
+    .profile-field textarea:focus {
+      border-color: #0f6b4f;
+      box-shadow: 0 0 0 3px rgba(15,107,79,.1);
     }
 
     .field-hint {
       color: #667085;
       font-size: 12px;
-      line-height: 1.4;
+      line-height: 1.45;
     }
 
     .username-wrap {
       position: relative;
-    }
-
-    .username-wrap input {
-      padding-right: 45px;
     }
 
     .username-prefix {
@@ -563,7 +547,7 @@
       top: 50%;
       transform: translateY(-50%);
       color: #667085;
-      font-weight: 800;
+      font-weight: 850;
       pointer-events: none;
     }
 
@@ -577,20 +561,17 @@
       font-weight: 800;
     }
 
-    .username-status.checking {
-      color: #667085;
-    }
-
     .username-status.available {
       color: #15803d;
     }
 
-    .username-status.taken {
+    .username-status.taken,
+    .username-status.invalid {
       color: #dc2626;
     }
 
-    .username-status.invalid {
-      color: #dc2626;
+    .username-status.checking {
+      color: #667085;
     }
 
     .toggle-row {
@@ -604,14 +585,10 @@
       background: #f8fafc;
     }
 
-    .toggle-text {
-      min-width: 0;
-    }
-
     .toggle-title {
-      font-size: 14px;
-      font-weight: 800;
       color: #111827;
+      font-size: 14px;
+      font-weight: 850;
     }
 
     .toggle-description {
@@ -637,10 +614,10 @@
     .toggle-slider {
       position: absolute;
       inset: 0;
-      cursor: pointer;
-      background: #cbd5e1;
       border-radius: 999px;
-      transition: .2s ease;
+      background: #cbd5e1;
+      cursor: pointer;
+      transition: .2s;
     }
 
     .toggle-slider::before {
@@ -650,14 +627,14 @@
       height: 21px;
       left: 3px;
       top: 3px;
-      background: #fff;
       border-radius: 50%;
-      transition: .2s ease;
+      background: #fff;
       box-shadow: 0 2px 5px rgba(0,0,0,.15);
+      transition: .2s;
     }
 
     .toggle input:checked + .toggle-slider {
-      background: #2563eb;
+      background: #0f6b4f;
     }
 
     .toggle input:checked + .toggle-slider::before {
@@ -667,9 +644,8 @@
     .profile-form-actions {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
       flex-wrap: wrap;
-      margin-top: 4px;
+      gap: 10px;
       padding-top: 18px;
       border-top: 1px solid #e5e7eb;
     }
@@ -678,23 +654,15 @@
       margin-top: 16px;
       padding: 13px;
       border-radius: 12px;
-      background: #fff7ed;
-      color: #9a3412;
+      background: #f0fdf4;
+      color: #166534;
       font-size: 13px;
       line-height: 1.5;
     }
 
-    /* =========================================================
-       RESPONSIVE
-       ========================================================= */
-
     @media (max-width: 900px) {
       .profile-content {
         grid-template-columns: 1fr;
-      }
-
-      .profile-side {
-        grid-template-columns: 1fr 1fr;
       }
     }
 
@@ -716,7 +684,7 @@
         align-items: flex-start;
         flex-direction: column;
         gap: 12px;
-        margin-top: -45px;
+        margin-top: -48px;
       }
 
       .profile-avatar {
@@ -724,7 +692,7 @@
         height: 96px;
         flex-basis: 96px;
         border-width: 4px;
-        font-size: 32px;
+        font-size: 31px;
       }
 
       .profile-name {
@@ -737,25 +705,12 @@
       }
 
       .profile-btn {
-        flex: 1;
         min-width: 140px;
-      }
-
-      .profile-content {
-        margin-top: 15px;
+        flex: 1;
       }
 
       .profile-section {
         padding: 17px;
-        border-radius: 17px;
-      }
-
-      .profile-side {
-        grid-template-columns: 1fr;
-      }
-
-      .profile-stats {
-        gap: 17px;
       }
 
       .profile-form-row {
@@ -763,16 +718,15 @@
       }
 
       .auth-card {
-        padding: 22px 17px;
+        padding: 23px 17px;
       }
 
       .profile-modal {
-        padding: 10px;
+        padding: 9px;
       }
 
       .profile-modal-card {
         padding: 20px 16px;
-        border-radius: 18px;
       }
     }
   </style>
@@ -780,898 +734,582 @@
 
 <body>
 
-  <div class="profile-page">
+<div class="profile-page">
 
-    <!-- =======================================================
-         HEADER
-         ======================================================= -->
+  <!-- ========================================================
+       HEADER
+       ======================================================== -->
 
-    <header class="site-header">
-      <div class="header-container">
+  <header class="site-header">
+    <div class="container header-inner">
 
-        <a href="/" class="brand" aria-label="Tajik Opportunities">
-          <img
-            src="/images/Image_2026_09_05_19_01_30.jpg"
-            alt="Tajik Opportunities"
-            class="brand-logo"
-          >
+      <a
+        class="brand"
+        href="/"
+        aria-label="Tajik Opportunities — главная"
+      >
+        <img
+          class="brand-logo"
+          src="/images/Image_2026_09_05_19_01_30.jpg"
+          alt="Tajik Opportunities"
+        >
+
+        <span class="brand-text">
+          <strong>Tajik Opportunities</strong>
+          <small>Возможности для Таджикистана</small>
+        </span>
+      </a>
+
+      <nav
+        class="main-nav"
+        aria-label="Основная навигация"
+      >
+        <a href="/">
+          Главная
         </a>
 
-        <nav class="desktop-nav" aria-label="Основная навигация">
-          <a href="/">Главная</a>
-          <a href="/#search">Найти</a>
-          <a href="/#categories">Категории</a>
-          <a href="/add.html">Создать</a>
-        </nav>
+        <a href="/add.html">
+          Создать
+        </a>
 
-        <div class="header-actions">
+        <a href="/status.html">
+          Статус
+        </a>
+      </nav>
 
-          <a
-            href="/notifications.html"
-            class="header-action"
-            aria-label="Уведомления"
-            title="Уведомления"
-          >
-            🔔
-          </a>
+    </div>
+  </header>
 
-          <a
-            href="/messages.html"
-            class="header-action"
-            aria-label="Сообщения"
-            title="Сообщения"
-          >
-            💬
-          </a>
 
-          <a
-            href="/profile.html"
-            class="header-profile"
-            aria-label="Профиль"
-            title="Профиль"
-          >
-            👤
-          </a>
+  <!-- ========================================================
+       MAIN
+       ======================================================== -->
 
+  <main class="profile-container">
+
+    <a
+      href="/"
+      class="profile-back"
+    >
+      ← Вернуться на главную
+    </a>
+
+
+    <!-- LOADING -->
+
+    <section
+      id="loadingState"
+      class="profile-section"
+    >
+      <div class="profile-state">
+        <div class="profile-state-icon">
+          ⏳
         </div>
 
+        <div class="profile-state-title">
+          Загружаем профиль
+        </div>
+
+        <div class="profile-state-text">
+          Пожалуйста, немного подождите…
+        </div>
       </div>
-    </header>
+    </section>
 
 
-    <!-- =======================================================
-         MAIN
-         ======================================================= -->
+    <!-- AUTH REQUIRED -->
 
-    <main class="profile-container">
+    <section
+      id="authState"
+      class="auth-card"
+      style="display:none;"
+    >
 
-      <div class="profile-top">
-        <a href="/" class="profile-back">
-          ← Вернуться на главную
+      <div
+        style="
+          font-size:46px;
+          margin-bottom:10px;
+        "
+      >
+        👤
+      </div>
+
+      <h1 class="auth-title">
+        Войдите в Tajik Opportunities
+      </h1>
+
+      <p class="auth-subtitle">
+        Чтобы открыть свой профиль, редактировать данные
+        и пользоваться возможностями аккаунта, необходимо
+        войти или зарегистрироваться.
+      </p>
+
+      <div
+        style="
+          display:flex;
+          gap:10px;
+          flex-wrap:wrap;
+        "
+      >
+        <button
+          type="button"
+          id="openAuthBtn"
+          class="profile-btn profile-btn-primary"
+        >
+          🔐 Войти / Зарегистрироваться
+        </button>
+
+        <a
+          href="/"
+          class="profile-btn profile-btn-secondary"
+        >
+          На главную
         </a>
       </div>
 
+      <div class="login-note">
+        После входа вы сможете заполнить профиль,
+        публиковать материалы и пользоваться сообщениями.
+      </div>
 
-      <!-- =====================================================
-           LOADING
-           ===================================================== -->
-
-      <section id="loadingState" class="profile-section">
-        <div class="profile-state">
-          <div class="profile-state-icon">⏳</div>
-          <div class="profile-state-title">Загружаем профиль</div>
-          <div class="profile-state-text">
-            Пожалуйста, немного подождите…
-          </div>
-        </div>
-      </section>
+    </section>
 
 
-      <!-- =====================================================
-           AUTH REQUIRED
-           ===================================================== -->
+    <!-- PROFILE -->
 
-      <section
-        id="authState"
-        class="auth-card"
-        style="display:none;"
-      >
+    <section
+      id="profileContent"
+      style="display:none;"
+    >
 
-        <div style="font-size:46px;margin-bottom:10px;">
-          👤
-        </div>
+      <article class="profile-card">
 
-        <h1 class="auth-title">
-          Войдите в Tajik Opportunities
-        </h1>
+        <div class="profile-cover"></div>
 
-        <p class="auth-subtitle">
-          Чтобы создать свой профиль, публиковать материалы,
-          подписываться на пользователей и пользоваться сообщениями,
-          необходимо войти в аккаунт.
-        </p>
+        <div class="profile-main">
 
-        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <div class="profile-head">
 
-          <button
-            type="button"
-            class="profile-btn profile-btn-primary"
-            id="openAuthBtn"
-          >
-            🔐 Войти / Зарегистрироваться
-          </button>
+            <div
+              id="profileAvatar"
+              class="profile-avatar"
+              aria-label="Аватар пользователя"
+            >
+              👤
+            </div>
 
-          <a
-            href="/"
-            class="profile-btn profile-btn-secondary"
-          >
-            На главную
-          </a>
+            <div class="profile-title-area">
 
-        </div>
+              <div class="profile-name-line">
 
-        <div class="login-note">
-          Если аккаунт ещё не создан, регистрация будет доступна
-          через форму авторизации.
-        </div>
+                <h1
+                  id="profileName"
+                  class="profile-name"
+                >
+                  Пользователь
+                </h1>
 
-      </section>
+                <span
+                  id="verifiedBadge"
+                  class="verified-badge"
+                  title="Подтверждённый профиль"
+                >
+                  ✓
+                </span>
 
-
-      <!-- =====================================================
-           PROFILE
-           ===================================================== -->
-
-      <section
-        id="profileContent"
-        style="display:none;"
-      >
-
-        <article class="profile-card">
-
-          <div class="profile-cover"></div>
-
-          <div class="profile-main">
-
-            <div class="profile-head">
+              </div>
 
               <div
-                id="profileAvatar"
-                class="profile-avatar"
+                id="profileUsername"
+                class="profile-username"
               >
-                👤
+                @username
               </div>
-
-              <div class="profile-title-area">
-
-                <div class="profile-name-line">
-
-                  <h1
-                    id="profileName"
-                    class="profile-name"
-                  >
-                    Пользователь
-                  </h1>
-
-                  <span
-                    id="verifiedBadge"
-                    class="verified-badge"
-                    title="Подтверждённый профиль"
-                  >
-                    ✓
-                  </span>
-
-                </div>
-
-                <div
-                  id="profileUsername"
-                  class="profile-username"
-                >
-                  @username
-                </div>
-
-              </div>
-
-              <div
-                id="profileActions"
-                class="profile-actions"
-              ></div>
 
             </div>
 
+            <div
+              id="profileActions"
+              class="profile-actions"
+            ></div>
 
-            <div class="profile-info">
+          </div>
 
-              <p
-                id="profileBio"
-                class="profile-bio"
-              ></p>
 
-              <div
-                id="profileLocation"
-                class="profile-location"
-                style="display:none;"
-              ></div>
+          <div class="profile-info">
 
-              <div class="profile-stats">
+            <p
+              id="profileBio"
+              class="profile-bio"
+            >
+              Пользователь пока не добавил описание.
+            </p>
 
-                <button
-                  type="button"
-                  class="profile-stat"
-                  id="publicationsStat"
+            <div
+              id="profileLocation"
+              class="profile-location"
+              style="display:none;"
+            ></div>
+
+            <div class="profile-stats">
+
+              <div class="profile-stat">
+                <span
+                  id="publicationsCount"
+                  class="profile-stat-number"
                 >
-                  <span
-                    id="publicationsCount"
-                    class="profile-stat-number"
-                  >
-                    0
-                  </span>
-                  <span class="profile-stat-label">
-                    публикаций
-                  </span>
-                </button>
+                  0
+                </span>
 
-                <button
-                  type="button"
-                  class="profile-stat"
-                  id="followersStat"
+                <span class="profile-stat-label">
+                  публикаций
+                </span>
+              </div>
+
+              <div class="profile-stat">
+                <span
+                  id="followersCount"
+                  class="profile-stat-number"
                 >
-                  <span
-                    id="followersCount"
-                    class="profile-stat-number"
-                  >
-                    0
-                  </span>
-                  <span class="profile-stat-label">
-                    подписчиков
-                  </span>
-                </button>
+                  0
+                </span>
 
-                <button
-                  type="button"
-                  class="profile-stat"
-                  id="followingStat"
+                <span class="profile-stat-label">
+                  подписчиков
+                </span>
+              </div>
+
+              <div class="profile-stat">
+                <span
+                  id="followingCount"
+                  class="profile-stat-number"
                 >
-                  <span
-                    id="followingCount"
-                    class="profile-stat-number"
-                  >
-                    0
-                  </span>
-                  <span class="profile-stat-label">
-                    подписок
-                  </span>
-                </button>
+                  0
+                </span>
 
+                <span class="profile-stat-label">
+                  подписок
+                </span>
               </div>
 
             </div>
 
           </div>
 
-        </article>
+        </div>
+
+      </article>
 
 
-        <!-- ===================================================
-             CONTENT
-             =================================================== -->
+      <!-- CONTENT -->
 
-        <div class="profile-content">
+      <div class="profile-content">
+
+        <section class="profile-section">
+
+          <div class="profile-section-head">
+
+            <h2 class="profile-section-title">
+              Публикации
+            </h2>
+
+            <span
+              id="profilePublicationsCount"
+              class="profile-publications-count"
+            >
+              0 публикаций
+            </span>
+
+          </div>
+
+
+          <div
+            id="publicationsLoading"
+            class="profile-state"
+          >
+            <div class="profile-state-icon">
+              ⏳
+            </div>
+
+            <div class="profile-state-title">
+              Загружаем публикации
+            </div>
+
+            <div class="profile-state-text">
+              Ищем публикации пользователя…
+            </div>
+          </div>
+
+
+          <div
+            id="publicationsEmpty"
+            class="profile-state"
+            style="display:none;"
+          >
+            <div class="profile-state-icon">
+              📝
+            </div>
+
+            <div class="profile-state-title">
+              Публикаций пока нет
+            </div>
+
+            <div class="profile-state-text">
+              Здесь появятся публикации пользователя.
+            </div>
+          </div>
+
+
+          <div
+            id="publicationsError"
+            class="profile-state"
+            style="display:none;"
+          >
+            <div class="profile-state-icon">
+              ⚠️
+            </div>
+
+            <div class="profile-state-title">
+              Не удалось загрузить публикации
+            </div>
+
+            <div class="profile-state-text">
+              Попробуйте повторить загрузку.
+            </div>
+
+            <button
+              type="button"
+              id="retryPublications"
+              class="profile-btn profile-btn-secondary"
+              style="margin-top:15px;"
+            >
+              🔄 Повторить
+            </button>
+          </div>
+
+
+          <div
+            id="profilePosts"
+            class="profile-posts"
+            style="display:none;"
+          ></div>
+
+        </section>
+
+
+        <!-- SIDE -->
+
+        <aside class="profile-side">
 
           <section class="profile-section">
 
-            <div class="profile-section-head">
+            <h2
+              class="profile-section-title"
+              style="margin-bottom:18px;"
+            >
+              О пользователе
+            </h2>
 
-              <h2 class="profile-section-title">
-                Публикации
-              </h2>
+            <div style="display:grid;gap:17px;">
 
-              <span
-                id="profilePublicationsCount"
-                class="profile-publications-count"
+              <div
+                id="countryInfo"
+                class="profile-side-item"
+                style="display:none;"
               >
-                0 публикаций
-              </span>
+                <div class="profile-side-icon">
+                  🌍
+                </div>
 
-            </div>
+                <div>
+                  <div class="profile-side-label">
+                    Страна
+                  </div>
 
-            <div
-              id="publicationsLoading"
-              class="profile-state"
-            >
-              <div class="profile-state-icon">⏳</div>
-              <div class="profile-state-title">
-                Загружаем публикации
-              </div>
-              <div class="profile-state-text">
-                Ищем публикации пользователя…
-              </div>
-            </div>
-
-            <div
-              id="publicationsEmpty"
-              class="profile-state"
-              style="display:none;"
-            >
-              <div class="profile-state-icon">📝</div>
-              <div class="profile-state-title">
-                Публикаций пока нет
-              </div>
-              <div class="profile-state-text">
-                Здесь появятся публикации этого пользователя.
-              </div>
-            </div>
-
-            <div
-              id="publicationsError"
-              class="profile-state"
-              style="display:none;"
-            >
-              <div class="profile-state-icon">⚠️</div>
-              <div class="profile-state-title">
-                Не удалось загрузить публикации
-              </div>
-              <div class="profile-state-text">
-                Попробуйте обновить страницу.
+                  <div
+                    id="countryValue"
+                    class="profile-side-value"
+                  ></div>
+                </div>
               </div>
 
-              <button
-                type="button"
-                id="retryPublications"
-                class="profile-btn profile-btn-secondary"
-                style="margin-top:15px;"
+
+              <div
+                id="cityInfo"
+                class="profile-side-item"
+                style="display:none;"
               >
-                🔄 Повторить
-              </button>
-            </div>
+                <div class="profile-side-icon">
+                  📍
+                </div>
 
-            <div
-              id="profilePosts"
-              class="profile-posts"
-              style="display:none;"
-            ></div>
+                <div>
+                  <div class="profile-side-label">
+                    Город
+                  </div>
+
+                  <div
+                    id="cityValue"
+                    class="profile-side-value"
+                  ></div>
+                </div>
+              </div>
+
+
+              <div
+                id="memberSinceInfo"
+                class="profile-side-item"
+                style="display:none;"
+              >
+                <div class="profile-side-icon">
+                  📅
+                </div>
+
+                <div>
+                  <div class="profile-side-label">
+                    На платформе с
+                  </div>
+
+                  <div
+                    id="memberSinceValue"
+                    class="profile-side-value"
+                  ></div>
+                </div>
+              </div>
+
+            </div>
 
           </section>
 
 
-          <!-- =================================================
-               SIDE INFORMATION
-               ================================================= -->
-
-          <aside class="profile-side">
-
-            <section class="profile-section">
-
-              <h2
-                class="profile-section-title"
-                style="margin-bottom:18px;"
-              >
-                О пользователе
-              </h2>
-
-              <div style="display:grid;gap:17px;">
-
-                <div
-                  id="countryInfo"
-                  class="profile-side-item"
-                  style="display:none;"
-                >
-                  <div class="profile-side-icon">
-                    🌍
-                  </div>
-
-                  <div>
-                    <div class="profile-side-label">
-                      Страна
-                    </div>
-
-                    <div
-                      id="countryValue"
-                      class="profile-side-value"
-                    ></div>
-                  </div>
-                </div>
-
-
-                <div
-                  id="cityInfo"
-                  class="profile-side-item"
-                  style="display:none;"
-                >
-                  <div class="profile-side-icon">
-                    📍
-                  </div>
-
-                  <div>
-                    <div class="profile-side-label">
-                      Город
-                    </div>
-
-                    <div
-                      id="cityValue"
-                      class="profile-side-value"
-                    ></div>
-                  </div>
-                </div>
-
-
-                <div
-                  id="memberSinceInfo"
-                  class="profile-side-item"
-                  style="display:none;"
-                >
-                  <div class="profile-side-icon">
-                    📅
-                  </div>
-
-                  <div>
-                    <div class="profile-side-label">
-                      На платформе с
-                    </div>
-
-                    <div
-                      id="memberSinceValue"
-                      class="profile-side-value"
-                    ></div>
-                  </div>
-                </div>
-
-              </div>
-
-            </section>
-
-
-            <section
-              id="ownProfileHelp"
-              class="profile-section"
-              style="display:none;"
-            >
-
-              <h2
-                class="profile-section-title"
-                style="font-size:17px;margin-bottom:9px;"
-              >
-                Ваш профиль
-              </h2>
-
-              <p
-                style="
-                  margin:0;
-                  color:#667085;
-                  font-size:13px;
-                  line-height:1.55;
-                "
-              >
-                Заполните профиль, чтобы другие пользователи
-                могли узнать о вас, найти ваши публикации
-                и связаться с вами.
-              </p>
-
-            </section>
-
-          </aside>
-
-        </div>
-
-      </section>
-
-
-      <!-- =====================================================
-           ERROR
-           ===================================================== -->
-
-      <section
-        id="profileError"
-        class="profile-section"
-        style="display:none;"
-      >
-        <div class="profile-state">
-
-          <div class="profile-state-icon">
-            ⚠️
-          </div>
-
-          <div class="profile-state-title">
-            Профиль не найден
-          </div>
-
-          <div
-            id="profileErrorText"
-            class="profile-state-text"
+          <section
+            id="ownProfileHelp"
+            class="profile-section"
+            style="display:none;"
           >
-            Не удалось загрузить профиль.
-          </div>
 
-          <div style="margin-top:16px;">
-
-            <button
-              type="button"
-              class="profile-btn profile-btn-secondary"
-              onclick="location.reload()"
+            <h2
+              class="profile-section-title"
+              style="font-size:17px;margin-bottom:9px;"
             >
-              🔄 Повторить
-            </button>
+              Ваш профиль
+            </h2>
 
-          </div>
+            <p
+              style="
+                margin:0;
+                color:#667085;
+                font-size:13px;
+                line-height:1.55;
+              "
+            >
+              Заполните информацию о себе, чтобы ваш профиль
+              выглядел профессионально и другим пользователям
+              было проще узнать вас.
+            </p>
 
+          </section>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+
+    <!-- ERROR -->
+
+    <section
+      id="profileError"
+      class="profile-section"
+      style="display:none;"
+    >
+
+      <div class="profile-state">
+
+        <div class="profile-state-icon">
+          ⚠️
         </div>
-      </section>
 
-    </main>
+        <div class="profile-state-title">
+          Не удалось открыть профиль
+        </div>
 
-  </div>
-
-
-  <!-- =========================================================
-       EDIT PROFILE MODAL
-       ========================================================= -->
-
-  <div
-    id="editProfileModal"
-    class="profile-modal"
-    aria-hidden="true"
-  >
-
-    <div class="profile-modal-card">
-
-      <div class="profile-modal-head">
-
-        <h2 class="profile-modal-title">
-          Редактировать профиль
-        </h2>
+        <div
+          id="profileErrorText"
+          class="profile-state-text"
+        >
+          Произошла ошибка.
+        </div>
 
         <button
           type="button"
-          class="profile-close"
-          id="closeEditProfile"
-          aria-label="Закрыть"
+          class="profile-btn profile-btn-secondary"
+          style="margin-top:15px;"
+          onclick="location.reload()"
         >
-          ×
+          🔄 Повторить
         </button>
 
       </div>
 
+    </section>
 
-      <form
-        id="profileForm"
-        class="profile-form"
+  </main>
+
+</div>
+
+
+<!-- ==========================================================
+     EDIT PROFILE MODAL
+     ========================================================== -->
+
+<div
+  id="editProfileModal"
+  class="profile-modal"
+  aria-hidden="true"
+>
+
+  <div class="profile-modal-card">
+
+    <div class="profile-modal-head">
+
+      <h2 class="profile-modal-title">
+        Редактировать профиль
+      </h2>
+
+      <button
+        type="button"
+        id="closeEditProfile"
+        class="profile-close"
+        aria-label="Закрыть"
       >
-
-        <div class="profile-form-row">
-
-          <div class="profile-field">
-
-            <label for="editName">
-              Имя
-            </label>
-
-            <input
-              type="text"
-              id="editName"
-              name="name"
-              maxlength="100"
-              autocomplete="name"
-              placeholder="Ваше имя"
-            >
-
-          </div>
-
-
-          <div class="profile-field">
-
-            <label for="editUsername">
-              Username
-            </label>
-
-            <div class="username-wrap">
-
-              <span class="username-prefix">
-                @
-              </span>
-
-              <input
-                type="text"
-                id="editUsername"
-                name="username"
-                maxlength="40"
-                autocomplete="username"
-                placeholder="username"
-              >
-
-            </div>
-
-            <div
-              id="usernameStatus"
-              class="username-status"
-            ></div>
-
-            <div class="field-hint">
-              Используйте латинские буквы, цифры, точку,
-              дефис или нижнее подчёркивание.
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div class="profile-field">
-
-          <label for="editBio">
-            О себе
-          </label>
-
-          <textarea
-            id="editBio"
-            name="bio"
-            maxlength="1000"
-            placeholder="Расскажите немного о себе, своей работе, проектах или интересах…"
-          ></textarea>
-
-          <div class="field-hint">
-            Максимум 1000 символов.
-          </div>
-
-        </div>
-
-
-        <div class="profile-form-row">
-
-          <div class="profile-field">
-
-            <label for="editCountry">
-              Страна
-            </label>
-
-            <input
-              type="text"
-              id="editCountry"
-              name="country"
-              maxlength="100"
-              placeholder="Таджикистан"
-            >
-
-          </div>
-
-
-          <div class="profile-field">
-
-            <label for="editCity">
-              Город
-            </label>
-
-            <input
-              type="text"
-              id="editCity"
-              name="city"
-              maxlength="100"
-              placeholder="Душанбе"
-            >
-
-          </div>
-
-        </div>
-
-
-        <div class="profile-field">
-
-          <label for="editAvatar">
-            Ссылка на аватар
-          </label>
-
-          <input
-            type="url"
-            id="editAvatar"
-            name="avatar"
-            maxlength="1000"
-            placeholder="https://example.com/avatar.jpg"
-          >
-
-          <div class="field-hint">
-            Можно указать прямую ссылку на изображение.
-          </div>
-
-        </div>
-
-
-        <div class="toggle-row">
-
-          <div class="toggle-text">
-
-            <div class="toggle-title">
-              Разрешить личные сообщения
-            </div>
-
-            <div class="toggle-description">
-              Другие пользователи смогут перейти в чат
-              с вами через ваш профиль.
-            </div>
-
-          </div>
-
-          <label class="toggle">
-
-            <input
-              type="checkbox"
-              id="allowMessages"
-            >
-
-            <span class="toggle-slider"></span>
-
-          </label>
-
-        </div>
-
-
-        <div class="toggle-row">
-
-          <div class="toggle-text">
-
-            <div class="toggle-title">
-              Показывать подписчиков
-            </div>
-
-            <div class="toggle-description">
-              Разрешить другим пользователям видеть
-              список ваших подписчиков.
-            </div>
-
-          </div>
-
-          <label class="toggle">
-
-            <input
-              type="checkbox"
-              id="showFollowers"
-            >
-
-            <span class="toggle-slider"></span>
-
-          </label>
-
-        </div>
-
-
-        <div class="toggle-row">
-
-          <div class="toggle-text">
-
-            <div class="toggle-title">
-              Публичный профиль
-            </div>
-
-            <div class="toggle-description">
-              Ваш профиль и публикации могут находить
-              другие пользователи.
-            </div>
-
-          </div>
-
-          <label class="toggle">
-
-            <input
-              type="checkbox"
-              id="profilePublic"
-            >
-
-            <span class="toggle-slider"></span>
-
-          </label>
-
-        </div>
-
-
-        <div class="profile-form-actions">
-
-          <button
-            type="button"
-            id="cancelEditProfile"
-            class="profile-btn profile-btn-secondary"
-          >
-            Отмена
-          </button>
-
-          <button
-            type="submit"
-            id="saveProfileBtn"
-            class="profile-btn profile-btn-primary"
-          >
-            💾 Сохранить профиль
-          </button>
-
-        </div>
-
-      </form>
+        ×
+      </button>
 
     </div>
 
-  </div>
 
+    <form
+      id="profileForm"
+      class="profile-form"
+    >
 
-  <!-- =========================================================
-       AUTH MODAL
-       ========================================================= -->
+      <div class="profile-form-row">
 
-  <div
-    id="authModal"
-    class="profile-modal"
-    aria-hidden="true"
-  >
+        <div class="profile-field">
 
-    <div class="profile-modal-card">
-
-      <div class="profile-modal-head">
-
-        <h2 class="profile-modal-title">
-          Вход и регистрация
-        </h2>
-
-        <button
-          type="button"
-          class="profile-close"
-          id="closeAuthModal"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <div
-        id="authModeTabs"
-        style="
-          display:grid;
-          grid-template-columns:1fr 1fr;
-          gap:6px;
-          padding:5px;
-          background:#f1f5f9;
-          border-radius:12px;
-          margin-bottom:20px;
-        "
-      >
-
-        <button
-          type="button"
-          id="loginTab"
-          class="profile-btn profile-btn-primary"
-          style="min-height:40px;"
-        >
-          Войти
-        </button>
-
-        <button
-          type="button"
-          id="registerTab"
-          class="profile-btn profile-btn-secondary"
-          style="min-height:40px;"
-        >
-          Регистрация
-        </button>
-
-      </div>
-
-
-      <form
-        id="authForm"
-        class="profile-form"
-      >
-
-        <div
-          id="registerNameField"
-          class="profile-field"
-          style="display:none;"
-        >
-
-          <label for="authName">
+          <label for="editName">
             Имя
           </label>
 
           <input
+            id="editName"
             type="text"
-            id="authName"
-            autocomplete="name"
             maxlength="100"
+            autocomplete="name"
             placeholder="Ваше имя"
+            required
           >
 
         </div>
@@ -1679,7 +1317,7 @@
 
         <div class="profile-field">
 
-          <label for="authUsername">
+          <label for="editUsername">
             Username
           </label>
 
@@ -1690,10 +1328,10 @@
             </span>
 
             <input
+              id="editUsername"
               type="text"
-              id="authUsername"
-              autocomplete="username"
               maxlength="40"
+              autocomplete="username"
               placeholder="username"
               required
             >
@@ -1701,2592 +1339,2257 @@
           </div>
 
           <div
-            id="authUsernameStatus"
+            id="usernameStatus"
             class="username-status"
           ></div>
+
+          <div class="field-hint">
+            Только латинские буквы, цифры, точка,
+            дефис и нижнее подчёркивание.
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="profile-field">
+
+        <label for="editBio">
+          О себе
+        </label>
+
+        <textarea
+          id="editBio"
+          maxlength="1000"
+          placeholder="Расскажите о себе, своей работе, проектах или интересах…"
+        ></textarea>
+
+        <div class="field-hint">
+          Максимум 1000 символов.
+        </div>
+
+      </div>
+
+
+      <div class="profile-form-row">
+
+        <div class="profile-field">
+
+          <label for="editCountry">
+            Страна
+          </label>
+
+          <input
+            id="editCountry"
+            type="text"
+            maxlength="100"
+            placeholder="Таджикистан"
+          >
 
         </div>
 
 
         <div class="profile-field">
 
-          <label for="authPassword">
-            Пароль
+          <label for="editCity">
+            Город
           </label>
 
           <input
-            type="password"
-            id="authPassword"
-            autocomplete="current-password"
-            minlength="6"
-            placeholder="Введите пароль"
+            id="editCity"
+            type="text"
+            maxlength="100"
+            placeholder="Душанбе"
+          >
+
+        </div>
+
+      </div>
+
+
+      <div class="profile-field">
+
+        <label for="editAvatar">
+          Ссылка на аватар
+        </label>
+
+        <input
+          id="editAvatar"
+          type="url"
+          maxlength="1000"
+          placeholder="https://example.com/avatar.jpg"
+        >
+
+        <div class="field-hint">
+          Укажите прямую ссылку на изображение.
+        </div>
+
+      </div>
+
+
+      <div class="toggle-row">
+
+        <div>
+          <div class="toggle-title">
+            Разрешить личные сообщения
+          </div>
+
+          <div class="toggle-description">
+            Разрешить другим пользователям обращаться
+            к вам через систему сообщений.
+          </div>
+        </div>
+
+        <label class="toggle">
+
+          <input
+            type="checkbox"
+            id="allowMessages"
+            checked
+          >
+
+          <span class="toggle-slider"></span>
+
+        </label>
+
+      </div>
+
+
+      <div class="toggle-row">
+
+        <div>
+          <div class="toggle-title">
+            Показывать подписчиков
+          </div>
+
+          <div class="toggle-description">
+            Настройка сохранится вместе с профилем,
+            если она поддерживается сервером.
+          </div>
+        </div>
+
+        <label class="toggle">
+
+          <input
+            type="checkbox"
+            id="showFollowers"
+            checked
+          >
+
+          <span class="toggle-slider"></span>
+
+        </label>
+
+      </div>
+
+
+      <div class="toggle-row">
+
+        <div>
+          <div class="toggle-title">
+            Публичный профиль
+          </div>
+
+          <div class="toggle-description">
+            Профиль можно будет открывать по username.
+          </div>
+        </div>
+
+        <label class="toggle">
+
+          <input
+            type="checkbox"
+            id="profilePublic"
+            checked
+          >
+
+          <span class="toggle-slider"></span>
+
+        </label>
+
+      </div>
+
+
+      <div class="profile-form-actions">
+
+        <button
+          type="button"
+          id="cancelEditProfile"
+          class="profile-btn profile-btn-secondary"
+        >
+          Отмена
+        </button>
+
+        <button
+          type="submit"
+          id="saveProfileBtn"
+          class="profile-btn profile-btn-primary"
+        >
+          💾 Сохранить профиль
+        </button>
+
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+
+<!-- ==========================================================
+     AUTH MODAL
+     ========================================================== -->
+
+<div
+  id="authModal"
+  class="profile-modal"
+  aria-hidden="true"
+>
+
+  <div class="profile-modal-card">
+
+    <div class="profile-modal-head">
+
+      <h2 class="profile-modal-title">
+        Вход и регистрация
+      </h2>
+
+      <button
+        type="button"
+        id="closeAuthModal"
+        class="profile-close"
+        aria-label="Закрыть"
+      >
+        ×
+      </button>
+
+    </div>
+
+
+    <div
+      style="
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:6px;
+        padding:5px;
+        margin-bottom:20px;
+        background:#f1f5f9;
+        border-radius:12px;
+      "
+    >
+
+      <button
+        type="button"
+        id="loginTab"
+        class="profile-btn profile-btn-primary"
+        style="min-height:40px;"
+      >
+        Войти
+      </button>
+
+      <button
+        type="button"
+        id="registerTab"
+        class="profile-btn profile-btn-secondary"
+        style="min-height:40px;"
+      >
+        Регистрация
+      </button>
+
+    </div>
+
+
+    <form
+      id="authForm"
+      class="profile-form"
+    >
+
+      <div
+        id="registerNameField"
+        class="profile-field"
+        style="display:none;"
+      >
+
+        <label for="authName">
+          Имя
+        </label>
+
+        <input
+          id="authName"
+          type="text"
+          maxlength="100"
+          autocomplete="name"
+          placeholder="Ваше имя"
+        >
+
+      </div>
+
+
+      <div class="profile-field">
+
+        <label for="authUsername">
+          Username
+        </label>
+
+        <div class="username-wrap">
+
+          <span class="username-prefix">
+            @
+          </span>
+
+          <input
+            id="authUsername"
+            type="text"
+            maxlength="40"
+            autocomplete="username"
+            placeholder="username"
             required
           >
 
         </div>
 
+        <div
+          id="authUsernameStatus"
+          class="username-status"
+        ></div>
 
-        <button
-          type="submit"
-          id="authSubmitBtn"
-          class="profile-btn profile-btn-primary"
-          style="width:100%;"
+      </div>
+
+
+      <div class="profile-field">
+
+        <label for="authPassword">
+          Пароль
+        </label>
+
+        <input
+          id="authPassword"
+          type="password"
+          minlength="6"
+          autocomplete="current-password"
+          placeholder="Введите пароль"
+          required
         >
-          Войти
-        </button>
 
-      </form>
+      </div>
 
-    </div>
+
+      <button
+        type="submit"
+        id="authSubmitBtn"
+        class="profile-btn profile-btn-primary"
+        style="width:100%;"
+      >
+        Войти
+      </button>
+
+    </form>
 
   </div>
 
+</div>
 
-  <!-- =========================================================
-       TOAST
-       ========================================================= -->
 
-  <div
-    id="profileToast"
-    class="toast"
-    style="display:none;"
-  ></div>
+<!-- ==========================================================
+     TOAST
+     ========================================================== -->
 
+<div
+  id="profileToast"
+  class="toast"
+  style="display:none;"
+  role="status"
+  aria-live="polite"
+></div>
 
-  <!-- =========================================================
-       JAVASCRIPT
-       ========================================================= -->
 
-  <script src="/js/app.js"></script>
+<!-- ==========================================================
+     JAVASCRIPT
+     ========================================================== -->
 
-  <script>
-    (() => {
-      "use strict";
+<script>
+(() => {
+  "use strict";
 
-      /*
-       * ========================================================
-       * API CONFIGURATION
-       * ========================================================
-       *
-       * Все запросы нового profile.html собраны здесь.
-       * Если в worker.js используются именно эти маршруты,
-       * ничего дополнительно менять не нужно.
-       */
+  const API = {
+    me: "/api/auth/me",
+    login: "/api/auth/login",
+    register: "/api/auth/register",
+    profile: "/api/profile",
+    publicProfile: "/api/profile/public",
+    checkUsername: "/api/username/check",
+    publications: "/api/publications"
+  };
 
-      const API = {
-        me: "/api/auth/me",
+  const state = {
+    currentUser: null,
+    profile: null,
+    viewingUsername: null,
+    isOwnProfile: false,
+    authMode: "login",
+    saving: false,
+    authLoading: false,
+    usernameTimer: null
+  };
 
-        profile: "/api/profile",
 
-        checkUsername: "/api/profile/check-username",
+  function $(selector) {
+    return document.querySelector(selector);
+  }
 
-        updateProfile: "/api/profile",
 
-        publications: "/api/publications",
+  function show(element) {
+    if (element) {
+      element.style.display = "";
+    }
+  }
 
-        follow: "/api/follow",
 
-        unfollow: "/api/follow"
-      };
+  function hide(element) {
+    if (element) {
+      element.style.display = "none";
+    }
+  }
 
 
-      /*
-       * ========================================================
-       * STATE
-       * ========================================================
-       */
+  function normalizeUsername(value) {
+    return String(value || "")
+      .trim()
+      .replace(/^@+/, "")
+      .toLowerCase();
+  }
 
-      const state = {
-        currentUser: null,
-        profile: null,
-        isOwnProfile: false,
-        viewingUsername: null,
 
-        usernameTimer: null,
-        authUsernameTimer: null,
+  function validUsername(value) {
+    return /^[a-z0-9][a-z0-9._-]{2,39}$/i.test(value);
+  }
 
-        usernameAvailable: true,
 
-        authMode: "login",
+  function formatNumber(value) {
+    const number = Number(value || 0);
 
-        savingProfile: false,
-        authLoading: false
-      };
+    if (!Number.isFinite(number)) {
+      return "0";
+    }
 
+    return new Intl.NumberFormat("ru-RU").format(number);
+  }
 
-      /*
-       * ========================================================
-       * DOM
-       * ========================================================
-       */
 
-      const $ = (selector) =>
-        document.querySelector(selector);
+  function formatDate(value) {
+    if (!value) {
+      return "";
+    }
 
+    const date = new Date(value);
 
-      /*
-       * ========================================================
-       * HELPERS
-       * ========================================================
-       */
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
 
-      function escapeHTML(value) {
-        if (value === null || value === undefined) {
-          return "";
-        }
-
-        return String(value)
-          .replace(/&/g, "&amp;")
-          .replace(/</g, "&lt;")
-          .replace(/>/g, "&gt;")
-          .replace(/"/g, "&quot;")
-          .replace(/'/g, "&#039;");
-      }
-
-
-      function normalizeUsername(value) {
-        return String(value || "")
-          .trim()
-          .replace(/^@+/, "")
-          .toLowerCase();
-      }
-
-
-      function validUsername(username) {
-        return /^[a-z0-9][a-z0-9._-]{2,39}$/i.test(username);
-      }
-
-
-      function formatNumber(value) {
-        const number = Number(value || 0);
-
-        if (!Number.isFinite(number)) {
-          return "0";
-        }
-
-        return new Intl.NumberFormat("ru-RU").format(number);
-      }
-
-
-      function formatDate(value) {
-        if (!value) {
-          return "";
-        }
-
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-          return "";
-        }
-
-        return new Intl.DateTimeFormat("ru-RU", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric"
-        }).format(date);
-      }
-
-
-      function getInitials(name, username) {
-        const source =
-          String(name || username || "U").trim();
-
-        const words = source
-          .split(/\s+/)
-          .filter(Boolean);
-
-        if (words.length >= 2) {
-          return (
-            words[0][0] +
-            words[1][0]
-          ).toUpperCase();
-        }
-
-        return source
-          .slice(0, 2)
-          .toUpperCase();
-      }
-
-
-      function safeImageURL(value) {
-        if (!value) {
-          return null;
-        }
-
-        try {
-          const url = new URL(
-            String(value),
-            window.location.origin
-          );
-
-          if (
-            url.protocol !== "http:" &&
-            url.protocol !== "https:"
-          ) {
-            return null;
-          }
-
-          return url.href;
-        } catch {
-          return null;
-        }
-      }
-
-
-      function getQueryUsername() {
-        const params =
-          new URLSearchParams(window.location.search);
-
-        const username =
-          params.get("username");
-
-        if (!username) {
-          return null;
-        }
-
-        return normalizeUsername(username);
-      }
-
-
-      function show(element) {
-        if (element) {
-          element.style.display = "";
-        }
-      }
-
-
-      function hide(element) {
-        if (element) {
-          element.style.display = "none";
-        }
-      }
-
-
-      function showToast(message, type = "info") {
-        const toast =
-          $("#profileToast");
-
-        if (!toast) {
-          return;
-        }
-
-        toast.textContent = message;
-
-        toast.style.display = "block";
-
-        toast.classList.remove(
-          "success",
-          "error",
-          "info"
-        );
-
-        toast.classList.add(type);
-
-        clearTimeout(
-          showToast.timer
-        );
-
-        showToast.timer =
-          setTimeout(() => {
-            toast.style.display = "none";
-          }, 3500);
-      }
-
-
-      async function apiRequest(
-        url,
-        options = {}
+    return new Intl.DateTimeFormat("ru-RU", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    }).format(date);
+  }
+
+
+  function getInitials(name, username) {
+    const source =
+      String(name || username || "U").trim();
+
+    const words =
+      source.split(/\s+/).filter(Boolean);
+
+    if (words.length >= 2) {
+      return (
+        words[0][0] +
+        words[1][0]
+      ).toUpperCase();
+    }
+
+    return source
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+
+  function imageURL(value) {
+    if (!value) {
+      return null;
+    }
+
+    try {
+      const url = new URL(
+        String(value),
+        location.origin
+      );
+
+      if (
+        url.protocol !== "http:" &&
+        url.protocol !== "https:"
       ) {
-        const response =
-          await fetch(url, {
-            credentials: "include",
-
-            ...options,
-
-            headers: {
-              "Accept": "application/json",
-              ...(options.body
-                ? {
-                    "Content-Type":
-                      "application/json"
-                  }
-                : {}),
-              ...(options.headers || {})
-            }
-          });
-
-        let data = null;
-
-        const contentType =
-          response.headers.get(
-            "content-type"
-          ) || "";
-
-        if (
-          contentType.includes(
-            "application/json"
-          )
-        ) {
-          try {
-            data =
-              await response.json();
-          } catch {
-            data = null;
-          }
-        } else {
-          try {
-            const text =
-              await response.text();
-
-            data = text
-              ? { message: text }
-              : null;
-          } catch {
-            data = null;
-          }
-        }
-
-        if (!response.ok) {
-          const error =
-            new Error(
-              data?.message ||
-              data?.error ||
-              `HTTP ${response.status}`
-            );
-
-          error.status =
-            response.status;
-
-          error.data = data;
-
-          throw error;
-        }
-
-        return data;
-      }
-
-
-      /*
-       * ========================================================
-       * RESPONSE NORMALIZATION
-       * ========================================================
-       */
-
-      function extractUser(data) {
-        if (!data) {
-          return null;
-        }
-
-        if (data.user) {
-          return data.user;
-        }
-
-        if (data.profile) {
-          return data.profile;
-        }
-
-        if (
-          data.data &&
-          data.data.user
-        ) {
-          return data.data.user;
-        }
-
-        if (
-          data.data &&
-          data.data.profile
-        ) {
-          return data.data.profile;
-        }
-
-        if (
-          typeof data === "object" &&
-          (
-            data.username ||
-            data.name ||
-            data.id
-          )
-        ) {
-          return data;
-        }
-
         return null;
       }
 
-
-      function extractProfile(data) {
-        if (!data) {
-          return null;
-        }
-
-        if (data.profile) {
-          return data.profile;
-        }
-
-        if (data.user) {
-          return data.user;
-        }
-
-        if (
-          data.data &&
-          data.data.profile
-        ) {
-          return data.data.profile;
-        }
-
-        if (
-          data.data &&
-          data.data.user
-        ) {
-          return data.data.user;
-        }
-
-        return data;
-      }
-
-
-      function extractPublications(data) {
-        if (Array.isArray(data)) {
-          return data;
-        }
-
-        if (
-          data &&
-          Array.isArray(data.publications)
-        ) {
-          return data.publications;
-        }
-
-        if (
-          data &&
-          Array.isArray(data.items)
-        ) {
-          return data.items;
-        }
-
-        if (
-          data &&
-          data.data &&
-          Array.isArray(
-            data.data.publications
-          )
-        ) {
-          return data.data.publications;
-        }
-
-        if (
-          data &&
-          data.data &&
-          Array.isArray(
-            data.data.items
-          )
-        ) {
-          return data.data.items;
-        }
-
-        return [];
-      }
-
-
-      /*
-       * ========================================================
-       * CURRENT USER
-       * ========================================================
-       */
-
-      async function loadCurrentUser() {
-        try {
-          const data =
-            await apiRequest(API.me);
-
-          return extractUser(data);
-        } catch (error) {
-
-          if (
-            error.status === 401 ||
-            error.status === 403
-          ) {
-            return null;
-          }
-
-          throw error;
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * PROFILE LOADING
-       * ========================================================
-       */
-
-      async function loadProfile() {
-
-        const username =
-          state.viewingUsername;
-
-        let data;
-
-        if (username) {
-
-          const url =
-            `${API.profile}?username=${encodeURIComponent(username)}`;
-
-          data =
-            await apiRequest(url);
-
-        } else {
-
-          data =
-            await apiRequest(API.profile);
-        }
-
-        const profile =
-          extractProfile(data);
-
-        if (!profile) {
-          throw new Error(
-            "Профиль не найден."
-          );
-        }
-
-        state.profile =
-          profile;
-
-        return profile;
-      }
-
-
-      /*
-       * ========================================================
-       * RENDER PROFILE
-       * ========================================================
-       */
-
-      function renderProfile(profile) {
-
-        const name =
-          profile.name ||
-          profile.full_name ||
-          profile.display_name ||
-          profile.username ||
-          "Пользователь";
-
-        const username =
-          normalizeUsername(
-            profile.username ||
-            profile.user_name ||
-            ""
-          );
-
-        const bio =
-          profile.bio ||
-          profile.description ||
-          "";
-
-        const country =
-          profile.country ||
-          "";
-
-        const city =
-          profile.city ||
-          "";
-
-        const avatar =
-          safeImageURL(
-            profile.avatar ||
-            profile.avatar_url ||
-            profile.photo_url ||
-            profile.image
-          );
-
-        const verified =
-          Boolean(
-            profile.verified ||
-            profile.is_verified
-          );
-
-
-        $("#profileName").textContent =
-          name;
-
-        $("#profileUsername").textContent =
-          username
-            ? `@${username}`
-            : "";
-
-
-        const bioElement =
-          $("#profileBio");
-
-        if (bio) {
-          bioElement.textContent =
-            bio;
-
-          show(bioElement);
-        } else {
-          bioElement.textContent =
-            "Пользователь пока не добавил описание.";
-
-          bioElement.style.color =
-            "#98a2b3";
-        }
-
-
-        const avatarElement =
-          $("#profileAvatar");
-
-        if (avatar) {
-
-          avatarElement.innerHTML = "";
-
-          const image =
-            document.createElement("img");
-
-          image.src = avatar;
-
-          image.alt =
-            `Аватар ${name}`;
-
-          image.loading = "lazy";
-
-          image.onerror = () => {
-            avatarElement.textContent =
-              getInitials(
-                name,
-                username
-              );
-          };
-
-          avatarElement.appendChild(
-            image
-          );
-
-        } else {
-
-          avatarElement.textContent =
-            getInitials(
-              name,
-              username
-            );
-        }
-
-
-        const verifiedBadge =
-          $("#verifiedBadge");
-
-        verifiedBadge.classList.toggle(
-          "visible",
-          verified
-        );
-
-
-        renderLocation(
-          country,
-          city
-        );
-
-
-        $("#publicationsCount")
-          .textContent =
-          formatNumber(
-            profile.publications_count ??
-            profile.posts_count ??
-            profile.publications ??
-            0
-          );
-
-
-        $("#followersCount")
-          .textContent =
-          formatNumber(
-            profile.followers_count ??
-            profile.followers ??
-            0
-          );
-
-
-        $("#followingCount")
-          .textContent =
-          formatNumber(
-            profile.following_count ??
-            profile.following ??
-            0
-          );
-
-
-        const memberSince =
-          profile.created_at ||
-          profile.registered_at ||
-          profile.joined_at;
-
-        if (memberSince) {
-
-          $("#memberSinceValue")
-            .textContent =
-            formatDate(
-              memberSince
-            );
-
-          show(
-            $("#memberSinceInfo")
-          );
-
-        } else {
-
-          hide(
-            $("#memberSinceInfo")
-          );
-        }
-
-
-        renderProfileActions(
-          profile
-        );
-      }
-
-
-      function renderLocation(
-        country,
-        city
-      ) {
-
-        const location =
-          $("#profileLocation");
-
-        const parts = [];
-
-        if (city) {
-          parts.push(city);
-        }
-
-        if (country) {
-          parts.push(country);
-        }
-
-        if (!parts.length) {
-          hide(location);
-          hide($("#countryInfo"));
-          hide($("#cityInfo"));
-          return;
-        }
-
-        location.textContent =
-          `📍 ${parts.join(", ")}`;
-
-        show(location);
-
-
-        if (country) {
-
-          $("#countryValue")
-            .textContent =
-            country;
-
-          show(
-            $("#countryInfo")
-          );
-
-        } else {
-
-          hide(
-            $("#countryInfo")
-          );
-        }
-
-
-        if (city) {
-
-          $("#cityValue")
-            .textContent =
-            city;
-
-          show(
-            $("#cityInfo")
-          );
-
-        } else {
-
-          hide(
-            $("#cityInfo")
-          );
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * PROFILE ACTIONS
-       * ========================================================
-       */
-
-      function renderProfileActions(
-        profile
-      ) {
-
-        const container =
-          $("#profileActions");
-
-        container.innerHTML = "";
-
-        if (
-          state.isOwnProfile
-        ) {
-
-          const editButton =
-            document.createElement("button");
-
-          editButton.type = "button";
-
-          editButton.className =
-            "profile-btn profile-btn-primary";
-
-          editButton.textContent =
-            "✏️ Редактировать";
-
-          editButton.addEventListener(
-            "click",
-            openEditProfile
-          );
-
-          container.appendChild(
-            editButton
-          );
-
-
-          const messagesButton =
-            document.createElement("a");
-
-          messagesButton.href =
-            "/messages.html";
-
-          messagesButton.className =
-            "profile-btn profile-btn-secondary";
-
-          messagesButton.textContent =
-            "💬 Сообщения";
-
-          container.appendChild(
-            messagesButton
-          );
-
-
-          show(
-            $("#ownProfileHelp")
-          );
-
-          return;
-        }
-
-
-        hide(
-          $("#ownProfileHelp")
-        );
-
-
-        const allowMessages =
-          profile.allow_messages !== false &&
-          profile.messages_allowed !== false &&
-          profile.can_receive_messages !== false;
-
-
-        if (allowMessages) {
-
-          const messageButton =
-            document.createElement("a");
-
-          const username =
-            normalizeUsername(
-              profile.username
-            );
-
-          messageButton.href =
-            username
-              ? `/messages.html?username=${encodeURIComponent(username)}`
-              : "/messages.html";
-
-          messageButton.className =
-            "profile-btn profile-btn-secondary";
-
-          messageButton.textContent =
-            "💬 Сообщения";
-
-          container.appendChild(
-            messageButton
-          );
-        }
-
-
-        const following =
-          Boolean(
-            profile.is_following ||
-            profile.following_you_are ||
-            profile.following
-          );
-
-
-        const followButton =
-          document.createElement("button");
-
-        followButton.type = "button";
-
-        followButton.className =
-          following
-            ? "profile-btn profile-btn-secondary"
-            : "profile-btn profile-btn-primary";
-
-        followButton.textContent =
-          following
-            ? "✓ Вы подписаны"
-            : "➕ Подписаться";
-
-        followButton.addEventListener(
-          "click",
-          () => toggleFollow(
-            profile
-          )
-        );
-
-        container.appendChild(
-          followButton
-        );
-      }
-
-
-      /*
-       * ========================================================
-       * FOLLOW
-       * ========================================================
-       */
-
-      async function toggleFollow(
-        profile
-      ) {
-
-        const username =
-          normalizeUsername(
-            profile.username
-          );
-
-        if (!username) {
-          return;
-        }
-
-        const currentlyFollowing =
-          Boolean(
-            profile.is_following ||
-            profile.following
-          );
-
-        try {
-
-          const button =
-            $("#profileActions")
-              .querySelector(
-                "button"
-              );
-
-          if (button) {
-            button.disabled = true;
-            button.textContent =
-              "⏳";
-          }
-
-
-          if (currentlyFollowing) {
-
-            await apiRequest(
-              `${API.unfollow}?username=${encodeURIComponent(username)}`,
-              {
-                method: "DELETE"
-              }
-            );
-
-            profile.is_following =
-              false;
-
-            profile.following =
-              false;
-
-            profile.followers_count =
-              Math.max(
-                0,
-                Number(
-                  profile.followers_count || 0
-                ) - 1
-              );
-
-            showToast(
-              "Вы отписались от пользователя.",
-              "success"
-            );
-
-          } else {
-
-            await apiRequest(
-              API.follow,
-              {
-                method: "POST",
-                body: JSON.stringify({
-                  username
-                })
-              }
-            );
-
-            profile.is_following =
-              true;
-
-            profile.following =
-              true;
-
-            profile.followers_count =
-              Number(
-                profile.followers_count || 0
-              ) + 1;
-
-            showToast(
-              "Вы подписались на пользователя.",
-              "success"
-            );
-          }
-
-
-          renderProfile(
-            profile
-          );
-
-        } catch (error) {
-
-          console.error(
-            "Follow error:",
-            error
-          );
-
-          if (
-            error.status === 401
-          ) {
-
-            showToast(
-              "Сначала войдите в аккаунт.",
-              "error"
-            );
-
-            openAuthModal();
-
-          } else {
-
-            showToast(
-              error.message ||
-              "Не удалось изменить подписку.",
-              "error"
-            );
-          }
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * PUBLICATIONS
-       * ========================================================
-       */
-
-      async function loadPublications() {
-
-        const username =
-          normalizeUsername(
-            state.profile?.username
-          );
-
-        if (!username) {
-          renderPublications([]);
-          return;
-        }
-
-
-        show(
-          $("#publicationsLoading")
-        );
-
-        hide(
-          $("#publicationsEmpty")
-        );
-
-        hide(
-          $("#publicationsError")
-        );
-
-        hide(
-          $("#profilePosts")
-        );
-
-
-        try {
-
-          const url =
-            `${API.publications}?author=${encodeURIComponent(username)}`;
-
-          const data =
-            await apiRequest(url);
-
-          const publications =
-            extractPublications(data);
-
-          renderPublications(
-            publications
-          );
-
-        } catch (error) {
-
-          console.error(
-            "Publications error:",
-            error
-          );
-
-          hide(
-            $("#publicationsLoading")
-          );
-
-          show(
-            $("#publicationsError")
-          );
-        }
-      }
-
-
-      function renderPublications(
-        publications
-      ) {
-
-        hide(
-          $("#publicationsLoading")
-        );
-
-        hide(
-          $("#publicationsError")
-        );
-
-
-        const count =
-          publications.length;
-
-        $("#profilePublicationsCount")
-          .textContent =
-          `${formatNumber(count)} ${
-            count === 1
-              ? "публикация"
-              : "публикаций"
-          }`;
-
-
-        if (!count) {
-
-          hide(
-            $("#profilePosts")
-          );
-
-          show(
-            $("#publicationsEmpty")
-          );
-
-          return;
-        }
-
-
-        hide(
-          $("#publicationsEmpty")
-        );
-
-
-        const container =
-          $("#profilePosts");
-
-        container.innerHTML = "";
-
-
-        publications.forEach(
-          publication => {
-
-            const card =
-              createPublicationCard(
-                publication
-              );
-
-            container.appendChild(
-              card
-            );
-          }
-        );
-
-
-        show(
-          container
-        );
-      }
-
-
-      function createPublicationCard(
-        publication
-      ) {
-
-        const id =
-          publication.id ||
-          publication.publication_id ||
-          publication.slug ||
-          "";
-
-        const title =
-          publication.title ||
-          "Без названия";
-
-        const description =
-          publication.description ||
-          publication.text ||
-          publication.content ||
-          "";
-
-        const category =
-          publication.category ||
-          "other";
-
-        const date =
-          publication.created_at ||
-          publication.published_at ||
-          publication.date;
-
-
-        const card =
-          document.createElement("a");
-
-        card.className =
-          "profile-post";
-
-        card.href =
-          id
-            ? `/post.html?id=${encodeURIComponent(id)}`
-            : "#";
-
-
-        if (!id) {
-          card.addEventListener(
-            "click",
-            event => {
-              event.preventDefault();
+      return url.href;
+    } catch {
+      return null;
+    }
+  }
+
+
+  function toast(message, type = "info") {
+    const element = $("#profileToast");
+
+    if (!element) {
+      return;
+    }
+
+    element.textContent = message;
+    element.style.display = "block";
+
+    element.classList.remove(
+      "success",
+      "error",
+      "info"
+    );
+
+    element.classList.add(type);
+
+    clearTimeout(toast.timer);
+
+    toast.timer = setTimeout(() => {
+      element.style.display = "none";
+    }, 3500);
+  }
+
+
+  async function request(url, options = {}) {
+    const response = await fetch(url, {
+      credentials: "include",
+      ...options,
+      headers: {
+        Accept: "application/json",
+        ...(options.body
+          ? {
+              "Content-Type": "application/json"
             }
-          );
-        }
-
-
-        const categoryElement =
-          document.createElement("span");
-
-        categoryElement.className =
-          "profile-post-category";
-
-        categoryElement.textContent =
-          categoryLabel(
-            category
-          );
-
-
-        const titleElement =
-          document.createElement("h3");
-
-        titleElement.className =
-          "profile-post-title";
-
-        titleElement.textContent =
-          title;
-
-
-        card.appendChild(
-          categoryElement
-        );
-
-        card.appendChild(
-          titleElement
-        );
-
-
-        if (description) {
-
-          const descriptionElement =
-            document.createElement("p");
-
-          descriptionElement.className =
-            "profile-post-description";
-
-          descriptionElement.textContent =
-            description;
-
-          card.appendChild(
-            descriptionElement
-          );
-        }
-
-
-        const meta =
-          document.createElement("div");
-
-        meta.className =
-          "profile-post-meta";
-
-
-        if (date) {
-
-          const dateItem =
-            document.createElement("span");
-
-          dateItem.textContent =
-            `📅 ${formatDate(date)}`;
-
-          meta.appendChild(
-            dateItem
-          );
-        }
-
-
-        if (
-          publication.city ||
-          publication.country
-        ) {
-
-          const locationItem =
-            document.createElement("span");
-
-          const locationParts = [];
-
-          if (publication.city) {
-            locationParts.push(
-              publication.city
-            );
-          }
-
-          if (publication.country) {
-            locationParts.push(
-              publication.country
-            );
-          }
-
-          locationItem.textContent =
-            `📍 ${locationParts.join(", ")}`;
-
-          meta.appendChild(
-            locationItem
-          );
-        }
-
-
-        card.appendChild(
-          meta
-        );
-
-
-        return card;
+          : {}),
+        ...(options.headers || {})
       }
+    });
+
+    let data = null;
+
+    const contentType =
+      response.headers.get("content-type") || "";
+
+    if (
+      contentType.includes("application/json")
+    ) {
+      try {
+        data = await response.json();
+      } catch {
+        data = null;
+      }
+    } else {
+      try {
+        const text = await response.text();
+
+        data = text
+          ? { message: text }
+          : null;
+      } catch {
+        data = null;
+      }
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        data?.message ||
+        data?.error ||
+        `HTTP ${response.status}`
+      );
+
+      error.status = response.status;
+      error.data = data;
+
+      throw error;
+    }
+
+    return data;
+  }
 
 
-      function categoryLabel(
-        category
+  function extractUser(data) {
+    if (!data) {
+      return null;
+    }
+
+    if (data.user) {
+      return data.user;
+    }
+
+    if (data.profile) {
+      return data.profile;
+    }
+
+    if (data.data?.user) {
+      return data.data.user;
+    }
+
+    if (data.data?.profile) {
+      return data.data.profile;
+    }
+
+    if (
+      data.id ||
+      data.username ||
+      data.name
+    ) {
+      return data;
+    }
+
+    return null;
+  }
+
+
+  function extractProfile(data) {
+    if (!data) {
+      return null;
+    }
+
+    if (data.profile) {
+      return data.profile;
+    }
+
+    if (data.user) {
+      return data.user;
+    }
+
+    if (data.data?.profile) {
+      return data.data.profile;
+    }
+
+    if (data.data?.user) {
+      return data.data.user;
+    }
+
+    return data;
+  }
+
+
+  function extractPublications(data) {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (Array.isArray(data?.publications)) {
+      return data.publications;
+    }
+
+    if (Array.isArray(data?.items)) {
+      return data.items;
+    }
+
+    if (Array.isArray(data?.data?.publications)) {
+      return data.data.publications;
+    }
+
+    if (Array.isArray(data?.data?.items)) {
+      return data.data.items;
+    }
+
+    return [];
+  }
+
+
+  function queryUsername() {
+    const params =
+      new URLSearchParams(location.search);
+
+    return normalizeUsername(
+      params.get("username")
+    );
+  }
+
+
+  async function loadCurrentUser() {
+    try {
+      const data =
+        await request(API.me);
+
+      return extractUser(data);
+    } catch (error) {
+      if (
+        error.status === 401 ||
+        error.status === 403
       ) {
-
-        const labels = {
-          news: "Новости",
-          education: "Образование",
-          jobs: "Вакансии",
-          opportunities: "Возможности",
-          announcements: "Объявления",
-          services: "Услуги",
-          projects: "Проекты",
-          startups: "Стартапы",
-          events: "События",
-          competitions: "Конкурсы",
-          grants: "Гранты",
-          useful: "Полезное",
-          volunteering: "Волонтёрство",
-          products: "Товары",
-          specialists: "Специалисты",
-          other: "Другое"
-        };
-
-        return (
-          labels[category] ||
-          category ||
-          "Другое"
-        );
+        return null;
       }
 
-
-      /*
-       * ========================================================
-       * EDIT PROFILE
-       * ========================================================
-       */
-
-      function openEditProfile() {
-
-        if (!state.profile) {
-          return;
-        }
-
-        const profile =
-          state.profile;
-
-
-        $("#editName").value =
-          profile.name ||
-          profile.full_name ||
-          profile.display_name ||
-          "";
-
-
-        $("#editUsername").value =
-          normalizeUsername(
-            profile.username
-          );
-
-
-        $("#editBio").value =
-          profile.bio ||
-          profile.description ||
-          "";
-
-
-        $("#editCountry").value =
-          profile.country ||
-          "";
-
-
-        $("#editCity").value =
-          profile.city ||
-          "";
-
-
-        $("#editAvatar").value =
-          profile.avatar ||
-          profile.avatar_url ||
-          profile.photo_url ||
-          "";
-
-
-        $("#allowMessages").checked =
-          profile.allow_messages !== false &&
-          profile.messages_allowed !== false &&
-          profile.can_receive_messages !== false;
-
-
-        $("#showFollowers").checked =
-          profile.show_followers !== false;
-
-
-        $("#profilePublic").checked =
-          profile.is_public !== false &&
-          profile.public_profile !== false;
-
-
-        $("#usernameStatus").textContent =
-          "";
-
-
-        state.usernameAvailable =
-          true;
-
-
-        openModal(
-          $("#editProfileModal")
-        );
-      }
-
-
-      function closeEditProfile() {
-
-        closeModal(
-          $("#editProfileModal")
-        );
-      }
-
-
-      async function saveProfile(
-        event
-      ) {
-
-        event.preventDefault();
-
-        if (
-          state.savingProfile
-        ) {
-          return;
-        }
-
-
-        const name =
-          $("#editName").value.trim();
-
-        const username =
-          normalizeUsername(
-            $("#editUsername").value
-          );
-
-        const bio =
-          $("#editBio").value.trim();
-
-        const country =
-          $("#editCountry").value.trim();
-
-        const city =
-          $("#editCity").value.trim();
-
-        const avatar =
-          $("#editAvatar").value.trim();
-
-
-        if (!name) {
-
-          showToast(
-            "Введите имя.",
-            "error"
-          );
-
-          $("#editName").focus();
-
-          return;
-        }
-
-
-        if (!validUsername(username)) {
-
-          showToast(
-            "Введите корректный username.",
-            "error"
-          );
-
-          $("#editUsername").focus();
-
-          return;
-        }
-
-
-        if (!state.usernameAvailable) {
-
-          showToast(
-            "Этот username уже занят.",
-            "error"
-          );
-
-          $("#editUsername").focus();
-
-          return;
-        }
-
-
-        const payload = {
-          name,
-          username,
-          bio,
-          country,
-          city,
-          avatar,
-
-          allow_messages:
-            $("#allowMessages").checked,
-
-          show_followers:
-            $("#showFollowers").checked,
-
-          is_public:
-            $("#profilePublic").checked
-        };
-
-
-        state.savingProfile =
-          true;
-
-
-        const button =
-          $("#saveProfileBtn");
-
-        button.disabled =
-          true;
-
-        button.textContent =
-          "⏳ Сохраняем…";
-
-
-        try {
-
-          const data =
-            await apiRequest(
-              API.updateProfile,
-              {
-                method: "PUT",
-                body:
-                  JSON.stringify(payload)
-              }
-            );
-
-
-          const updated =
-            extractProfile(data);
-
-
-          if (updated) {
-
-            state.profile =
-              updated;
-
-          } else {
-
-            state.profile = {
-              ...state.profile,
-              ...payload
-            };
-          }
-
-
-          state.viewingUsername =
-            normalizeUsername(
-              state.profile.username
-            );
-
-
-          state.isOwnProfile =
-            true;
-
-
-          renderProfile(
-            state.profile
-          );
-
-
-          closeEditProfile();
-
-
-          showToast(
-            "Профиль успешно обновлён.",
-            "success"
-          );
-
-
-          const newURL =
-            `${window.location.pathname}?username=${encodeURIComponent(
-              state.profile.username
-            )}`;
-
-          window.history.replaceState(
-            {},
-            "",
-            newURL
-          );
-
-
-        } catch (error) {
-
-          console.error(
-            "Save profile error:",
-            error
-          );
-
-          showToast(
-            error.message ||
-            "Не удалось сохранить профиль.",
-            "error"
-          );
-
-        } finally {
-
-          state.savingProfile =
-            false;
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            "💾 Сохранить профиль";
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * USERNAME CHECK
-       * ========================================================
-       */
-
-      function scheduleUsernameCheck(
-        input,
-        statusElement,
-        isAuth = false
-      ) {
-
-        const username =
-          normalizeUsername(
-            input.value
-          );
-
-
-        statusElement.className =
-          "username-status";
-
-
-        if (!username) {
-
-          statusElement.textContent =
-            "";
-
-          if (!isAuth) {
-            state.usernameAvailable =
-              false;
-          }
-
-          return;
-        }
-
-
-        if (!validUsername(username)) {
-
-          statusElement.textContent =
-            "❌ Некорректный username";
-
-          statusElement.classList.add(
-            "invalid"
-          );
-
-          if (!isAuth) {
-            state.usernameAvailable =
-              false;
-          }
-
-          return;
-        }
-
-
-        statusElement.textContent =
-          "⏳ Проверяем…";
-
-        statusElement.classList.add(
-          "checking"
-        );
-
-
-        if (isAuth) {
-
-          clearTimeout(
-            state.authUsernameTimer
-          );
-
-          state.authUsernameTimer =
-            setTimeout(
-              () =>
-                checkUsername(
-                  username,
-                  statusElement,
-                  true
-                ),
-              450
-            );
-
-        } else {
-
-          clearTimeout(
-            state.usernameTimer
-          );
-
-          state.usernameTimer =
-            setTimeout(
-              () =>
-                checkUsername(
-                  username,
-                  statusElement,
-                  false
-                ),
-              450
-            );
-        }
-      }
-
-
-      async function checkUsername(
-        username,
-        statusElement,
-        isAuth
-      ) {
-
-        try {
-
-          const data =
-            await apiRequest(
-              `${API.checkUsername}?username=${encodeURIComponent(username)}`
-            );
-
-
-          const available =
-            Boolean(
-              data?.available ??
-              data?.free ??
-              data?.is_available
-            );
-
-
-          if (available) {
-
-            statusElement.textContent =
-              "✅ Свободен";
-
-            statusElement.className =
-              "username-status available";
-
-            if (!isAuth) {
-              state.usernameAvailable =
-                true;
-            }
-
-          } else {
-
-            statusElement.textContent =
-              "❌ Уже занят";
-
-            statusElement.className =
-              "username-status taken";
-
-            if (!isAuth) {
-              state.usernameAvailable =
-                false;
-            }
-          }
-
-        } catch (error) {
-
-          console.error(
-            "Username check error:",
-            error
-          );
-
-
-          /*
-           * Если пользователь проверяет свой
-           * текущий username, он не должен
-           * считаться занятым самим собой.
-           */
-
-          const current =
-            normalizeUsername(
-              state.profile?.username
-            );
-
-
-          if (
-            !isAuth &&
-            username === current
-          ) {
-
-            statusElement.textContent =
-              "✅ Ваш текущий username";
-
-            statusElement.className =
-              "username-status available";
-
-            state.usernameAvailable =
-              true;
-
-            return;
-          }
-
-
-          statusElement.textContent =
-            "⚠️ Не удалось проверить";
-
-          statusElement.className =
-            "username-status checking";
-
-          if (!isAuth) {
-            state.usernameAvailable =
-              false;
-          }
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * AUTH MODAL
-       * ========================================================
-       */
-
-      function openAuthModal() {
-
-        openModal(
-          $("#authModal")
-        );
-      }
-
-
-      function closeAuthModal() {
-
-        closeModal(
-          $("#authModal")
-        );
-      }
-
-
-      function setAuthMode(
-        mode
-      ) {
-
-        state.authMode =
-          mode;
-
-
-        const isLogin =
-          mode === "login";
-
-
-        if (isLogin) {
-
-          $("#loginTab").className =
-            "profile-btn profile-btn-primary";
-
-          $("#registerTab").className =
-            "profile-btn profile-btn-secondary";
-
-          hide(
-            $("#registerNameField")
-          );
-
-          $("#authPassword")
-            .autocomplete =
-            "current-password";
-
-          $("#authSubmitBtn")
-            .textContent =
-            "Войти";
-
-        } else {
-
-          $("#loginTab").className =
-            "profile-btn profile-btn-secondary";
-
-          $("#registerTab").className =
-            "profile-btn profile-btn-primary";
-
-          show(
-            $("#registerNameField")
-          );
-
-          $("#authPassword")
-            .autocomplete =
-            "new-password";
-
-          $("#authSubmitBtn")
-            .textContent =
-            "Создать аккаунт";
-        }
-
-
-        $("#authUsernameStatus")
-          .textContent =
-          "";
-      }
-
-
-      async function submitAuth(
-        event
-      ) {
-
-        event.preventDefault();
-
-
-        if (
-          state.authLoading
-        ) {
-          return;
-        }
-
-
-        const username =
-          normalizeUsername(
-            $("#authUsername").value
-          );
-
-        const password =
-          $("#authPassword").value;
-
-        const name =
-          $("#authName").value.trim();
-
-
-        if (
-          !validUsername(username)
-        ) {
-
-          showToast(
-            "Введите корректный username.",
-            "error"
-          );
-
-          return;
-        }
-
-
-        if (
-          password.length < 6
-        ) {
-
-          showToast(
-            "Пароль должен содержать минимум 6 символов.",
-            "error"
-          );
-
-          return;
-        }
-
-
-        if (
-          state.authMode === "register" &&
-          !name
-        ) {
-
-          showToast(
-            "Введите имя.",
-            "error"
-          );
-
-          return;
-        }
-
-
-        state.authLoading =
-          true;
-
-
-        const button =
-          $("#authSubmitBtn");
-
-        button.disabled =
-          true;
-
-        button.textContent =
-          "⏳ Подождите…";
-
-
-        try {
-
-          /*
-           * Сначала используем app.js, если
-           * он предоставляет функцию авторизации.
-           */
-
-          const appAuth =
-            window.TajikOpportunities ||
-            window.TO ||
-            window.App;
-
-
-          if (
-            appAuth &&
-            typeof appAuth.login === "function" &&
-            state.authMode === "login"
-          ) {
-
-            await appAuth.login(
-              username,
-              password
-            );
-
-          } else if (
-            appAuth &&
-            typeof appAuth.register === "function" &&
-            state.authMode === "register"
-          ) {
-
-            await appAuth.register({
-              name,
-              username,
-              password
-            });
-
-          } else {
-
-            /*
-             * Прямые fallback-маршруты.
-             */
-
-            const endpoint =
-              state.authMode === "login"
-                ? "/api/auth/login"
-                : "/api/auth/register";
-
-
-            const payload =
-              state.authMode === "login"
-                ? {
-                    username,
-                    password
-                  }
-                : {
-                    name,
-                    username,
-                    password
-                  };
-
-
-            await apiRequest(
-              endpoint,
-              {
-                method: "POST",
-                body:
-                  JSON.stringify(payload)
-              }
-            );
-          }
-
-
-          closeAuthModal();
-
-
-          showToast(
-            state.authMode === "login"
-              ? "Вы успешно вошли."
-              : "Аккаунт успешно создан.",
-            "success"
-          );
-
-
-          await initialize();
-
-
-        } catch (error) {
-
-          console.error(
-            "Auth error:",
-            error
-          );
-
-          showToast(
-            error.message ||
-            "Не удалось выполнить авторизацию.",
-            "error"
-          );
-
-        } finally {
-
-          state.authLoading =
-            false;
-
-          button.disabled =
-            false;
-
-          button.textContent =
-            state.authMode === "login"
-              ? "Войти"
-              : "Создать аккаунт";
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * MODAL HELPERS
-       * ========================================================
-       */
-
-      function openModal(
-        modal
-      ) {
-
-        if (!modal) {
-          return;
-        }
-
-        modal.classList.add(
-          "open"
-        );
-
-        modal.setAttribute(
-          "aria-hidden",
-          "false"
-        );
-
-        document.body.style.overflow =
-          "hidden";
-      }
-
-
-      function closeModal(
-        modal
-      ) {
-
-        if (!modal) {
-          return;
-        }
-
-        modal.classList.remove(
-          "open"
-        );
-
-        modal.setAttribute(
-          "aria-hidden",
-          "true"
-        );
-
-        if (
-          !document.querySelector(
-            ".profile-modal.open"
-          )
-        ) {
-          document.body.style.overflow =
-            "";
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * INITIALIZATION
-       * ========================================================
-       */
-
-      async function initialize() {
-
-        show(
-          $("#loadingState")
-        );
-
-        hide(
-          $("#authState")
-        );
-
-        hide(
-          $("#profileContent")
-        );
-
-        hide(
-          $("#profileError")
-        );
-
-
-        state.viewingUsername =
-          getQueryUsername();
-
-
-        try {
-
-          state.currentUser =
-            await loadCurrentUser();
-
-
-          /*
-           * Если username указан в URL,
-           * открываем именно этот профиль.
-           *
-           * Если username отсутствует,
-           * открываем профиль текущего пользователя.
-           */
-
-          if (
-            state.viewingUsername
-          ) {
-
-            state.isOwnProfile =
-              Boolean(
-                state.currentUser &&
-                normalizeUsername(
-                  state.currentUser.username
-                ) ===
-                state.viewingUsername
-              );
-
-          } else {
-
-            if (!state.currentUser) {
-
-              hide(
-                $("#loadingState")
-              );
-
-              show(
-                $("#authState")
-              );
-
-              return;
-            }
-
-
-            state.viewingUsername =
-              normalizeUsername(
-                state.currentUser.username
-              );
-
-            state.isOwnProfile =
-              true;
-          }
-
-
-          await loadProfile();
-
-
-          /*
-           * Безопасность: если backend
-           * вернул профиль с username,
-           * определяем владельца повторно.
-           */
-
-          if (
-            state.currentUser &&
-            state.profile
-          ) {
-
-            state.isOwnProfile =
-              normalizeUsername(
-                state.currentUser.username
-              ) ===
-              normalizeUsername(
-                state.profile.username
-              );
-          }
-
-
-          renderProfile(
-            state.profile
-          );
-
-
-          hide(
-            $("#loadingState")
-          );
-
-          show(
-            $("#profileContent")
-          );
-
-
-          await loadPublications();
-
-
-        } catch (error) {
-
-          console.error(
-            "Profile initialization error:",
-            error
-          );
-
-
-          hide(
-            $("#loadingState")
-          );
-
-
-          if (
-            error.status === 401 &&
-            !state.viewingUsername
-          ) {
-
-            show(
-              $("#authState")
-            );
-
-            return;
-          }
-
-
-          $("#profileErrorText")
-            .textContent =
-            error.message ||
-            "Не удалось загрузить профиль.";
-
-
-          show(
-            $("#profileError")
-          );
-        }
-      }
-
-
-      /*
-       * ========================================================
-       * EVENTS
-       * ========================================================
-       */
-
-      $("#openAuthBtn")
-        ?.addEventListener(
-          "click",
-          openAuthModal
-        );
-
-
-      $("#closeAuthModal")
-        ?.addEventListener(
-          "click",
-          closeAuthModal
-        );
-
-
-      $("#closeEditProfile")
-        ?.addEventListener(
-          "click",
-          closeEditProfile
-        );
-
-
-      $("#cancelEditProfile")
-        ?.addEventListener(
-          "click",
-          closeEditProfile
-        );
-
-
-      $("#profileForm")
-        ?.addEventListener(
-          "submit",
-          saveProfile
-        );
-
-
-      $("#authForm")
-        ?.addEventListener(
-          "submit",
-          submitAuth
-        );
-
-
-      $("#loginTab")
-        ?.addEventListener(
-          "click",
-          () =>
-            setAuthMode("login")
-        );
-
-
-      $("#registerTab")
-        ?.addEventListener(
-          "click",
-          () =>
-            setAuthMode("register")
-        );
-
-
-      $("#editUsername")
-        ?.addEventListener(
-          "input",
-          event =>
-            scheduleUsernameCheck(
-              event.target,
-              $("#usernameStatus"),
-              false
-            )
-        );
-
-
-      $("#authUsername")
-        ?.addEventListener(
-          "input",
-          event =>
-            scheduleUsernameCheck(
-              event.target,
-              $("#authUsernameStatus"),
-              true
-            )
-        );
-
-
-      $("#retryPublications")
-        ?.addEventListener(
-          "click",
-          loadPublications
-        );
-
-
-      /*
-       * Закрытие модальных окон
-       * кликом по затемнению.
-       */
-
-      $("#editProfileModal")
-        ?.addEventListener(
-          "click",
-          event => {
-
-            if (
-              event.target ===
-              $("#editProfileModal")
-            ) {
-              closeEditProfile();
-            }
-
-          }
-        );
-
-
-      $("#authModal")
-        ?.addEventListener(
-          "click",
-          event => {
-
-            if (
-              event.target ===
-              $("#authModal")
-            ) {
-              closeAuthModal();
-            }
-
-          }
-        );
-
-
-      /*
-       * Escape закрывает модальные окна.
-       */
-
-      document.addEventListener(
-        "keydown",
-        event => {
-
-          if (
-            event.key !== "Escape"
-          ) {
-            return;
-          }
-
-          closeEditProfile();
-          closeAuthModal();
-        }
+      throw error;
+    }
+  }
+
+
+  async function loadProfile() {
+    if (state.viewingUsername) {
+
+      const url =
+        `${API.publicProfile}?username=${encodeURIComponent(
+          state.viewingUsername
+        )}`;
+
+      const data =
+        await request(url);
+
+      return extractProfile(data);
+    }
+
+    const data =
+      await request(API.profile);
+
+    return extractProfile(data);
+  }
+
+
+  function renderProfile(profile) {
+
+    const name =
+      profile.name ||
+      profile.full_name ||
+      profile.display_name ||
+      profile.username ||
+      "Пользователь";
+
+    const username =
+      normalizeUsername(
+        profile.username ||
+        profile.user_name
+      );
+
+    const bio =
+      profile.bio ||
+      profile.description ||
+      "";
+
+    const country =
+      profile.country ||
+      "";
+
+    const city =
+      profile.city ||
+      "";
+
+    const avatar =
+      imageURL(
+        profile.avatar ||
+        profile.avatar_url ||
+        profile.photo_url ||
+        profile.image
+      );
+
+    const verified =
+      Boolean(
+        profile.verified ||
+        profile.is_verified
       );
 
 
+    $("#profileName").textContent =
+      name;
+
+    $("#profileUsername").textContent =
+      username
+        ? `@${username}`
+        : "";
+
+
+    const bioElement =
+      $("#profileBio");
+
+    if (bio) {
+      bioElement.textContent = bio;
+      bioElement.style.color = "#374151";
+    } else {
+      bioElement.textContent =
+        "Пользователь пока не добавил описание.";
+      bioElement.style.color = "#98a2b3";
+    }
+
+
+    const avatarElement =
+      $("#profileAvatar");
+
+    avatarElement.innerHTML = "";
+
+    if (avatar) {
+
+      const image =
+        document.createElement("img");
+
+      image.src = avatar;
+
+      image.alt =
+        `Аватар ${name}`;
+
+      image.loading = "lazy";
+
+      image.onerror = () => {
+        avatarElement.textContent =
+          getInitials(name, username);
+      };
+
+      avatarElement.appendChild(image);
+
+    } else {
+
+      avatarElement.textContent =
+        getInitials(name, username);
+    }
+
+
+    $("#verifiedBadge")
+      .classList.toggle(
+        "visible",
+        verified
+      );
+
+
+    renderLocation(
+      country,
+      city
+    );
+
+
+    $("#publicationsCount").textContent =
+      formatNumber(
+        profile.publications_count ??
+        profile.posts_count ??
+        profile.publications ??
+        0
+      );
+
+    $("#followersCount").textContent =
+      formatNumber(
+        profile.followers_count ??
+        profile.followers ??
+        0
+      );
+
+    $("#followingCount").textContent =
+      formatNumber(
+        profile.following_count ??
+        profile.following ??
+        0
+      );
+
+
+    const memberSince =
+      profile.created_at ||
+      profile.registered_at ||
+      profile.joined_at;
+
+    if (memberSince) {
+
+      $("#memberSinceValue").textContent =
+        formatDate(memberSince);
+
+      show(
+        $("#memberSinceInfo")
+      );
+
+    } else {
+
+      hide(
+        $("#memberSinceInfo")
+      );
+    }
+
+
+    renderActions(profile);
+  }
+
+
+  function renderLocation(
+    country,
+    city
+  ) {
+
+    if (country) {
+
+      $("#countryValue").textContent =
+        country;
+
+      show(
+        $("#countryInfo")
+      );
+
+    } else {
+
+      hide(
+        $("#countryInfo")
+      );
+    }
+
+
+    if (city) {
+
+      $("#cityValue").textContent =
+        city;
+
+      show(
+        $("#cityInfo")
+      );
+
+    } else {
+
+      hide(
+        $("#cityInfo")
+      );
+    }
+
+
+    const parts = [];
+
+    if (city) {
+      parts.push(city);
+    }
+
+    if (country) {
+      parts.push(country);
+    }
+
+
+    if (parts.length) {
+
+      $("#profileLocation").textContent =
+        `📍 ${parts.join(", ")}`;
+
+      show(
+        $("#profileLocation")
+      );
+
+    } else {
+
+      hide(
+        $("#profileLocation")
+      );
+    }
+  }
+
+
+  function renderActions(profile) {
+
+    const container =
+      $("#profileActions");
+
+    container.innerHTML = "";
+
+
+    if (state.isOwnProfile) {
+
+      const edit =
+        document.createElement("button");
+
+      edit.type = "button";
+      edit.className =
+        "profile-btn profile-btn-primary";
+
+      edit.textContent =
+        "✏️ Редактировать";
+
+      edit.addEventListener(
+        "click",
+        openEditProfile
+      );
+
+      container.appendChild(edit);
+
+
+      const messages =
+        document.createElement("a");
+
+      messages.href =
+        "/messages.html";
+
+      messages.className =
+        "profile-btn profile-btn-secondary";
+
+      messages.textContent =
+        "💬 Сообщения";
+
+      container.appendChild(messages);
+
+
+      show(
+        $("#ownProfileHelp")
+      );
+
+      return;
+    }
+
+
+    hide(
+      $("#ownProfileHelp")
+    );
+
+
+    /*
+     * В текущем worker.js нет отдельного
+     * follow/unfollow API, поэтому здесь
+     * не показываем неработающую кнопку подписки.
+     */
+
+    const messages =
+      document.createElement("a");
+
+    messages.href =
+      "/messages.html";
+
+    messages.className =
+      "profile-btn profile-btn-secondary";
+
+    messages.textContent =
+      "💬 Сообщения";
+
+    container.appendChild(messages);
+  }
+
+
+  async function loadPublications() {
+
+    const username =
+      normalizeUsername(
+        state.profile?.username
+      );
+
+    if (!username) {
+      renderPublications([]);
+      return;
+    }
+
+
+    show(
+      $("#publicationsLoading")
+    );
+
+    hide(
+      $("#publicationsEmpty")
+    );
+
+    hide(
+      $("#publicationsError")
+    );
+
+    hide(
+      $("#profilePosts")
+    );
+
+
+    try {
+
       /*
-       * Не даём кнопкам статистики
-       * случайно отправлять форму.
+       * Используем стандартный endpoint
+       * публикаций. Передаём username автора.
        */
 
-      $("#publicationsStat")
-        ?.addEventListener(
-          "click",
-          () => {
+      const url =
+        `${API.publications}?author=${encodeURIComponent(
+          username
+        )}`;
 
-            const section =
-              document.querySelector(
-                ".profile-content"
-              );
+      const data =
+        await request(url);
 
-            section?.scrollIntoView({
-              behavior: "smooth"
-            });
+      renderPublications(
+        extractPublications(data)
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Publications error:",
+        error
+      );
+
+      hide(
+        $("#publicationsLoading")
+      );
+
+      show(
+        $("#publicationsError")
+      );
+    }
+  }
+
+
+  function renderPublications(
+    publications
+  ) {
+
+    hide(
+      $("#publicationsLoading")
+    );
+
+    hide(
+      $("#publicationsError")
+    );
+
+
+    const count =
+      publications.length;
+
+    $("#profilePublicationsCount")
+      .textContent =
+      `${formatNumber(count)} ${
+        count === 1
+          ? "публикация"
+          : "публикаций"
+      }`;
+
+
+    if (!count) {
+
+      hide(
+        $("#profilePosts")
+      );
+
+      show(
+        $("#publicationsEmpty")
+      );
+
+      return;
+    }
+
+
+    hide(
+      $("#publicationsEmpty")
+    );
+
+
+    const container =
+      $("#profilePosts");
+
+    container.innerHTML = "";
+
+
+    publications.forEach(
+      publication => {
+
+        container.appendChild(
+          createPublicationCard(
+            publication
+          )
+        );
+      }
+    );
+
+
+    show(container);
+  }
+
+
+  function createPublicationCard(
+    publication
+  ) {
+
+    const id =
+      publication.id ||
+      publication.publication_id ||
+      publication.slug ||
+      "";
+
+    const title =
+      publication.title ||
+      "Без названия";
+
+    const description =
+      publication.description ||
+      publication.text ||
+      publication.content ||
+      "";
+
+    const category =
+      publication.category ||
+      "other";
+
+    const date =
+      publication.created_at ||
+      publication.published_at ||
+      publication.date;
+
+
+    const card =
+      document.createElement("a");
+
+    card.className =
+      "profile-post";
+
+    if (id) {
+
+      card.href =
+        `/post.html?id=${encodeURIComponent(id)}`;
+
+    } else {
+
+      card.href = "#";
+
+      card.addEventListener(
+        "click",
+        event => {
+          event.preventDefault();
+        }
+      );
+    }
+
+
+    const categoryElement =
+      document.createElement("span");
+
+    categoryElement.className =
+      "profile-post-category";
+
+    categoryElement.textContent =
+      categoryLabel(category);
+
+
+    const titleElement =
+      document.createElement("h3");
+
+    titleElement.className =
+      "profile-post-title";
+
+    titleElement.textContent =
+      title;
+
+
+    card.appendChild(
+      categoryElement
+    );
+
+    card.appendChild(
+      titleElement
+    );
+
+
+    if (description) {
+
+      const descriptionElement =
+        document.createElement("p");
+
+      descriptionElement.className =
+        "profile-post-description";
+
+      descriptionElement.textContent =
+        description;
+
+      card.appendChild(
+        descriptionElement
+      );
+    }
+
+
+    const meta =
+      document.createElement("div");
+
+    meta.className =
+      "profile-post-meta";
+
+
+    if (date) {
+
+      const dateElement =
+        document.createElement("span");
+
+      dateElement.textContent =
+        `📅 ${formatDate(date)}`;
+
+      meta.appendChild(
+        dateElement
+      );
+    }
+
+
+    if (
+      publication.city ||
+      publication.country
+    ) {
+
+      const location =
+        document.createElement("span");
+
+      const parts = [];
+
+      if (publication.city) {
+        parts.push(
+          publication.city
+        );
+      }
+
+      if (publication.country) {
+        parts.push(
+          publication.country
+        );
+      }
+
+      location.textContent =
+        `📍 ${parts.join(", ")}`;
+
+      meta.appendChild(location);
+    }
+
+
+    card.appendChild(meta);
+
+    return card;
+  }
+
+
+  function categoryLabel(category) {
+
+    const labels = {
+      news: "Новости",
+      education: "Образование",
+      jobs: "Вакансии",
+      opportunities: "Возможности",
+      announcements: "Объявления",
+      services: "Услуги",
+      projects: "Проекты",
+      startups: "Стартапы",
+      events: "События",
+      competitions: "Конкурсы",
+      grants: "Гранты",
+      useful: "Полезное",
+      volunteering: "Волонтёрство",
+      products: "Товары",
+      specialists: "Специалисты",
+      other: "Другое"
+    };
+
+    return (
+      labels[category] ||
+      category ||
+      "Другое"
+    );
+  }
+
+
+  function openModal(modal) {
+
+    if (!modal) {
+      return;
+    }
+
+    modal.classList.add("open");
+
+    modal.setAttribute(
+      "aria-hidden",
+      "false"
+    );
+
+    document.body.style.overflow =
+      "hidden";
+  }
+
+
+  function closeModal(modal) {
+
+    if (!modal) {
+      return;
+    }
+
+    modal.classList.remove("open");
+
+    modal.setAttribute(
+      "aria-hidden",
+      "true"
+    );
+
+    if (
+      !document.querySelector(
+        ".profile-modal.open"
+      )
+    ) {
+      document.body.style.overflow = "";
+    }
+  }
+
+
+  function openAuthModal() {
+    openModal(
+      $("#authModal")
+    );
+  }
+
+
+  function closeAuthModal() {
+    closeModal(
+      $("#authModal")
+    );
+  }
+
+
+  function openEditProfile() {
+
+    const profile =
+      state.profile;
+
+    if (!profile) {
+      return;
+    }
+
+
+    $("#editName").value =
+      profile.name ||
+      profile.full_name ||
+      profile.display_name ||
+      "";
+
+
+    $("#editUsername").value =
+      normalizeUsername(
+        profile.username
+      );
+
+
+    $("#editBio").value =
+      profile.bio ||
+      profile.description ||
+      "";
+
+
+    $("#editCountry").value =
+      profile.country ||
+      "";
+
+
+    $("#editCity").value =
+      profile.city ||
+      "";
+
+
+    $("#editAvatar").value =
+      profile.avatar ||
+      profile.avatar_url ||
+      profile.photo_url ||
+      "";
+
+
+    $("#allowMessages").checked =
+      profile.allow_messages !== false;
+
+
+    $("#showFollowers").checked =
+      profile.show_followers !== false;
+
+
+    $("#profilePublic").checked =
+      profile.is_public !== false;
+
+
+    $("#usernameStatus").textContent =
+      "";
+
+
+    openModal(
+      $("#editProfileModal")
+    );
+  }
+
+
+  function closeEditProfile() {
+    closeModal(
+      $("#editProfileModal")
+    );
+  }
+
+
+  async function checkUsername() {
+
+    const input =
+      $("#editUsername");
+
+    const status =
+      $("#usernameStatus");
+
+    const username =
+      normalizeUsername(
+        input.value
+      );
+
+
+    if (!username) {
+      status.textContent = "";
+      return;
+    }
+
+
+    if (!validUsername(username)) {
+
+      status.textContent =
+        "❌ Некорректный username";
+
+      status.className =
+        "username-status invalid";
+
+      return;
+    }
+
+
+    /*
+     * Если username не изменился,
+     * он автоматически считается допустимым.
+     */
+
+    const current =
+      normalizeUsername(
+        state.profile?.username
+      );
+
+    if (
+      username === current
+    ) {
+
+      status.textContent =
+        "✅ Ваш текущий username";
+
+      status.className =
+        "username-status available";
+
+      return;
+    }
+
+
+    status.textContent =
+      "⏳ Проверяем…";
+
+    status.className =
+      "username-status checking";
+
+
+    try {
+
+      const data =
+        await request(
+          `${API.checkUsername}?username=${encodeURIComponent(
+            username
+          )}`
+        );
+
+
+      const available =
+        Boolean(
+          data?.available ??
+          data?.free ??
+          data?.is_available
+        );
+
+
+      if (available) {
+
+        status.textContent =
+          "✅ Username свободен";
+
+        status.className =
+          "username-status available";
+
+      } else {
+
+        status.textContent =
+          "❌ Username уже занят";
+
+        status.className =
+          "username-status taken";
+      }
+
+    } catch (error) {
+
+      console.error(
+        "Username check error:",
+        error
+      );
+
+      /*
+       * Само сохранение остаётся
+       * окончательной проверкой backend.
+       */
+
+      status.textContent =
+        "ℹ️ Проверка будет выполнена при сохранении";
+
+      status.className =
+        "username-status checking";
+    }
+  }
+
+
+  async function saveProfile(event) {
+
+    event.preventDefault();
+
+    if (state.saving) {
+      return;
+    }
+
+
+    const name =
+      $("#editName").value.trim();
+
+    const username =
+      normalizeUsername(
+        $("#editUsername").value
+      );
+
+    const bio =
+      $("#editBio").value.trim();
+
+    const country =
+      $("#editCountry").value.trim();
+
+    const city =
+      $("#editCity").value.trim();
+
+    const avatar =
+      $("#editAvatar").value.trim();
+
+
+    if (!name) {
+
+      toast(
+        "Введите имя.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (!validUsername(username)) {
+
+      toast(
+        "Введите корректный username.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    const payload = {
+      name,
+      username,
+      bio,
+      country,
+      city,
+      avatar,
+      allow_messages:
+        $("#allowMessages").checked,
+      show_followers:
+        $("#showFollowers").checked,
+      is_public:
+        $("#profilePublic").checked
+    };
+
+
+    state.saving = true;
+
+
+    const button =
+      $("#saveProfileBtn");
+
+    button.disabled = true;
+
+    button.textContent =
+      "⏳ Сохраняем…";
+
+
+    try {
+
+      const data =
+        await request(
+          API.profile,
+          {
+            method: "PUT",
+            body:
+              JSON.stringify(payload)
           }
         );
 
 
+      const updated =
+        extractProfile(data);
+
+
+      if (updated) {
+
+        state.profile =
+          updated;
+
+      } else {
+
+        state.profile = {
+          ...state.profile,
+          ...payload
+        };
+      }
+
+
+      state.isOwnProfile =
+        true;
+
+
+      renderProfile(
+        state.profile
+      );
+
+
+      closeEditProfile();
+
+
+      const newUsername =
+        normalizeUsername(
+          state.profile.username ||
+          username
+        );
+
+
+      if (newUsername) {
+
+        const newURL =
+          `${location.pathname}?username=${encodeURIComponent(
+            newUsername
+          )}`;
+
+        history.replaceState(
+          {},
+          "",
+          newURL
+        );
+
+        state.viewingUsername =
+          newUsername;
+      }
+
+
+      toast(
+        "Профиль успешно обновлён.",
+        "success"
+      );
+
+
+    } catch (error) {
+
+      console.error(
+        "Save profile error:",
+        error
+      );
+
+      toast(
+        error.message ||
+        "Не удалось сохранить профиль.",
+        "error"
+      );
+
+    } finally {
+
+      state.saving = false;
+
+      button.disabled = false;
+
+      button.textContent =
+        "💾 Сохранить профиль";
+    }
+  }
+
+
+  function setAuthMode(mode) {
+
+    state.authMode =
+      mode;
+
+
+    const login =
+      mode === "login";
+
+
+    if (login) {
+
+      $("#loginTab").className =
+        "profile-btn profile-btn-primary";
+
+      $("#registerTab").className =
+        "profile-btn profile-btn-secondary";
+
+      hide(
+        $("#registerNameField")
+      );
+
+      $("#authPassword")
+        .autocomplete =
+        "current-password";
+
+      $("#authSubmitBtn")
+        .textContent =
+        "Войти";
+
+    } else {
+
+      $("#loginTab").className =
+        "profile-btn profile-btn-secondary";
+
+      $("#registerTab").className =
+        "profile-btn profile-btn-primary";
+
+      show(
+        $("#registerNameField")
+      );
+
+      $("#authPassword")
+        .autocomplete =
+        "new-password";
+
+      $("#authSubmitBtn")
+        .textContent =
+        "Создать аккаунт";
+    }
+  }
+
+
+  async function submitAuth(event) {
+
+    event.preventDefault();
+
+    if (state.authLoading) {
+      return;
+    }
+
+
+    const username =
+      normalizeUsername(
+        $("#authUsername").value
+      );
+
+    const password =
+      $("#authPassword").value;
+
+    const name =
+      $("#authName").value.trim();
+
+
+    if (!validUsername(username)) {
+
+      toast(
+        "Введите корректный username.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (password.length < 6) {
+
+      toast(
+        "Пароль должен содержать минимум 6 символов.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    if (
+      state.authMode === "register" &&
+      !name
+    ) {
+
+      toast(
+        "Введите имя.",
+        "error"
+      );
+
+      return;
+    }
+
+
+    state.authLoading = true;
+
+
+    const button =
+      $("#authSubmitBtn");
+
+    button.disabled = true;
+
+    button.textContent =
+      "⏳ Подождите…";
+
+
+    try {
+
+      if (
+        state.authMode === "login"
+      ) {
+
+        await request(
+          API.login,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              username,
+              password
+            })
+          }
+        );
+
+      } else {
+
+        await request(
+          API.register,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              name,
+              username,
+              password
+            })
+          }
+        );
+      }
+
+
+      closeAuthModal();
+
+
+      toast(
+        state.authMode === "login"
+          ? "Вы успешно вошли."
+          : "Аккаунт успешно создан.",
+        "success"
+      );
+
+
+      await initialize();
+
+    } catch (error) {
+
+      console.error(
+        "Authentication error:",
+        error
+      );
+
+      toast(
+        error.message ||
+        "Не удалось выполнить вход.",
+        "error"
+      );
+
+    } finally {
+
+      state.authLoading = false;
+
+      button.disabled = false;
+
+      button.textContent =
+        state.authMode === "login"
+          ? "Войти"
+          : "Создать аккаунт";
+    }
+  }
+
+
+  async function initialize() {
+
+    show(
+      $("#loadingState")
+    );
+
+    hide(
+      $("#authState")
+    );
+
+    hide(
+      $("#profileContent")
+    );
+
+    hide(
+      $("#profileError")
+    );
+
+
+    state.viewingUsername =
+      queryUsername();
+
+
+    try {
+
+      state.currentUser =
+        await loadCurrentUser();
+
+
       /*
-       * ========================================================
-       * START
-       * ========================================================
+       * /profile.html
+       * без username = собственный профиль.
        */
 
-      setAuthMode("login");
+      if (
+        !state.viewingUsername
+      ) {
 
-      initialize();
+        if (!state.currentUser) {
 
-    })();
-  </script>
+          hide(
+            $("#loadingState")
+          );
+
+          show(
+            $("#authState")
+          );
+
+          return;
+        }
+
+
+        state.viewingUsername =
+          normalizeUsername(
+            state.currentUser.username
+          );
+      }
+
+
+      /*
+       * Определяем, свой это профиль
+       * или публичный профиль другого человека.
+       */
+
+      state.isOwnProfile =
+        Boolean(
+          state.currentUser &&
+          normalizeUsername(
+            state.currentUser.username
+          ) ===
+          state.viewingUsername
+        );
+
+
+      state.profile =
+        await loadProfile();
+
+
+      if (!state.profile) {
+        throw new Error(
+          "Профиль не найден."
+        );
+      }
+
+
+      /*
+       * Backend остаётся источником истины.
+       */
+
+      if (
+        state.currentUser &&
+        state.profile.username
+      ) {
+
+        state.isOwnProfile =
+          normalizeUsername(
+            state.currentUser.username
+          ) ===
+          normalizeUsername(
+            state.profile.username
+          );
+      }
+
+
+      renderProfile(
+        state.profile
+      );
+
+
+      hide(
+        $("#loadingState")
+      );
+
+      show(
+        $("#profileContent")
+      );
+
+
+      await loadPublications();
+
+    } catch (error) {
+
+      console.error(
+        "Profile initialization error:",
+        error
+      );
+
+
+      hide(
+        $("#loadingState")
+      );
+
+
+      $("#profileErrorText")
+        .textContent =
+        error.message ||
+        "Не удалось загрузить профиль.";
+
+
+      show(
+        $("#profileError")
+      );
+    }
+  }
+
+
+  /*
+   * ============================================================
+   * EVENTS
+   * ============================================================
+   */
+
+  $("#openAuthBtn")
+    ?.addEventListener(
+      "click",
+      openAuthModal
+    );
+
+
+  $("#closeAuthModal")
+    ?.addEventListener(
+      "click",
+      closeAuthModal
+    );
+
+
+  $("#closeEditProfile")
+    ?.addEventListener(
+      "click",
+      closeEditProfile
+    );
+
+
+  $("#cancelEditProfile")
+    ?.addEventListener(
+      "click",
+      closeEditProfile
+    );
+
+
+  $("#profileForm")
+    ?.addEventListener(
+      "submit",
+      saveProfile
+    );
+
+
+  $("#authForm")
+    ?.addEventListener(
+      "submit",
+      submitAuth
+    );
+
+
+  $("#loginTab")
+    ?.addEventListener(
+      "click",
+      () => setAuthMode("login")
+    );
+
+
+  $("#registerTab")
+    ?.addEventListener(
+      "click",
+      () => setAuthMode("register")
+    );
+
+
+  $("#editUsername")
+    ?.addEventListener(
+      "input",
+      () => {
+
+        clearTimeout(
+          state.usernameTimer
+        );
+
+        state.usernameTimer =
+          setTimeout(
+            checkUsername,
+            450
+          );
+      }
+    );
+
+
+  $("#retryPublications")
+    ?.addEventListener(
+      "click",
+      loadPublications
+    );
+
+
+  $("#editProfileModal")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          $("#editProfileModal")
+        ) {
+          closeEditProfile();
+        }
+      }
+    );
+
+
+  $("#authModal")
+    ?.addEventListener(
+      "click",
+      event => {
+
+        if (
+          event.target ===
+          $("#authModal")
+        ) {
+          closeAuthModal();
+        }
+      }
+    );
+
+
+  document.addEventListener(
+    "keydown",
+    event => {
+
+      if (
+        event.key === "Escape"
+      ) {
+        closeEditProfile();
+        closeAuthModal();
+      }
+    }
+  );
+
+
+  /*
+   * Запуск.
+   */
+
+  setAuthMode("login");
+
+  initialize();
+
+})();
+</script>
 
 </body>
   </html>
