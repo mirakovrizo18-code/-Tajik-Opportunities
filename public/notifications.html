@@ -1,0 +1,1983 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Уведомления — Tajik Opportunities</title>
+
+  <meta
+    name="description"
+    content="Уведомления Tajik Opportunities — новые сообщения, ответы администрации и обновления."
+  >
+
+  <link rel="icon" href="/images/Image_2026_09_05_19_01_30.jpg">
+  <link rel="stylesheet" href="/css/style.css">
+
+  <style>
+    /* =========================================================
+       TAJIK OPPORTUNITIES — NOTIFICATIONS
+       ========================================================= */
+
+    .notifications-page {
+      max-width: 1050px;
+      margin: 0 auto;
+      padding: 30px 20px 60px;
+    }
+
+    .notifications-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 25px;
+    }
+
+    .notifications-title-wrap h1 {
+      margin: 0 0 8px;
+      font-size: clamp(29px, 4vw, 43px);
+    }
+
+    .notifications-title-wrap p {
+      margin: 0;
+      opacity: .68;
+      line-height: 1.6;
+    }
+
+    .notifications-actions {
+      display: flex;
+      gap: 9px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .notification-action {
+      min-height: 43px;
+      padding: 0 15px;
+      border-radius: 13px;
+      border: 1px solid rgba(127,127,127,.2);
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    .notification-action.primary {
+      background: #111;
+      color: #fff;
+      border-color: #111;
+    }
+
+    /* =========================================================
+       LOGIN
+       ========================================================= */
+
+    .notifications-login {
+      max-width: 650px;
+      margin: 45px auto;
+      padding: 38px 25px;
+      border: 1px solid rgba(127,127,127,.18);
+      border-radius: 25px;
+      text-align: center;
+      background: var(--card-bg, #fff);
+      box-shadow: 0 15px 50px rgba(0,0,0,.06);
+    }
+
+    .notifications-login-icon {
+      font-size: 58px;
+      margin-bottom: 12px;
+    }
+
+    .notifications-login h2 {
+      margin: 0 0 10px;
+    }
+
+    .notifications-login p {
+      margin: 0 0 20px;
+      opacity: .66;
+      line-height: 1.65;
+    }
+
+    .login-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 45px;
+      padding: 0 18px;
+      border-radius: 13px;
+      background: #111;
+      color: #fff;
+      text-decoration: none;
+      font-weight: 800;
+    }
+
+    /* =========================================================
+       NOTIFICATION CARD
+       ========================================================= */
+
+    .notifications-box {
+      border: 1px solid rgba(127,127,127,.18);
+      border-radius: 23px;
+      overflow: hidden;
+      background: var(--card-bg, #fff);
+      box-shadow: 0 15px 50px rgba(0,0,0,.06);
+    }
+
+    .notifications-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .notification-item {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 15px;
+      width: 100%;
+      padding: 18px 20px;
+      box-sizing: border-box;
+      border: 0;
+      border-bottom: 1px solid rgba(127,127,127,.11);
+      background: transparent;
+      color: inherit;
+      text-align: left;
+      cursor: pointer;
+      transition:
+        background .18s ease,
+        transform .18s ease;
+    }
+
+    .notification-item:last-child {
+      border-bottom: 0;
+    }
+
+    .notification-item:hover {
+      background: rgba(127,127,127,.06);
+    }
+
+    .notification-item.unread {
+      background: rgba(127,127,127,.075);
+    }
+
+    .notification-item.unread:hover {
+      background: rgba(127,127,127,.11);
+    }
+
+    .notification-item.unread::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: #111;
+    }
+
+    /* =========================================================
+       ICON
+       ========================================================= */
+
+    .notification-icon {
+      width: 50px;
+      height: 50px;
+      flex: 0 0 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 16px;
+      background: rgba(127,127,127,.11);
+      font-size: 23px;
+    }
+
+    .notification-icon.admin {
+      background: linear-gradient(
+        135deg,
+        rgba(0,0,0,.9),
+        rgba(90,90,90,.75)
+      );
+      color: #fff;
+    }
+
+    /* =========================================================
+       CONTENT
+       ========================================================= */
+
+    .notification-content {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .notification-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .notification-title {
+      font-weight: 850;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    .notification-time {
+      flex: 0 0 auto;
+      font-size: 11px;
+      opacity: .52;
+      white-space: nowrap;
+    }
+
+    .notification-text {
+      margin-top: 5px;
+      font-size: 13px;
+      line-height: 1.55;
+      opacity: .7;
+      word-break: break-word;
+    }
+
+    .notification-badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 8px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      background: rgba(127,127,127,.11);
+      font-size: 10px;
+      font-weight: 800;
+    }
+
+    /* =========================================================
+       EMPTY
+       ========================================================= */
+
+    .notifications-empty {
+      padding: 70px 25px;
+      text-align: center;
+    }
+
+    .notifications-empty-icon {
+      font-size: 65px;
+      margin-bottom: 13px;
+    }
+
+    .notifications-empty h2 {
+      margin: 0 0 10px;
+    }
+
+    .notifications-empty p {
+      margin: 0 auto;
+      max-width: 470px;
+      opacity: .62;
+      line-height: 1.6;
+    }
+
+    /* =========================================================
+       LOADING
+       ========================================================= */
+
+    .notifications-loading {
+      padding: 60px 20px;
+      text-align: center;
+      opacity: .6;
+    }
+
+    .loading-spinner {
+      width: 30px;
+      height: 30px;
+      margin: 0 auto 14px;
+      border: 3px solid rgba(127,127,127,.2);
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: notificationSpin .8s linear infinite;
+    }
+
+    @keyframes notificationSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* =========================================================
+       ERROR
+       ========================================================= */
+
+    .notifications-error {
+      padding: 45px 25px;
+      text-align: center;
+    }
+
+    .notifications-error-icon {
+      font-size: 50px;
+      margin-bottom: 10px;
+    }
+
+    .notifications-error h2 {
+      margin: 0 0 8px;
+    }
+
+    .notifications-error p {
+      opacity: .62;
+      line-height: 1.6;
+    }
+
+    .retry-button {
+      margin-top: 15px;
+      min-height: 43px;
+      padding: 0 17px;
+      border: 0;
+      border-radius: 13px;
+      background: #111;
+      color: #fff;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* =========================================================
+       UNREAD COUNT
+       ========================================================= */
+
+    .page-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 22px;
+      height: 22px;
+      padding: 0 7px;
+      margin-left: 7px;
+      box-sizing: border-box;
+      border-radius: 999px;
+      background: #111;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 800;
+      vertical-align: middle;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* =========================================================
+       DARK MODE
+       ========================================================= */
+
+    .dark .notifications-box,
+    body.dark .notifications-box,
+    .dark .notifications-login,
+    body.dark .notifications-login {
+      background: #151515;
+    }
+
+    /* =========================================================
+       MOBILE
+       ========================================================= */
+
+    @media (max-width: 700px) {
+
+      .notifications-page {
+        padding: 21px 12px 45px;
+      }
+
+      .notifications-header {
+        display: block;
+      }
+
+      .notifications-actions {
+        margin-top: 17px;
+        justify-content: flex-start;
+      }
+
+      .notification-action {
+        flex: 1;
+      }
+
+      .notifications-box {
+        border-radius: 19px;
+      }
+
+      .notification-item {
+        padding: 15px 14px;
+        gap: 11px;
+      }
+
+      .notification-icon {
+        width: 44px;
+        height: 44px;
+        flex-basis: 44px;
+        border-radius: 14px;
+        font-size: 20px;
+      }
+
+      .notification-top {
+        display: block;
+      }
+
+      .notification-time {
+        display: block;
+        margin-top: 3px;
+      }
+    }
+
+    @media (max-width: 430px) {
+
+      .notifications-title-wrap h1 {
+        font-size: 29px;
+      }
+
+      .notifications-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .notification-action {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- =======================================================
+       HEADER
+       ======================================================= -->
+
+  <header class="site-header">
+    <div class="container">
+
+      <a href="/" class="brand" aria-label="Tajik Opportunities">
+        <img
+          src="/images/Image_2026_09_05_19_01_30.jpg"
+          alt="Tajik Opportunities"
+        >
+      </a>
+
+      <nav class="desktop-nav">
+        <a href="/">Главная</a>
+        <a href="/#search">Найти</a>
+        <a href="/#categories">Категории</a>
+        <a href="/add.html">Создать</a>
+      </nav>
+
+      <div class="header-actions">
+
+        <a
+          href="/notifications.html"
+          class="header-icon"
+          aria-label="Уведомления"
+          title="Уведомления"
+        >
+          🔔
+          <span
+            id="headerUnreadCount"
+            class="notification-count hidden"
+          >0</span>
+        </a>
+
+        <a
+          href="/profile.html"
+          class="header-profile"
+          aria-label="Профиль"
+        >
+          👤
+        </a>
+
+      </div>
+
+    </div>
+  </header>
+
+  <!-- =======================================================
+       MAIN
+       ======================================================= -->
+
+  <main class="notifications-page">
+
+    <section class="notifications-header">
+
+      <div class="notifications-title-wrap">
+
+        <h1>
+          🔔 Уведомления
+          <span
+            id="pageUnreadCount"
+            class="page-count hidden"
+          >0</span>
+        </h1>
+
+        <p>
+          Здесь будут появляться новые сообщения, ответы администрации
+          и другие важные события Tajik Opportunities.
+        </p>
+
+      </div>
+
+      <div class="notifications-actions">
+
+        <button
+          type="button"
+          id="markAllButton"
+          class="notification-action primary"
+        >
+          ✓ Прочитать все
+        </button>
+
+        <button
+          type="button"
+          id="refreshButton"
+          class="notification-action"
+        >
+          ↻ Обновить
+        </button>
+
+      </div>
+
+    </section>
+
+    <!-- =====================================================
+         LOGIN
+         ===================================================== -->
+
+    <section
+      id="loginState"
+      class="notifications-login hidden"
+    >
+
+      <div class="notifications-login-icon">
+        🔐
+      </div>
+
+      <h2>
+        Войдите, чтобы видеть уведомления
+      </h2>
+
+      <p>
+        После входа здесь будут отображаться новые сообщения,
+        ответы администрации, обновления публикаций и другие
+        важные события.
+      </p>
+
+      <a
+        href="/profile.html"
+        class="login-button"
+      >
+        👤 Войти или зарегистрироваться
+      </a>
+
+    </section>
+
+    <!-- =====================================================
+         NOTIFICATIONS
+         ===================================================== -->
+
+    <section
+      id="notificationsApp"
+      class="notifications-box hidden"
+    >
+
+      <div
+        id="notificationsList"
+        class="notifications-list"
+      >
+
+        <div class="notifications-loading">
+
+          <div class="loading-spinner"></div>
+
+          Загрузка уведомлений...
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =======================================================
+       MOBILE NAV
+       ======================================================= -->
+
+  <nav class="mobile-nav">
+
+    <a href="/">
+      <span>🏠</span>
+      <small>Главная</small>
+    </a>
+
+    <a href="/saved.html">
+      <span>🔖</span>
+      <small>Сохранённое</small>
+    </a>
+
+    <a href="/add.html">
+      <span>➕</span>
+      <small>Создать</small>
+    </a>
+
+    <a
+      href="/messages.html"
+    >
+      <span>💬</span>
+      <small>Сообщения</small>
+    </a>
+
+    <a
+      href="/profile.html"
+    >
+      <span>👤</span>
+      <small>Профиль</small>
+    </a>
+
+  </nav>
+
+  <!-- =======================================================
+       TOAST
+       ======================================================= -->
+
+  <div
+    id="toast"
+    class="toast"
+    role="status"
+    aria-live="polite"
+  ></div>
+
+  <!-- =======================================================
+       APP
+       ======================================================= -->
+
+  <script src="/js/app.js"></script>
+
+  <script>
+    (() => {
+
+      "use strict";
+
+      /* ======================================================
+         API
+         ====================================================== */
+
+      const API = {
+
+        me: "/api/auth/me",
+
+        notifications: "/api/notifications",
+
+        read: "/api/notifications/read",
+
+        readAll: "/api/notifications/read-all"
+
+      };
+
+      /* ======================================================
+         STATE
+         ====================================================== */
+
+      const state = {
+
+        user: null,
+
+        notifications: [],
+
+        loading: false,
+
+        pollingTimer: null
+
+      };
+
+      /* ======================================================
+         ELEMENTS
+         ====================================================== */
+
+      const $ = selector =>
+        document.querySelector(selector);
+
+      const elements = {
+
+        loginState:
+          $("#loginState"),
+
+        notificationsApp:
+          $("#notificationsApp"),
+
+        notificationsList:
+          $("#notificationsList"),
+
+        markAllButton:
+          $("#markAllButton"),
+
+        refreshButton:
+          $("#refreshButton"),
+
+        headerUnreadCount:
+          $("#headerUnreadCount"),
+
+        pageUnreadCount:
+          $("#pageUnreadCount")
+
+      };
+
+      /* ======================================================
+         HELPERS
+         ====================================================== */
+
+      function escapeHTML(value) {
+
+        return String(value ?? "")
+
+          .replaceAll("&", "&amp;")
+
+          .replaceAll("<", "&lt;")
+
+          .replaceAll(">", "&gt;")
+
+          .replaceAll('"', "&quot;")
+
+          .replaceAll("'", "&#039;");
+
+      }
+
+      function showToast(message) {
+
+        if (
+          typeof window.showToast === "function"
+        ) {
+
+          window.showToast(message);
+
+          return;
+
+        }
+
+        const toast =
+          $("#toast");
+
+        if (!toast) return;
+
+        toast.textContent = message;
+
+        toast.classList.add("show");
+
+        clearTimeout(showToast.timer);
+
+        showToast.timer =
+          setTimeout(() => {
+
+            toast.classList.remove("show");
+
+          }, 3000);
+
+      }
+
+      async function request(url, options = {}) {
+
+        const response =
+          await fetch(url, {
+
+            credentials: "include",
+
+            headers: {
+
+              "Content-Type":
+                "application/json",
+
+              ...(options.headers || {})
+
+            },
+
+            ...options
+
+          });
+
+        let data = null;
+
+        try {
+
+          data =
+            await response.json();
+
+        } catch {
+
+          data = null;
+
+        }
+
+        if (!response.ok) {
+
+          const error =
+            new Error(
+
+              data?.message ||
+              data?.error ||
+              `Ошибка запроса: ${response.status}`
+
+            );
+
+          error.status =
+            response.status;
+
+          error.data =
+            data;
+
+          throw error;
+
+        }
+
+        return data;
+
+      }
+
+      function extractUser(data) {
+
+        if (!data) return null;
+
+        if (data.user)
+          return data.user;
+
+        if (data.profile)
+          return data.profile;
+
+        if (data.account)
+          return data.account;
+
+        return data;
+
+      }
+
+      function extractNotifications(data) {
+
+        if (Array.isArray(data))
+          return data;
+
+        return (
+
+          data?.notifications ||
+
+          data?.items ||
+
+          data?.data ||
+
+          []
+
+        );
+
+      }
+
+      /* ======================================================
+         TIME
+         ====================================================== */
+
+      function formatTime(value) {
+
+        if (!value)
+          return "";
+
+        const date =
+          new Date(value);
+
+        if (
+          Number.isNaN(
+            date.getTime()
+          )
+        ) {
+
+          return "";
+
+        }
+
+        const now =
+          new Date();
+
+        const diff =
+          now.getTime() -
+          date.getTime();
+
+        const minute =
+          60 * 1000;
+
+        const hour =
+          60 * minute;
+
+        const day =
+          24 * hour;
+
+        if (diff < minute)
+          return "только что";
+
+        if (diff < hour) {
+
+          return (
+            Math.floor(diff / minute) +
+            " мин. назад"
+          );
+
+        }
+
+        if (diff < day) {
+
+          return (
+            Math.floor(diff / hour) +
+            " ч. назад"
+          );
+
+        }
+
+        const sameYear =
+          date.getFullYear() ===
+          now.getFullYear();
+
+        if (sameYear) {
+
+          return date.toLocaleDateString(
+            "ru-RU",
+            {
+              day: "2-digit",
+              month: "2-digit"
+            }
+          );
+
+        }
+
+        return date.toLocaleDateString(
+          "ru-RU",
+          {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          }
+        );
+
+      }
+
+      /* ======================================================
+         TYPE
+         ====================================================== */
+
+      function normalizeType(notification) {
+
+        return String(
+
+          notification.type ||
+
+          notification.kind ||
+
+          notification.category ||
+
+          ""
+
+        )
+          .toLowerCase()
+          .trim();
+
+      }
+
+      function getNotificationIcon(notification) {
+
+        const type =
+          normalizeType(notification);
+
+        if (
+          type.includes("message") ||
+          type.includes("chat")
+        ) {
+
+          return "💬";
+
+        }
+
+        if (
+          type.includes("admin") ||
+          type.includes("support")
+        ) {
+
+          return "🛡️";
+
+        }
+
+        if (
+          type.includes("publication") ||
+          type.includes("post")
+        ) {
+
+          return "📄";
+
+        }
+
+        if (
+          type.includes("like") ||
+          type.includes("favorite")
+        ) {
+
+          return "❤️";
+
+        }
+
+        if (
+          type.includes("comment")
+        ) {
+
+          return "💬";
+
+        }
+
+        if (
+          type.includes("approved") ||
+          type.includes("success")
+        ) {
+
+          return "✅";
+
+        }
+
+        if (
+          type.includes("warning")
+        ) {
+
+          return "⚠️";
+
+        }
+
+        return "🔔";
+
+      }
+
+      function isAdminNotification(notification) {
+
+        const type =
+          normalizeType(notification);
+
+        return (
+
+          type.includes("admin") ||
+
+          type.includes("support") ||
+
+          notification.is_admin === true ||
+
+          notification.from_admin === true ||
+
+          notification.sender_type === "admin"
+
+        );
+
+      }
+
+      /* ======================================================
+         TITLE / TEXT
+         ====================================================== */
+
+      function getTitle(notification) {
+
+        if (
+          notification.title
+        ) {
+
+          return notification.title;
+
+        }
+
+        if (
+          isAdminNotification(
+            notification
+          )
+        ) {
+
+          return "🇹🇯 Tajik Opportunities✅";
+
+        }
+
+        const type =
+          normalizeType(notification);
+
+        if (
+          type.includes("message") ||
+          type.includes("chat")
+        ) {
+
+          return "Новое сообщение";
+
+        }
+
+        if (
+          type.includes("like") ||
+          type.includes("favorite")
+        ) {
+
+          return "Новая реакция";
+
+        }
+
+        if (
+          type.includes("comment")
+        ) {
+
+          return "Новый комментарий";
+
+        }
+
+        if (
+          type.includes("publication") ||
+          type.includes("post")
+        ) {
+
+          return "Обновление публикации";
+
+        }
+
+        return "Новое уведомление";
+
+      }
+
+      function getText(notification) {
+
+        return (
+
+          notification.message ||
+
+          notification.text ||
+
+          notification.content ||
+
+          notification.body ||
+
+          notification.description ||
+
+          ""
+
+        );
+
+      }
+
+      /* ======================================================
+         READ STATE
+         ====================================================== */
+
+      function isUnread(notification) {
+
+        if (
+          notification.read === true
+        ) {
+
+          return false;
+
+        }
+
+        if (
+          notification.is_read === true
+        ) {
+
+          return false;
+
+        }
+
+        if (
+          notification.read_at
+        ) {
+
+          return false;
+
+        }
+
+        if (
+          notification.unread === false
+        ) {
+
+          return false;
+
+        }
+
+        return true;
+
+      }
+
+      /* ======================================================
+         AUTH
+         ====================================================== */
+
+      async function loadCurrentUser() {
+
+        try {
+
+          const data =
+            await request(API.me);
+
+          state.user =
+            extractUser(data);
+
+          if (!state.user)
+            throw new Error(
+              "Пользователь не найден"
+            );
+
+          showAuthenticated();
+
+        } catch (error) {
+
+          if (
+            error.status === 401 ||
+            error.status === 403
+          ) {
+
+            showLogin();
+
+            return;
+
+          }
+
+          const possibleUser =
+
+            window.currentUser ||
+
+            window.TO_USER ||
+
+            window.TajikOpportunitiesUser;
+
+          if (possibleUser) {
+
+            state.user =
+              possibleUser;
+
+            showAuthenticated();
+
+            return;
+
+          }
+
+          showLogin();
+
+        }
+
+      }
+
+      function showLogin() {
+
+        elements.loginState
+          .classList
+          .remove("hidden");
+
+        elements.notificationsApp
+          .classList
+          .add("hidden");
+
+      }
+
+      function showAuthenticated() {
+
+        elements.loginState
+          .classList
+          .add("hidden");
+
+        elements.notificationsApp
+          .classList
+          .remove("hidden");
+
+        loadNotifications();
+
+        startPolling();
+
+      }
+
+      /* ======================================================
+         LOAD
+         ====================================================== */
+
+      async function loadNotifications() {
+
+        if (state.loading)
+          return;
+
+        state.loading = true;
+
+        try {
+
+          const data =
+            await request(
+              API.notifications
+            );
+
+          state.notifications =
+            extractNotifications(data);
+
+          renderNotifications();
+
+        } catch (error) {
+
+          console.error(
+            "Notifications error:",
+            error
+          );
+
+          elements.notificationsList.innerHTML = `
+
+            <div class="notifications-error">
+
+              <div class="notifications-error-icon">
+                ⚠️
+              </div>
+
+              <h2>
+                Не удалось загрузить уведомления
+              </h2>
+
+              <p>
+                Попробуйте обновить страницу.
+              </p>
+
+              <button
+                type="button"
+                id="retryButton"
+                class="retry-button"
+              >
+                ↻ Повторить
+              </button>
+
+            </div>
+
+          `;
+
+          const retry =
+            $("#retryButton");
+
+          if (retry) {
+
+            retry.addEventListener(
+              "click",
+              loadNotifications
+            );
+
+          }
+
+        } finally {
+
+          state.loading = false;
+
+        }
+
+      }
+
+      /* ======================================================
+         RENDER
+         ====================================================== */
+
+      function renderNotifications() {
+
+        if (
+          !state.notifications.length
+        ) {
+
+          elements.notificationsList.innerHTML = `
+
+            <div class="notifications-empty">
+
+              <div class="notifications-empty-icon">
+                🔔
+              </div>
+
+              <h2>
+                Пока нет уведомлений
+              </h2>
+
+              <p>
+                Когда появятся новые сообщения,
+                ответы администрации или другие события,
+                они появятся здесь.
+              </p>
+
+            </div>
+
+          `;
+
+          updateUnreadCounters();
+
+          return;
+
+        }
+
+        elements.notificationsList.innerHTML =
+
+          state.notifications
+
+            .map(
+              (notification, index) => {
+
+                const unread =
+                  isUnread(notification);
+
+                const icon =
+                  getNotificationIcon(
+                    notification
+                  );
+
+                const admin =
+                  isAdminNotification(
+                    notification
+                  );
+
+                const title =
+                  getTitle(
+                    notification
+                  );
+
+                const text =
+                  getText(
+                    notification
+                  );
+
+                const createdAt =
+
+                  notification.created_at ||
+
+                  notification.createdAt ||
+
+                  notification.timestamp ||
+
+                  notification.date ||
+
+                  notification.time;
+
+                const id =
+
+                  notification.id ||
+
+                  notification.notification_id ||
+
+                  `notification-${index}`;
+
+                return `
+
+                  <button
+                    type="button"
+                    class="
+                      notification-item
+                      ${unread ? "unread" : ""}
+                    "
+                    data-notification-id="${escapeHTML(id)}"
+                  >
+
+                    <div
+                      class="
+                        notification-icon
+                        ${admin ? "admin" : ""}
+                      "
+                    >
+                      ${icon}
+                    </div>
+
+                    <div class="notification-content">
+
+                      <div class="notification-top">
+
+                        <div class="notification-title">
+                          ${escapeHTML(title)}
+                        </div>
+
+                        <div class="notification-time">
+                          ${escapeHTML(
+                            formatTime(createdAt)
+                          )}
+                        </div>
+
+                      </div>
+
+                      ${
+                        text
+                          ? `
+                            <div class="notification-text">
+                              ${escapeHTML(text)}
+                            </div>
+                          `
+                          : ""
+                      }
+
+                      ${
+                        unread
+                          ? `
+                            <span class="notification-badge">
+                              Новое
+                            </span>
+                          `
+                          : ""
+                      }
+
+                    </div>
+
+                  </button>
+
+                `;
+
+              }
+            )
+            .join("");
+
+        elements.notificationsList
+          .querySelectorAll(
+            ".notification-item"
+          )
+          .forEach(item => {
+
+            item.addEventListener(
+              "click",
+              () => {
+
+                const id =
+                  item.dataset
+                    .notificationId;
+
+                const notification =
+                  state.notifications.find(
+                    notification => {
+
+                      const notificationId =
+
+                        notification.id ||
+
+                        notification.notification_id;
+
+                      return String(
+                        notificationId
+                      ) === String(id);
+
+                    }
+                  );
+
+                if (
+                  notification
+                ) {
+
+                  openNotification(
+                    notification
+                  );
+
+                }
+
+              }
+            );
+
+          });
+
+        updateUnreadCounters();
+
+      }
+
+      /* ======================================================
+         COUNTERS
+         ====================================================== */
+
+      function updateUnreadCounters() {
+
+        const unread =
+          state.notifications.filter(
+            isUnread
+          ).length;
+
+        if (
+          elements.headerUnreadCount
+        ) {
+
+          if (unread > 0) {
+
+            elements.headerUnreadCount
+              .textContent =
+              unread > 99
+                ? "99+"
+                : String(unread);
+
+            elements.headerUnreadCount
+              .classList
+              .remove("hidden");
+
+          } else {
+
+            elements.headerUnreadCount
+              .classList
+              .add("hidden");
+
+          }
+
+        }
+
+        if (
+          elements.pageUnreadCount
+        ) {
+
+          if (unread > 0) {
+
+            elements.pageUnreadCount
+              .textContent =
+              unread > 99
+                ? "99+"
+                : String(unread);
+
+            elements.pageUnreadCount
+              .classList
+              .remove("hidden");
+
+          } else {
+
+            elements.pageUnreadCount
+              .classList
+              .add("hidden");
+
+          }
+
+        }
+
+      }
+
+      /* ======================================================
+         OPEN NOTIFICATION
+         ====================================================== */
+
+      async function openNotification(
+        notification
+      ) {
+
+        await markAsRead(
+          notification
+        );
+
+        const url =
+
+          notification.url ||
+
+          notification.link ||
+
+          notification.href;
+
+        const conversationId =
+
+          notification.conversation_id ||
+
+          notification.chat_id;
+
+        const publicationId =
+
+          notification.publication_id ||
+
+          notification.post_id;
+
+        const type =
+          normalizeType(
+            notification
+          );
+
+        if (
+          conversationId ||
+          type.includes("message") ||
+          type.includes("chat") ||
+          isAdminNotification(
+            notification
+          )
+        ) {
+
+          if (
+            conversationId
+          ) {
+
+            window.location.href =
+              `/messages.html?conversation_id=${encodeURIComponent(
+                conversationId
+              )}`;
+
+            return;
+
+          }
+
+          window.location.href =
+            "/messages.html";
+
+          return;
+
+        }
+
+        if (
+          publicationId
+        ) {
+
+          window.location.href =
+            `/publication.html?id=${encodeURIComponent(
+              publicationId
+            )}`;
+
+          return;
+
+        }
+
+        if (url) {
+
+          try {
+
+            const parsed =
+              new URL(
+                url,
+                window.location.origin
+              );
+
+            if (
+              parsed.origin ===
+              window.location.origin
+            ) {
+
+              window.location.href =
+                parsed.href;
+
+              return;
+
+            }
+
+          } catch {}
+
+        }
+
+      }
+
+      /* ======================================================
+         MARK ONE READ
+         ====================================================== */
+
+      async function markAsRead(
+        notification
+      ) {
+
+        if (
+          !isUnread(notification)
+        ) {
+
+          return;
+
+        }
+
+        const id =
+
+          notification.id ||
+
+          notification.notification_id;
+
+        if (!id)
+          return;
+
+        try {
+
+          await request(
+            API.read,
+            {
+              method: "POST",
+
+              body:
+                JSON.stringify({
+                  notification_id: id
+                })
+            }
+          );
+
+          notification.read = true;
+
+          notification.is_read = true;
+
+          notification.unread = false;
+
+          renderNotifications();
+
+        } catch (error) {
+
+          console.debug(
+            "Mark notification read:",
+            error
+          );
+
+        }
+
+      }
+
+      /* ======================================================
+         MARK ALL
+         ====================================================== */
+
+      async function markAllAsRead() {
+
+        const unread =
+          state.notifications.filter(
+            isUnread
+          );
+
+        if (!unread.length) {
+
+          showToast(
+            "Все уведомления уже прочитаны."
+          );
+
+          return;
+
+        }
+
+        elements.markAllButton.disabled =
+          true;
+
+        try {
+
+          await request(
+            API.readAll,
+            {
+              method: "POST",
+
+              body:
+                JSON.stringify({})
+            }
+          );
+
+          state.notifications
+            .forEach(
+              notification => {
+
+                notification.read =
+                  true;
+
+                notification.is_read =
+                  true;
+
+                notification.unread =
+                  false;
+
+                notification.read_at =
+                  new Date().toISOString();
+
+              }
+            );
+
+          renderNotifications();
+
+          showToast(
+            "Все уведомления прочитаны."
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Read all error:",
+            error
+          );
+
+          showToast(
+            error.message ||
+            "Не удалось отметить уведомления."
+          );
+
+        } finally {
+
+          elements.markAllButton.disabled =
+            false;
+
+        }
+
+      }
+
+      /* ======================================================
+         POLLING
+         ====================================================== */
+
+      function startPolling() {
+
+        stopPolling();
+
+        state.pollingTimer =
+          setInterval(
+            async () => {
+
+              if (
+                document.hidden
+              ) {
+
+                return;
+
+              }
+
+              try {
+
+                const data =
+                  await request(
+                    API.notifications
+                  );
+
+                state.notifications =
+                  extractNotifications(
+                    data
+                  );
+
+                renderNotifications();
+
+              } catch (error) {
+
+                console.debug(
+                  "Notification polling:",
+                  error
+                );
+
+              }
+
+            },
+            10000
+          );
+
+      }
+
+      function stopPolling() {
+
+        if (
+          state.pollingTimer
+        ) {
+
+          clearInterval(
+            state.pollingTimer
+          );
+
+          state.pollingTimer =
+            null;
+
+        }
+
+      }
+
+      /* ======================================================
+         EVENTS
+         ====================================================== */
+
+      elements.refreshButton
+        .addEventListener(
+          "click",
+          async () => {
+
+            elements.refreshButton.disabled =
+              true;
+
+            await loadNotifications();
+
+            elements.refreshButton.disabled =
+              false;
+
+          }
+        );
+
+      elements.markAllButton
+        .addEventListener(
+          "click",
+          markAllAsRead
+        );
+
+      window.addEventListener(
+        "beforeunload",
+        stopPolling
+      );
+
+      /* ======================================================
+         INIT
+         ====================================================== */
+
+      loadCurrentUser();
+
+    })();
+  </script>
+
+</body>
+    </html>
