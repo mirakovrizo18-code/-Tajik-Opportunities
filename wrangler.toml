@@ -4,6 +4,7 @@
 
 name = "tajik-opportunities"
 main = "worker/worker.js"
+
 compatibility_date = "2026-09-05"
 compatibility_flags = ["nodejs_compat"]
 
@@ -20,7 +21,7 @@ DEFAULT_LANGUAGE = "ru"
 TIMEZONE = "Asia/Dushanbe"
 
 # ============================================================
-# СТАТИЧЕСКИЕ ФАЙЛЫ САЙТА
+# СТАТИЧЕСКИЙ САЙТ
 # ============================================================
 
 [assets]
@@ -28,29 +29,10 @@ directory = "./public"
 binding = "ASSETS"
 
 # ============================================================
-# CLOUDFLARE D1
+# CLOUDFLARE D1 DATABASE
 # ============================================================
 
 [[d1_databases]]
-binding = "DB"
-database_name = "tajik-opportunities-db"
-database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
-
-# ============================================================
-# DEVELOPMENT
-# ============================================================
-
-[env.dev]
-
-[env.dev.vars]
-ENVIRONMENT = "development"
-API_VERSION = "v1"
-SITE_URL = "http://localhost:8787"
-SITE_NAME = "Tajik Opportunities (Dev)"
-DEFAULT_LANGUAGE = "ru"
-TIMEZONE = "Asia/Dushanbe"
-
-[[env.dev.d1_databases]]
 binding = "DB"
 database_name = "tajik-opportunities-db"
 database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
