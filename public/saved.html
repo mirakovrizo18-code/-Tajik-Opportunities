@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Сохранённые — Tajik Opportunities</title>
+
+  <meta
+    name="description"
+    content="Сохранённые публикации Tajik Opportunities."
+  >
+
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+
+<body>
+
+  <!-- HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+
+      <a class="site-brand" href="/">
+        <img
+          src="/images/Image_2026_09_05_19_01_30.jpg"
+          alt="Tajik Opportunities"
+        >
+
+        <span class="site-brand-text">
+          <span class="site-brand-title">
+            🇹🇯 Tajik Opportunities
+          </span>
+
+          <span class="site-brand-subtitle">
+            Возможности рядом с вами
+          </span>
+        </span>
+      </a>
+
+      <nav class="desktop-nav" aria-label="Основная навигация">
+        <a href="/">Главная</a>
+        <a href="/add.html">Создать</a>
+        <a href="/saved.html" class="active">Сохранённые</a>
+        <a href="/messages.html">Сообщения</a>
+        <a href="/notifications.html">Уведомления</a>
+      </nav>
+
+      <div class="header-actions">
+
+        <a
+          class="icon-button"
+          href="/notifications.html"
+          aria-label="Уведомления"
+          title="Уведомления"
+        >
+          🔔
+          <span id="notificationBadge" class="hidden">0</span>
+        </a>
+
+        <a
+          class="profile-button"
+          href="/profile.html"
+          aria-label="Профиль"
+        >
+          <span id="headerAvatar">👤</span>
+          <span id="headerProfileText">Профиль</span>
+        </a>
+
+        <button
+          class="icon-button mobile-menu-button"
+          id="mobileMenuButton"
+          type="button"
+          aria-label="Меню"
+          aria-expanded="false"
+        >
+          ☰
+        </button>
+
+      </div>
+    </div>
+
+    <nav
+      class="mobile-nav"
+      id="mobileNav"
+      aria-label="Мобильная навигация"
+    >
+      <a href="/">🏠 Главная</a>
+      <a href="/add.html">➕ Создать публикацию</a>
+      <a href="/saved.html" class="active">🔖 Сохранённые</a>
+      <a href="/messages.html">💬 Сообщения</a>
+      <a href="/notifications.html">🔔 Уведомления</a>
+      <a href="/profile.html">👤 Профиль</a>
+    </nav>
+  </header>
+
+  <!-- MAIN -->
+  <main class="section">
+    <div class="container">
+
+      <div class="section-heading">
+        <div>
+          <h1>🔖 Сохранённые публикации</h1>
+
+          <p>
+            Здесь находятся публикации, которые вы сохранили,
+            чтобы вернуться к ним позже.
+          </p>
+        </div>
+      </div>
+
+      <!-- AUTH -->
+      <section
+        id="authState"
+        class="state-card hidden"
+      >
+        <div class="state-icon">🔐</div>
+
+        <h2>Войдите в аккаунт</h2>
+
+        <p>
+          Чтобы сохранять публикации и просматривать
+          сохранённые возможности, необходимо войти.
+        </p>
+
+        <a
+          href="/profile.html"
+          class="btn btn-primary"
+        >
+          Войти / Профиль
+        </a>
+      </section>
+
+      <!-- LOADING -->
+      <section
+        id="loadingState"
+        class="state-card"
+      >
+        <div class="state-icon">⏳</div>
+
+        <h2>Загрузка...</h2>
+
+        <p>
+          Загружаем ваши сохранённые публикации.
+        </p>
+      </section>
+
+      <!-- ERROR -->
+      <section
+        id="errorState"
+        class="state-card hidden"
+      >
+        <div class="state-icon">⚠️</div>
+
+        <h2>Не удалось загрузить</h2>
+
+        <p id="errorMessage">
+          Произошла ошибка.
+        </p>
+
+        <button
+          id="retryButton"
+          class="btn btn-primary"
+          type="button"
+        >
+          Повторить
+        </button>
+      </section>
+
+      <!-- EMPTY -->
+      <section
+        id="emptyState"
+        class="state-card hidden"
+      >
+        <div class="state-icon">🔖</div>
+
+        <h2>Пока ничего не сохранено</h2>
+
+        <p>
+          Найдите интересную возможность на главной
+          странице и нажмите «Сохранить».
+        </p>
+
+        <a
+          href="/"
+          class="btn btn-primary"
+        >
+          Смотреть публикации
+        </a>
+      </section>
+
+      <!-- SAVED -->
+      <section
+        id="savedSection"
+        class="hidden"
+      >
+
+        <div
+          class="results-info"
+          style="margin-bottom:16px;"
+        >
+          <span id="savedCount">
+            0 публикаций
+          </span>
+        </div>
+
+        <div
+          id="savedGrid"
+          class="posts-grid"
+        ></div>
+
+      </section>
+
+    </div>
+  </main>
+
+  <!-- TOAST -->
+  <div
+    id="toastContainer"
+    class="toast-container"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const state = {
+        me: null,
+        posts: [],
+        loading: false
+      };
+
+      const $ = (id) =>
+        document.getElementById(id);
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function safeUrl(value) {
+        try {
+          const url = new URL(
+            String(value || ""),
+            window.location.origin
+          );
+
+          if (
+            url.protocol === "http:" ||
+            url.protocol === "https:"
+          ) {
+            return url.href;
+          }
+
+          return "#";
+        } catch {
+          return "#";
+        }
+      }
+
+      async function api(url, options = {}) {
+        const response = await fetch(url, {
+          credentials: "include",
+          ...options,
+          headers: {
+            ...(options.body
+              ? {
+                  "Content-Type":
+                    "application/json"
+                }
+              : {}),
+            ...(options.headers || {})
+          }
+        });
+
+        let data = {};
+
+        try {
+          data = await response.json();
+        } catch {
+          data = {};
+        }
+
+        if (!response.ok) {
+          const error = new Error(
+            data?.message ||
+            data?.error ||
+            `Ошибка ${response.status}`
+          );
+
+          error.status = response.status;
+
+          throw error;
+        }
+
+        return data;
+      }
+
+      function extractArray(data) {
+        if (Array.isArray(data)) {
+          return data;
+        }
+
+        if (Array.isArray(data?.saved)) {
+          return data.saved;
+        }
+
+        if (Array.isArray(data?.publications)) {
+          return data.publications;
+        }
+
+        if (Array.isArray(data?.posts)) {
+          return data.posts;
+        }
+
+        if (Array.isArray(data?.items)) {
+          return data.items;
+        }
+
+        if (Array.isArray(data?.data)) {
+          return data.data;
+        }
+
+        if (Array.isArray(data?.data?.saved)) {
+          return data.data.saved;
+        }
+
+        if (
+          Array.isArray(
+            data?.data?.publications
+          )
+        ) {
+          return data.data.publications;
+        }
+
+        if (
+          Array.isArray(
+            data?.data?.items
+          )
+        ) {
+          return data.data.items;
+        }
+
+        return [];
+      }
+
+      function normalizePost(item) {
+        const publication =
+          item?.publication ||
+          item?.post ||
+          item;
+
+        return {
+          id:
+            publication?.id ??
+            publication?.publication_id ??
+            item?.publication_id ??
+            null,
+
+          title:
+            publication?.title ||
+            "Без названия",
+
+          content:
+            publication?.content ||
+            publication?.description ||
+            "",
+
+          category:
+            publication?.category ||
+            publication?.category_name ||
+            "Другое",
+
+          author:
+            publication?.author_name ||
+            publication?.author?.name ||
+            publication?.user?.name ||
+            publication?.username ||
+            "Пользователь",
+
+          username:
+            publication?.username ||
+            publication?.author?.username ||
+            publication?.user?.username ||
+            "",
+
+          image:
+            publication?.image_url ||
+            publication?.cover_url ||
+            publication?.image ||
+            publication?.media?.[0]?.url ||
+            "",
+
+          city:
+            publication?.city ||
+            "",
+
+          country:
+            publication?.country ||
+            "",
+
+          views:
+            Number(
+              publication?.views || 0
+            ),
+
+          likes:
+            Number(
+              publication?.likes || 0
+            ),
+
+          comments:
+            Number(
+              publication?.comments || 0
+            ),
+
+          saves:
+            Number(
+              publication?.saves || 0
+            ),
+
+          shares:
+            Number(
+              publication?.shares || 0
+            ),
+
+          created_at:
+            publication?.created_at ||
+            publication?.published_at ||
+            publication?.date ||
+            ""
+        };
+      }
+
+      function formatDate(value) {
+        if (!value) return "";
+
+        const date = new Date(value);
+
+        if (
+          Number.isNaN(
+            date.getTime()
+          )
+        ) {
+          return "";
+        }
+
+        return new Intl.DateTimeFormat(
+          "ru-RU",
+          {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric"
+          }
+        ).format(date);
+      }
+
+      function showToast(
+        message,
+        type = "info"
+      ) {
+        const container =
+          $("toastContainer");
+
+        if (!container) return;
+
+        const toast =
+          document.createElement("div");
+
+        toast.className =
+          `toast ${type}`;
+
+        toast.textContent =
+          message;
+
+        container.appendChild(
+          toast
+        );
+
+        requestAnimationFrame(() => {
+          toast.classList.add(
+            "show"
+          );
+        });
+
+        setTimeout(() => {
+          toast.classList.remove(
+            "show"
+          );
+
+          setTimeout(() => {
+            toast.remove();
+          }, 250);
+        }, 3000);
+      }
+
+      function showOnly(id) {
+        const ids = [
+          "loadingState",
+          "errorState",
+          "emptyState",
+          "savedSection",
+          "authState"
+        ];
+
+        ids.forEach((item) => {
+          $(item)?.classList.add(
+            "hidden"
+          );
+        });
+
+        if (id) {
+          $(id)?.classList.remove(
+            "hidden"
+          );
+        }
+      }
+
+      function renderPosts() {
+        const grid =
+          $("savedGrid");
+
+        if (!grid) return;
+
+        if (!state.posts.length) {
+          showOnly(
+            "emptyState"
+          );
+
+          return;
+        }
+
+        showOnly(
+          "savedSection"
+        );
+
+        $("savedCount").textContent =
+          `${state.posts.length} ${
+            state.posts.length === 1
+              ? "публикация"
+              : state.posts.length < 5
+                ? "публикации"
+                : "публикаций"
+          }`;
+
+        grid.innerHTML =
+          state.posts
+            .map((post) => {
+
+              const image =
+                post.image
+                  ? `
+                    <div class="post-card-image">
+                      <img
+                        src="${escapeHtml(
+                          safeUrl(
+                            post.image
+                          )
+                        )}"
+                        alt="${escapeHtml(
+                          post.title
+                        )}"
+                        loading="lazy"
+                      >
+                    </div>
+                  `
+                  : `
+                    <div class="post-card-image post-card-image-empty">
+                      📌
+                    </div>
+                  `;
+
+              const location =
+                [
+                  post.city,
+                  post.country
+                ]
+                  .filter(Boolean)
+                  .join(", ");
+
+              return `
+                <article
+                  class="post-card"
+                  data-id="${escapeHtml(
+                    post.id
+                  )}"
+                >
+
+                  ${image}
+
+                  <div class="post-card-body">
+
+                    <div class="post-card-category">
+                      ${escapeHtml(
+                        post.category
+                      )}
+                    </div>
+
+                    <h3 class="post-card-title">
+                      ${escapeHtml(
+                        post.title
+                      )}
+                    </h3>
+
+                    ${
+                      post.content
+                        ? `
+                          <p class="post-card-text">
+                            ${escapeHtml(
+                              post.content
+                                .slice(
+                                  0,
+                                  180
+                                )
+                            )}${
+                              post.content
+                                .length > 180
+                                ? "..."
+                                : ""
+                            }
+                          </p>
+                        `
+                        : ""
+                    }
+
+                    ${
+                      location
+                        ? `
+                          <div class="post-card-location">
+                            📍 ${escapeHtml(
+                              location
+                            )}
+                          </div>
+                        `
+                        : ""
+                    }
+
+                    <div class="post-card-meta">
+
+                      <span>
+                        👤
+                        ${escapeHtml(
+                          post.author
+                        )}
+                      </span>
+
+                      ${
+                        post.created_at
+                          ? `
+                            <span>
+                              ${escapeHtml(
+                                formatDate(
+                                  post.created_at
+                                )
+                              )}
+                            </span>
+                          `
+                          : ""
+                      }
+
+                    </div>
+
+                    <div class="post-card-stats">
+
+                      <span>
+                        👁
+                        ${post.views}
+                      </span>
+
+                      <span>
+                        ❤️
+                        ${post.likes}
+                      </span>
+
+                      <span>
+                        💬
+                        ${post.comments}
+                      </span>
+
+                      <span>
+                        🔖
+                        ${post.saves}
+                      </span>
+
+                    </div>
+
+                    <div
+                      class="post-card-actions"
+                      style="margin-top:12px;"
+                    >
+
+                      <a
+                        class="btn btn-primary"
+                        href="/?publication=${encodeURIComponent(
+                          post.id
+                        )}"
+                      >
+                        Смотреть
+                      </a>
+
+                      <button
+                        class="btn btn-secondary unsave-button"
+                        type="button"
+                        data-id="${escapeHtml(
+                          post.id
+                        )}"
+                      >
+                        🔖 Убрать
+                      </button>
+
+                    </div>
+
+                  </div>
+
+                </article>
+              `;
+            })
+            .join("");
+      }
+
+      async function loadMe() {
+        try {
+          const data =
+            await api(
+              "/api/auth/me"
+            );
+
+          state.me =
+            data?.user ||
+            data?.profile ||
+            data?.me ||
+            data?.data?.user ||
+            data?.data ||
+            null;
+
+          return Boolean(
+            state.me
+          );
+
+        } catch (error) {
+          if (
+            error.status === 401
+          ) {
+            return false;
+          }
+
+          throw error;
+        }
+      }
+
+      async function loadSaved() {
+        if (state.loading) {
+          return;
+        }
+
+        state.loading = true;
+
+        showOnly(
+          "loadingState"
+        );
+
+        try {
+
+          /*
+           * Основной endpoint:
+           * POST /api/publications/save
+           *
+           * Для получения сохранённых публикаций
+           * сервер может отдавать их через GET
+           * /api/publications?...
+           *
+           * Поэтому сначала пробуем специальные
+           * варианты, затем общий список.
+           */
+
+          let data = null;
+
+          const endpoints = [
+            "/api/publications/saved",
+            "/api/saved",
+            "/api/publications?filter=saved",
+            "/api/publications?saved=1"
+          ];
+
+          for (
+            const endpoint of endpoints
+          ) {
+            try {
+              const response =
+                await api(
+                  endpoint
+                );
+
+              const items =
+                extractArray(
+                  response
+                );
+
+              if (
+                items.length ||
+                endpoint ===
+                  endpoints[
+                    endpoints.length - 1
+                  ]
+              ) {
+                data =
+                  response;
+
+                break;
+              }
+
+            } catch (error) {
+
+              if (
+                error.status === 401
+              ) {
+                throw error;
+              }
+
+              console.debug(
+                "Endpoint сохранённых не доступен:",
+                endpoint
+              );
+            }
+          }
+
+          const items =
+            extractArray(
+              data || {}
+            );
+
+          state.posts =
+            items
+              .map(
+                normalizePost
+              )
+              .filter(
+                (post) =>
+                  post.id !== null
+              );
+
+          renderPosts();
+
+        } catch (error) {
+
+          console.error(
+            "Ошибка сохранённых:",
+            error
+          );
+
+          if (
+            error.status === 401
+          ) {
+            showOnly(
+              "authState"
+            );
+
+            return;
+          }
+
+          $("errorMessage").textContent =
+            error.message ||
+            "Не удалось загрузить сохранённые публикации.";
+
+          showOnly(
+            "errorState"
+          );
+
+        } finally {
+          state.loading =
+            false;
+        }
+      }
+
+      async function removeSaved(
+        publicationId
+      ) {
+        if (
+          publicationId === null ||
+          publicationId === undefined
+        ) {
+          return;
+        }
+
+        try {
+
+          await api(
+            "/api/publications/save",
+            {
+              method: "POST",
+              body: JSON.stringify({
+                publication_id:
+                  publicationId,
+                saved: false,
+                save: false
+              })
+            }
+          );
+
+          state.posts =
+            state.posts.filter(
+              (post) =>
+                String(post.id) !==
+                String(publicationId)
+            );
+
+          renderPosts();
+
+          showToast(
+            "Публикация удалена из сохранённых.",
+            "success"
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Ошибка удаления сохранённого:",
+            error
+          );
+
+          showToast(
+            error.message ||
+            "Не удалось удалить публикацию.",
+            "error"
+          );
+        }
+      }
+
+      function setupEvents() {
+
+        $("retryButton")
+          ?.addEventListener(
+            "click",
+            loadSaved
+          );
+
+        $("savedGrid")
+          ?.addEventListener(
+            "click",
+            (event) => {
+
+              const button =
+                event.target.closest(
+                  ".unsave-button"
+                );
+
+              if (!button) {
+                return;
+              }
+
+              event.preventDefault();
+
+              removeSaved(
+                button.dataset.id
+              );
+            }
+          );
+
+        const mobileButton =
+          $("mobileMenuButton");
+
+        const mobileNav =
+          $("mobileNav");
+
+        mobileButton
+          ?.addEventListener(
+            "click",
+            () => {
+
+              const open =
+                mobileNav.classList.toggle(
+                  "open"
+                );
+
+              mobileButton.setAttribute(
+                "aria-expanded",
+                String(open)
+              );
+            }
+          );
+      }
+
+      async function updateNotifications() {
+        const badge =
+          $("notificationBadge");
+
+        if (!badge) return;
+
+        try {
+
+          const data =
+            await api(
+              "/api/notifications"
+            );
+
+          const notifications =
+            extractArray(
+              data
+            );
+
+          const unread =
+            notifications.filter(
+              (item) =>
+                !item.read &&
+                !item.is_read &&
+                !item.read_at
+            ).length;
+
+          if (
+            unread > 0
+          ) {
+
+            badge.textContent =
+              unread > 99
+                ? "99+"
+                : String(unread);
+
+            badge.classList.remove(
+              "hidden"
+            );
+
+          } else {
+
+            badge.classList.add(
+              "hidden"
+            );
+          }
+
+        } catch {
+          badge.classList.add(
+            "hidden"
+          );
+        }
+      }
+
+      async function init() {
+
+        setupEvents();
+
+        try {
+
+          const authenticated =
+            await loadMe();
+
+          if (
+            !authenticated
+          ) {
+
+            showOnly(
+              "authState"
+            );
+
+            return;
+          }
+
+          await Promise.all([
+            loadSaved(),
+            updateNotifications()
+          ]);
+
+        } catch (error) {
+
+          console.error(
+            "Ошибка страницы сохранённых:",
+            error
+          );
+
+          $("errorMessage").textContent =
+            error.message ||
+            "Не удалось открыть сохранённые публикации.";
+
+          showOnly(
+            "errorState"
+          );
+        }
+      }
+
+      window.TajikOpportunitiesSaved = {
+        reload: loadSaved,
+
+        remove: removeSaved,
+
+        getState() {
+          return {
+            posts: state.posts,
+            me: state.me
+          };
+        }
+      };
+
+      init();
+
+    })();
+  </script>
+
+</body>
+  </html>
