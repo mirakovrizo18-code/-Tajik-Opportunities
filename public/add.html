@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Создать публикацию — Tajik Opportunities</title>
+
   <meta
     name="description"
     content="Создайте публикацию, вакансию, объявление, мероприятие, проект или другую полезную возможность на Tajik Opportunities."
@@ -31,7 +32,7 @@
       </div>
     </a>
 
-    <nav class="main-nav">
+    <nav class="main-nav" aria-label="Основная навигация">
       <a href="/">Главная</a>
       <a href="/#news">Новости</a>
       <a href="/#education">Образование</a>
@@ -40,7 +41,12 @@
     </nav>
 
     <div class="header-actions">
-      <a href="/notifications.html" class="icon-btn" title="Уведомления">
+      <a
+        href="/notifications.html"
+        class="icon-btn"
+        title="Уведомления"
+        aria-label="Уведомления"
+      >
         🔔
       </a>
 
@@ -55,23 +61,29 @@
 
 <main>
 
+  <!-- HERO -->
+
   <section class="page-hero">
     <div class="container">
 
       <div class="page-hero-content">
 
         <div>
+
           <div class="eyebrow">
             📢 Публикация
           </div>
 
-          <h1>Создать публикацию</h1>
+          <h1>
+            Создать публикацию
+          </h1>
 
           <p>
-            Поделитесь вакансией, новостью, мероприятием, проектом,
-            объявлением, услугой, грантом, конкурсом или другой
-            полезной возможностью.
+            Поделитесь вакансией, новостью, мероприятием,
+            проектом, объявлением, услугой, грантом,
+            конкурсом или другой полезной возможностью.
           </p>
+
         </div>
 
         <a href="/" class="btn btn-secondary">
@@ -84,27 +96,46 @@
   </section>
 
 
+  <!-- CONTENT -->
+
   <section class="content-section">
+
     <div class="container">
 
       <div class="form-layout">
 
+        <!-- MAIN FORM -->
+
         <div class="form-main">
 
-          <form id="publicationForm" class="publication-form">
+          <form
+            id="submissionForm"
+            class="publication-form"
+            novalidate
+          >
 
             <!-- ОСНОВНАЯ ИНФОРМАЦИЯ -->
 
             <div class="form-card">
 
               <div class="form-card-header">
+
                 <div>
-                  <span class="form-icon">📝</span>
-                  <h2>Основная информация</h2>
+
+                  <span class="form-icon">
+                    📝
+                  </span>
+
+                  <h2>
+                    Основная информация
+                  </h2>
+
                   <p>
                     Заполните основные сведения о публикации.
                   </p>
+
                 </div>
+
               </div>
 
 
@@ -119,13 +150,16 @@
                   id="title"
                   name="title"
                   type="text"
-                  maxlength="200"
+                  maxlength="180"
+                  autocomplete="off"
                   placeholder="Например: Вакансия менеджера в Душанбе"
                   required
                 >
 
                 <div class="field-hint">
-                  Короткий и понятный заголовок помогает быстрее привлечь внимание.
+                  Короткий и понятный заголовок помогает быстрее
+                  привлечь внимание.
+                  <span id="titleCounter">0</span>/180
                 </div>
 
               </div>
@@ -140,7 +174,11 @@
                     <span class="required">*</span>
                   </label>
 
-                  <select id="category" name="category" required>
+                  <select
+                    id="category"
+                    name="category"
+                    required
+                  >
 
                     <option value="">
                       Выберите категорию
@@ -175,7 +213,7 @@
                     </option>
 
                     <option value="startups">
-                      🚀 Стартапы и проекты
+                      🚀 Стартапы
                     </option>
 
                     <option value="events">
@@ -217,37 +255,17 @@
 
                 <div class="form-group">
 
-                  <label for="type">
-                    Тип публикации
+                  <label for="subcategory">
+                    Подкатегория
                   </label>
 
-                  <select id="type" name="type">
-
-                    <option value="post">
-                      Обычная публикация
-                    </option>
-
-                    <option value="announcement">
-                      Объявление
-                    </option>
-
-                    <option value="article">
-                      Статья
-                    </option>
-
-                    <option value="opportunity">
-                      Возможность
-                    </option>
-
-                    <option value="offer">
-                      Предложение
-                    </option>
-
-                    <option value="request">
-                      Запрос
-                    </option>
-
-                  </select>
+                  <input
+                    id="subcategory"
+                    name="subcategory"
+                    type="text"
+                    maxlength="100"
+                    placeholder="Например: Продажи"
+                  >
 
                 </div>
 
@@ -256,14 +274,14 @@
 
               <div class="form-group">
 
-                <label for="description">
+                <label for="content">
                   Описание
                   <span class="required">*</span>
                 </label>
 
                 <textarea
-                  id="description"
-                  name="description"
+                  id="content"
+                  name="content"
                   rows="10"
                   maxlength="10000"
                   placeholder="Подробно расскажите о публикации..."
@@ -271,8 +289,12 @@
                 ></textarea>
 
                 <div class="field-hint">
-                  Можно указать условия, требования, сроки, контакты,
-                  подробности и другую важную информацию.
+
+                  Укажите условия, требования, сроки,
+                  контакты, подробности и другую важную информацию.
+
+                  <span id="contentCounter">0</span>/10000
+
                 </div>
 
               </div>
@@ -287,13 +309,19 @@
               <div class="form-card-header">
 
                 <div>
-                  <span class="form-icon">🌍</span>
 
-                  <h2>Местоположение</h2>
+                  <span class="form-icon">
+                    🌍
+                  </span>
+
+                  <h2>
+                    Местоположение
+                  </h2>
 
                   <p>
                     Укажите, где действует ваша публикация.
                   </p>
+
                 </div>
 
               </div>
@@ -389,21 +417,27 @@
             </div>
 
 
-            <!-- СРОКИ -->
+            <!-- ДАТЫ -->
 
             <div class="form-card">
 
               <div class="form-card-header">
 
                 <div>
-                  <span class="form-icon">📅</span>
 
-                  <h2>Дата и сроки</h2>
+                  <span class="form-icon">
+                    📅
+                  </span>
+
+                  <h2>
+                    Дата и сроки
+                  </h2>
 
                   <p>
-                    Необязательно. Используется для мероприятий,
+                    Необязательно. Подходит для мероприятий,
                     конкурсов, грантов, вакансий и других публикаций.
                   </p>
+
                 </div>
 
               </div>
@@ -413,13 +447,13 @@
 
                 <div class="form-group">
 
-                  <label for="startDate">
+                  <label for="event_start">
                     Дата начала
                   </label>
 
                   <input
-                    id="startDate"
-                    name="startDate"
+                    id="event_start"
+                    name="event_start"
                     type="datetime-local"
                   >
 
@@ -428,13 +462,13 @@
 
                 <div class="form-group">
 
-                  <label for="endDate">
+                  <label for="event_end">
                     Дата окончания
                   </label>
 
                   <input
-                    id="endDate"
-                    name="endDate"
+                    id="event_end"
+                    name="event_end"
                     type="datetime-local"
                   >
 
@@ -460,20 +494,27 @@
             </div>
 
 
-            <!-- ДОПОЛНИТЕЛЬНЫЕ ДАННЫЕ -->
+            <!-- РАБОТА И ДОПОЛНИТЕЛЬНЫЕ ДАННЫЕ -->
 
             <div class="form-card">
 
               <div class="form-card-header">
 
                 <div>
-                  <span class="form-icon">💼</span>
 
-                  <h2>Дополнительные данные</h2>
+                  <span class="form-icon">
+                    💼
+                  </span>
+
+                  <h2>
+                    Дополнительные данные
+                  </h2>
 
                   <p>
-                    Заполняйте только те поля, которые подходят вашей публикации.
+                    Заполняйте только те поля, которые подходят
+                    вашей публикации.
                   </p>
+
                 </div>
 
               </div>
@@ -483,16 +524,17 @@
 
                 <div class="form-group">
 
-                  <label for="salary">
+                  <label for="price">
                     Зарплата / стоимость
                   </label>
 
                   <input
-                    id="salary"
-                    name="salary"
-                    type="text"
-                    maxlength="100"
-                    placeholder="Например: 5000–8000 сомони"
+                    id="price"
+                    name="price"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Например: 5000"
                   >
 
                 </div>
@@ -545,11 +587,14 @@
 
                 <div class="form-group">
 
-                  <label for="employmentType">
-                    Формат / тип занятости
+                  <label for="employment_type">
+                    Тип занятости
                   </label>
 
-                  <select id="employmentType" name="employmentType">
+                  <select
+                    id="employment_type"
+                    name="employment_type"
+                  >
 
                     <option value="">
                       Не указано
@@ -590,19 +635,59 @@
 
                 <div class="form-group">
 
-                  <label for="experience">
-                    Опыт
+                  <label for="work_format">
+                    Формат работы
                   </label>
 
-                  <input
-                    id="experience"
-                    name="experience"
-                    type="text"
-                    maxlength="100"
-                    placeholder="Например: от 1 года"
+                  <select
+                    id="work_format"
+                    name="work_format"
                   >
 
+                    <option value="">
+                      Не указано
+                    </option>
+
+                    <option value="office">
+                      🏢 В офисе
+                    </option>
+
+                    <option value="remote">
+                      💻 Удалённо
+                    </option>
+
+                    <option value="hybrid">
+                      🔄 Гибрид
+                    </option>
+
+                    <option value="field">
+                      🚗 На выезде
+                    </option>
+
+                    <option value="online">
+                      🌐 Онлайн
+                    </option>
+
+                  </select>
+
                 </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="experience">
+                  Опыт
+                </label>
+
+                <input
+                  id="experience"
+                  name="experience"
+                  type="text"
+                  maxlength="100"
+                  placeholder="Например: от 1 года"
+                >
 
               </div>
 
@@ -664,121 +749,25 @@
             </div>
 
 
-            <!-- ССЫЛКИ И МЕДИА -->
+            <!-- КОНТАКТЫ -->
 
             <div class="form-card">
 
               <div class="form-card-header">
 
                 <div>
-                  <span class="form-icon">🔗</span>
 
-                  <h2>Ссылки и медиа</h2>
+                  <span class="form-icon">
+                    📞
+                  </span>
 
-                  <p>
-                    Можно добавить изображения, видео, аудио,
-                    музыку, документы или обычные ссылки.
-                  </p>
-                </div>
-
-              </div>
-
-
-              <div id="mediaList" class="media-list">
-
-                <div class="media-row">
-
-                  <select class="media-type">
-
-                    <option value="image">
-                      🖼️ Изображение
-                    </option>
-
-                    <option value="gallery">
-                      🖼️ Галерея
-                    </option>
-
-                    <option value="video">
-                      🎥 Видео
-                    </option>
-
-                    <option value="audio">
-                      🎧 Аудио
-                    </option>
-
-                    <option value="music">
-                      🎵 Музыка
-                    </option>
-
-                    <option value="document">
-                      📄 Документ
-                    </option>
-
-                    <option value="link">
-                      🔗 Ссылка
-                    </option>
-
-                  </select>
-
-
-                  <input
-                    type="url"
-                    class="media-url"
-                    placeholder="https://example.com/file"
-                  >
-
-
-                  <button
-                    type="button"
-                    class="btn btn-danger remove-media"
-                    title="Удалить"
-                  >
-                    ×
-                  </button>
-
-                </div>
-
-              </div>
-
-
-              <button
-                type="button"
-                id="addMedia"
-                class="btn btn-secondary"
-              >
-                + Добавить ещё медиа
-              </button>
-
-
-              <div class="info-box">
-
-                <strong>ℹ️ Важно</strong>
-
-                <p>
-                  Файлы напрямую на сайт загружать не нужно.
-                  Используйте прямые ссылки на изображения, видео,
-                  аудио, документы или другие материалы.
-                </p>
-
-              </div>
-
-            </div>
-
-
-            <!-- ССЫЛКА -->
-
-            <div class="form-card">
-
-              <div class="form-card-header">
-
-                <div>
-                  <span class="form-icon">🌐</span>
-
-                  <h2>Основная ссылка</h2>
+                  <h2>
+                    Контактная информация
+                  </h2>
 
                   <p>
-                    Если у публикации есть официальный источник,
-                    сайт, регистрация или дополнительная информация.
+                    Укажите удобный способ связи.
+                    Эти поля необязательны.
                   </p>
 
                 </div>
@@ -788,16 +777,71 @@
 
               <div class="form-group">
 
-                <label for="sourceUrl">
-                  Ссылка
+                <label for="contact_name">
+                  Имя / название организации
                 </label>
 
                 <input
-                  id="sourceUrl"
-                  name="sourceUrl"
-                  type="url"
-                  maxlength="2000"
-                  placeholder="https://example.com"
+                  id="contact_name"
+                  name="contact_name"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Например: Компания ABC"
+                >
+
+              </div>
+
+
+              <div class="form-row">
+
+                <div class="form-group">
+
+                  <label for="contact_phone">
+                    Телефон
+                  </label>
+
+                  <input
+                    id="contact_phone"
+                    name="contact_phone"
+                    type="tel"
+                    maxlength="50"
+                    placeholder="+992 ..."
+                  >
+
+                </div>
+
+
+                <div class="form-group">
+
+                  <label for="contact_email">
+                    Email
+                  </label>
+
+                  <input
+                    id="contact_email"
+                    name="contact_email"
+                    type="email"
+                    maxlength="200"
+                    placeholder="example@mail.com"
+                  >
+
+                </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="contact_telegram">
+                  Telegram
+                </label>
+
+                <input
+                  id="contact_telegram"
+                  name="contact_telegram"
+                  type="text"
+                  maxlength="100"
+                  placeholder="@username"
                 >
 
               </div>
@@ -805,21 +849,277 @@
             </div>
 
 
-            <!-- ПЕРЕВОД -->
+            <!-- ССЫЛКИ И МЕДИА -->
 
             <div class="form-card">
 
               <div class="form-card-header">
 
                 <div>
-                  <span class="form-icon">🌍</span>
 
-                  <h2>Языки публикации</h2>
+                  <span class="form-icon">
+                    🔗
+                  </span>
+
+                  <h2>
+                    Ссылки и медиа
+                  </h2>
 
                   <p>
-                    Оригинальный текст сохраняется. В дальнейшем
-                    публикацию можно переводить на доступные языки.
+                    Добавьте изображения, видео, аудио,
+                    документы или другие материалы по ссылке.
                   </p>
+
+                </div>
+
+              </div>
+
+
+              <div id="mediaList" class="media-list">
+
+                <div
+                  class="media-item"
+                  data-media-index="1"
+                >
+
+                  <div class="media-item-header">
+
+                    <strong>
+                      Медиа #1
+                    </strong>
+
+                  </div>
+
+
+                  <div class="form-grid-2">
+
+                    <div class="form-group">
+
+                      <label>
+                        Тип медиа
+                      </label>
+
+                      <select
+                        name="media_type"
+                        class="media-type"
+                      >
+
+                        <option value="image">
+                          🖼️ Изображение
+                        </option>
+
+                        <option value="gallery">
+                          🖼️ Галерея
+                        </option>
+
+                        <option value="video">
+                          🎬 Видео
+                        </option>
+
+                        <option value="music">
+                          🎵 Музыка
+                        </option>
+
+                        <option value="audio">
+                          🔊 Аудио
+                        </option>
+
+                        <option value="link">
+                          🔗 Ссылка
+                        </option>
+
+                        <option value="document">
+                          📄 Документ
+                        </option>
+
+                        <option value="other">
+                          📎 Другое
+                        </option>
+
+                      </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                      <label>
+                        URL
+                      </label>
+
+                      <input
+                        type="url"
+                        name="media_url"
+                        class="media-url"
+                        placeholder="https://example.com/..."
+                        inputmode="url"
+                      >
+
+                    </div>
+
+                  </div>
+
+
+                  <div class="form-group">
+
+                    <label>
+                      Подпись
+                    </label>
+
+                    <input
+                      type="text"
+                      name="media_caption"
+                      class="media-caption"
+                      maxlength="300"
+                      placeholder="Описание медиа"
+                    >
+
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <button
+                type="button"
+                id="addMediaButton"
+                class="btn btn-secondary"
+              >
+                + Добавить ещё медиа
+              </button>
+
+
+              <div class="info-box">
+
+                <strong>
+                  ℹ️ Важно
+                </strong>
+
+                <p>
+                  Файлы напрямую на сайт загружать не нужно.
+                  Используйте ссылки на изображения, видео,
+                  аудио, документы или другие материалы.
+                </p>
+
+              </div>
+
+            </div>
+
+
+            <!-- ОСНОВНАЯ ССЫЛКА -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+
+                  <span class="form-icon">
+                    🌐
+                  </span>
+
+                  <h2>
+                    Основная ссылка
+                  </h2>
+
+                  <p>
+                    Официальный источник, сайт, регистрация
+                    или дополнительная информация.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="external_url">
+                  Официальная ссылка
+                </label>
+
+                <input
+                  id="external_url"
+                  name="external_url"
+                  type="url"
+                  maxlength="2000"
+                  placeholder="https://example.com"
+                  inputmode="url"
+                >
+
+              </div>
+
+            </div>
+
+
+            <!-- АВТОР -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+
+                  <span class="form-icon">
+                    👤
+                  </span>
+
+                  <h2>
+                    Информация об авторе
+                  </h2>
+
+                  <p>
+                    Необязательно. Если оставить поле пустым,
+                    система использует данные вашего аккаунта.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div class="form-group">
+
+                <label for="author_name">
+                  Имя автора
+                </label>
+
+                <input
+                  id="author_name"
+                  name="author_name"
+                  type="text"
+                  maxlength="200"
+                  placeholder="Ваше имя или название организации"
+                >
+
+              </div>
+
+            </div>
+
+
+            <!-- ЯЗЫК -->
+
+            <div class="form-card">
+
+              <div class="form-card-header">
+
+                <div>
+
+                  <span class="form-icon">
+                    🌍
+                  </span>
+
+                  <h2>
+                    Языки публикации
+                  </h2>
+
+                  <p>
+                    Оригинальный текст сохраняется.
+                    В дальнейшем публикацию можно переводить
+                    на доступные языки.
+                  </p>
+
                 </div>
 
               </div>
@@ -831,7 +1131,10 @@
                   Язык оригинала
                 </label>
 
-                <select id="language" name="language">
+                <select
+                  id="language"
+                  name="language"
+                >
 
                   <option value="ru">
                     🇷🇺 Русский
@@ -890,12 +1193,13 @@
 
                 <input
                   type="checkbox"
-                  id="translateLater"
-                  name="translateLater"
+                  id="translateAll"
+                  name="translate_all"
                 >
 
                 <span>
-                  🌍 Подготовить публикацию для перевода на другие языки
+                  🌍 Подготовить публикацию для перевода
+                  на другие языки
                 </span>
 
               </label>
@@ -903,9 +1207,139 @@
             </div>
 
 
+            <!-- HONEYPOT -->
+
+            <div
+              style="
+                position:absolute;
+                left:-10000px;
+                top:auto;
+                width:1px;
+                height:1px;
+                overflow:hidden;
+              "
+              aria-hidden="true"
+            >
+
+              <label for="website">
+                Website
+              </label>
+
+              <input
+                id="website"
+                name="website"
+                type="text"
+                tabindex="-1"
+                autocomplete="off"
+              >
+
+            </div>
+
+
+            <!-- СООБЩЕНИЕ -->
+
+            <div
+              id="formMessage"
+              class="form-message"
+              hidden
+              role="alert"
+              aria-live="polite"
+            ></div>
+
+
+            <!-- SUCCESS -->
+
+            <div
+              id="submissionSuccess"
+              class="form-card submit-card"
+              hidden
+            >
+
+              <div class="moderation-notice">
+
+                <div class="moderation-icon">
+                  ✅
+                </div>
+
+                <div>
+
+                  <h3>
+                    Публикация отправлена
+                  </h3>
+
+                  <p>
+                    Ваша публикация успешно отправлена
+                    администрации Tajik Opportunities
+                    на модерацию.
+                  </p>
+
+                  <p>
+                    Сохраните код публикации.
+                    Он может понадобиться для проверки статуса.
+                  </p>
+
+                </div>
+
+              </div>
+
+
+              <div class="info-box">
+
+                <strong>
+                  Код публикации
+                </strong>
+
+                <div
+                  id="trackingCode"
+                  style="
+                    font-size:1.25rem;
+                    font-weight:700;
+                    margin-top:8px;
+                    word-break:break-word;
+                  "
+                >
+                  —
+                </div>
+
+              </div>
+
+
+              <div class="submit-actions">
+
+                <button
+                  type="button"
+                  id="copyTrackingButton"
+                  class="btn btn-secondary"
+                >
+                  📋 Скопировать код
+                </button>
+
+                <a
+                  id="trackingStatusLink"
+                  href="/"
+                  class="btn btn-primary"
+                >
+                  🔎 Проверить статус
+                </a>
+
+                <a
+                  href="/"
+                  class="btn btn-secondary"
+                >
+                  ← На главную
+                </a>
+
+              </div>
+
+            </div>
+
+
             <!-- ОТПРАВКА -->
 
-            <div class="form-card submit-card">
+            <div
+              id="submitCard"
+              class="form-card submit-card"
+            >
 
               <div class="moderation-notice">
 
@@ -926,8 +1360,9 @@
                   </p>
 
                   <p>
-                    При необходимости администрация может связаться
-                    с вами через официальный приватный чат сайта.
+                    При необходимости администрация может
+                    связаться с вами через официальный
+                    приватный чат сайта.
                   </p>
 
                 </div>
@@ -935,18 +1370,18 @@
               </div>
 
 
-              <div id="formMessage" class="form-message"></div>
-
-
               <div class="submit-actions">
 
-                <a href="/" class="btn btn-secondary">
+                <a
+                  href="/"
+                  class="btn btn-secondary"
+                >
                   Отмена
                 </a>
 
                 <button
                   type="submit"
-                  id="submitPublication"
+                  id="submitSubmission"
                   class="btn btn-primary"
                 >
                   📤 Отправить на модерацию
@@ -961,9 +1396,12 @@
         </div>
 
 
-        <!-- БОКОВАЯ ПАНЕЛЬ -->
+        <!-- SIDEBAR -->
 
         <aside class="form-sidebar">
+
+
+          <!-- HOW IT WORKS -->
 
           <div class="sidebar-card">
 
@@ -978,37 +1416,63 @@
             <ol class="steps-list">
 
               <li>
-                <strong>Создайте публикацию</strong>
+
+                <strong>
+                  Создайте публикацию
+                </strong>
+
                 <span>
                   Заполните необходимые поля.
                 </span>
+
               </li>
 
+
               <li>
-                <strong>Отправьте её</strong>
+
+                <strong>
+                  Отправьте её
+                </strong>
+
                 <span>
                   Публикация попадёт администрации.
                 </span>
+
               </li>
 
+
               <li>
-                <strong>Модерация</strong>
+
+                <strong>
+                  Модерация
+                </strong>
+
                 <span>
                   Администратор проверит информацию.
                 </span>
+
               </li>
 
+
               <li>
-                <strong>Публикация</strong>
+
+                <strong>
+                  Публикация
+                </strong>
+
                 <span>
-                  После одобрения материал появится на сайте.
+                  После одобрения материал появится
+                  на сайте.
                 </span>
+
               </li>
 
             </ol>
 
           </div>
 
+
+          <!-- OFFICIAL -->
 
           <div class="sidebar-card official-card">
 
@@ -1019,8 +1483,13 @@
             <div>
 
               <div class="official-name">
+
                 Tajik Opportunities
-                <span>✓</span>
+
+                <span>
+                  ✓
+                </span>
+
               </div>
 
               <div class="official-label">
@@ -1030,13 +1499,15 @@
             </div>
 
             <p>
-              При необходимости администрация может связаться
-              с автором через приватный чат непосредственно
-              на платформе.
+              При необходимости администрация может
+              связаться с автором через приватный чат
+              непосредственно на платформе.
             </p>
 
           </div>
 
+
+          <!-- TYPES -->
 
           <div class="sidebar-card">
 
@@ -1046,22 +1517,80 @@
 
             <ul class="feature-list">
 
-              <li>💼 Вакансии</li>
-              <li>🎓 Образование</li>
-              <li>📰 Новости</li>
-              <li>🎁 Возможности</li>
-              <li>📢 Объявления</li>
-              <li>📅 Мероприятия</li>
-              <li>🏆 Конкурсы</li>
-              <li>💰 Гранты</li>
-              <li>🚀 Стартапы</li>
-              <li>🤝 Услуги</li>
-              <li>💡 Проекты</li>
-              <li>🤝 Волонтёрство</li>
-              <li>🛍️ Товары</li>
-              <li>✨ И многое другое</li>
+              <li>
+                💼 Вакансии
+              </li>
+
+              <li>
+                🎓 Образование
+              </li>
+
+              <li>
+                📰 Новости
+              </li>
+
+              <li>
+                🎁 Возможности
+              </li>
+
+              <li>
+                📢 Объявления
+              </li>
+
+              <li>
+                📅 Мероприятия
+              </li>
+
+              <li>
+                🏆 Конкурсы
+              </li>
+
+              <li>
+                💰 Гранты
+              </li>
+
+              <li>
+                🚀 Стартапы
+              </li>
+
+              <li>
+                🤝 Услуги
+              </li>
+
+              <li>
+                💡 Проекты
+              </li>
+
+              <li>
+                🤝 Волонтёрство
+              </li>
+
+              <li>
+                🛍️ Товары
+              </li>
+
+              <li>
+                ✨ И многое другое
+              </li>
 
             </ul>
+
+          </div>
+
+
+          <!-- TIP -->
+
+          <div class="sidebar-card">
+
+            <h3>
+              💬 Совет
+            </h3>
+
+            <p>
+              Чем подробнее вы заполните публикацию,
+              тем легче пользователям понять предложение
+              и связаться с вами.
+            </p>
 
           </div>
 
@@ -1070,23 +1599,31 @@
       </div>
 
     </div>
+
   </section>
 
 </main>
 
+
+<!-- FOOTER -->
 
 <footer class="site-footer">
 
   <div class="container footer-inner">
 
     <div>
-      <strong>Tajik Opportunities</strong>
+
+      <strong>
+        Tajik Opportunities
+      </strong>
 
       <p>
         Платформа возможностей, информации,
         общения и полезных инициатив.
       </p>
+
     </div>
+
 
     <div class="footer-links">
 
@@ -1113,6 +1650,8 @@
 </footer>
 
 
+<!-- TOAST -->
+
 <div
   id="toast"
   class="toast"
@@ -1121,410 +1660,9 @@
 ></div>
 
 
-<script>
-(() => {
-  "use strict";
+<!-- ADD.JS -->
 
-  const form = document.getElementById("publicationForm");
-  const mediaList = document.getElementById("mediaList");
-  const addMediaButton = document.getElementById("addMedia");
-  const formMessage = document.getElementById("formMessage");
-  const submitButton = document.getElementById("submitPublication");
-  const toast = document.getElementById("toast");
-
-  function showToast(message, type = "info") {
-    if (!toast) return;
-
-    toast.textContent = message;
-    toast.className = "toast show " + type;
-
-    setTimeout(() => {
-      toast.className = "toast";
-    }, 3500);
-  }
-
-
-  function setMessage(message, type = "") {
-    if (!formMessage) return;
-
-    formMessage.textContent = message;
-    formMessage.className = "form-message " + type;
-  }
-
-
-  function createMediaRow() {
-
-    const row = document.createElement("div");
-
-    row.className = "media-row";
-
-    row.innerHTML = `
-      <select class="media-type">
-
-        <option value="image">
-          🖼️ Изображение
-        </option>
-
-        <option value="gallery">
-          🖼️ Галерея
-        </option>
-
-        <option value="video">
-          🎥 Видео
-        </option>
-
-        <option value="audio">
-          🎧 Аудио
-        </option>
-
-        <option value="music">
-          🎵 Музыка
-        </option>
-
-        <option value="document">
-          📄 Документ
-        </option>
-
-        <option value="link">
-          🔗 Ссылка
-        </option>
-
-      </select>
-
-      <input
-        type="url"
-        class="media-url"
-        placeholder="https://example.com/file"
-      >
-
-      <button
-        type="button"
-        class="btn btn-danger remove-media"
-        title="Удалить"
-      >
-        ×
-      </button>
-    `;
-
-    return row;
-  }
-
-
-  addMediaButton?.addEventListener("click", () => {
-
-    mediaList.appendChild(createMediaRow());
-
-  });
-
-
-  mediaList?.addEventListener("click", (event) => {
-
-    const button = event.target.closest(".remove-media");
-
-    if (!button) return;
-
-    const rows = mediaList.querySelectorAll(".media-row");
-
-    if (rows.length <= 1) {
-
-      const input = button
-        .closest(".media-row")
-        ?.querySelector(".media-url");
-
-      if (input) {
-        input.value = "";
-      }
-
-      return;
-    }
-
-    button.closest(".media-row")?.remove();
-
-  });
-
-
-  function collectMedia() {
-
-    const rows = [...document.querySelectorAll(".media-row")];
-
-    return rows
-      .map(row => {
-
-        const type =
-          row.querySelector(".media-type")?.value?.trim() || "";
-
-        const url =
-          row.querySelector(".media-url")?.value?.trim() || "";
-
-        return {
-          type,
-          url
-        };
-
-      })
-      .filter(item => item.url);
-
-  }
-
-
-  function getValue(id) {
-
-    const element = document.getElementById(id);
-
-    return element
-      ? element.value.trim()
-      : "";
-
-  }
-
-
-  function getCheckbox(id) {
-
-    const element = document.getElementById(id);
-
-    return Boolean(element?.checked);
-
-  }
-
-
-  form?.addEventListener("submit", async (event) => {
-
-    event.preventDefault();
-
-    setMessage("");
-
-    const title = getValue("title");
-    const description = getValue("description");
-    const category = getValue("category");
-
-    if (!title) {
-
-      setMessage(
-        "Введите заголовок публикации.",
-        "error"
-      );
-
-      document.getElementById("title")?.focus();
-
-      return;
-    }
-
-
-    if (!category) {
-
-      setMessage(
-        "Выберите категорию.",
-        "error"
-      );
-
-      document.getElementById("category")?.focus();
-
-      return;
-    }
-
-
-    if (!description) {
-
-      setMessage(
-        "Добавьте описание публикации.",
-        "error"
-      );
-
-      document.getElementById("description")?.focus();
-
-      return;
-    }
-
-
-    const media = collectMedia();
-
-
-    const payload = {
-
-      title,
-
-      category,
-
-      type: getValue("type") || "post",
-
-      description,
-
-      country: getValue("country"),
-
-      city: getValue("city"),
-
-      location: getValue("location"),
-
-      scope: getValue("scope"),
-
-      start_date: getValue("startDate"),
-
-      end_date: getValue("endDate"),
-
-      deadline: getValue("deadline"),
-
-      salary: getValue("salary"),
-
-      currency: getValue("currency"),
-
-      employment_type: getValue("employmentType"),
-
-      experience: getValue("experience"),
-
-      education: getValue("education"),
-
-      languages: getValue("languages"),
-
-      tags: getValue("tags"),
-
-      source_url: getValue("sourceUrl"),
-
-      language: getValue("language") || "ru",
-
-      translate_later: getCheckbox("translateLater"),
-
-      media
-
-    };
-
-
-    submitButton.disabled = true;
-
-    submitButton.dataset.originalText =
-      submitButton.textContent;
-
-    submitButton.textContent =
-      "⏳ Отправка...";
-
-
-    try {
-
-      const response = await fetch("/api/publications", {
-
-        method: "POST",
-
-        headers: {
-          "Content-Type": "application/json"
-        },
-
-        credentials: "include",
-
-        body: JSON.stringify(payload)
-
-      });
-
-
-      let data = null;
-
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
-
-
-      if (!response.ok) {
-
-        if (response.status === 401) {
-
-          throw new Error(
-            "Чтобы отправить публикацию, сначала войдите в аккаунт."
-          );
-
-        }
-
-        throw new Error(
-          data?.error ||
-          data?.message ||
-          "Не удалось отправить публикацию."
-        );
-
-      }
-
-
-      setMessage(
-        "Публикация успешно отправлена на модерацию.",
-        "success"
-      );
-
-      showToast(
-        "Публикация отправлена на проверку.",
-        "success"
-      );
-
-
-      form.reset();
-
-
-      setTimeout(() => {
-
-        window.location.href = "/";
-
-      }, 1800);
-
-
-    } catch (error) {
-
-      console.error(error);
-
-      setMessage(
-        error?.message ||
-        "Произошла ошибка. Попробуйте ещё раз.",
-        "error"
-      );
-
-      showToast(
-        error?.message ||
-        "Ошибка отправки.",
-        "error"
-      );
-
-
-    } finally {
-
-      submitButton.disabled = false;
-
-      submitButton.textContent =
-        submitButton.dataset.originalText ||
-        "📤 Отправить на модерацию";
-
-    }
-
-  });
-
-
-  /*
-   * Предупреждение при уходе со страницы,
-   * если пользователь уже начал заполнять форму.
-   */
-
-  let formChanged = false;
-
-  form?.addEventListener("input", () => {
-
-    formChanged = true;
-
-  });
-
-
-  window.addEventListener("beforeunload", (event) => {
-
-    if (!formChanged) return;
-
-    event.preventDefault();
-    event.returnValue = "";
-
-  });
-
-
-  form?.addEventListener("submit", () => {
-
-    formChanged = false;
-
-  });
-
-})();
-</script>
+<script src="/js/add.js" defer></script>
 
 </body>
   </html>
