@@ -1,5013 +1,5204 @@
-const SITE_NAME = "Tajik Opportunities";
-const SITE_USERNAME = "@tajikopportunities";
+(() => {
+  "use strict";
 
-const SESSION_COOKIE = "to_session";
-const ADMIN_COOKIE = "to_admin";
+  /* ============================================================
+     TAJIK OPPORTUNITIES
+     Universal client engine
+     File: public/js/works.js
+     ============================================================ */
 
-const SESSION_DAYS = 30;
+  const TO = {};
 
-const SECURITY_HEADERS = {
-  "content-type": "application/json; charset=utf-8",
-  "x-content-type-options": "nosniff",
-  "x-frame-options": "DENY",
-  "referrer-policy": "strict-origin-when-cross-origin",
-  "permissions-policy": "camera=(), microphone=(), geolocation=()",
-  "cache-control": "no-store"
-};
+  window.TO = TO;
+  window.TajikOpportunities = TO;
 
-const CATEGORIES = [
-  ["jobs", "💼 Работа"],
-  ["job_seekers", "🔎 Ищу работу"],
-  ["employees", "👔 Ищу сотрудника"],
-  ["profiles", "👤 Профили"],
-  ["news", "📰 Новости"],
-  ["education", "🎓 Образование"],
-  ["courses", "📚 Курсы"],
-  ["opportunities", "🎁 Возможности"],
-  ["announcements", "📢 Объявления"],
-  ["services", "🤝 Услуги"],
-  ["ideas", "💡 Идеи"],
-  ["projects", "🚀 Проекты"],
-  ["startups", "🌱 Стартапы"],
-  ["events", "📅 Мероприятия"],
-  ["competitions", "🏆 Конкурсы"],
-  ["grants", "💰 Гранты"],
-  ["volunteering", "🤝 Волонтёрство"],
-  ["products", "🛍️ Товары"],
-  ["business", "🏢 Бизнес"],
-  ["it", "💻 IT"],
-  ["sport", "⚽ Спорт"],
-  ["music", "🎵 Музыка"],
-  ["culture", "🎭 Культура"],
-  ["travel", "✈️ Путешествия"],
-  ["help", "🆘 Помощь"],
-  ["other", "➕ Другое"]
-];
+  /* ============================================================
+     CONSTANTS
+     ============================================================ */
 
-const REACTIONS = [
-  "like",
-  "love",
-  "support",
-  "funny",
-  "wow",
-  "sad",
-  "angry"
-];
+  const SITE_NAME = "Tajik Opportunities";
+  const SITE_USERNAME = "@tajikopportunities";
 
-let databaseReady = null;
+  const SESSION_COOKIE = "to_session";
+  const ADMIN_COOKIE = "to_admin";
+  const SESSION_DAYS = 30;
 
+  const STORAGE = {
+    USER: "to_user",
+    ADMIN: "to_admin_user",
+    ACTOR: "to_test_actor",
+    TEST_MODE: "to_test_mode",
+    STATS: "to_manual_stats",
+    THEME: "to_theme",
+    LANGUAGE: "to_language",
+    PROFILE_CACHE: "to_profile_cache",
+    CATEGORIES: "to_categories_cache",
+    SAVED: "to_saved",
+    FOLLOWING: "to_following",
+    VIEWED: "to_viewed",
+    REACTIONS: "to_reactions",
+    LAST_CHAT: "to_last_chat"
+  };
 
-/* =========================================================
-   MAIN
-========================================================= */
+  const CATEGORIES = [
+    ["jobs", "💼 Работа"],
+    ["job_seekers", "🔎 Ищу работу"],
+    ["employees", "👔 Ищу сотрудника"],
+    ["profiles", "👤 Профили"],
+    ["news", "📰 Новости"],
+    ["education", "🎓 Образование"],
+    ["courses", "📚 Курсы"],
+    ["opportunities", "🎁 Возможности"],
+    ["announcements", "📢 Объявления"],
+    ["services", "🤝 Услуги"],
+    ["ideas", "💡 Идеи"],
+    ["projects", "🚀 Проекты"],
+    ["startups", "🌱 Стартапы"],
+    ["events", "📅 Мероприятия"],
+    ["competitions", "🏆 Конкурсы"],
+    ["grants", "💰 Гранты"],
+    ["volunteering", "🤝 Волонтёрство"],
+    ["products", "🛍️ Товары"],
+    ["business", "🏢 Бизнес"],
+    ["it", "💻 IT"],
+    ["sport", "⚽ Спорт"],
+    ["music", "🎵 Музыка"],
+    ["culture", "🎭 Культура"],
+    ["travel", "✈️ Путешествия"],
+    ["help", "🆘 Помощь"],
+    ["other", "➕ Другое"]
+  ];
 
-export default {
-  async fetch(request, env) {
-    try {
-      await prepareDatabase(env);
+  const REACTIONS = [
+    "like",
+    "love",
+    "support",
+    "funny",
+    "wow",
+    "sad",
+    "angry"
+  ];
 
-      const url = new URL(request.url);
-      const path = url.pathname;
-      const method = request.method.toUpperCase();
+  const REACTION_ICONS = {
+    like: "👍",
+    love: "❤️",
+    support: "🤝",
+    funny: "😂",
+    wow: "😮",
+    sad: "😢",
+    angry: "😡"
+  };
 
-      /* ---------------- HEALTH ---------------- */
+  const PUBLICATION_STATUSES = [
+    "pending",
+    "waiting_payment",
+    "paid",
+    "published",
+    "rejected",
+    "hidden",
+    "deleted"
+  ];
 
-      if (path === "/api/health") {
-        return json({
-          ok: true,
-          site: SITE_NAME,
-          official: true,
-          time: new Date().toISOString()
-        });
+  /* ============================================================
+     API
+     ============================================================ */
+
+  const API = {
+    authRegister: "/api/auth/register",
+    authLogin: "/api/auth/login",
+    authLogout: "/api/auth/logout",
+    authMe: "/api/auth/me",
+    usernameCheck: "/api/username/check",
+
+    profile: "/api/profile",
+    profilePublic: "/api/profile/public",
+
+    categories: "/api/categories",
+
+    publications: "/api/publications",
+    posts: "/api/posts",
+
+    publicationView: "/api/publications/view",
+    publicationReact: "/api/publications/react",
+    publicationSave: "/api/publications/save",
+    publicationShare: "/api/publications/share",
+
+    comments: "/api/comments",
+    reactions: "/api/reactions",
+    saves: "/api/saves",
+    shares: "/api/shares",
+    views: "/api/views",
+    follows: "/api/follows",
+
+    chat: "/api/chat",
+    chatMessages: "/api/chat/messages",
+    chatRead: "/api/chat/read",
+
+    notifications: "/api/notifications",
+    notificationsRead: "/api/notifications/read",
+
+    reports: "/api/reports",
+
+    admin: "/api/admin",
+    adminLogin: "/api/admin/login",
+    adminLogout: "/api/admin/logout",
+    adminMe: "/api/admin/me",
+
+    adminDashboard: "/api/admin/dashboard",
+    adminNotifications: "/api/admin/notifications",
+
+    adminUsers: "/api/admin/users",
+    adminUser: "/api/admin/user",
+    adminUserEdit: "/api/admin/user/edit",
+    adminUserAction: "/api/admin/user/action",
+
+    adminPublications: "/api/admin/publications",
+    adminPublicationEdit: "/api/admin/publication/edit",
+    adminPublicationAction: "/api/admin/publication/action",
+    adminPublicationCounters: "/api/admin/publication/counters",
+
+    adminChats: "/api/admin/chats",
+    adminChatMessages: "/api/admin/chat/messages",
+    adminChatSend: "/api/admin/chat/send",
+
+    adminComments: "/api/admin/comments",
+    adminCommentEdit: "/api/admin/comment/edit",
+    adminCommentAction: "/api/admin/comment/action",
+
+    adminPayment: "/api/admin/payment",
+
+    adminReports: "/api/admin/reports",
+    adminTrash: "/api/admin/trash",
+    adminStats: "/api/admin/stats",
+    adminTesting: "/api/admin/testing",
+    adminAudit: "/api/admin/audit"
+  };
+
+  TO.API = API;
+  TO.SITE_NAME = SITE_NAME;
+  TO.SITE_USERNAME = SITE_USERNAME;
+  TO.CATEGORIES = CATEGORIES;
+  TO.REACTIONS = REACTIONS;
+  TO.PUBLICATION_STATUSES = PUBLICATION_STATUSES;
+
+  /* ============================================================
+     STORAGE
+     ============================================================ */
+
+  const storage = {
+    get(key, fallback = null) {
+      try {
+        const value = localStorage.getItem(key);
+        if (value === null) return fallback;
+        return JSON.parse(value);
+      } catch {
+        return fallback;
       }
+    },
 
-      /* ---------------- AUTH ---------------- */
-
-      if (path === "/api/auth/register" && method === "POST") {
-        return register(request, env);
+    set(key, value) {
+      try {
+        localStorage.setItem(key, JSON.stringify(value));
+        return true;
+      } catch {
+        return false;
       }
+    },
 
-      if (path === "/api/auth/login" && method === "POST") {
-        return login(request, env);
-      }
+    remove(key) {
+      try {
+        localStorage.removeItem(key);
+      } catch {}
+    }
+  };
 
-      if (path === "/api/auth/logout" && method === "POST") {
-        return logout(request, env);
-      }
+  TO.storage = storage;
 
-      if (path === "/api/auth/me" && method === "GET") {
-        return me(request, env);
-      }
+  /* ============================================================
+     HELPERS
+     ============================================================ */
 
-      if (path === "/api/username/check" && method === "GET") {
-        return usernameCheck(request, env);
-      }
+  const helpers = {
+    id(value) {
+      return String(
+        value ??
+        ""
+      ).trim();
+    },
 
-      /* ---------------- PROFILE ---------------- */
-
-      if (path === "/api/profile" && method === "GET") {
-        return getOwnProfile(request, env);
-      }
-
-      if (path === "/api/profile" && method === "PUT") {
-        return updateOwnProfile(request, env);
-      }
-
-      if (path === "/api/profile/public" && method === "GET") {
-        return getPublicProfile(request, env);
-      }
-
-      /* ---------------- CATEGORIES ---------------- */
-
-      if (path === "/api/categories" && method === "GET") {
-        return json({
-          ok: true,
-          categories: CATEGORIES.map(([id, name]) => ({
-            id,
-            name
-          }))
-        });
-      }
-
-      /* ---------------- PUBLICATIONS ---------------- */
-
-      if (path === "/api/publications" && method === "POST") {
-        return createPublication(request, env);
-      }
-
-      if (path === "/api/publications" && method === "GET") {
-        return listPublications(request, env);
-      }
-
-      if (
-        path.startsWith("/api/publications/") &&
-        method === "GET"
-      ) {
-        const id = path.split("/")[3];
-
-        if (id) {
-          return getPublication(request, env, id);
+    first(...values) {
+      for (const value of values) {
+        if (
+          value !== undefined &&
+          value !== null &&
+          value !== ""
+        ) {
+          return value;
         }
       }
+      return "";
+    },
 
-      if (
-        path === "/api/publications/view" &&
-        method === "POST"
-      ) {
-        return publicationView(request, env);
+    number(value, fallback = 0) {
+      const n = Number(value);
+      return Number.isFinite(n) ? n : fallback;
+    },
+
+    bool(value) {
+      if (typeof value === "boolean") return value;
+      if (value === 1 || value === "1") return true;
+      if (String(value).toLowerCase() === "true") return true;
+      return false;
+    },
+
+    escape(value) {
+      return String(value ?? "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    },
+
+    unescape(value) {
+      const div = document.createElement("div");
+      div.innerHTML = String(value ?? "");
+      return div.textContent || "";
+    },
+
+    text(value, max = 5000) {
+      return helpers.escape(String(value ?? "").slice(0, max));
+    },
+
+    formatNumber(value) {
+      return new Intl.NumberFormat(
+        document.documentElement.lang || "ru-RU"
+      ).format(helpers.number(value));
+    },
+
+    formatDate(value, options = {}) {
+      if (!value) return "";
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return String(value);
       }
 
-      /* ---------------- REACTIONS ---------------- */
-
-      if (
-        path === "/api/publications/react" &&
-        method === "POST"
-      ) {
-        return reactPublication(request, env);
-      }
-
-      if (
-        path === "/api/publications/save" &&
-        method === "POST"
-      ) {
-        return savePublication(request, env);
-      }
-
-      if (
-        path === "/api/publications/share" &&
-        method === "POST"
-      ) {
-        return sharePublication(request, env);
-      }
-
-      /* ---------------- COMMENTS ---------------- */
-
-      if (
-        path === "/api/comments" &&
-        method === "GET"
-      ) {
-        return listComments(request, env);
-      }
-
-      if (
-        path === "/api/comments" &&
-        method === "POST"
-      ) {
-        return createComment(request, env);
-      }
-
-      /* ---------------- PRIVATE CHAT ---------------- */
-
-      if (path === "/api/chat" && method === "GET") {
-        return userChats(request, env);
-      }
-
-      if (
-        path === "/api/chat/messages" &&
-        method === "GET"
-      ) {
-        return userMessages(request, env);
-      }
-
-      if (
-        path === "/api/chat/messages" &&
-        method === "POST"
-      ) {
-        return userSendMessage(request, env);
-      }
-
-      if (
-        path === "/api/chat/read" &&
-        method === "POST"
-      ) {
-        return userReadMessages(request, env);
-      }
-
-      /* ---------------- NOTIFICATIONS ---------------- */
-
-      if (
-        path === "/api/notifications" &&
-        method === "GET"
-      ) {
-        return userNotifications(request, env);
-      }
-
-      if (
-        path === "/api/notifications/read" &&
-        method === "POST"
-      ) {
-        return userReadNotifications(request, env);
-      }
-
-      /* ---------------- ADMIN AUTH ---------------- */
-
-      if (
-        path === "/api/admin/login" &&
-        method === "POST"
-      ) {
-        return adminLogin(request, env);
-      }
-
-      if (
-        path === "/api/admin/logout" &&
-        method === "POST"
-      ) {
-        return adminLogout();
-      }
-
-      if (
-        path === "/api/admin/me" &&
-        method === "GET"
-      ) {
-        return adminMe(request, env);
-      }
-
-      /* ---------------- ADMIN DASHBOARD ---------------- */
-
-      if (
-        path === "/api/admin/dashboard" &&
-        method === "GET"
-      ) {
-        return adminDashboard(request, env);
-      }
-
-      if (
-        path === "/api/admin/notifications" &&
-        method === "GET"
-      ) {
-        return adminNotifications(request, env);
-      }
-
-      /* ---------------- ADMIN USERS ---------------- */
-
-      if (
-        path === "/api/admin/users" &&
-        method === "GET"
-      ) {
-        return adminUsers(request, env);
-      }
-
-      if (
-        path === "/api/admin/user" &&
-        method === "GET"
-      ) {
-        return adminUser(request, env);
-      }
-
-      if (
-        path === "/api/admin/user/edit" &&
-        method === "POST"
-      ) {
-        return adminEditUser(request, env);
-      }
-
-      if (
-        path === "/api/admin/user/action" &&
-        method === "POST"
-      ) {
-        return adminUserAction(request, env);
-      }
-
-      /* ---------------- ADMIN PUBLICATIONS ---------------- */
-
-      if (
-        path === "/api/admin/publications" &&
-        method === "GET"
-      ) {
-        return adminPublications(request, env);
-      }
-
-      if (
-        path === "/api/admin/publication/edit" &&
-        method === "POST"
-      ) {
-        return adminEditPublication(request, env);
-      }
-
-      if (
-        path === "/api/admin/publication/action" &&
-        method === "POST"
-      ) {
-        return adminPublicationAction(request, env);
-      }
-
-      if (
-        path === "/api/admin/publication/counters" &&
-        method === "POST"
-      ) {
-        return adminEditCounters(request, env);
-      }
-
-      /* ---------------- ADMIN CHAT ---------------- */
-
-      if (
-        path === "/api/admin/chats" &&
-        method === "GET"
-      ) {
-        return adminChats(request, env);
-      }
-
-      if (
-        path === "/api/admin/chat/messages" &&
-        method === "GET"
-      ) {
-        return adminChatMessages(request, env);
-      }
-
-      if (
-        path === "/api/admin/chat/send" &&
-        method === "POST"
-      ) {
-        return adminSendMessage(request, env);
-      }
-
-      /* ---------------- ADMIN COMMENTS ---------------- */
-
-      if (
-        path === "/api/admin/comments" &&
-        method === "GET"
-      ) {
-        return adminComments(request, env);
-      }
-
-      if (
-        path === "/api/admin/comment/edit" &&
-        method === "POST"
-      ) {
-        return adminEditComment(request, env);
-      }
-
-      if (
-        path === "/api/admin/comment/action" &&
-        method === "POST"
-      ) {
-        return adminCommentAction(request, env);
-      }
-
-      /* ---------------- ADMIN ORDERS ---------------- */
-
-      if (
-        path === "/api/admin/payment" &&
-        method === "POST"
-      ) {
-        return adminPayment(request, env);
-      }
-
-      /* ---------------- STATIC ---------------- */
-
-      if (env.ASSETS) {
-        const response = await env.ASSETS.fetch(request);
-
-        if (response.status !== 404) {
-          return securityResponse(response);
+      return new Intl.DateTimeFormat(
+        document.documentElement.lang || "ru-RU",
+        {
+          dateStyle: options.dateStyle || "medium",
+          timeStyle: options.timeStyle || undefined
         }
+      ).format(date);
+    },
 
-        const fallback = new Request(
-          new URL("/index.html", request.url),
-          request
-        );
+    relativeDate(value) {
+      if (!value) return "";
 
-        return securityResponse(
-          await env.ASSETS.fetch(fallback)
-        );
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "";
       }
 
-      return json({
-        ok: false,
-        error: "Страница не найдена"
-      }, 404);
+      const seconds = Math.floor(
+        (Date.now() - date.getTime()) / 1000
+      );
 
-    } catch (error) {
-      console.error(error);
+      if (seconds < 10) return "только что";
+      if (seconds < 60) return `${seconds} сек. назад`;
 
-      return json({
-        ok: false,
-        error: "Внутренняя ошибка сервера"
-      }, 500);
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes} мин. назад`;
+
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours} ч. назад`;
+
+      const days = Math.floor(hours / 24);
+      if (days < 7) return `${days} дн. назад`;
+
+      return helpers.formatDate(value);
+    },
+
+    username(user) {
+      const value = helpers.first(
+        user?.username,
+        user?.user_name,
+        user?.handle
+      );
+
+      if (!value) return "";
+
+      return String(value).startsWith("@")
+        ? String(value)
+        : `@${value}`;
+    },
+
+    userId(user) {
+      return helpers.first(
+        user?.id,
+        user?.user_id,
+        user?.userId,
+        user?.uid
+      );
+    },
+
+    publicationId(publication) {
+      return helpers.first(
+        publication?.id,
+        publication?.publication_id,
+        publication?.publicationId,
+        publication?.post_id,
+        publication?.postId
+      );
+    },
+
+    commentId(comment) {
+      return helpers.first(
+        comment?.id,
+        comment?.comment_id,
+        comment?.commentId
+      );
+    },
+
+    media(publication) {
+      const media = helpers.first(
+        publication?.media,
+        publication?.attachments,
+        publication?.files,
+        []
+      );
+
+      return Array.isArray(media) ? media : [];
+    },
+
+    categoryLabel(category) {
+      const key = String(category || "").toLowerCase();
+
+      const found = CATEGORIES.find(
+        item => item[0] === key
+      );
+
+      return found ? found[1] : category || "";
+    },
+
+    normalizePublication(item) {
+      if (!item) return null;
+
+      const id = helpers.publicationId(item);
+
+      return {
+        ...item,
+        id,
+        publication_id: id,
+
+        title: helpers.first(
+          item.title,
+          item.name,
+          "Без названия"
+        ),
+
+        text: helpers.first(
+          item.text,
+          item.description,
+          item.content,
+          item.body,
+          ""
+        ),
+
+        category: helpers.first(
+          item.category,
+          item.category_id,
+          "other"
+        ),
+
+        status: helpers.first(
+          item.status,
+          "published"
+        ),
+
+        author: item.author || item.user || {
+          id: item.author_id || item.user_id,
+          name: item.author_name || item.name || "",
+          username: item.author_username || item.username || ""
+        },
+
+        views: helpers.number(
+          helpers.first(
+            item.views,
+            item.view_count,
+            item.views_count
+          )
+        ),
+
+        likes: helpers.number(
+          helpers.first(
+            item.likes,
+            item.like_count,
+            item.likes_count
+          )
+        ),
+
+        comments_count: helpers.number(
+          helpers.first(
+            item.comments_count,
+            item.comment_count
+          )
+        ),
+
+        saves: helpers.number(
+          helpers.first(
+            item.saves,
+            item.save_count,
+            item.saves_count
+          )
+        ),
+
+        shares: helpers.number(
+          helpers.first(
+            item.shares,
+            item.share_count,
+            item.shares_count
+          )
+        ),
+
+        created_at: helpers.first(
+          item.created_at,
+          item.createdAt,
+          item.published_at,
+          item.date
+        )
+      };
+    },
+
+    list(data) {
+      if (Array.isArray(data)) return data;
+
+      if (!data || typeof data !== "object") {
+        return [];
+      }
+
+      return (
+        data.items ||
+        data.publications ||
+        data.posts ||
+        data.results ||
+        data.users ||
+        data.notifications ||
+        data.comments ||
+        data.messages ||
+        data.chats ||
+        data.reports ||
+        data.data ||
+        []
+      );
     }
-  }
-};
+  };
 
+  TO.helpers = helpers;
 
-/* =========================================================
-   DATABASE
-========================================================= */
+  /* ============================================================
+     TOAST
+     ============================================================ */
 
-async function prepareDatabase(env) {
-  if (databaseReady) return databaseReady;
+  const toast = (() => {
+    let root = null;
 
-  databaseReady = (async () => {
-    const db = env.DB;
+    function ensure() {
+      if (root && document.body.contains(root)) {
+        return root;
+      }
 
-    const sql = [
+      root = document.createElement("div");
 
-      `
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
+      root.id = "to-toast-root";
 
-        name TEXT NOT NULL,
-        username TEXT NOT NULL UNIQUE,
-        password_hash TEXT NOT NULL,
+      Object.assign(root.style, {
+        position: "fixed",
+        top: "20px",
+        right: "20px",
+        zIndex: "999999",
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        maxWidth: "calc(100vw - 40px)",
+        pointerEvents: "none"
+      });
 
-        avatar_url TEXT,
-        email TEXT,
-        phone TEXT,
-        birth_date TEXT,
-        country TEXT,
-        city TEXT,
-        bio TEXT,
-        profession TEXT,
-        education TEXT,
-        languages TEXT,
-        skills TEXT,
-        company TEXT,
-        website TEXT,
-        social_links TEXT,
-        salary TEXT,
-        interests TEXT,
-        achievements TEXT,
+      document.body.appendChild(root);
 
-        role TEXT NOT NULL DEFAULT 'user',
-
-        verified INTEGER NOT NULL DEFAULT 0,
-        blocked INTEGER NOT NULL DEFAULT 0,
-        deleted INTEGER NOT NULL DEFAULT 0,
-        private_profile INTEGER NOT NULL DEFAULT 0,
-
-        followers_count INTEGER NOT NULL DEFAULT 0,
-        following_count INTEGER NOT NULL DEFAULT 0,
-        publications_count INTEGER NOT NULL DEFAULT 0,
-
-        last_seen_at TEXT,
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_users_username
-      ON users(username)
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_users_name
-      ON users(name)
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_users_created
-      ON users(created_at)
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        user_id TEXT NOT NULL,
-        token_hash TEXT NOT NULL UNIQUE,
-        expires_at TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_sessions_token
-      ON sessions(token_hash)
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS publications (
-        id TEXT PRIMARY KEY,
-        author_id TEXT NOT NULL,
-
-        title TEXT NOT NULL,
-        content TEXT,
-
-        category TEXT,
-        country TEXT,
-        city TEXT,
-        location TEXT,
-        scope TEXT,
-
-        event_start TEXT,
-        event_end TEXT,
-        deadline TEXT,
-
-        price TEXT,
-        currency TEXT,
-        salary TEXT,
-
-        employment_type TEXT,
-        work_format TEXT,
-        experience TEXT,
-        education TEXT,
-        languages TEXT,
-
-        tags TEXT,
-        links TEXT,
-
-        status TEXT NOT NULL DEFAULT 'pending',
-        visibility TEXT NOT NULL DEFAULT 'public',
-
-        views_count INTEGER NOT NULL DEFAULT 0,
-        likes_count INTEGER NOT NULL DEFAULT 0,
-        comments_count INTEGER NOT NULL DEFAULT 0,
-        shares_count INTEGER NOT NULL DEFAULT 0,
-        saves_count INTEGER NOT NULL DEFAULT 0,
-        reactions_count INTEGER NOT NULL DEFAULT 0,
-        reports_count INTEGER NOT NULL DEFAULT 0,
-
-        pinned INTEGER NOT NULL DEFAULT 0,
-        featured INTEGER NOT NULL DEFAULT 0,
-
-        published_at TEXT,
-        scheduled_at TEXT,
-
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_publications_status
-      ON publications(status)
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_publications_author
-      ON publications(author_id)
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_publications_category
-      ON publications(category)
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS publication_media (
-        id TEXT PRIMARY KEY,
-        publication_id TEXT NOT NULL,
-        media_type TEXT NOT NULL,
-        url TEXT NOT NULL,
-        title TEXT,
-        sort_order INTEGER NOT NULL DEFAULT 0,
-        created_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS publication_orders (
-        id TEXT PRIMARY KEY,
-        publication_id TEXT NOT NULL,
-        submitter_id TEXT NOT NULL,
-
-        price TEXT NOT NULL DEFAULT '0',
-        currency TEXT NOT NULL DEFAULT 'TJS',
-
-        status TEXT NOT NULL DEFAULT 'none',
-
-        payment_method TEXT,
-        payment_reference TEXT,
-
-        admin_note TEXT,
-
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        paid_at TEXT
-      )
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_orders_publication
-      ON publication_orders(publication_id)
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS messages (
-        id TEXT PRIMARY KEY,
-
-        sender_type TEXT NOT NULL,
-        sender_user_id TEXT,
-
-        receiver_type TEXT NOT NULL,
-        receiver_user_id TEXT,
-
-        publication_id TEXT,
-
-        text TEXT NOT NULL,
-
-        status TEXT NOT NULL DEFAULT 'sent',
-
-        created_at TEXT NOT NULL,
-        read_at TEXT
-      )
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_messages_sender
-      ON messages(sender_user_id, created_at)
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_messages_receiver
-      ON messages(receiver_user_id, created_at)
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS notifications (
-        id TEXT PRIMARY KEY,
-
-        user_id TEXT NOT NULL,
-
-        type TEXT NOT NULL,
-        title TEXT,
-        text TEXT,
-
-        publication_id TEXT,
-        message_id TEXT,
-
-        read INTEGER NOT NULL DEFAULT 0,
-
-        created_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE INDEX IF NOT EXISTS idx_notifications_user
-      ON notifications(user_id, created_at)
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS reactions (
-        id TEXT PRIMARY KEY,
-
-        publication_id TEXT NOT NULL,
-
-        user_id TEXT,
-        visitor_id TEXT,
-
-        reaction TEXT NOT NULL,
-
-        created_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS favorites (
-        id TEXT PRIMARY KEY,
-
-        publication_id TEXT NOT NULL,
-
-        user_id TEXT,
-        visitor_id TEXT,
-
-        created_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS comments (
-        id TEXT PRIMARY KEY,
-
-        publication_id TEXT NOT NULL,
-        author_id TEXT NOT NULL,
-        parent_id TEXT,
-
-        text TEXT NOT NULL,
-
-        likes_count INTEGER NOT NULL DEFAULT 0,
-
-        hidden INTEGER NOT NULL DEFAULT 0,
-        pinned INTEGER NOT NULL DEFAULT 0,
-        deleted INTEGER NOT NULL DEFAULT 0,
-
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS comment_reactions (
-        id TEXT PRIMARY KEY,
-        comment_id TEXT NOT NULL,
-        user_id TEXT,
-        visitor_id TEXT,
-        reaction TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS follows (
-        id TEXT PRIMARY KEY,
-        follower_id TEXT NOT NULL,
-        following_id TEXT NOT NULL,
-        created_at TEXT NOT NULL,
-
-        UNIQUE(follower_id, following_id)
-      )
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS reports (
-        id TEXT PRIMARY KEY,
-
-        reporter_id TEXT,
-        publication_id TEXT,
-        comment_id TEXT,
-        user_id TEXT,
-
-        reason TEXT,
-
-        status TEXT NOT NULL DEFAULT 'open',
-
-        admin_note TEXT,
-
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL
-      )
-      `,
-
-      `
-      CREATE TABLE IF NOT EXISTS audit_logs (
-        id TEXT PRIMARY KEY,
-
-        admin_id TEXT,
-
-        action TEXT NOT NULL,
-
-        target_type TEXT,
-        target_id TEXT,
-
-        details TEXT,
-
-        created_at TEXT NOT NULL
-      )
-      `
-    ];
-
-    for (const statement of sql) {
-      await db.prepare(statement).run();
+      return root;
     }
+
+    function show(message, type = "info", timeout = 3500) {
+      if (!document.body) return;
+
+      const item = document.createElement("div");
+
+      item.textContent = String(message || "");
+
+      Object.assign(item.style, {
+        padding: "12px 16px",
+        borderRadius: "12px",
+        background:
+          type === "error"
+            ? "#dc2626"
+            : type === "success"
+              ? "#16a34a"
+              : type === "warning"
+                ? "#d97706"
+                : "#1f2937",
+        color: "#fff",
+        boxShadow: "0 8px 30px rgba(0,0,0,.18)",
+        fontSize: "14px",
+        lineHeight: "1.4",
+        pointerEvents: "auto",
+        opacity: "0",
+        transform: "translateY(-8px)",
+        transition: "all .2s ease"
+      });
+
+      ensure().appendChild(item);
+
+      requestAnimationFrame(() => {
+        item.style.opacity = "1";
+        item.style.transform = "translateY(0)";
+      });
+
+      setTimeout(() => {
+        item.style.opacity = "0";
+        item.style.transform = "translateY(-8px)";
+
+        setTimeout(() => item.remove(), 250);
+      }, timeout);
+    }
+
+    return {
+      show,
+      success(message) {
+        show(message, "success");
+      },
+      error(message) {
+        show(message, "error");
+      },
+      warning(message) {
+        show(message, "warning");
+      },
+      info(message) {
+        show(message, "info");
+      }
+    };
   })();
 
-  return databaseReady;
-}
-
-
-/* =========================================================
-   REGISTER
-========================================================= */
-
-async function register(request, env) {
-  const body = await readJson(request);
-
-  const name = clean(body.name, 100);
-  let username = normalizeUsername(body.username);
-
-  /*
-   * ВАЖНО:
-   * Имя и username обязательны.
-   * Страна, город, email, телефон и остальные поля НЕ обязательны.
-   */
-
-  if (!name) {
-    return json({
-      ok: false,
-      error: "Введите имя"
-    }, 400);
-  }
-
-  if (!/^@[a-zA-Z0-9_]{3,30}$/.test(username)) {
-    return json({
-      ok: false,
-      error: "Username должен быть в формате @name"
-    }, 400);
-  }
-
-  const password = String(body.password || "");
-
-  /*
-   * Пароль нужен только технически для безопасного входа.
-   * Он никогда не показывается публично.
-   */
-
-  if (password.length < 6) {
-    return json({
-      ok: false,
-      error: "Пароль должен содержать минимум 6 символов"
-    }, 400);
-  }
-
-  const existing = await env.DB
-    .prepare(`
-      SELECT id
-      FROM users
-      WHERE username = ?
-      LIMIT 1
-    `)
-    .bind(username)
-    .first();
-
-  if (existing) {
-    return json({
-      ok: false,
-      error: "Этот username уже занят"
-    }, 409);
-  }
-
-  const now = new Date().toISOString();
-  const userId = uid("user");
-
-  const passwordHash = await sha256(password);
-
-  await env.DB.prepare(`
-    INSERT INTO users (
-      id,
-      name,
-      username,
-      password_hash,
-      role,
-      created_at,
-      updated_at,
-      last_seen_at
-    )
-    VALUES (
-      ?, ?, ?, ?, 'user', ?, ?, ?
-    )
-  `).bind(
-    userId,
-    name,
-    username,
-    passwordHash,
-    now,
-    now,
-    now
-  ).run();
-
-  const token = await createSession(
-    env,
-    userId
-  );
-
-  return json({
-    ok: true,
-
-    message: "Профиль создан",
-
-    user: safeUser({
-      id: userId,
-      name,
-      username,
-      verified: 0
-    })
-  }, 201, {
-    "Set-Cookie": sessionCookie(token)
-  });
-}
-
-
-/* =========================================================
-   USERNAME
-========================================================= */
-
-async function usernameCheck(request, env) {
-  const url = new URL(request.url);
-
-  const username = normalizeUsername(
-    url.searchParams.get("username")
-  );
-
-  if (!/^@[a-zA-Z0-9_]{3,30}$/.test(username)) {
-    return json({
-      ok: true,
-      username,
-      valid: false,
-      available: false,
-      message: "Username должен быть в формате @name"
-    });
-  }
-
-  const found = await env.DB
-    .prepare(`
-      SELECT id
-      FROM users
-      WHERE username = ?
-      LIMIT 1
-    `)
-    .bind(username)
-    .first();
-
-  return json({
-    ok: true,
-    username,
-    valid: true,
-    available: !found,
-    message: found
-      ? "❌ Username уже занят"
-      : "✅ Username свободен"
-  });
-}
-
-
-/* =========================================================
-   LOGIN
-========================================================= */
-
-async function login(request, env) {
-  const body = await readJson(request);
-
-  const username = normalizeUsername(body.username);
-  const password = String(body.password || "");
-
-  const user = await env.DB
-    .prepare(`
-      SELECT *
-      FROM users
-      WHERE username = ?
-      LIMIT 1
-    `)
-    .bind(username)
-    .first();
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Неверный username или пароль"
-    }, 401);
-  }
-
-  if (Number(user.deleted) === 1) {
-    return json({
-      ok: false,
-      error: "Аккаунт удалён"
-    }, 403);
-  }
-
-  if (Number(user.blocked) === 1) {
-    return json({
-      ok: false,
-      error: "Аккаунт заблокирован"
-    }, 403);
-  }
-
-  const hash = await sha256(password);
-
-  if (hash !== user.password_hash) {
-    return json({
-      ok: false,
-      error: "Неверный username или пароль"
-    }, 401);
-  }
-
-  const now = new Date().toISOString();
-
-  await env.DB.prepare(`
-    UPDATE users
-    SET last_seen_at = ?,
-        updated_at = ?
-    WHERE id = ?
-  `).bind(
-    now,
-    now,
-    user.id
-  ).run();
-
-  const token = await createSession(
-    env,
-    user.id
-  );
-
-  return json({
-    ok: true,
-    user: safeUser(user)
-  }, 200, {
-    "Set-Cookie": sessionCookie(token)
-  });
-}
-
-
-/* =========================================================
-   LOGOUT
-========================================================= */
-
-async function logout(request, env) {
-  const token = getCookie(
-    request,
-    SESSION_COOKIE
-  );
-
-  if (token) {
-    await env.DB.prepare(`
-      DELETE FROM sessions
-      WHERE token_hash = ?
-    `).bind(
-      await sha256(token)
-    ).run();
-  }
-
-  return json({
-    ok: true
-  }, 200, {
-    "Set-Cookie": deleteCookie(SESSION_COOKIE)
-  });
-}
-
-
-/* =========================================================
-   CURRENT USER
-========================================================= */
-
-async function me(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      authenticated: false
-    }, 401);
-  }
-
-  return json({
-    ok: true,
-    authenticated: true,
-    user: safeUser(user)
-  });
-}
-
-
-/* =========================================================
-   PROFILE
-========================================================= */
-
-async function getOwnProfile(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  return json({
-    ok: true,
-    profile: fullProfile(user)
-  });
-}
-
-
-async function updateOwnProfile(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  const body = await readJson(request);
-
-  const updates = [];
-  const values = [];
-
-  if (body.name !== undefined) {
-    const name = clean(body.name, 100);
-
-    if (!name) {
-      return json({
-        ok: false,
-        error: "Имя обязательно"
-      }, 400);
-    }
-
-    updates.push("name = ?");
-    values.push(name);
-  }
-
-  if (body.username !== undefined) {
-    const username = normalizeUsername(
-      body.username
-    );
-
-    if (!/^@[a-zA-Z0-9_]{3,30}$/.test(username)) {
-      return json({
-        ok: false,
-        error: "Username должен быть в формате @name"
-      }, 400);
-    }
-
-    const used = await env.DB
-      .prepare(`
-        SELECT id
-        FROM users
-        WHERE username = ?
-        AND id != ?
-        LIMIT 1
-      `)
-      .bind(
-        username,
-        user.id
-      )
-      .first();
-
-    if (used) {
-      return json({
-        ok: false,
-        error: "Этот username уже занят"
-      }, 409);
-    }
-
-    updates.push("username = ?");
-    values.push(username);
-  }
-
-  const optionalFields = [
-    "avatar_url",
-    "email",
-    "phone",
-    "birth_date",
-    "country",
-    "city",
-    "bio",
-    "profession",
-    "education",
-    "languages",
-    "skills",
-    "company",
-    "website",
-    "social_links",
-    "salary",
-    "interests",
-    "achievements"
-  ];
-
-  for (const field of optionalFields) {
-    if (body[field] !== undefined) {
-      updates.push(`${field} = ?`);
-      values.push(clean(body[field], 5000));
-    }
-  }
-
-  if (body.private_profile !== undefined) {
-    updates.push("private_profile = ?");
-    values.push(body.private_profile ? 1 : 0);
-  }
-
-  if (!updates.length) {
-    return json({
-      ok: true,
-      message: "Изменений нет"
-    });
-  }
-
-  const now = new Date().toISOString();
-
-  updates.push("updated_at = ?");
-  values.push(now);
-  values.push(user.id);
-
-  await env.DB.prepare(`
-    UPDATE users
-    SET ${updates.join(", ")}
-    WHERE id = ?
-  `).bind(...values).run();
-
-  const updated = await getUser(
-    env,
-    user.id
-  );
-
-  return json({
-    ok: true,
-    profile: fullProfile(updated)
-  });
-}
-
-
-async function getPublicProfile(request, env) {
-  const url = new URL(request.url);
-
-  const username = normalizeUsername(
-    url.searchParams.get("username")
-  );
-
-  const user = await env.DB
-    .prepare(`
-      SELECT *
-      FROM users
-      WHERE username = ?
-      AND deleted = 0
-      LIMIT 1
-    `)
-    .bind(username)
-    .first();
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Участник не найден"
-    }, 404);
-  }
-
-  if (Number(user.private_profile) === 1) {
-    return json({
-      ok: true,
-      profile: {
-        name: user.name,
-        username: user.username,
-        verified: Number(user.verified) === 1
+  TO.toast = toast;
+
+  /* ============================================================
+     CONFIRM
+     ============================================================ */
+
+  function confirmAction(message, title = "Подтверждение") {
+    return new Promise(resolve => {
+      if (typeof window.confirm === "function") {
+        resolve(window.confirm(`${title}\n\n${message}`));
+      } else {
+        resolve(false);
       }
     });
   }
 
-  return json({
-    ok: true,
-    profile: fullProfile(user, true)
-  });
-}
-
-
-/* =========================================================
-   CREATE PUBLICATION
-========================================================= */
-
-async function createPublication(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Сначала войдите в аккаунт"
-    }, 401);
-  }
-
-  const body = await readJson(request);
-
-  const title = clean(body.title, 300);
-
-  if (!title) {
-    return json({
-      ok: false,
-      error: "Название публикации обязательно"
-    }, 400);
-  }
-
-  const publicationId = uid("pub");
-  const now = new Date().toISOString();
-
-  await env.DB.prepare(`
-    INSERT INTO publications (
-      id,
-      author_id,
-      title,
-      content,
-      category,
-      country,
-      city,
-      location,
-      scope,
-      event_start,
-      event_end,
-      deadline,
-      price,
-      currency,
-      salary,
-      employment_type,
-      work_format,
-      experience,
-      education,
-      languages,
-      tags,
-      links,
-      status,
-      visibility,
-      created_at,
-      updated_at
-    )
-    VALUES (
-      ?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,
-      'pending',
-      'public',
-      ?,?
-    )
-  `).bind(
-    publicationId,
-    user.id,
-    title,
-    clean(body.content, 50000),
-    clean(body.category, 100),
-    clean(body.country, 100),
-    clean(body.city, 100),
-    clean(body.location, 500),
-    clean(body.scope, 100),
-    clean(body.event_start, 100),
-    clean(body.event_end, 100),
-    clean(body.deadline, 100),
-    clean(body.price, 100),
-    clean(body.currency, 30),
-    clean(body.salary, 100),
-    clean(body.employment_type, 200),
-    clean(body.work_format, 200),
-    clean(body.experience, 300),
-    clean(body.education, 300),
-    clean(body.languages, 1000),
-    clean(body.tags, 3000),
-    clean(body.links, 5000),
-    now,
-    now
-  ).run();
-
-  await env.DB.prepare(`
-    UPDATE users
-    SET publications_count = publications_count + 1,
-        updated_at = ?
-    WHERE id = ?
-  `).bind(
-    now,
-    user.id
-  ).run();
-
-  /*
-   * Автоматически создаём уведомление админу
-   */
-
-  await addAdminAudit(
-    env,
-    null,
-    "new_publication_submission",
-    "publication",
-    publicationId,
-    JSON.stringify({
-      author_id: user.id,
-      author_name: user.name,
-      author_username: user.username
-    })
-  );
-
-  /*
-   * Медиа только по URL.
-   */
-
-  if (Array.isArray(body.media)) {
-    let position = 0;
-
-    for (const item of body.media) {
-      const mediaUrl = clean(
-        item?.url,
-        3000
-      );
-
-      const mediaType = clean(
-        item?.type,
-        50
-      );
-
-      if (!mediaUrl || !mediaType) {
-        continue;
-      }
-
-      await env.DB.prepare(`
-        INSERT INTO publication_media (
-          id,
-          publication_id,
-          media_type,
-          url,
-          title,
-          sort_order,
-          created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        uid("media"),
-        publicationId,
-        mediaType,
-        mediaUrl,
-        clean(item?.title, 300),
-        position++,
-        now
-      ).run();
-    }
-  }
-
-  /*
-   * Уведомление участнику.
-   */
-
-  await addNotification(
-    env,
-    user.id,
-    "publication_pending",
-    "Публикация отправлена",
-    "Ваша публикация отправлена на проверку Tajik Opportunities.",
-    publicationId
-  );
-
-  return json({
-    ok: true,
-    publication_id: publicationId,
-    status: "pending",
-    message: "Публикация отправлена на проверку"
-  }, 201);
-}
-
-
-/* =========================================================
-   PUBLICATIONS LIST
-========================================================= */
-
-async function listPublications(request, env) {
-  const url = new URL(request.url);
-
-  const q = clean(
-    url.searchParams.get("q"),
-    300
-  );
-
-  const category = clean(
-    url.searchParams.get("category"),
-    100
-  );
-
-  const country = clean(
-    url.searchParams.get("country"),
-    100
-  );
-
-  const city = clean(
-    url.searchParams.get("city"),
-    100
-  );
-
-  let sql = `
-    SELECT
-      p.*,
-
-      u.name AS author_name,
-      u.username AS author_username,
-      u.verified AS author_verified
-
-    FROM publications p
-
-    JOIN users u
-      ON u.id = p.author_id
-
-    WHERE p.status = 'published'
-      AND p.visibility = 'public'
-      AND u.deleted = 0
-      AND u.blocked = 0
-  `;
-
-  const params = [];
-
-  if (category) {
-    sql += ` AND p.category = ?`;
-    params.push(category);
-  }
-
-  if (country) {
-    sql += ` AND p.country = ?`;
-    params.push(country);
-  }
-
-  if (city) {
-    sql += ` AND p.city = ?`;
-    params.push(city);
-  }
-
-  if (q) {
-    const search = `%${q}%`;
-
-    sql += `
-      AND (
-        p.title LIKE ?
-        OR p.content LIKE ?
-        OR p.tags LIKE ?
-        OR u.name LIKE ?
-        OR u.username LIKE ?
-      )
-    `;
-
-    params.push(
-      search,
-      search,
-      search,
-      search,
-      search
-    );
-  }
-
-  sql += `
-    ORDER BY
-      p.pinned DESC,
-      p.featured DESC,
-      p.published_at DESC,
-      p.created_at DESC
-    LIMIT 100
-  `;
-
-  const result = await env.DB
-    .prepare(sql)
-    .bind(...params)
-    .all();
-
-  return json({
-    ok: true,
-    publications: result.results || []
-  });
-}
-
-
-/* =========================================================
-   GET PUBLICATION
-========================================================= */
-
-async function getPublication(request, env, id) {
-  const publication = await env.DB
-    .prepare(`
-      SELECT
-        p.*,
-
-        u.name AS author_name,
-        u.username AS author_username,
-        u.verified AS author_verified
-
-      FROM publications p
-
-      JOIN users u
-        ON u.id = p.author_id
-
-      WHERE p.id = ?
-      LIMIT 1
-    `)
-    .bind(id)
-    .first();
-
-  if (!publication) {
-    return json({
-      ok: false,
-      error: "Публикация не найдена"
-    }, 404);
-  }
-
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  const allowed =
-    publication.status === "published" ||
-    publication.status === "approved" ||
-    user?.role === "admin" ||
-    user?.id === publication.author_id;
-
-  if (!allowed) {
-    return json({
-      ok: false,
-      error: "Публикация ещё не опубликована"
-    }, 403);
-  }
-
-  const media = await env.DB
-    .prepare(`
-      SELECT *
-      FROM publication_media
-      WHERE publication_id = ?
-      ORDER BY sort_order ASC
-    `)
-    .bind(id)
-    .all();
-
-  return json({
-    ok: true,
-
-    publication: {
-      ...publication,
-
-      media: media.results || []
-    }
-  });
-}
-
-
-/* =========================================================
-   VIEWS
-========================================================= */
-
-async function publicationView(request, env) {
-  const body = await readJson(request);
-
-  const id = clean(
-    body.publication_id,
-    100
-  );
-
-  if (!id) {
-    return json({
-      ok: false,
-      error: "publication_id отсутствует"
-    }, 400);
-  }
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET views_count = views_count + 1
-    WHERE id = ?
-  `).bind(id).run();
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   REACTION
-========================================================= */
-
-async function reactPublication(request, env) {
-  const body = await readJson(request);
-
-  const publicationId = clean(
-    body.publication_id,
-    100
-  );
-
-  const reaction = clean(
-    body.reaction,
-    30
-  );
-
-  if (!REACTIONS.includes(reaction)) {
-    return json({
-      ok: false,
-      error: "Неизвестная реакция"
-    }, 400);
-  }
-
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  const visitorId = user
-    ? null
-    : getOrCreateVisitor(request);
-
-  let existing;
-
-  if (user) {
-    existing = await env.DB.prepare(`
-      SELECT *
-      FROM reactions
-      WHERE publication_id = ?
-      AND user_id = ?
-      LIMIT 1
-    `).bind(
-      publicationId,
-      user.id
-    ).first();
-  } else {
-    existing = await env.DB.prepare(`
-      SELECT *
-      FROM reactions
-      WHERE publication_id = ?
-      AND visitor_id = ?
-      LIMIT 1
-    `).bind(
-      publicationId,
-      visitorId
-    ).first();
-  }
-
-  if (existing) {
-    await env.DB.prepare(`
-      DELETE FROM reactions
-      WHERE id = ?
-    `).bind(existing.id).run();
-
-    await env.DB.prepare(`
-      UPDATE publications
-      SET reactions_count =
-        CASE
-          WHEN reactions_count > 0
-          THEN reactions_count - 1
-          ELSE 0
-        END,
-        likes_count =
-        CASE
-          WHEN ? = 'like'
-           AND likes_count > 0
-          THEN likes_count - 1
-          ELSE likes_count
-        END
-      WHERE id = ?
-    `).bind(
-      existing.reaction,
-      publicationId
-    ).run();
-
-    return json({
-      ok: true,
-      removed: true
-    });
-  }
-
-  await env.DB.prepare(`
-    INSERT INTO reactions (
-      id,
-      publication_id,
-      user_id,
-      visitor_id,
-      reaction,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).bind(
-    uid("reaction"),
-    publicationId,
-    user?.id || null,
-    visitorId,
-    reaction,
-    new Date().toISOString()
-  ).run();
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET reactions_count = reactions_count + 1,
-        likes_count =
-          CASE
-            WHEN ? = 'like'
-            THEN likes_count + 1
-            ELSE likes_count
-          END
-    WHERE id = ?
-  `).bind(
-    reaction,
-    publicationId
-  ).run();
-
-  return json({
-    ok: true,
-    reaction
-  });
-}
-
-
-/* =========================================================
-   SAVE
-========================================================= */
-
-async function savePublication(request, env) {
-  const body = await readJson(request);
-
-  const publicationId = clean(
-    body.publication_id,
-    100
-  );
-
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  const visitorId = user
-    ? null
-    : getOrCreateVisitor(request);
-
-  let existing;
-
-  if (user) {
-    existing = await env.DB.prepare(`
-      SELECT id
-      FROM favorites
-      WHERE publication_id = ?
-      AND user_id = ?
-      LIMIT 1
-    `).bind(
-      publicationId,
-      user.id
-    ).first();
-  } else {
-    existing = await env.DB.prepare(`
-      SELECT id
-      FROM favorites
-      WHERE publication_id = ?
-      AND visitor_id = ?
-      LIMIT 1
-    `).bind(
-      publicationId,
-      visitorId
-    ).first();
-  }
-
-  if (existing) {
-    await env.DB.prepare(`
-      DELETE FROM favorites
-      WHERE id = ?
-    `).bind(existing.id).run();
-
-    await env.DB.prepare(`
-      UPDATE publications
-      SET saves_count =
-        CASE
-          WHEN saves_count > 0
-          THEN saves_count - 1
-          ELSE 0
-        END
-      WHERE id = ?
-    `).bind(publicationId).run();
-
-    return json({
-      ok: true,
-      saved: false
-    });
-  }
-
-  await env.DB.prepare(`
-    INSERT INTO favorites (
-      id,
-      publication_id,
-      user_id,
-      visitor_id,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?)
-  `).bind(
-    uid("save"),
-    publicationId,
-    user?.id || null,
-    visitorId,
-    new Date().toISOString()
-  ).run();
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET saves_count = saves_count + 1
-    WHERE id = ?
-  `).bind(publicationId).run();
-
-  return json({
-    ok: true,
-    saved: true
-  });
-}
-
-
-/* =========================================================
-   SHARE
-========================================================= */
-
-async function sharePublication(request, env) {
-  const body = await readJson(request);
-
-  const id = clean(
-    body.publication_id,
-    100
-  );
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET shares_count = shares_count + 1
-    WHERE id = ?
-  `).bind(id).run();
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   COMMENTS
-========================================================= */
-
-async function listComments(request, env) {
-  const url = new URL(request.url);
-
-  const publicationId = clean(
-    url.searchParams.get("publication_id"),
-    100
-  );
-
-  const result = await env.DB.prepare(`
-    SELECT
-      c.*,
-
-      u.name AS author_name,
-      u.username AS author_username,
-      u.verified AS author_verified
-
-    FROM comments c
-
-    JOIN users u
-      ON u.id = c.author_id
-
-    WHERE c.publication_id = ?
-      AND c.hidden = 0
-      AND c.deleted = 0
-
-    ORDER BY
-      c.pinned DESC,
-      c.created_at ASC
-
-    LIMIT 500
-  `).bind(
-    publicationId
-  ).all();
-
-  return json({
-    ok: true,
-    comments: result.results || []
-  });
-}
-
-
-async function createComment(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Для комментария необходимо войти"
-    }, 401);
-  }
-
-  const body = await readJson(request);
-
-  const publicationId = clean(
-    body.publication_id,
-    100
-  );
-
-  const text = clean(
-    body.text,
-    10000
-  );
-
-  if (!text) {
-    return json({
-      ok: false,
-      error: "Комментарий пустой"
-    }, 400);
-  }
-
-  const now = new Date().toISOString();
-
-  const id = uid("comment");
-
-  await env.DB.prepare(`
-    INSERT INTO comments (
-      id,
-      publication_id,
-      author_id,
-      parent_id,
-      text,
-      created_at,
-      updated_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    id,
-    publicationId,
-    user.id,
-    clean(body.parent_id, 100),
-    text,
-    now,
-    now
-  ).run();
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET comments_count = comments_count + 1
-    WHERE id = ?
-  `).bind(publicationId).run();
-
-  return json({
-    ok: true,
-    comment_id: id
-  }, 201);
-}
-
-
-/* =========================================================
-   PRIVATE USER CHAT
-========================================================= */
-
-async function userChats(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  const result = await env.DB.prepare(`
-    SELECT
-      m.id,
-      m.text,
-      m.status,
-      m.publication_id,
-      m.created_at,
-
-      CASE
-        WHEN m.sender_user_id = ?
-        THEN 'user'
-        ELSE 'official'
-      END AS direction
-
-    FROM messages m
-
-    WHERE
-      m.sender_user_id = ?
-      OR m.receiver_user_id = ?
-
-    ORDER BY m.created_at DESC
-
-    LIMIT 500
-  `).bind(
-    user.id,
-    user.id,
-    user.id
-  ).all();
-
-  return json({
-    ok: true,
-
-    official: {
-      name: SITE_NAME,
-      username: SITE_USERNAME,
-      verified: true
-    },
-
-    messages: result.results || []
-  });
-}
-
-
-async function userMessages(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  const url = new URL(request.url);
-
-  const publicationId = clean(
-    url.searchParams.get("publication_id"),
-    100
-  );
-
-  let sql = `
-    SELECT *
-    FROM messages
-    WHERE
-      (
-        sender_user_id = ?
-        OR receiver_user_id = ?
-      )
-  `;
-
-  const params = [
-    user.id,
-    user.id
-  ];
-
-  if (publicationId) {
-    sql += `
-      AND publication_id = ?
-    `;
-
-    params.push(publicationId);
-  }
-
-  sql += `
-    ORDER BY created_at ASC
-    LIMIT 1000
-  `;
-
-  const result = await env.DB
-    .prepare(sql)
-    .bind(...params)
-    .all();
-
-  return json({
-    ok: true,
-
-    official: {
-      name: SITE_NAME,
-      username: SITE_USERNAME,
-      verified: true
-    },
-
-    messages: result.results || []
-  });
-}
-
-
-async function userSendMessage(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  const body = await readJson(request);
-
-  const text = clean(
-    body.text,
-    10000
-  );
-
-  if (!text) {
-    return json({
-      ok: false,
-      error: "Введите сообщение"
-    }, 400);
-  }
-
-  const now = new Date().toISOString();
-
-  const id = uid("msg");
-
-  await env.DB.prepare(`
-    INSERT INTO messages (
-      id,
-
-      sender_type,
-      sender_user_id,
-
-      receiver_type,
-      receiver_user_id,
-
-      publication_id,
-
-      text,
-      status,
-      created_at
-    )
-    VALUES (
-      ?,
-      'user',
-      ?,
-      'official',
-      NULL,
-      ?,
-      ?,
-      'sent',
-      ?
-    )
-  `).bind(
-    id,
-    user.id,
-    clean(body.publication_id, 100),
-    text,
-    now
-  ).run();
-
-  await addAdminAudit(
-    env,
-    null,
-    "new_private_message",
-    "user",
-    user.id,
-    JSON.stringify({
-      name: user.name,
-      username: user.username,
-      message_id: id
-    })
-  );
-
-  return json({
-    ok: true,
-    message: {
-      id,
-      sender_name: user.name,
-      sender_username: user.username,
-      text,
-      created_at: now
-    }
-  }, 201);
-}
-
-
-async function userReadMessages(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  const now = new Date().toISOString();
-
-  await env.DB.prepare(`
-    UPDATE messages
-    SET status = 'read',
-        read_at = ?
-    WHERE receiver_user_id = ?
-      AND status != 'read'
-  `).bind(
-    now,
-    user.id
-  ).run();
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   USER NOTIFICATIONS
-========================================================= */
-
-async function userNotifications(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  const result = await env.DB.prepare(`
-    SELECT *
-    FROM notifications
-    WHERE user_id = ?
-    ORDER BY created_at DESC
-    LIMIT 300
-  `).bind(
-    user.id
-  ).all();
-
-  return json({
-    ok: true,
-    notifications: result.results || []
-  });
-}
-
-
-async function userReadNotifications(request, env) {
-  const user = await requireUser(
-    request,
-    env
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Необходимо войти"
-    }, 401);
-  }
-
-  await env.DB.prepare(`
-    UPDATE notifications
-    SET read = 1
-    WHERE user_id = ?
-  `).bind(user.id).run();
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   ADMIN LOGIN
-========================================================= */
-
-async function adminLogin(request, env) {
-  const body = await readJson(request);
-
-  if (!env.ADMIN_PASSWORD) {
-    return json({
-      ok: false,
-      error: "ADMIN_PASSWORD не установлен в Worker Secret"
-    }, 500);
-  }
-
-  if (
-    String(body.password || "") !==
-    String(env.ADMIN_PASSWORD)
+  TO.confirm = confirmAction;
+
+  /* ============================================================
+     REQUEST
+     ============================================================ */
+
+  async function request(
+    url,
+    options = {},
+    config = {}
   ) {
-    return json({
-      ok: false,
-      error: "Неверный пароль"
-    }, 401);
-  }
-
-  const token =
-    crypto.randomUUID() +
-    "." +
-    crypto.randomUUID();
-
-  return json({
-    ok: true,
-    profile: {
-      name: SITE_NAME,
-      username: SITE_USERNAME,
-      verified: true
-    }
-  }, 200, {
-    "Set-Cookie":
-      adminCookie(token)
-  });
-}
-
-
-async function adminLogout() {
-  return json({
-    ok: true
-  }, 200, {
-    "Set-Cookie":
-      deleteCookie(ADMIN_COOKIE)
-  });
-}
-
-
-async function adminMe(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return json({
-      ok: false,
-      authenticated: false
-    }, 401);
-  }
-
-  return json({
-    ok: true,
-
-    authenticated: true,
-
-    profile: {
-      name: SITE_NAME,
-      username: SITE_USERNAME,
-      verified: true
-    }
-  });
-}
-
-
-/* =========================================================
-   ADMIN DASHBOARD
-========================================================= */
-
-async function adminDashboard(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const [
-    total,
-    active,
-    blocked,
-    deleted,
-    today,
-    pending,
-    published,
-    hidden,
-    rejected,
-    views,
-    reactions,
-    comments,
-    shares,
-    saves,
-    messages,
-    unreadMessages
-  ] = await Promise.all([
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM users
-      WHERE deleted = 0
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM users
-      WHERE deleted = 0
-      AND blocked = 0
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM users
-      WHERE blocked = 1
-      AND deleted = 0
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM users
-      WHERE deleted = 1
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM users
-      WHERE created_at >= date('now')
-      AND deleted = 0
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM publications
-      WHERE status = 'pending'
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM publications
-      WHERE status = 'published'
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM publications
-      WHERE status = 'hidden'
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM publications
-      WHERE status = 'rejected'
-    `),
-
-    sum(env, `
-      SELECT COALESCE(SUM(views_count),0) AS n
-      FROM publications
-    `),
-
-    sum(env, `
-      SELECT COALESCE(SUM(reactions_count),0) AS n
-      FROM publications
-    `),
-
-    sum(env, `
-      SELECT COALESCE(SUM(comments_count),0) AS n
-      FROM publications
-    `),
-
-    sum(env, `
-      SELECT COALESCE(SUM(shares_count),0) AS n
-      FROM publications
-    `),
-
-    sum(env, `
-      SELECT COALESCE(SUM(saves_count),0) AS n
-      FROM publications
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM messages
-    `),
-
-    count(env, `
-      SELECT COUNT(*) AS n
-      FROM messages
-      WHERE sender_type = 'user'
-      AND status != 'read'
-    `)
-  ]);
-
-  return json({
-    ok: true,
-
-    users: {
-      total,
-      active,
-      blocked,
-      deleted,
-      today
-    },
-
-    publications: {
-      pending,
-      published,
-      hidden,
-      rejected
-    },
-
-    engagement: {
-      views,
-      reactions,
-      comments,
-      shares,
-      saves
-    },
-
-    messages: {
-      total: messages,
-      unread: unreadMessages
-    }
-  });
-}
-
-
-/* =========================================================
-   ADMIN NOTIFICATIONS
-========================================================= */
-
-async function adminNotifications(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const pending = await env.DB.prepare(`
-    SELECT
-      p.*,
-
-      u.name AS author_name,
-      u.username AS author_username,
-      u.email AS author_email,
-      u.phone AS author_phone
-
-    FROM publications p
-
-    JOIN users u
-      ON u.id = p.author_id
-
-    WHERE p.status IN (
-      'pending',
-      'waiting_payment',
-      'paid'
-    )
-
-    ORDER BY p.created_at DESC
-
-    LIMIT 500
-  `).all();
-
-  const newUsers = await env.DB.prepare(`
-    SELECT
-      id,
-      name,
-      username,
-      created_at
-    FROM users
-    ORDER BY created_at DESC
-    LIMIT 100
-  `).all();
-
-  const unreadChats = await env.DB.prepare(`
-    SELECT
-      COUNT(*) AS n
-    FROM messages
-    WHERE sender_type = 'user'
-      AND status != 'read'
-  `).first();
-
-  return json({
-    ok: true,
-
-    sections: {
-      pending_publications:
-        pending.results || [],
-
-      new_users:
-        newUsers.results || [],
-
-      unread_messages:
-        Number(unreadChats?.n || 0)
-    }
-  });
-}
-
-
-/* =========================================================
-   ADMIN USERS
-========================================================= */
-
-async function adminUsers(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const url = new URL(request.url);
-
-  const q = clean(
-    url.searchParams.get("q"),
-    300
-  );
-
-  const status = clean(
-    url.searchParams.get("status"),
-    50
-  );
-
-  let sql = `
-    SELECT
-      id,
-      name,
-      username,
-
-      avatar_url,
-      email,
-      phone,
-      birth_date,
-      country,
-      city,
-      bio,
-      profession,
-      education,
-      languages,
-      skills,
-      company,
-      website,
-      social_links,
-      salary,
-      interests,
-      achievements,
-
-      role,
-      verified,
-      blocked,
-      deleted,
-      private_profile,
-
-      followers_count,
-      following_count,
-      publications_count,
-
-      last_seen_at,
-      created_at,
-      updated_at
-
-    FROM users
-
-    WHERE 1 = 1
-  `;
-
-  const params = [];
-
-  if (q) {
-    const search = `%${q}%`;
-
-    sql += `
-      AND (
-        name LIKE ?
-        OR username LIKE ?
-        OR email LIKE ?
-        OR phone LIKE ?
-      )
-    `;
-
-    params.push(
-      search,
-      search,
-      search,
-      search
-    );
-  }
-
-  if (status === "active") {
-    sql += `
-      AND blocked = 0
-      AND deleted = 0
-    `;
-  }
-
-  if (status === "blocked") {
-    sql += `
-      AND blocked = 1
-    `;
-  }
-
-  if (status === "deleted") {
-    sql += `
-      AND deleted = 1
-    `;
-  }
-
-  sql += `
-    ORDER BY created_at DESC
-    LIMIT 1000
-  `;
-
-  const result = await env.DB
-    .prepare(sql)
-    .bind(...params)
-    .all();
-
-  return json({
-    ok: true,
-    users: result.results || []
-  });
-}
-
-
-async function adminUser(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const url = new URL(request.url);
-
-  const id = clean(
-    url.searchParams.get("id"),
-    100
-  );
-
-  const user = await getUser(
-    env,
-    id
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Участник не найден"
-    }, 404);
-  }
-
-  const publications = await env.DB.prepare(`
-    SELECT *
-    FROM publications
-    WHERE author_id = ?
-    ORDER BY created_at DESC
-    LIMIT 500
-  `).bind(id).all();
-
-  return json({
-    ok: true,
-
-    user: fullProfile(user),
-
-    publications:
-      publications.results || []
-  });
-}
-
-
-async function adminEditUser(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const id = clean(
-    body.id,
-    100
-  );
-
-  if (!id) {
-    return json({
-      ok: false,
-      error: "ID участника отсутствует"
-    }, 400);
-  }
-
-  const updates = [];
-  const values = [];
-
-  const fields = [
-    "name",
-    "avatar_url",
-    "email",
-    "phone",
-    "birth_date",
-    "country",
-    "city",
-    "bio",
-    "profession",
-    "education",
-    "languages",
-    "skills",
-    "company",
-    "website",
-    "social_links",
-    "salary",
-    "interests",
-    "achievements"
-  ];
-
-  for (const field of fields) {
-    if (body[field] !== undefined) {
-      updates.push(`${field} = ?`);
-      values.push(clean(body[field], 10000));
-    }
-  }
-
-  if (body.username !== undefined) {
-    const username = normalizeUsername(
-      body.username
+    const {
+      method = "GET",
+      body,
+      headers = {},
+      timeout = 15000,
+      silent = false,
+      parse = true
+    } = {
+      ...options,
+      ...config
+    };
+
+    const controller = new AbortController();
+
+    const timer = setTimeout(
+      () => controller.abort(),
+      timeout
     );
 
-    const duplicate = await env.DB.prepare(`
-      SELECT id
-      FROM users
-      WHERE username = ?
-      AND id != ?
-      LIMIT 1
-    `).bind(
-      username,
-      id
-    ).first();
+    const finalHeaders = {
+      Accept: "application/json",
+      ...headers
+    };
 
-    if (duplicate) {
-      return json({
-        ok: false,
-        error: "Этот username уже занят"
-      }, 409);
+    const fetchOptions = {
+      method,
+      credentials: "include",
+      headers: finalHeaders,
+      signal: controller.signal
+    };
+
+    if (
+      body !== undefined &&
+      body !== null &&
+      method !== "GET" &&
+      method !== "HEAD"
+    ) {
+      if (
+        body instanceof FormData ||
+        body instanceof Blob ||
+        typeof body === "string"
+      ) {
+        fetchOptions.body = body;
+      } else {
+        finalHeaders["Content-Type"] =
+          "application/json";
+
+        fetchOptions.body = JSON.stringify(body);
+      }
     }
 
-    updates.push("username = ?");
-    values.push(username);
-  }
+    try {
+      const response = await fetch(
+        url,
+        fetchOptions
+      );
 
-  if (body.role !== undefined) {
-    const roles = [
-      "user",
-      "moderator",
-      "editor",
-      "manager",
-      "admin"
-    ];
+      const contentType =
+        response.headers.get("content-type") || "";
 
-    if (!roles.includes(body.role)) {
-      return json({
+      let data = null;
+
+      if (parse) {
+        if (contentType.includes("application/json")) {
+          try {
+            data = await response.json();
+          } catch {
+            data = null;
+          }
+        } else {
+          try {
+            const text = await response.text();
+            data = text ? { text } : null;
+          } catch {
+            data = null;
+          }
+        }
+      }
+
+      if (!response.ok) {
+        const error = new Error(
+          data?.message ||
+          data?.error ||
+          `HTTP ${response.status}`
+        );
+
+        error.status = response.status;
+        error.data = data;
+        error.url = url;
+
+        throw error;
+      }
+
+      return {
+        ok: true,
+        status: response.status,
+        data,
+        headers: response.headers
+      };
+    } catch (error) {
+      if (!silent) {
+        if (error.name === "AbortError") {
+          toast.error("Запрос выполнялся слишком долго.");
+        } else if (
+          error.status === 401
+        ) {
+          toast.warning(
+            "Требуется авторизация."
+          );
+        } else if (
+          error.status === 403
+        ) {
+          toast.error(
+            "Недостаточно прав для этого действия."
+          );
+        }
+      }
+
+      return {
         ok: false,
-        error: "Недопустимая роль"
-      }, 400);
+        status: error.status || 0,
+        error,
+        data: error.data || null
+      };
+    } finally {
+      clearTimeout(timer);
     }
-
-    updates.push("role = ?");
-    values.push(body.role);
   }
 
-  const numeric = [
-    "verified",
-    "blocked",
-    "deleted",
-    "private_profile",
-    "followers_count",
-    "following_count",
-    "publications_count"
-  ];
+  TO.request = request;
 
-  for (const field of numeric) {
-    if (body[field] !== undefined) {
-      let value = Number(body[field]);
+  async function tryRequests(
+    requests,
+    options = {}
+  ) {
+    let last = null;
 
-      if (!Number.isFinite(value)) {
-        value = 0;
+    for (const item of requests) {
+      const result = await request(
+        item.url,
+        item.options || {},
+        {
+          silent: true,
+          ...options
+        }
+      );
+
+      last = result;
+
+      if (result.ok) {
+        return result;
       }
 
       if (
-        [
-          "verified",
-          "blocked",
-          "deleted",
-          "private_profile"
-        ].includes(field)
+        result.status &&
+        ![404, 405, 501].includes(result.status)
       ) {
-        value = value ? 1 : 0;
-      } else {
-        value = Math.max(
-          0,
-          Math.floor(value)
+        return result;
+      }
+    }
+
+    return last || {
+      ok: false,
+      status: 0,
+      data: null
+    };
+  }
+
+  TO.tryRequests = tryRequests;
+
+  /* ============================================================
+     AUTH
+     ============================================================ */
+
+  const auth = {
+    user: null,
+
+    async me() {
+      const result = await request(
+        API.authMe,
+        {},
+        { silent: true }
+      );
+
+      if (result.ok) {
+        const user =
+          result.data?.user ||
+          result.data?.data ||
+          result.data;
+
+        if (
+          user &&
+          typeof user === "object"
+        ) {
+          this.user = user;
+          storage.set(
+            STORAGE.USER,
+            user
+          );
+          return user;
+        }
+
+        this.user = null;
+        return null;
+      }
+
+      this.user = storage.get(
+        STORAGE.USER,
+        null
+      );
+
+      return this.user;
+    },
+
+    async register(payload) {
+      const result = await request(
+        API.authRegister,
+        {
+          method: "POST",
+          body: payload
+        }
+      );
+
+      if (result.ok) {
+        const user =
+          result.data?.user ||
+          result.data?.data?.user ||
+          null;
+
+        if (user) {
+          this.user = user;
+          storage.set(
+            STORAGE.USER,
+            user
+          );
+        }
+
+        toast.success(
+          "Регистрация выполнена."
         );
       }
 
-      updates.push(`${field} = ?`);
-      values.push(value);
-    }
-  }
-
-  if (!updates.length) {
-    return json({
-      ok: true,
-      message: "Изменений нет"
-    });
-  }
-
-  updates.push("updated_at = ?");
-  values.push(new Date().toISOString());
-  values.push(id);
-
-  await env.DB.prepare(`
-    UPDATE users
-    SET ${updates.join(", ")}
-    WHERE id = ?
-  `).bind(...values).run();
-
-  await addAdminAudit(
-    env,
-    null,
-    "edit_user",
-    "user",
-    id,
-    JSON.stringify(body)
-  );
-
-  return json({
-    ok: true,
-    user: fullProfile(
-      await getUser(env, id)
-    )
-  });
-}
-
-
-/* =========================================================
-   ADMIN USER ACTION
-========================================================= */
-
-async function adminUserAction(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const id = clean(
-    body.id,
-    100
-  );
-
-  const action = clean(
-    body.action,
-    100
-  );
-
-  const now = new Date().toISOString();
-
-  if (action === "block") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET blocked = 1,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "unblock") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET blocked = 0,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "verify") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET verified = 1,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "unverify") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET verified = 0,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "delete") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET deleted = 1,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "restore") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET deleted = 0,
-          blocked = 0,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "make_moderator") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET role = 'moderator',
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "make_editor") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET role = 'editor',
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "make_manager") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET role = 'manager',
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else if (action === "make_user") {
-    await env.DB.prepare(`
-      UPDATE users
-      SET role = 'user',
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-  }
-
-  else {
-    return json({
-      ok: false,
-      error: "Неизвестное действие"
-    }, 400);
-  }
-
-  await addAdminAudit(
-    env,
-    null,
-    `user_${action}`,
-    "user",
-    id,
-    ""
-  );
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   ADMIN PUBLICATIONS
-========================================================= */
-
-async function adminPublications(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const url = new URL(request.url);
-
-  const q = clean(
-    url.searchParams.get("q"),
-    300
-  );
-
-  const status = clean(
-    url.searchParams.get("status"),
-    100
-  );
-
-  const category = clean(
-    url.searchParams.get("category"),
-    100
-  );
-
-  const country = clean(
-    url.searchParams.get("country"),
-    100
-  );
-
-  const city = clean(
-    url.searchParams.get("city"),
-    100
-  );
-
-  let sql = `
-    SELECT
-      p.*,
-
-      u.name AS author_name,
-      u.username AS author_username,
-      u.email AS author_email,
-      u.phone AS author_phone,
-      u.verified AS author_verified
-
-    FROM publications p
-
-    JOIN users u
-      ON u.id = p.author_id
-
-    WHERE 1 = 1
-  `;
-
-  const params = [];
-
-  if (status) {
-    sql += ` AND p.status = ?`;
-    params.push(status);
-  }
-
-  if (category) {
-    sql += ` AND p.category = ?`;
-    params.push(category);
-  }
-
-  if (country) {
-    sql += ` AND p.country = ?`;
-    params.push(country);
-  }
-
-  if (city) {
-    sql += ` AND p.city = ?`;
-    params.push(city);
-  }
-
-  if (q) {
-    const search = `%${q}%`;
-
-    sql += `
-      AND (
-        p.title LIKE ?
-        OR p.content LIKE ?
-        OR u.name LIKE ?
-        OR u.username LIKE ?
-      )
-    `;
-
-    params.push(
-      search,
-      search,
-      search,
-      search
-    );
-  }
-
-  sql += `
-    ORDER BY p.created_at DESC
-    LIMIT 1000
-  `;
-
-  const result = await env.DB
-    .prepare(sql)
-    .bind(...params)
-    .all();
-
-  return json({
-    ok: true,
-    publications: result.results || []
-  });
-}
-
-
-/* =========================================================
-   ADMIN EDIT PUBLICATION
-========================================================= */
-
-async function adminEditPublication(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const id = clean(
-    body.id,
-    100
-  );
-
-  const fields = [
-    "title",
-    "content",
-    "category",
-    "country",
-    "city",
-    "location",
-    "scope",
-    "event_start",
-    "event_end",
-    "deadline",
-    "price",
-    "currency",
-    "salary",
-    "employment_type",
-    "work_format",
-    "experience",
-    "education",
-    "languages",
-    "tags",
-    "links",
-    "visibility",
-    "published_at",
-    "scheduled_at"
-  ];
-
-  const updates = [];
-  const values = [];
-
-  for (const field of fields) {
-    if (body[field] !== undefined) {
-      updates.push(`${field} = ?`);
-      values.push(clean(body[field], 50000));
-    }
-  }
-
-  if (body.author_id !== undefined) {
-    updates.push("author_id = ?");
-    values.push(clean(body.author_id, 100));
-  }
-
-  if (body.status !== undefined) {
-    updates.push("status = ?");
-    values.push(clean(body.status, 50));
-  }
-
-  if (!updates.length) {
-    return json({
-      ok: false,
-      error: "Нет изменений"
-    }, 400);
-  }
-
-  updates.push("updated_at = ?");
-  values.push(new Date().toISOString());
-
-  values.push(id);
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET ${updates.join(", ")}
-    WHERE id = ?
-  `).bind(...values).run();
-
-  await addAdminAudit(
-    env,
-    null,
-    "edit_publication",
-    "publication",
-    id,
-    JSON.stringify(body)
-  );
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   ADMIN PUBLICATION ACTIONS
-========================================================= */
-
-async function adminPublicationAction(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const id = clean(
-    body.id,
-    100
-  );
-
-  const action = clean(
-    body.action,
-    100
-  );
-
-  const now = new Date().toISOString();
-
-  const publication = await env.DB.prepare(`
-    SELECT *
-    FROM publications
-    WHERE id = ?
-    LIMIT 1
-  `).bind(id).first();
-
-  if (!publication) {
-    return json({
-      ok: false,
-      error: "Публикация не найдена"
-    }, 404);
-  }
-
-  let status = null;
-
-  if (action === "approve_free") {
-    status = "published";
-  }
-
-  else if (action === "request_payment") {
-    status = "waiting_payment";
-  }
-
-  else if (action === "payment_received") {
-    status = "paid";
-  }
-
-  else if (action === "publish") {
-    status = "published";
-  }
-
-  else if (action === "reject") {
-    status = "rejected";
-  }
-
-  else if (action === "hide") {
-    status = "hidden";
-  }
-
-  else if (action === "restore") {
-    status = "pending";
-  }
-
-  else if (action === "delete") {
-    status = "deleted";
-  }
-
-  else if (action === "pin") {
-    await env.DB.prepare(`
-      UPDATE publications
-      SET pinned =
-        CASE
-          WHEN pinned = 1 THEN 0
-          ELSE 1
-        END,
-        updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-
-    return json({
-      ok: true
-    });
-  }
-
-  else if (action === "feature") {
-    await env.DB.prepare(`
-      UPDATE publications
-      SET featured =
-        CASE
-          WHEN featured = 1 THEN 0
-          ELSE 1
-        END,
-        updated_at = ?
-      WHERE id = ?
-    `).bind(
-      now,
-      id
-    ).run();
-
-    return json({
-      ok: true
-    });
-  }
-
-  else {
-    return json({
-      ok: false,
-      error: "Неизвестное действие"
-    }, 400);
-  }
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET
-      status = ?,
-      published_at =
-        CASE
-          WHEN ? = 'published'
-          THEN COALESCE(published_at, ?)
-          ELSE published_at
-        END,
-      updated_at = ?
-    WHERE id = ?
-  `).bind(
-    status,
-    status,
-    now,
-    now,
-    id
-  ).run();
-
-  /*
-   * Если админ назначил оплату,
-   * создаём/обновляем индивидуальное условие.
-   */
-
-  if (action === "request_payment") {
-    const price = clean(
-      body.price,
-      100
-    ) || "0";
-
-    const currency = clean(
-      body.currency,
-      30
-    ) || "TJS";
-
-    const existingOrder =
-      await env.DB.prepare(`
-        SELECT id
-        FROM publication_orders
-        WHERE publication_id = ?
-        LIMIT 1
-      `).bind(id).first();
-
-    if (existingOrder) {
-      await env.DB.prepare(`
-        UPDATE publication_orders
-        SET price = ?,
-            currency = ?,
-            status = 'requested',
-            admin_note = ?,
-            updated_at = ?
-        WHERE publication_id = ?
-      `).bind(
-        price,
-        currency,
-        clean(body.admin_note, 5000),
-        now,
-        id
-      ).run();
-    } else {
-      await env.DB.prepare(`
-        INSERT INTO publication_orders (
-          id,
-          publication_id,
-          submitter_id,
-          price,
-          currency,
-          status,
-          admin_note,
-          created_at,
-          updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, 'requested', ?, ?, ?)
-      `).bind(
-        uid("order"),
-        id,
-        publication.author_id,
-        price,
-        currency,
-        clean(body.admin_note, 5000),
-        now,
-        now
-      ).run();
-    }
-
-    /*
-     * Участнику приходит уведомление.
-     * Само личное сообщение отправляется через
-     * официальный аккаунт сайта.
-     */
-
-    await addNotification(
-      env,
-      publication.author_id,
-      "publication_payment",
-      "Tajik Opportunities",
-      clean(body.message, 10000) ||
-        `Для публикации необходимо выполнить указанные условия. Сумма: ${price} ${currency}.`,
-      id
-    );
-
-    await sendOfficialMessage(
-      env,
-      publication.author_id,
-      clean(body.message, 10000) ||
-        `Здравствуйте! Для публикации необходимо выполнить указанные условия. Сумма: ${price} ${currency}.`,
-      id
-    );
-  }
-
-  if (action === "payment_received") {
-    await env.DB.prepare(`
-      UPDATE publication_orders
-      SET status = 'paid',
-          paid_at = ?,
-          updated_at = ?
-      WHERE publication_id = ?
-    `).bind(
-      now,
-      now,
-      id
-    ).run();
-
-    await sendOfficialMessage(
-      env,
-      publication.author_id,
-      "Оплата подтверждена. Ваша публикация может быть опубликована после окончательного решения модератора.",
-      id
-    );
-  }
-
-  if (action === "publish") {
-    await sendOfficialMessage(
-      env,
-      publication.author_id,
-      "Ваша публикация одобрена и опубликована на Tajik Opportunities.",
-      id
-    );
-  }
-
-  if (action === "reject") {
-    await sendOfficialMessage(
-      env,
-      publication.author_id,
-      clean(body.message, 10000) ||
-        "Ваша публикация не была одобрена.",
-      id
-    );
-  }
-
-  await addAdminAudit(
-    env,
-    null,
-    `publication_${action}`,
-    "publication",
-    id,
-    JSON.stringify(body)
-  );
-
-  return json({
-    ok: true,
-    status
-  });
-}
-
-
-/* =========================================================
-   ADMIN COUNTERS
-========================================================= */
-
-async function adminEditCounters(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const id = clean(
-    body.id,
-    100
-  );
-
-  const counters = [
-    "views_count",
-    "likes_count",
-    "comments_count",
-    "shares_count",
-    "saves_count",
-    "reactions_count",
-    "reports_count"
-  ];
-
-  const updates = [];
-  const values = [];
-
-  for (const field of counters) {
-    if (body[field] !== undefined) {
-      let value = Number(body[field]);
-
-      if (!Number.isFinite(value)) {
-        value = 0;
-      }
-
-      value = Math.max(
-        0,
-        Math.floor(value)
+      return result;
+    },
+
+    async login(payload) {
+      const result = await request(
+        API.authLogin,
+        {
+          method: "POST",
+          body: payload
+        }
       );
 
-      updates.push(`${field} = ?`);
-      values.push(value);
+      if (result.ok) {
+        const user =
+          result.data?.user ||
+          result.data?.data?.user ||
+          result.data?.data ||
+          null;
+
+        if (user) {
+          this.user = user;
+          storage.set(
+            STORAGE.USER,
+            user
+          );
+        }
+
+        toast.success(
+          "Вы успешно вошли."
+        );
+      }
+
+      return result;
+    },
+
+    async logout() {
+      await request(
+        API.authLogout,
+        {
+          method: "POST",
+          body: {}
+        },
+        { silent: true }
+      );
+
+      this.user = null;
+
+      storage.remove(
+        STORAGE.USER
+      );
+
+      toast.success(
+        "Вы вышли из аккаунта."
+      );
+
+      return true;
+    },
+
+    isLoggedIn() {
+      return !!(
+        this.user ||
+        storage.get(STORAGE.USER)
+      );
+    },
+
+    getUser() {
+      return (
+        this.user ||
+        storage.get(STORAGE.USER, null)
+      );
     }
-  }
-
-  if (!updates.length) {
-    return json({
-      ok: false,
-      error: "Нет счётчиков"
-    }, 400);
-  }
-
-  updates.push("updated_at = ?");
-  values.push(new Date().toISOString());
-  values.push(id);
-
-  await env.DB.prepare(`
-    UPDATE publications
-    SET ${updates.join(", ")}
-    WHERE id = ?
-  `).bind(...values).run();
-
-  await addAdminAudit(
-    env,
-    null,
-    "edit_publication_counters",
-    "publication",
-    id,
-    JSON.stringify(body)
-  );
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   ADMIN CHATS
-========================================================= */
-
-async function adminChats(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const result = await env.DB.prepare(`
-    SELECT
-      u.id,
-      u.name,
-      u.username,
-      u.avatar_url,
-      u.verified,
-
-      (
-        SELECT m.text
-        FROM messages m
-        WHERE
-          m.sender_user_id = u.id
-          OR m.receiver_user_id = u.id
-        ORDER BY m.created_at DESC
-        LIMIT 1
-      ) AS last_message,
-
-      (
-        SELECT m.created_at
-        FROM messages m
-        WHERE
-          m.sender_user_id = u.id
-          OR m.receiver_user_id = u.id
-        ORDER BY m.created_at DESC
-        LIMIT 1
-      ) AS last_message_at,
-
-      (
-        SELECT COUNT(*)
-        FROM messages m
-        WHERE
-          m.sender_user_id = u.id
-          AND m.status != 'read'
-      ) AS unread_count
-
-    FROM users u
-
-    WHERE EXISTS (
-      SELECT 1
-      FROM messages m
-      WHERE
-        m.sender_user_id = u.id
-        OR m.receiver_user_id = u.id
-    )
-
-    ORDER BY last_message_at DESC
-
-    LIMIT 1000
-  `).all();
-
-  return json({
-    ok: true,
-
-    official: {
-      name: SITE_NAME,
-      username: SITE_USERNAME,
-      verified: true
-    },
-
-    chats: result.results || []
-  });
-}
-
-
-async function adminChatMessages(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const url = new URL(request.url);
-
-  const userId = clean(
-    url.searchParams.get("user_id"),
-    100
-  );
-
-  if (!userId) {
-    return json({
-      ok: false,
-      error: "user_id отсутствует"
-    }, 400);
-  }
-
-  const user = await getUser(
-    env,
-    userId
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Участник не найден"
-    }, 404);
-  }
-
-  const result = await env.DB.prepare(`
-    SELECT *
-    FROM messages
-    WHERE
-      sender_user_id = ?
-      OR receiver_user_id = ?
-    ORDER BY created_at ASC
-    LIMIT 2000
-  `).bind(
-    userId,
-    userId
-  ).all();
-
-  /*
-   * Администратор открыл чат —
-   * сообщения пользователя считаются прочитанными.
-   */
-
-  await env.DB.prepare(`
-    UPDATE messages
-    SET status = 'read',
-        read_at = ?
-    WHERE sender_user_id = ?
-      AND status != 'read'
-  `).bind(
-    new Date().toISOString(),
-    userId
-  ).run();
-
-  return json({
-    ok: true,
-
-    participant: {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      avatar_url: user.avatar_url,
-      verified: Number(user.verified) === 1
-    },
-
-    official: {
-      name: SITE_NAME,
-      username: SITE_USERNAME,
-      verified: true
-    },
-
-    messages: result.results || []
-  });
-}
-
-
-async function adminSendMessage(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const userId = clean(
-    body.user_id,
-    100
-  );
-
-  const text = clean(
-    body.text,
-    10000
-  );
-
-  if (!userId || !text) {
-    return json({
-      ok: false,
-      error: "Укажите участника и сообщение"
-    }, 400);
-  }
-
-  const user = await getUser(
-    env,
-    userId
-  );
-
-  if (!user) {
-    return json({
-      ok: false,
-      error: "Участник не найден"
-    }, 404);
-  }
-
-  const now = new Date().toISOString();
-
-  const messageId = uid("msg");
-
-  await env.DB.prepare(`
-    INSERT INTO messages (
-      id,
-
-      sender_type,
-      sender_user_id,
-
-      receiver_type,
-      receiver_user_id,
-
-      publication_id,
-
-      text,
-      status,
-      created_at
-    )
-    VALUES (
-      ?,
-      'official',
-      NULL,
-      'user',
-      ?,
-      ?,
-      ?,
-      'sent',
-      ?
-    )
-  `).bind(
-    messageId,
-    userId,
-    clean(body.publication_id, 100),
-    text,
-    now
-  ).run();
-
-  await addNotification(
-    env,
-    userId,
-    "official_message",
-    SITE_NAME,
-    text,
-    clean(body.publication_id, 100)
-  );
-
-  await addAdminAudit(
-    env,
-    null,
-    "official_message_sent",
-    "user",
-    userId,
-    JSON.stringify({
-      message_id: messageId,
-      publication_id:
-        clean(body.publication_id, 100)
-    })
-  );
-
-  return json({
-    ok: true,
-
-    message: {
-      id: messageId,
-      sender_type: "official",
-      sender_name: SITE_NAME,
-      sender_username: SITE_USERNAME,
-      verified: true,
-      text,
-      created_at: now
-    }
-  }, 201);
-}
-
-
-/* =========================================================
-   ADMIN COMMENTS
-========================================================= */
-
-async function adminComments(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const url = new URL(request.url);
-
-  const q = clean(
-    url.searchParams.get("q"),
-    300
-  );
-
-  let sql = `
-    SELECT
-      c.*,
-
-      u.name AS author_name,
-      u.username AS author_username,
-
-      p.title AS publication_title
-
-    FROM comments c
-
-    JOIN users u
-      ON u.id = c.author_id
-
-    JOIN publications p
-      ON p.id = c.publication_id
-
-    WHERE 1 = 1
-  `;
-
-  const params = [];
-
-  if (q) {
-    const search = `%${q}%`;
-
-    sql += `
-      AND (
-        c.text LIKE ?
-        OR u.name LIKE ?
-        OR u.username LIKE ?
-        OR p.title LIKE ?
-      )
-    `;
-
-    params.push(
-      search,
-      search,
-      search,
-      search
-    );
-  }
-
-  sql += `
-    ORDER BY c.created_at DESC
-    LIMIT 1000
-  `;
-
-  const result = await env.DB
-    .prepare(sql)
-    .bind(...params)
-    .all();
-
-  return json({
-    ok: true,
-    comments: result.results || []
-  });
-}
-
-
-async function adminEditComment(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const id = clean(
-    body.id,
-    100
-  );
-
-  const updates = [];
-  const values = [];
-
-  if (body.text !== undefined) {
-    updates.push("text = ?");
-    values.push(clean(body.text, 10000));
-  }
-
-  if (body.likes_count !== undefined) {
-    let n = Number(body.likes_count);
-
-    if (!Number.isFinite(n)) n = 0;
-
-    updates.push("likes_count = ?");
-    values.push(Math.max(0, Math.floor(n)));
-  }
-
-  if (!updates.length) {
-    return json({
-      ok: false,
-      error: "Нет изменений"
-    }, 400);
-  }
-
-  updates.push("updated_at = ?");
-  values.push(new Date().toISOString());
-  values.push(id);
-
-  await env.DB.prepare(`
-    UPDATE comments
-    SET ${updates.join(", ")}
-    WHERE id = ?
-  `).bind(...values).run();
-
-  await addAdminAudit(
-    env,
-    null,
-    "edit_comment",
-    "comment",
-    id,
-    JSON.stringify(body)
-  );
-
-  return json({
-    ok: true
-  });
-}
-
-
-async function adminCommentAction(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const id = clean(
-    body.id,
-    100
-  );
-
-  const action = clean(
-    body.action,
-    100
-  );
-
-  if (action === "hide") {
-    await env.DB.prepare(`
-      UPDATE comments
-      SET hidden = 1,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      new Date().toISOString(),
-      id
-    ).run();
-  }
-
-  else if (action === "show") {
-    await env.DB.prepare(`
-      UPDATE comments
-      SET hidden = 0,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      new Date().toISOString(),
-      id
-    ).run();
-  }
-
-  else if (action === "delete") {
-    await env.DB.prepare(`
-      UPDATE comments
-      SET deleted = 1,
-          updated_at = ?
-      WHERE id = ?
-    `).bind(
-      new Date().toISOString(),
-      id
-    ).run();
-  }
-
-  else if (action === "pin") {
-    await env.DB.prepare(`
-      UPDATE comments
-      SET pinned =
-        CASE
-          WHEN pinned = 1 THEN 0
-          ELSE 1
-        END,
-        updated_at = ?
-      WHERE id = ?
-    `).bind(
-      new Date().toISOString(),
-      id
-    ).run();
-  }
-
-  else {
-    return json({
-      ok: false,
-      error: "Неизвестное действие"
-    }, 400);
-  }
-
-  await addAdminAudit(
-    env,
-    null,
-    `comment_${action}`,
-    "comment",
-    id,
-    ""
-  );
-
-  return json({
-    ok: true
-  });
-}
-
-
-/* =========================================================
-   ADMIN PAYMENT / INDIVIDUAL PRICE
-========================================================= */
-
-async function adminPayment(request, env) {
-  if (!(await isAdmin(request, env))) {
-    return forbidden();
-  }
-
-  const body = await readJson(request);
-
-  const publicationId = clean(
-    body.publication_id,
-    100
-  );
-
-  const publication = await env.DB
-    .prepare(`
-      SELECT *
-      FROM publications
-      WHERE id = ?
-      LIMIT 1
-    `)
-    .bind(publicationId)
-    .first();
-
-  if (!publication) {
-    return json({
-      ok: false,
-      error: "Публикация не найдена"
-    }, 404);
-  }
-
-  const price = clean(
-    body.price,
-    100
-  ) || "0";
-
-  const currency = clean(
-    body.currency,
-    30
-  ) || "TJS";
-
-  const status = clean(
-    body.status,
-    50
-  ) || "requested";
-
-  const now = new Date().toISOString();
-
-  const existing = await env.DB
-    .prepare(`
-      SELECT id
-      FROM publication_orders
-      WHERE publication_id = ?
-      LIMIT 1
-    `)
-    .bind(publicationId)
-    .first();
-
-  if (existing) {
-    await env.DB.prepare(`
-      UPDATE publication_orders
-      SET price = ?,
-          currency = ?,
-          status = ?,
-          payment_method = ?,
-          payment_reference = ?,
-          admin_note = ?,
-          updated_at = ?,
-          paid_at =
-            CASE
-              WHEN ? = 'paid'
-              THEN COALESCE(paid_at, ?)
-              ELSE paid_at
-            END
-      WHERE publication_id = ?
-    `).bind(
-      price,
-      currency,
-      status,
-      clean(body.payment_method, 100),
-      clean(body.payment_reference, 500),
-      clean(body.admin_note, 5000),
-      now,
-      status,
-      now,
-      publicationId
-    ).run();
-  } else {
-    await env.DB.prepare(`
-      INSERT INTO publication_orders (
-        id,
-        publication_id,
-        submitter_id,
-        price,
-        currency,
-        status,
-        payment_method,
-        payment_reference,
-        admin_note,
-        created_at,
-        updated_at,
-        paid_at
-      )
-      VALUES (
-        ?,?,?,?,?,?,?,?,?,?,?,?
-      )
-    `).bind(
-      uid("order"),
-      publicationId,
-      publication.author_id,
-      price,
-      currency,
-      status,
-      clean(body.payment_method, 100),
-      clean(body.payment_reference, 500),
-      clean(body.admin_note, 5000),
-      now,
-      now,
-      status === "paid" ? now : null
-    ).run();
-  }
-
-  if (body.message) {
-    await sendOfficialMessage(
-      env,
-      publication.author_id,
-      clean(body.message, 10000),
-      publicationId
-    );
-  }
-
-  await addAdminAudit(
-    env,
-    null,
-    "payment_update",
-    "publication",
-    publicationId,
-    JSON.stringify(body)
-  );
-
-  return json({
-    ok: true,
-    price,
-    currency,
-    status
-  });
-}
-
-
-/* =========================================================
-   OFFICIAL MESSAGE
-========================================================= */
-
-async function sendOfficialMessage(
-  env,
-  userId,
-  text,
-  publicationId = null
-) {
-  const now = new Date().toISOString();
-
-  const messageId = uid("msg");
-
-  await env.DB.prepare(`
-    INSERT INTO messages (
-      id,
-
-      sender_type,
-      sender_user_id,
-
-      receiver_type,
-      receiver_user_id,
-
-      publication_id,
-
-      text,
-      status,
-      created_at
-    )
-    VALUES (
-      ?,
-      'official',
-      NULL,
-      'user',
-      ?,
-      ?,
-      ?,
-      'sent',
-      ?
-    )
-  `).bind(
-    messageId,
-    userId,
-    publicationId,
-    text,
-    now
-  ).run();
-
-  await addNotification(
-    env,
-    userId,
-    "official_message",
-    SITE_NAME,
-    text,
-    publicationId
-  );
-
-  return messageId;
-}
-
-
-/* =========================================================
-   NOTIFICATION HELPER
-========================================================= */
-
-async function addNotification(
-  env,
-  userId,
-  type,
-  title,
-  text,
-  publicationId = null
-) {
-  await env.DB.prepare(`
-    INSERT INTO notifications (
-      id,
-      user_id,
-      type,
-      title,
-      text,
-      publication_id,
-      read,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, 0, ?)
-  `).bind(
-    uid("notification"),
-    userId,
-    type,
-    title,
-    text,
-    publicationId,
-    new Date().toISOString()
-  ).run();
-}
-
-
-/* =========================================================
-   ADMIN AUDIT
-========================================================= */
-
-async function addAdminAudit(
-  env,
-  adminId,
-  action,
-  targetType,
-  targetId,
-  details
-) {
-  await env.DB.prepare(`
-    INSERT INTO audit_logs (
-      id,
-      admin_id,
-      action,
-      target_type,
-      target_id,
-      details,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).bind(
-    uid("audit"),
-    adminId,
-    action,
-    targetType,
-    targetId,
-    details || "",
-    new Date().toISOString()
-  ).run();
-}
-
-
-/* =========================================================
-   AUTH HELPERS
-========================================================= */
-
-async function requireUser(request, env) {
-  const token = getCookie(
-    request,
-    SESSION_COOKIE
-  );
-
-  if (!token) {
-    return null;
-  }
-
-  const hash = await sha256(token);
-
-  const session = await env.DB
-    .prepare(`
-      SELECT user_id
-      FROM sessions
-      WHERE token_hash = ?
-      AND expires_at > ?
-      LIMIT 1
-    `)
-    .bind(
-      hash,
-      new Date().toISOString()
-    )
-    .first();
-
-  if (!session) {
-    return null;
-  }
-
-  const user = await getUser(
-    env,
-    session.user_id
-  );
-
-  if (!user) {
-    return null;
-  }
-
-  if (
-    Number(user.deleted) === 1 ||
-    Number(user.blocked) === 1
-  ) {
-    return null;
-  }
-
-  return user;
-}
-
-
-async function createSession(env, userId) {
-  const token =
-    crypto.randomUUID() +
-    "." +
-    crypto.randomUUID();
-
-  const now = new Date();
-
-  const expires =
-    new Date(
-      now.getTime() +
-      SESSION_DAYS * 24 * 60 * 60 * 1000
-    );
-
-  await env.DB.prepare(`
-    INSERT INTO sessions (
-      id,
-      user_id,
-      token_hash,
-      expires_at,
-      created_at
-    )
-    VALUES (?, ?, ?, ?, ?)
-  `).bind(
-    uid("session"),
-    userId,
-    await sha256(token),
-    expires.toISOString(),
-    now.toISOString()
-  ).run();
-
-  return token;
-}
-
-
-async function isAdmin(request, env) {
-  const token = getCookie(
-    request,
-    ADMIN_COOKIE
-  );
-
-  if (!token) {
-    return false;
-  }
-
-  /*
-   * Admin session — это отдельный HttpOnly cookie.
-   * Сам пароль никогда не хранится в браузере.
-   */
-
-  return Boolean(
-    env.ADMIN_PASSWORD &&
-    token.length >= 20
-  );
-}
-
-
-/* =========================================================
-   USER HELPERS
-========================================================= */
-
-async function getUser(env, id) {
-  if (!id) return null;
-
-  return env.DB
-    .prepare(`
-      SELECT *
-      FROM users
-      WHERE id = ?
-      LIMIT 1
-    `)
-    .bind(id)
-    .first();
-}
-
-
-function safeUser(user) {
-  if (!user) return null;
-
-  return {
-    id: user.id,
-
-    name: user.name,
-    username: user.username,
-
-    avatar_url: user.avatar_url || null,
-
-    email: user.email || null,
-    phone: user.phone || null,
-
-    country: user.country || null,
-    city: user.city || null,
-
-    verified:
-      Number(user.verified) === 1,
-
-    role: user.role || "user",
-
-    followers_count:
-      Number(user.followers_count || 0),
-
-    following_count:
-      Number(user.following_count || 0),
-
-    publications_count:
-      Number(user.publications_count || 0)
   };
-}
 
+  TO.auth = auth;
 
-function fullProfile(user, publicView = false) {
-  if (!user) return null;
+  /* ============================================================
+     ACTOR / TESTING
+     ============================================================ */
+
+  const actor = {
+    isTestMode() {
+      return storage.get(
+        STORAGE.TEST_MODE,
+        false
+      ) === true;
+    },
+
+    enable(user) {
+      if (!user) {
+        toast.error(
+          "Сначала выберите участника."
+        );
+        return false;
+      }
+
+      storage.set(
+        STORAGE.ACTOR,
+        user
+      );
+
+      storage.set(
+        STORAGE.TEST_MODE,
+        true
+      );
+
+      toast.success(
+        `Тестовый режим: ${
+          helpers.first(
+            user.name,
+            user.full_name,
+            user.username,
+            "участник"
+          )
+        }`
+      );
+
+      this.renderIndicator();
+
+      return true;
+    },
+
+    disable() {
+      storage.set(
+        STORAGE.TEST_MODE,
+        false
+      );
+
+      storage.remove(
+        STORAGE.ACTOR
+      );
+
+      toast.info(
+        "Тестовый режим выключен."
+      );
+
+      this.renderIndicator();
+    },
+
+    selected() {
+      return storage.get(
+        STORAGE.ACTOR,
+        null
+      );
+    },
+
+    current() {
+      if (
+        this.isTestMode() &&
+        this.selected()
+      ) {
+        return this.selected();
+      }
+
+      return auth.getUser();
+    },
+
+    id() {
+      return helpers.userId(
+        this.current()
+      );
+    },
+
+    renderIndicator() {
+      let el =
+        document.getElementById(
+          "to-test-indicator"
+        );
+
+      if (!this.isTestMode()) {
+        if (el) el.remove();
+        return;
+      }
+
+      if (!el) {
+        el = document.createElement("div");
+        el.id = "to-test-indicator";
+
+        Object.assign(el.style, {
+          position: "fixed",
+          bottom: "15px",
+          left: "15px",
+          zIndex: "999998",
+          padding: "10px 14px",
+          borderRadius: "12px",
+          background: "#7c3aed",
+          color: "#fff",
+          fontSize: "13px",
+          boxShadow:
+            "0 8px 30px rgba(0,0,0,.25)"
+        });
+
+        document.body.appendChild(el);
+      }
+
+      const user = this.selected();
+
+      el.innerHTML = `
+        <strong>🧪 ТЕСТОВЫЙ РЕЖИМ</strong><br>
+        ${helpers.escape(
+          helpers.first(
+            user?.name,
+            user?.full_name,
+            user?.username,
+            "Участник"
+          )
+        )}
+        <button
+          type="button"
+          data-to-action="disable-test-mode"
+          style="
+            margin-left:8px;
+            border:0;
+            border-radius:7px;
+            padding:4px 8px;
+            cursor:pointer;
+          "
+        >Выйти</button>
+      `;
+    }
+  };
+
+  TO.actor = actor;
+
+  /* ============================================================
+     PUBLICATIONS
+     ============================================================ */
+
+  const publications = {
+    async list(params = {}) {
+      const query = new URLSearchParams();
+
+      Object.entries(params).forEach(
+        ([key, value]) => {
+          if (
+            value !== undefined &&
+            value !== null &&
+            value !== ""
+          ) {
+            query.set(key, value);
+          }
+        }
+      );
+
+      const suffix =
+        query.toString()
+          ? `?${query.toString()}`
+          : "";
+
+      const result =
+        await tryRequests([
+          {
+            url:
+              API.publications +
+              suffix
+          },
+          {
+            url:
+              API.posts +
+              suffix
+          }
+        ]);
+
+      if (!result?.ok) {
+        return [];
+      }
+
+      return helpers
+        .list(result.data)
+        .map(
+          helpers.normalizePublication
+        )
+        .filter(Boolean);
+    },
+
+    async get(id) {
+      const safeId =
+        encodeURIComponent(id);
+
+      const result =
+        await tryRequests([
+          {
+            url:
+              `${API.publications}/${safeId}`
+          },
+          {
+            url:
+              `${API.posts}/${safeId}`
+          }
+        ]);
+
+      if (!result?.ok) {
+        return null;
+      }
+
+      return helpers.normalizePublication(
+        result.data?.publication ||
+        result.data?.post ||
+        result.data?.data ||
+        result.data
+      );
+    },
+
+    async create(payload) {
+      const actorUser =
+        actor.current();
+
+      const body = {
+        ...payload
+      };
+
+      if (
+        actor.isTestMode() &&
+        actorUser
+      ) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actorUser);
+      }
+
+      const result = await request(
+        API.publications,
+        {
+          method: "POST",
+          body
+        }
+      );
+
+      if (result.ok) {
+        toast.success(
+          "Публикация отправлена на проверку."
+        );
+      }
+
+      return result;
+    },
+
+    async edit(id, payload) {
+      const body = {
+        id,
+        publication_id: id,
+        ...payload
+      };
+
+      const result =
+        await tryRequests([
+          {
+            url:
+              API.adminPublicationEdit,
+            options: {
+              method: "POST",
+              body
+            }
+          },
+          {
+            url:
+              `${API.publications}/${encodeURIComponent(id)}`,
+            options: {
+              method: "PUT",
+              body: payload
+            }
+          }
+        ]);
+
+      if (result.ok) {
+        toast.success(
+          "Публикация изменена."
+        );
+      }
+
+      return result;
+    },
+
+    async remove(id) {
+      const result =
+        await tryRequests([
+          {
+            url:
+              API.adminPublicationAction,
+            options: {
+              method: "POST",
+              body: {
+                id,
+                publication_id: id,
+                action: "delete"
+              }
+            }
+          },
+          {
+            url:
+              `${API.publications}/${encodeURIComponent(id)}`,
+            options: {
+              method: "DELETE"
+            }
+          }
+        ]);
+
+      if (result.ok) {
+        toast.success(
+          "Публикация удалена."
+        );
+      }
+
+      return result;
+    },
+
+    async restore(id) {
+      return admin.publicationAction(
+        id,
+        "restore"
+      );
+    },
+
+    async moderate(id, action, extra = {}) {
+      return admin.publicationAction(
+        id,
+        action,
+        extra
+      );
+    }
+  };
+
+  TO.publications = publications;
+
+  /* ============================================================
+     VIEWS
+     ============================================================ */
+
+  const views = {
+    async add(publicationId) {
+      const id =
+        helpers.id(publicationId);
+
+      if (!id) return null;
+
+      const viewed =
+        storage.get(
+          STORAGE.VIEWED,
+          {}
+        );
+
+      const key =
+        `${location.pathname}:${id}`;
+
+      if (viewed[key]) {
+        return {
+          ok: true,
+          duplicate: true
+        };
+      }
+
+      viewed[key] = Date.now();
+
+      storage.set(
+        STORAGE.VIEWED,
+        viewed
+      );
+
+      const actorUser =
+        actor.current();
+
+      const body = {
+        publication_id: id,
+        id
+      };
+
+      if (
+        actor.isTestMode() &&
+        actorUser
+      ) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actorUser);
+      }
+
+      return await tryRequests([
+        {
+          url: API.publicationView,
+          options: {
+            method: "POST",
+            body
+          }
+        },
+        {
+          url: API.views,
+          options: {
+            method: "POST",
+            body
+          }
+        }
+      ], {
+        silent: true
+      });
+    },
+
+    observe(root = document) {
+      if (
+        !("IntersectionObserver" in window)
+      ) {
+        return;
+      }
+
+      const elements =
+        root.querySelectorAll(
+          "[data-publication-id], [data-post-id]"
+        );
+
+      if (!elements.length) return;
+
+      const observer =
+        new IntersectionObserver(
+          entries => {
+            entries.forEach(entry => {
+              if (
+                !entry.isIntersecting ||
+                entry.intersectionRatio < 0.5
+              ) {
+                return;
+              }
+
+              const el =
+                entry.target;
+
+              const id =
+                el.dataset.publicationId ||
+                el.dataset.postId;
+
+              if (id) {
+                views.add(id);
+                observer.unobserve(el);
+              }
+            });
+          },
+          {
+            threshold: 0.5
+          }
+        );
+
+      elements.forEach(
+        element =>
+          observer.observe(element)
+      );
+    }
+  };
+
+  TO.views = views;
+
+  /* ============================================================
+     REACTIONS
+     ============================================================ */
+
+  const reactions = {
+    async toggle(
+      publicationId,
+      reaction = "like"
+    ) {
+      if (
+        !REACTIONS.includes(reaction)
+      ) {
+        reaction = "like";
+      }
+
+      const body = {
+        publication_id:
+          publicationId,
+        id: publicationId,
+        reaction
+      };
+
+      const current =
+        actor.current();
+
+      if (
+        actor.isTestMode() &&
+        current
+      ) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(current);
+      }
+
+      const result =
+        await tryRequests([
+          {
+            url:
+              API.publicationReact,
+            options: {
+              method: "POST",
+              body
+            }
+          },
+          {
+            url:
+              API.reactions,
+            options: {
+              method: "POST",
+              body
+            }
+          }
+        ]);
+
+      if (result.ok) {
+        toast.success(
+          `${REACTION_ICONS[reaction]} Реакция обновлена.`
+        );
+      }
+
+      return result;
+    },
+
+    async comment(
+      commentId,
+      reaction = "like"
+    ) {
+      const body = {
+        comment_id: commentId,
+        id: commentId,
+        reaction
+      };
+
+      if (actor.isTestMode()) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actor.current());
+      }
+
+      return await request(
+        API.reactions,
+        {
+          method: "POST",
+          body
+        },
+        { silent: false }
+      );
+    }
+  };
+
+  TO.reactions = reactions;
+
+  /* ============================================================
+     COMMENTS
+     ============================================================ */
+
+  const comments = {
+    async list(publicationId) {
+      const query =
+        new URLSearchParams({
+          publication_id:
+            publicationId
+        });
+
+      const result =
+        await request(
+          `${API.comments}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      if (!result.ok) {
+        return [];
+      }
+
+      return helpers.list(
+        result.data
+      );
+    },
+
+    async create(
+      publicationId,
+      text,
+      parentId = null
+    ) {
+      if (!String(text || "").trim()) {
+        toast.warning(
+          "Введите комментарий."
+        );
+        return {
+          ok: false
+        };
+      }
+
+      const body = {
+        publication_id:
+          publicationId,
+        text: String(text).trim()
+      };
+
+      if (parentId) {
+        body.parent_id = parentId;
+        body.parentId = parentId;
+      }
+
+      if (actor.isTestMode()) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actor.current());
+      }
+
+      const result =
+        await request(
+          API.comments,
+          {
+            method: "POST",
+            body
+          }
+        );
+
+      if (result.ok) {
+        toast.success(
+          "Комментарий добавлен."
+        );
+      }
+
+      return result;
+    },
+
+    async edit(commentId, text) {
+      const result =
+        await tryRequests([
+          {
+            url:
+              API.adminCommentEdit,
+            options: {
+              method: "POST",
+              body: {
+                id: commentId,
+                comment_id: commentId,
+                text
+              }
+            }
+          },
+          {
+            url:
+              `${API.comments}/${encodeURIComponent(commentId)}`,
+            options: {
+              method: "PUT",
+              body: { text }
+            }
+          }
+        ]);
+
+      return result;
+    },
+
+    async remove(commentId) {
+      const result =
+        await tryRequests([
+          {
+            url:
+              API.adminCommentAction,
+            options: {
+              method: "POST",
+              body: {
+                id: commentId,
+                comment_id: commentId,
+                action: "delete"
+              }
+            }
+          },
+          {
+            url:
+              `${API.comments}/${encodeURIComponent(commentId)}`,
+            options: {
+              method: "DELETE"
+            }
+          }
+        ]);
+
+      if (result.ok) {
+        toast.success(
+          "Комментарий удалён."
+        );
+      }
+
+      return result;
+    }
+  };
+
+  TO.comments = comments;
+
+  /* ============================================================
+     SAVES
+     ============================================================ */
+
+  const saves = {
+    async toggle(publicationId) {
+      const body = {
+        publication_id:
+          publicationId,
+        id: publicationId
+      };
+
+      if (actor.isTestMode()) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actor.current());
+      }
+
+      const result =
+        await request(
+          API.publicationSave,
+          {
+            method: "POST",
+            body
+          },
+          { silent: true }
+        );
+
+      if (
+        !result.ok &&
+        [404, 405].includes(result.status)
+      ) {
+        return request(
+          API.saves,
+          {
+            method: "POST",
+            body
+          }
+        );
+      }
+
+      if (result.ok) {
+        toast.success(
+          "Сохранения обновлены."
+        );
+      }
+
+      return result;
+    }
+  };
+
+  TO.saves = saves;
+
+  /* ============================================================
+     SHARES
+     ============================================================ */
+
+  const shares = {
+    async track(publicationId, platform = "copy") {
+      const body = {
+        publication_id:
+          publicationId,
+        id: publicationId,
+        platform
+      };
+
+      if (actor.isTestMode()) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actor.current());
+      }
+
+      return await tryRequests([
+        {
+          url:
+            API.publicationShare,
+          options: {
+            method: "POST",
+            body
+          }
+        },
+        {
+          url:
+            API.shares,
+          options: {
+            method: "POST",
+            body
+          }
+        }
+      ], {
+        silent: true
+      });
+    },
+
+    async copy(publicationId) {
+      const url =
+        new URL(
+          `/publication.html?id=${encodeURIComponent(
+            publicationId
+          )}`,
+          location.origin
+        ).href;
+
+      try {
+        await navigator.clipboard.writeText(
+          url
+        );
+
+        await this.track(
+          publicationId,
+          "copy"
+        );
+
+        toast.success(
+          "Ссылка скопирована."
+        );
+
+        return true;
+      } catch {
+        toast.error(
+          "Не удалось скопировать ссылку."
+        );
+
+        return false;
+      }
+    },
+
+    async telegram(publicationId, title = "") {
+      const url =
+        new URL(
+          `/publication.html?id=${encodeURIComponent(
+            publicationId
+          )}`,
+          location.origin
+        ).href;
+
+      await this.track(
+        publicationId,
+        "telegram"
+      );
+
+      const text =
+        `${title || SITE_NAME}\n${url}`;
+
+      window.open(
+        `https://t.me/share/url?url=${encodeURIComponent(
+          url
+        )}&text=${encodeURIComponent(
+          text
+        )}`,
+        "_blank",
+        "noopener,noreferrer"
+      );
+    },
+
+    async native(publicationId, title = "") {
+      const url =
+        new URL(
+          `/publication.html?id=${encodeURIComponent(
+            publicationId
+          )}`,
+          location.origin
+        ).href;
+
+      await this.track(
+        publicationId,
+        "native"
+      );
+
+      if (
+        navigator.share
+      ) {
+        try {
+          await navigator.share({
+            title,
+            text: title,
+            url
+          });
+
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      return this.copy(publicationId);
+    }
+  };
+
+  TO.shares = shares;
+
+  /* ============================================================
+     FOLLOW
+     ============================================================ */
+
+  const follow = {
+    async toggle(userId, target = {}) {
+      const body = {
+        user_id: userId,
+        target_user_id: userId,
+        username:
+          target.username ||
+          target.user_username ||
+          ""
+      };
+
+      if (actor.isTestMode()) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actor.current());
+      }
+
+      const result =
+        await request(
+          API.follows,
+          {
+            method: "POST",
+            body
+          },
+          { silent: true }
+        );
+
+      if (result.ok) {
+        toast.success(
+          "Подписка обновлена."
+        );
+      }
+
+      return result;
+    }
+  };
+
+  TO.follow = follow;
+
+  /* ============================================================
+     MESSAGES
+     ============================================================ */
+
+  const messages = {
+    async chats() {
+      const result =
+        await request(
+          API.chat,
+          {},
+          { silent: true }
+        );
+
+      if (!result.ok) {
+        return [];
+      }
+
+      return helpers.list(
+        result.data
+      );
+    },
+
+    async list(userId = null) {
+      const query =
+        new URLSearchParams();
+
+      if (userId) {
+        query.set(
+          "user_id",
+          userId
+        );
+
+        query.set(
+          "participant_id",
+          userId
+        );
+      }
+
+      const result =
+        await request(
+          `${API.chatMessages}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      if (!result.ok) {
+        return [];
+      }
+
+      return helpers.list(
+        result.data
+      );
+    },
+
+    async send(
+      text,
+      userId = null,
+      extra = {}
+    ) {
+      if (!String(text || "").trim()) {
+        return {
+          ok: false
+        };
+      }
+
+      const body = {
+        text: String(text).trim(),
+        ...extra
+      };
+
+      if (userId) {
+        body.user_id = userId;
+        body.recipient_id = userId;
+      }
+
+      if (actor.isTestMode()) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actor.current());
+      }
+
+      const result =
+        await request(
+          API.chatMessages,
+          {
+            method: "POST",
+            body
+          }
+        );
+
+      if (result.ok) {
+        toast.success(
+          "Сообщение отправлено."
+        );
+      }
+
+      return result;
+    },
+
+    async read(userId = null) {
+      const body = {};
+
+      if (userId) {
+        body.user_id = userId;
+        body.chat_id = userId;
+      }
+
+      return request(
+        API.chatRead,
+        {
+          method: "POST",
+          body
+        },
+        { silent: true }
+      );
+    },
+
+    openAdmin() {
+      const params =
+        new URLSearchParams({
+          admin: "1"
+        });
+
+      window.location.href =
+        `/messages.html?${params}`;
+    },
+
+    official() {
+      return {
+        id: "official",
+        name: SITE_NAME,
+        username: SITE_USERNAME,
+        displayName:
+          `🇹🇯 ${SITE_NAME}✅`,
+        official: true
+      };
+    }
+  };
+
+  TO.messages = messages;
+
+  /* ============================================================
+     ADMIN CHAT
+     ============================================================ */
+
+  const adminChat = {
+    async chats() {
+      const result =
+        await request(
+          API.adminChats,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async messages(userId) {
+      const query =
+        new URLSearchParams({
+          user_id: userId
+        });
+
+      const result =
+        await request(
+          `${API.adminChatMessages}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async send(userId, text, extra = {}) {
+      const body = {
+        user_id: userId,
+        recipient_id: userId,
+        text,
+        ...extra
+      };
+
+      return request(
+        API.adminChatSend,
+        {
+          method: "POST",
+          body
+        }
+      );
+    }
+  };
+
+  TO.adminChat = adminChat;
+
+  /* ============================================================
+     NOTIFICATIONS
+     ============================================================ */
+
+  const notifications = {
+    async list() {
+      const result =
+        await request(
+          API.notifications,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async read(id) {
+      const body = {
+        id,
+        notification_id: id
+      };
+
+      return request(
+        API.notificationsRead,
+        {
+          method: "POST",
+          body
+        },
+        { silent: true }
+      );
+    },
+
+    async readAll() {
+      return request(
+        API.notificationsRead,
+        {
+          method: "POST",
+          body: {
+            all: true,
+            read_all: true
+          }
+        },
+        { silent: true }
+      );
+    }
+  };
+
+  TO.notifications = notifications;
+
+  /* ============================================================
+     REPORTS
+     ============================================================ */
+
+  const reports = {
+    async create(payload) {
+      const body = {
+        ...payload
+      };
+
+      if (actor.isTestMode()) {
+        body.test_mode = true;
+        body.test_actor_id =
+          helpers.userId(actor.current());
+      }
+
+      const result =
+        await request(
+          API.reports,
+          {
+            method: "POST",
+            body
+          }
+        );
+
+      if (result.ok) {
+        toast.success(
+          "Жалоба отправлена."
+        );
+      }
+
+      return result;
+    },
+
+    async list() {
+      const result =
+        await tryRequests([
+          {
+            url:
+              API.adminReports
+          },
+          {
+            url:
+              API.reports
+          }
+        ]);
+
+      return result?.ok
+        ? helpers.list(result.data)
+        : [];
+    }
+  };
+
+  TO.reports = reports;
+
+  /* ============================================================
+     PROFILE
+     ============================================================ */
 
   const profile = {
-    id: user.id,
+    async me() {
+      const result =
+        await request(
+          API.profile,
+          {},
+          { silent: true }
+        );
 
-    name: user.name,
-    username: user.username,
+      if (result.ok) {
+        const data =
+          result.data?.profile ||
+          result.data?.user ||
+          result.data?.data ||
+          result.data;
 
-    avatar_url: user.avatar_url || null,
+        if (data) {
+          const cache =
+            storage.get(
+              STORAGE.PROFILE_CACHE,
+              {}
+            );
 
-    email: user.email || null,
-    phone: user.phone || null,
+          cache.me = data;
 
-    birth_date:
-      user.birth_date || null,
+          storage.set(
+            STORAGE.PROFILE_CACHE,
+            cache
+          );
 
-    country:
-      user.country || null,
+          return data;
+        }
+      }
 
-    city:
-      user.city || null,
+      const cache =
+        storage.get(
+          STORAGE.PROFILE_CACHE,
+          {}
+        );
 
-    bio:
-      user.bio || null,
+      return (
+        cache.me ||
+        auth.getUser()
+      );
+    },
 
-    profession:
-      user.profession || null,
+    async update(payload) {
+      const result =
+        await request(
+          API.profile,
+          {
+            method: "PUT",
+            body: payload
+          }
+        );
 
-    education:
-      user.education || null,
+      if (result.ok) {
+        const data =
+          result.data?.profile ||
+          result.data?.user ||
+          result.data?.data ||
+          payload;
 
-    languages:
-      user.languages || null,
+        const cache =
+          storage.get(
+            STORAGE.PROFILE_CACHE,
+            {}
+          );
 
-    skills:
-      user.skills || null,
+        cache.me = data;
 
-    company:
-      user.company || null,
+        storage.set(
+          STORAGE.PROFILE_CACHE,
+          cache
+        );
 
-    website:
-      user.website || null,
+        auth.user = {
+          ...auth.getUser(),
+          ...data
+        };
 
-    social_links:
-      user.social_links || null,
+        storage.set(
+          STORAGE.USER,
+          auth.user
+        );
 
-    salary:
-      user.salary || null,
+        toast.success(
+          "Профиль обновлён."
+        );
+      }
 
-    interests:
-      user.interests || null,
+      return result;
+    },
 
-    achievements:
-      user.achievements || null,
+    async public(username) {
+      const clean =
+        String(username || "")
+          .replace(/^@/, "");
 
-    verified:
-      Number(user.verified) === 1,
+      const query =
+        new URLSearchParams({
+          username: `@${clean}`
+        });
 
-    role:
-      user.role || "user",
+      const result =
+        await request(
+          `${API.profilePublic}?${query}`,
+          {},
+          { silent: true }
+        );
 
-    private_profile:
-      Number(user.private_profile) === 1,
+      if (!result.ok) {
+        return null;
+      }
 
-    followers_count:
-      Number(user.followers_count || 0),
+      const data =
+        result.data?.profile ||
+        result.data?.user ||
+        result.data?.data ||
+        result.data;
 
-    following_count:
-      Number(user.following_count || 0),
+      const cache =
+        storage.get(
+          STORAGE.PROFILE_CACHE,
+          {}
+        );
 
-    publications_count:
-      Number(user.publications_count || 0),
+      cache[`@${clean}`] = data;
 
-    created_at:
-      user.created_at
+      storage.set(
+        STORAGE.PROFILE_CACHE,
+        cache
+      );
+
+      return data;
+    }
   };
 
-  /*
-   * Пароль никогда не попадает в profile.
-   */
+  TO.profile = profile;
 
-  if (publicView) {
-    delete profile.email;
-    delete profile.phone;
-    delete profile.birth_date;
-  }
+  /* ============================================================
+     CATEGORIES
+     ============================================================ */
 
-  return profile;
-}
+  const categories = {
+    async list() {
+      const result =
+        await request(
+          API.categories,
+          {},
+          { silent: true }
+        );
 
+      if (result.ok) {
+        const list =
+          helpers.list(result.data);
 
-/* =========================================================
-   VISITOR
-========================================================= */
+        if (list.length) {
+          storage.set(
+            STORAGE.CATEGORIES,
+            list
+          );
 
-function getOrCreateVisitor(request) {
-  const existing = getCookie(
-    request,
-    "to_visitor"
-  );
+          return list;
+        }
+      }
 
-  if (existing) {
-    return existing;
-  }
+      return storage.get(
+        STORAGE.CATEGORIES,
+        CATEGORIES.map(
+          ([id, label]) => ({
+            id,
+            name: label,
+            label
+          })
+        )
+      );
+    }
+  };
 
-  return "visitor_" +
-    crypto.randomUUID();
-}
+  TO.categories = categories;
 
+  /* ============================================================
+     ADMIN
+     ============================================================ */
 
-/* =========================================================
-   ADMIN STATS HELPERS
-========================================================= */
+  const admin = {
+    user: null,
 
-async function count(env, sql) {
-  const row = await env.DB
-    .prepare(sql)
-    .first();
+    async login(payload) {
+      const result =
+        await request(
+          API.adminLogin,
+          {
+            method: "POST",
+            body: payload
+          }
+        );
 
-  return Number(row?.n || 0);
-}
+      if (result.ok) {
+        const adminUser =
+          result.data?.admin ||
+          result.data?.user ||
+          result.data?.data ||
+          null;
 
+        this.user = adminUser;
 
-async function sum(env, sql) {
-  const row = await env.DB
-    .prepare(sql)
-    .first();
+        if (adminUser) {
+          storage.set(
+            STORAGE.ADMIN,
+            adminUser
+          );
+        }
 
-  return Number(row?.n || 0);
-}
+        toast.success(
+          "Вход администратора выполнен."
+        );
+      }
 
+      return result;
+    },
 
-/* =========================================================
-   UTILS
-========================================================= */
+    async logout() {
+      await request(
+        API.adminLogout,
+        {
+          method: "POST",
+          body: {}
+        },
+        { silent: true }
+      );
 
-function uid(prefix) {
-  return (
-    prefix +
-    "_" +
-    crypto.randomUUID()
-  );
-}
+      this.user = null;
 
+      storage.remove(
+        STORAGE.ADMIN
+      );
+    },
 
-function clean(value, max = 1000) {
-  if (value === null || value === undefined) {
-    return "";
-  }
+    async me() {
+      const result =
+        await request(
+          API.adminMe,
+          {},
+          { silent: true }
+        );
 
-  return String(value)
-    .trim()
-    .slice(0, max);
-}
+      if (result.ok) {
+        const data =
+          result.data?.admin ||
+          result.data?.user ||
+          result.data?.data ||
+          result.data;
 
+        this.user = data || null;
 
-function normalizeUsername(value) {
-  let username = clean(
-    value,
-    50
-  );
+        if (data) {
+          storage.set(
+            STORAGE.ADMIN,
+            data
+          );
+        }
 
-  if (!username) {
-    return "";
-  }
+        return data;
+      }
 
-  if (!username.startsWith("@")) {
-    username = "@" + username;
-  }
+      return storage.get(
+        STORAGE.ADMIN,
+        null
+      );
+    },
 
-  return username;
-}
+    async dashboard() {
+      const result =
+        await request(
+          API.adminDashboard,
+          {},
+          { silent: true }
+        );
 
+      return result.ok
+        ? result.data
+        : null;
+    },
 
-async function sha256(value) {
-  const data = new TextEncoder()
-    .encode(String(value));
+    async users(params = {}) {
+      const query =
+        new URLSearchParams();
 
-  const hash =
-    await crypto.subtle.digest(
-      "SHA-256",
+      Object.entries(params)
+        .forEach(([key, value]) => {
+          if (
+            value !== undefined &&
+            value !== null &&
+            value !== ""
+          ) {
+            query.set(
+              key,
+              value
+            );
+          }
+        });
+
+      const result =
+        await request(
+          `${API.adminUsers}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async user(id) {
+      const query =
+        new URLSearchParams({
+          id
+        });
+
+      const result =
+        await request(
+          `${API.adminUser}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? (
+          result.data?.user ||
+          result.data?.data ||
+          result.data
+        )
+        : null;
+    },
+
+    async editUser(id, data) {
+      return request(
+        API.adminUserEdit,
+        {
+          method: "POST",
+          body: {
+            id,
+            user_id: id,
+            ...data
+          }
+        }
+      );
+    },
+
+    async userAction(id, action, extra = {}) {
+      const result =
+        await request(
+          API.adminUserAction,
+          {
+            method: "POST",
+            body: {
+              id,
+              user_id: id,
+              action,
+              ...extra
+            }
+          }
+        );
+
+      if (result.ok) {
+        toast.success(
+          `Действие "${action}" выполнено.`
+        );
+      }
+
+      return result;
+    },
+
+    async publications(params = {}) {
+      const query =
+        new URLSearchParams();
+
+      Object.entries(params)
+        .forEach(([key, value]) => {
+          if (
+            value !== undefined &&
+            value !== null &&
+            value !== ""
+          ) {
+            query.set(
+              key,
+              value
+            );
+          }
+        });
+
+      const result =
+        await request(
+          `${API.adminPublications}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers
+            .list(result.data)
+            .map(
+              helpers.normalizePublication
+            )
+        : [];
+    },
+
+    async publicationAction(
+      id,
+      action,
+      extra = {}
+    ) {
+      const result =
+        await request(
+          API.adminPublicationAction,
+          {
+            method: "POST",
+            body: {
+              id,
+              publication_id: id,
+              action,
+              ...extra
+            }
+          }
+        );
+
+      if (result.ok) {
+        toast.success(
+          `Публикация: ${action}`
+        );
+      }
+
+      return result;
+    },
+
+    async publicationCounters(
+      id,
+      counters
+    ) {
+      return request(
+        API.adminPublicationCounters,
+        {
+          method: "POST",
+          body: {
+            id,
+            publication_id: id,
+            ...counters
+          }
+        }
+      );
+    },
+
+    async editPublication(
+      id,
       data
+    ) {
+      return request(
+        API.adminPublicationEdit,
+        {
+          method: "POST",
+          body: {
+            id,
+            publication_id: id,
+            ...data
+          }
+        }
+      );
+    },
+
+    async comments(params = {}) {
+      const query =
+        new URLSearchParams(params);
+
+      const result =
+        await request(
+          `${API.adminComments}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async commentAction(
+      id,
+      action,
+      extra = {}
+    ) {
+      return request(
+        API.adminCommentAction,
+        {
+          method: "POST",
+          body: {
+            id,
+            comment_id: id,
+            action,
+            ...extra
+          }
+        }
+      );
+    },
+
+    async payment(
+      publicationId,
+      action,
+      amount = null,
+      extra = {}
+    ) {
+      return request(
+        API.adminPayment,
+        {
+          method: "POST",
+          body: {
+            publication_id:
+              publicationId,
+            id: publicationId,
+            action,
+            amount,
+            ...extra
+          }
+        }
+      );
+    },
+
+    async notifications() {
+      const result =
+        await request(
+          API.adminNotifications,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async reports() {
+      const result =
+        await request(
+          API.adminReports,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async trash(params = {}) {
+      const query =
+        new URLSearchParams(params);
+
+      const result =
+        await request(
+          `${API.adminTrash}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    },
+
+    async stats() {
+      const result =
+        await request(
+          API.adminStats,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? result.data
+        : null;
+    },
+
+    async audit(params = {}) {
+      const query =
+        new URLSearchParams(params);
+
+      const result =
+        await request(
+          `${API.adminAudit}?${query}`,
+          {},
+          { silent: true }
+        );
+
+      return result.ok
+        ? helpers.list(result.data)
+        : [];
+    }
+  };
+
+  TO.admin = admin;
+
+  /* ============================================================
+     TESTING CENTER
+     ============================================================ */
+
+  const testing = {
+    selected() {
+      return actor.selected();
+    },
+
+    select(user) {
+      return actor.enable(user);
+    },
+
+    clear() {
+      actor.disable();
+    },
+
+    async serverAction(
+      action,
+      payload = {}
+    ) {
+      const selected =
+        actor.selected();
+
+      if (!selected) {
+        toast.error(
+          "Не выбран участник для тестирования."
+        );
+
+        return {
+          ok: false
+        };
+      }
+
+      const body = {
+        action,
+        test_mode: true,
+        test_actor_id:
+          helpers.userId(selected),
+        actor_id:
+          helpers.userId(selected),
+        ...payload
+      };
+
+      const result =
+        await request(
+          API.adminTesting,
+          {
+            method: "POST",
+            body
+          },
+          { silent: true }
+        );
+
+      if (!result.ok) {
+        toast.warning(
+          "Серверный тестовый API пока недоступен."
+        );
+      }
+
+      return result;
+    },
+
+    async like(publicationId, reaction = "like") {
+      const result =
+        await this.serverAction(
+          "reaction",
+          {
+            publication_id:
+              publicationId,
+            reaction
+          }
+        );
+
+      if (result.ok) return result;
+
+      return reactions.toggle(
+        publicationId,
+        reaction
+      );
+    },
+
+    async comment(
+      publicationId,
+      text,
+      parentId = null
+    ) {
+      const result =
+        await this.serverAction(
+          "comment",
+          {
+            publication_id:
+              publicationId,
+            text,
+            parent_id: parentId
+          }
+        );
+
+      if (result.ok) return result;
+
+      return comments.create(
+        publicationId,
+        text,
+        parentId
+      );
+    },
+
+    async save(publicationId) {
+      const result =
+        await this.serverAction(
+          "save",
+          {
+            publication_id:
+              publicationId
+          }
+        );
+
+      if (result.ok) return result;
+
+      return saves.toggle(
+        publicationId
+      );
+    },
+
+    async share(publicationId) {
+      const result =
+        await this.serverAction(
+          "share",
+          {
+            publication_id:
+              publicationId
+          }
+        );
+
+      if (result.ok) return result;
+
+      return shares.track(
+        publicationId,
+        "test"
+      );
+    },
+
+    async view(publicationId) {
+      const result =
+        await this.serverAction(
+          "view",
+          {
+            publication_id:
+              publicationId
+          }
+        );
+
+      if (result.ok) return result;
+
+      return views.add(
+        publicationId
+      );
+    },
+
+    async follow(userId) {
+      const result =
+        await this.serverAction(
+          "follow",
+          {
+            target_user_id:
+              userId
+          }
+        );
+
+      if (result.ok) return result;
+
+      return follow.toggle(
+        userId
+      );
+    },
+
+    async message(text, recipientId = null) {
+      const result =
+        await this.serverAction(
+          "message",
+          {
+            text,
+            recipient_id:
+              recipientId
+          }
+        );
+
+      if (result.ok) return result;
+
+      return messages.send(
+        text,
+        recipientId
+      );
+    },
+
+    async publication(payload) {
+      return this.serverAction(
+        "publication",
+        {
+          publication: payload,
+          ...payload
+        }
+      );
+    },
+
+    async report(payload) {
+      const result =
+        await this.serverAction(
+          "report",
+          payload
+        );
+
+      if (result.ok) return result;
+
+      return reports.create(
+        payload
+      );
+    },
+
+    async deleteReport(id) {
+      return this.serverAction(
+        "delete_report",
+        {
+          report_id: id
+        }
+      );
+    },
+
+    async notification(payload) {
+      return this.serverAction(
+        "notification",
+        payload
+      );
+    }
+  };
+
+  TO.testing = testing;
+
+  /* ============================================================
+     MANUAL STATISTICS
+     ============================================================ */
+
+  const stats = {
+    defaults: {
+      participants: 0,
+      publications: 0,
+      reactions: 0,
+      views: 0,
+      shares: 0,
+      saves: 0,
+      followers: 0,
+      comments: 0,
+      notifications: 0,
+      messages: 0,
+      reports: 0
+    },
+
+    get() {
+      return {
+        ...this.defaults,
+        ...storage.get(
+          STORAGE.STATS,
+          {}
+        )
+      };
+    },
+
+    set(name, value) {
+      const data =
+        this.get();
+
+      data[name] =
+        Math.max(
+          0,
+          helpers.number(value)
+        );
+
+      storage.set(
+        STORAGE.STATS,
+        data
+      );
+
+      return data;
+    },
+
+    increment(
+      name,
+      amount = 1
+    ) {
+      const data =
+        this.get();
+
+      data[name] =
+        Math.max(
+          0,
+          helpers.number(
+            data[name]
+          ) +
+          helpers.number(
+            amount
+          )
+        );
+
+      storage.set(
+        STORAGE.STATS,
+        data
+      );
+
+      return data[name];
+    },
+
+    async sync() {
+      const server =
+        await admin.stats();
+
+      if (
+        server &&
+        typeof server === "object"
+      ) {
+        const local =
+          this.get();
+
+        const merged = {
+          ...local,
+          ...server
+        };
+
+        storage.set(
+          STORAGE.STATS,
+          merged
+        );
+
+        return merged;
+      }
+
+      return this.get();
+    }
+  };
+
+  TO.stats = stats;
+
+  /* ============================================================
+     TRANSLATION
+     ============================================================ */
+
+  const translation = {
+    languages: [
+      ["tg", "Тоҷикӣ"],
+      ["ru", "Русский"],
+      ["en", "English"],
+      ["fa", "فارسی"],
+      ["uz", "O'zbek"],
+      ["kk", "Қазақша"],
+      ["ky", "Кыргызча"],
+      ["tr", "Türkçe"],
+      ["de", "Deutsch"],
+      ["fr", "Français"],
+      ["es", "Español"],
+      ["ar", "العربية"],
+      ["zh", "中文"],
+      ["hi", "हिन्दी"]
+    ],
+
+    getLanguage() {
+      return (
+        storage.get(
+          STORAGE.LANGUAGE,
+          null
+        ) ||
+        document.documentElement.lang ||
+        "ru"
+      );
+    },
+
+    setLanguage(lang) {
+      const exists =
+        this.languages.some(
+          item => item[0] === lang
+        );
+
+      if (!exists) return false;
+
+      storage.set(
+        STORAGE.LANGUAGE,
+        lang
+      );
+
+      document.documentElement.lang =
+        lang;
+
+      this.apply();
+
+      return true;
+    },
+
+    async text(
+      text,
+      from = "auto",
+      to = this.getLanguage()
+    ) {
+      if (!text) return "";
+
+      if (
+        from &&
+        from !== "auto" &&
+        from === to
+      ) {
+        return text;
+      }
+
+      const result =
+        await request(
+          API.translations,
+          {
+            method: "POST",
+            body: {
+              text,
+              source_language: from,
+              target_language: to
+            }
+          },
+          { silent: true }
+        );
+
+      if (result.ok) {
+        return (
+          result.data?.translation ||
+          result.data?.translated_text ||
+          result.data?.text ||
+          text
+        );
+      }
+
+      return text;
+    },
+
+    apply() {
+      const lang =
+        this.getLanguage();
+
+      document
+        .querySelectorAll(
+          "[data-i18n]"
+        )
+        .forEach(el => {
+          const key =
+            el.dataset.i18n;
+
+          const dictionary =
+            window.TO_TRANSLATIONS?.[
+              lang
+            ];
+
+          if (
+            dictionary &&
+            dictionary[key]
+          ) {
+            el.textContent =
+              dictionary[key];
+          }
+        });
+
+      document
+        .querySelectorAll(
+          "[data-i18n-placeholder]"
+        )
+        .forEach(el => {
+          const key =
+            el.dataset.i18nPlaceholder;
+
+          const dictionary =
+            window.TO_TRANSLATIONS?.[
+              lang
+            ];
+
+          if (
+            dictionary &&
+            dictionary[key]
+          ) {
+            el.placeholder =
+              dictionary[key];
+          }
+        });
+
+      if (
+        ["fa", "ar"].includes(lang)
+      ) {
+        document.documentElement.dir =
+          "rtl";
+      } else {
+        document.documentElement.dir =
+          "ltr";
+      }
+    }
+  };
+
+  TO.translation = translation;
+
+  /* ============================================================
+     THEME
+     ============================================================ */
+
+  const theme = {
+    get() {
+      return storage.get(
+        STORAGE.THEME,
+        "system"
+      );
+    },
+
+    set(value) {
+      if (
+        !["light", "dark", "system"]
+          .includes(value)
+      ) {
+        value = "system";
+      }
+
+      storage.set(
+        STORAGE.THEME,
+        value
+      );
+
+      this.apply();
+
+      return value;
+    },
+
+    apply() {
+      const value =
+        this.get();
+
+      let effective = value;
+
+      if (value === "system") {
+        effective =
+          window.matchMedia &&
+          window.matchMedia(
+            "(prefers-color-scheme: dark)"
+          ).matches
+            ? "dark"
+            : "light";
+      }
+
+      document.documentElement
+        .setAttribute(
+          "data-theme",
+          effective
+        );
+
+      document.documentElement
+        .classList.toggle(
+          "dark",
+          effective === "dark"
+        );
+
+      document.documentElement
+        .classList.toggle(
+          "light",
+          effective === "light"
+        );
+    }
+  };
+
+  TO.theme = theme;
+
+  /* ============================================================
+     SEARCH
+     ============================================================ */
+
+  const search = {
+    async all(query, options = {}) {
+      const q =
+        String(query || "").trim();
+
+      if (!q) {
+        return {
+          users: [],
+          publications: [],
+          categories: []
+        };
+      }
+
+      const params = {
+        ...options,
+        search: q,
+        q
+      };
+
+      const publications =
+        await publicationsSearch(
+          params
+        );
+
+      let users = [];
+
+      try {
+        users =
+          await admin.users({
+            search: q
+          });
+      } catch {}
+
+      const categoryMatches =
+        CATEGORIES
+          .filter(
+            ([id, label]) =>
+              id
+                .toLowerCase()
+                .includes(q.toLowerCase()) ||
+              label
+                .toLowerCase()
+                .includes(q.toLowerCase())
+          )
+          .map(
+            ([id, label]) => ({
+              id,
+              label
+            })
+          );
+
+      return {
+        users,
+        publications,
+        categories:
+          categoryMatches
+      };
+    }
+  };
+
+  async function publicationsSearch(params) {
+    return publications.list(
+      params
+    );
+  }
+
+  TO.search = search;
+
+  /* ============================================================
+     UI PUBLICATION CARD
+     ============================================================ */
+
+  const ui = {
+    publicationCard(publication) {
+      const p =
+        helpers.normalizePublication(
+          publication
+        );
+
+      if (!p) return "";
+
+      const id =
+        helpers.escape(
+          p.id
+        );
+
+      const media =
+        helpers.media(p);
+
+      const firstMedia =
+        media[0];
+
+      let mediaHTML = "";
+
+      if (firstMedia?.url) {
+        const type =
+          String(
+            firstMedia.type ||
+            ""
+          ).toLowerCase();
+
+        if (
+          type.includes("video") ||
+          /\.(mp4|webm|mov)(\?|$)/i.test(
+            firstMedia.url
+          )
+        ) {
+          mediaHTML = `
+            <video
+              src="${helpers.escape(
+                firstMedia.url
+              )}"
+              controls
+              preload="metadata"
+              style="
+                width:100%;
+                max-height:520px;
+                object-fit:cover;
+                border-radius:12px;
+              "
+            ></video>
+          `;
+        } else {
+          mediaHTML = `
+            <img
+              src="${helpers.escape(
+                firstMedia.url
+              )}"
+              alt="${helpers.escape(
+                p.title
+              )}"
+              loading="lazy"
+              style="
+                width:100%;
+                max-height:520px;
+                object-fit:cover;
+                border-radius:12px;
+              "
+            >
+          `;
+        }
+      }
+
+      const author =
+        p.author || {};
+
+      const authorName =
+        helpers.first(
+          author.name,
+          author.full_name,
+          author.username,
+          "Пользователь"
+        );
+
+      const username =
+        helpers.username(
+          author
+        );
+
+      return `
+        <article
+          class="to-publication-card"
+          data-publication-id="${id}"
+          data-post-id="${id}"
+          data-id="${id}"
+        >
+          <div class="to-publication-author">
+            <strong>
+              ${helpers.escape(authorName)}
+            </strong>
+
+            ${
+              username
+                ? `<span>${helpers.escape(
+                    username
+                  )}</span>`
+                : ""
+            }
+          </div>
+
+          <div class="to-publication-date">
+            ${helpers.escape(
+              helpers.relativeDate(
+                p.created_at
+              )
+            )}
+          </div>
+
+          <div class="to-publication-category">
+            ${helpers.escape(
+              helpers.categoryLabel(
+                p.category
+              )
+            )}
+          </div>
+
+          <h2 class="to-publication-title">
+            ${helpers.escape(p.title)}
+          </h2>
+
+          ${
+            p.text
+              ? `
+                <div class="to-publication-text">
+                  ${helpers.escape(
+                    p.text
+                  )}
+                </div>
+              `
+              : ""
+          }
+
+          ${
+            mediaHTML
+              ? `
+                <div class="to-publication-media">
+                  ${mediaHTML}
+                </div>
+              `
+              : ""
+          }
+
+          <div class="to-publication-stats">
+            <span>👁 ${helpers.formatNumber(
+              p.views
+            )}</span>
+
+            <span>👍 ${helpers.formatNumber(
+              p.likes
+            )}</span>
+
+            <span>💬 ${helpers.formatNumber(
+              p.comments_count
+            )}</span>
+
+            <span>🔖 ${helpers.formatNumber(
+              p.saves
+            )}</span>
+
+            <span>↗️ ${helpers.formatNumber(
+              p.shares
+            )}</span>
+          </div>
+
+          <div
+            class="to-publication-actions"
+            style="
+              display:flex;
+              flex-wrap:wrap;
+              gap:8px;
+            "
+          >
+            <button
+              type="button"
+              data-to-action="react"
+              data-publication-id="${id}"
+              data-reaction="like"
+            >👍</button>
+
+            <button
+              type="button"
+              data-to-action="react"
+              data-publication-id="${id}"
+              data-reaction="love"
+            >❤️</button>
+
+            <button
+              type="button"
+              data-to-action="save"
+              data-publication-id="${id}"
+            >🔖</button>
+
+            <button
+              type="button"
+              data-to-action="share-copy"
+              data-publication-id="${id}"
+            >🔗</button>
+
+            <button
+              type="button"
+              data-to-action="share-telegram"
+              data-publication-id="${id}"
+              data-title="${helpers.escape(
+                p.title
+              )}"
+            >Telegram</button>
+
+            <button
+              type="button"
+              data-to-action="report"
+              data-publication-id="${id}"
+            >⚠️</button>
+          </div>
+        </article>
+      `;
+    },
+
+    renderPublications(
+      container,
+      items
+    ) {
+      if (!container) return;
+
+      container.innerHTML =
+        items
+          .map(
+            item =>
+              this.publicationCard(item)
+          )
+          .join("");
+
+      views.observe(
+        container
+      );
+    }
+  };
+
+  TO.ui = ui;
+
+  /* ============================================================
+     AUTO ACTIONS
+     ============================================================ */
+
+  async function handleAction(
+    element,
+    action
+  ) {
+    const id =
+      element.dataset.publicationId ||
+      element.dataset.postId ||
+      element.dataset.id;
+
+    switch (action) {
+      case "react": {
+        const reaction =
+          element.dataset.reaction ||
+          "like";
+
+        if (
+          actor.isTestMode()
+        ) {
+          return testing.like(
+            id,
+            reaction
+          );
+        }
+
+        return reactions.toggle(
+          id,
+          reaction
+        );
+      }
+
+      case "save": {
+        if (
+          actor.isTestMode()
+        ) {
+          return testing.save(id);
+        }
+
+        return saves.toggle(id);
+      }
+
+      case "share-copy":
+        return shares.copy(id);
+
+      case "share-telegram":
+        return shares.telegram(
+          id,
+          element.dataset.title ||
+          ""
+        );
+
+      case "share":
+        return shares.native(
+          id,
+          element.dataset.title ||
+          ""
+        );
+
+      case "view":
+        return views.add(id);
+
+      case "follow":
+        return follow.toggle(
+          element.dataset.userId ||
+          element.dataset.id
+        );
+
+      case "message":
+        return messages.send(
+          element.dataset.text ||
+          "",
+          element.dataset.userId
+        );
+
+      case "report": {
+        const reason =
+          window.prompt(
+            "Укажите причину жалобы:"
+          );
+
+        if (!reason) {
+          return null;
+        }
+
+        return reports.create({
+          type: "publication",
+          target_type: "publication",
+          target_id: id,
+          publication_id: id,
+          reason
+        });
+      }
+
+      case "disable-test-mode":
+        return actor.disable();
+
+      case "enable-test-mode": {
+        const user =
+          storage.get(
+            STORAGE.ACTOR,
+            null
+          );
+
+        return actor.enable(
+          user
+        );
+      }
+
+      case "admin-approve":
+        return admin.publicationAction(
+          id,
+          "approve_free"
+        );
+
+      case "admin-publish":
+        return admin.publicationAction(
+          id,
+          "publish"
+        );
+
+      case "admin-reject":
+        return admin.publicationAction(
+          id,
+          "reject"
+        );
+
+      case "admin-hide":
+        return admin.publicationAction(
+          id,
+          "hide"
+        );
+
+      case "admin-delete":
+        if (
+          await confirmAction(
+            "Удалить публикацию?"
+          )
+        ) {
+          return admin.publicationAction(
+            id,
+            "delete"
+          );
+        }
+
+        return null;
+
+      case "admin-restore":
+        return admin.publicationAction(
+          id,
+          "restore"
+        );
+
+      case "admin-pin":
+        return admin.publicationAction(
+          id,
+          "pin"
+        );
+
+      case "admin-feature":
+        return admin.publicationAction(
+          id,
+          "feature"
+        );
+
+      case "admin-request-payment":
+        return admin.publicationAction(
+          id,
+          "request_payment"
+        );
+
+      case "admin-payment-received":
+        return admin.payment(
+          id,
+          "payment_received"
+        );
+
+      case "admin-user-block":
+        return admin.userAction(
+          element.dataset.userId,
+          "block"
+        );
+
+      case "admin-user-unblock":
+        return admin.userAction(
+          element.dataset.userId,
+          "unblock"
+        );
+
+      case "admin-user-verify":
+        return admin.userAction(
+          element.dataset.userId,
+          "verify"
+        );
+
+      default:
+        return null;
+    }
+  }
+
+  TO.handleAction =
+    handleAction;
+
+  function bindActions(root = document) {
+    root
+      .querySelectorAll(
+        "[data-to-action]"
+      )
+      .forEach(element => {
+        if (
+          element.dataset.toBound === "1"
+        ) {
+          return;
+        }
+
+        element.dataset.toBound = "1";
+
+        element.addEventListener(
+          "click",
+          async event => {
+            event.preventDefault();
+
+            const action =
+              element.dataset.toAction;
+
+            try {
+              await handleAction(
+                element,
+                action
+              );
+            } catch (error) {
+              console.error(
+                "[TO action]",
+                error
+              );
+
+              toast.error(
+                "Не удалось выполнить действие."
+              );
+            }
+          }
+        );
+      });
+  }
+
+  TO.bindActions =
+    bindActions;
+
+  /* ============================================================
+     MUTATION OBSERVER
+     ============================================================ */
+
+  function observeDOM() {
+    if (
+      !("MutationObserver" in window) ||
+      !document.body
+    ) {
+      return;
+    }
+
+    const observer =
+      new MutationObserver(
+        mutations => {
+          let changed = false;
+
+          for (const mutation of mutations) {
+            if (
+              mutation.addedNodes.length
+            ) {
+              changed = true;
+              break;
+            }
+          }
+
+          if (changed) {
+            bindActions(
+              document
+            );
+
+            views.observe(
+              document
+            );
+
+            actor.renderIndicator();
+          }
+        }
+      );
+
+    observer.observe(
+      document.body,
+      {
+        childList: true,
+        subtree: true
+      }
     );
 
-  return [...new Uint8Array(hash)]
-    .map(
-      b =>
-        b.toString(16)
-          .padStart(2, "0")
-    )
-    .join("");
-}
-
-
-async function readJson(request) {
-  try {
-    return await request.json();
-  } catch {
-    return {};
+    TO.domObserver =
+      observer;
   }
-}
 
+  /* ============================================================
+     AUTOMATIC VIEW TRACKING
+     ============================================================ */
 
-/* =========================================================
-   COOKIE
-========================================================= */
-
-function getCookie(request, name) {
-  const header =
-    request.headers.get("Cookie") || "";
-
-  const parts =
-    header.split(";");
-
-  for (const part of parts) {
-    const index = part.indexOf("=");
-
-    if (index === -1) continue;
-
-    const key =
-      part.slice(0, index).trim();
-
-    if (key !== name) continue;
-
-    return decodeURIComponent(
-      part.slice(index + 1).trim()
+  function autoViews() {
+    views.observe(
+      document
     );
   }
 
-  return null;
-}
+  /* ============================================================
+     AUTO PROFILE / AUTH UI
+     ============================================================ */
 
+  function updateAuthUI() {
+    const user =
+      auth.getUser();
 
-function sessionCookie(token) {
-  return [
-    `${SESSION_COOKIE}=${encodeURIComponent(token)}`,
-    "Path=/",
-    "HttpOnly",
-    "Secure",
-    "SameSite=Lax",
-    `Max-Age=${SESSION_DAYS * 86400}`
-  ].join("; ");
-}
+    document
+      .querySelectorAll(
+        "[data-to-user-name]"
+      )
+      .forEach(el => {
+        el.textContent =
+          helpers.first(
+            user?.name,
+            user?.full_name,
+            user?.username,
+            "Пользователь"
+          );
+      });
 
+    document
+      .querySelectorAll(
+        "[data-to-username]"
+      )
+      .forEach(el => {
+        el.textContent =
+          helpers.username(
+            user
+          );
+      });
 
-function adminCookie(token) {
-  return [
-    `${ADMIN_COOKIE}=${encodeURIComponent(token)}`,
-    "Path=/",
-    "HttpOnly",
-    "Secure",
-    "SameSite=Strict",
-    "Max-Age=43200"
-  ].join("; ");
-}
+    document
+      .querySelectorAll(
+        "[data-to-user-id]"
+      )
+      .forEach(el => {
+        el.textContent =
+          helpers.userId(
+            user
+          ) || "";
+      });
 
+    document
+      .querySelectorAll(
+        "[data-to-auth]"
+      )
+      .forEach(el => {
+        const mode =
+          el.dataset.toAuth;
 
-function deleteCookie(name) {
-  return [
-    `${name}=`,
-    "Path=/",
-    "HttpOnly",
-    "Secure",
-    "SameSite=Lax",
-    "Max-Age=0"
-  ].join("; ");
-}
+        const logged =
+          auth.isLoggedIn();
 
+        if (
+          mode === "logged-in"
+        ) {
+          el.hidden = !logged;
+        }
 
-/* =========================================================
-   RESPONSE
-========================================================= */
-
-function json(data, status = 200, extraHeaders = {}) {
-  const headers = new Headers(
-    SECURITY_HEADERS
-  );
-
-  for (const [key, value] of Object.entries(
-    extraHeaders
-  )) {
-    headers.set(key, value);
+        if (
+          mode === "logged-out"
+        ) {
+          el.hidden = logged;
+        }
+      });
   }
 
-  return new Response(
-    JSON.stringify(data),
-    {
-      status,
-      headers
+  /* ============================================================
+     ADMIN QUICK ACTIONS
+     ============================================================ */
+
+  async function adminQuickRefresh() {
+    const [
+      dashboard,
+      users,
+      publicationsList,
+      reportList,
+      notificationList,
+      trash
+    ] = await Promise.all([
+      admin.dashboard(),
+      admin.users(),
+      admin.publications(),
+      admin.reports(),
+      admin.notifications(),
+      admin.trash()
+    ]);
+
+    return {
+      dashboard,
+      users,
+      publications:
+        publicationsList,
+      reports: reportList,
+      notifications:
+        notificationList,
+      trash
+    };
+  }
+
+  TO.adminQuickRefresh =
+    adminQuickRefresh;
+
+  /* ============================================================
+     ADMIN STAT CARD
+     ============================================================ */
+
+  function renderStats(
+    container,
+    data
+  ) {
+    if (!container) return;
+
+    const source = {
+      ...stats.get(),
+      ...(data || {})
+    };
+
+    const labels = {
+      participants:
+        "Участники",
+      publications:
+        "Публикации",
+      reactions:
+        "Реакции",
+      views:
+        "Просмотры",
+      shares:
+        "Репосты",
+      saves:
+        "Сохранения",
+      followers:
+        "Подписчики",
+      comments:
+        "Комментарии",
+      notifications:
+        "Уведомления",
+      messages:
+        "Сообщения",
+      reports:
+        "Жалобы"
+    };
+
+    container.innerHTML =
+      Object.entries(
+        labels
+      )
+        .map(
+          ([key, label]) => `
+            <div
+              class="to-stat"
+              data-stat="${key}"
+            >
+              <div>
+                ${helpers.escape(label)}
+              </div>
+              <strong>
+                ${helpers.formatNumber(
+                  source[key] || 0
+                )}
+              </strong>
+            </div>
+          `
+        )
+        .join("");
+  }
+
+  TO.renderStats =
+    renderStats;
+
+  /* ============================================================
+     ADMIN PARTICIPANT CARD
+     ============================================================ */
+
+  function renderParticipantCard(
+    user
+  ) {
+    const id =
+      helpers.userId(user);
+
+    const username =
+      helpers.username(user);
+
+    const name =
+      helpers.first(
+        user.name,
+        user.full_name,
+        user.username,
+        "Без имени"
+      );
+
+    return `
+      <article
+        class="to-participant-card"
+        data-user-id="${helpers.escape(id)}"
+      >
+        <strong>
+          ${helpers.escape(name)}
+        </strong>
+
+        ${
+          username
+            ? `<span>${helpers.escape(
+                username
+              )}</span>`
+            : ""
+        }
+
+        ${
+          user.email
+            ? `<div>${helpers.escape(
+                user.email
+              )}</div>`
+            : ""
+        }
+
+        ${
+          user.phone
+            ? `<div>${helpers.escape(
+                user.phone
+              )}</div>`
+            : ""
+        }
+
+        ${
+          user.created_at
+            ? `<div>Регистрация: ${helpers.escape(
+                helpers.formatDate(
+                  user.created_at
+                )
+              )}</div>`
+            : ""
+        }
+
+        <div
+          style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:6px;
+            margin-top:10px;
+          "
+        >
+          <button
+            type="button"
+            data-to-action="select-test-user"
+            data-user-id="${helpers.escape(id)}"
+          >
+            🧪 Тестировать
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-user-block"
+            data-user-id="${helpers.escape(id)}"
+          >
+            🚫 Заблокировать
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-user-verify"
+            data-user-id="${helpers.escape(id)}"
+          >
+            ✅ Верифицировать
+          </button>
+        </div>
+      </article>
+    `;
+  }
+
+  TO.renderParticipantCard =
+    renderParticipantCard;
+
+  /* ============================================================
+     ADMIN PUBLICATION CARD
+     ============================================================ */
+
+  function renderAdminPublicationCard(
+    publication
+  ) {
+    const p =
+      helpers.normalizePublication(
+        publication
+      );
+
+    if (!p) return "";
+
+    const id =
+      helpers.escape(p.id);
+
+    return `
+      <article
+        class="to-admin-publication-card"
+        data-publication-id="${id}"
+      >
+        <div>
+          <strong>
+            ${helpers.escape(p.title)}
+          </strong>
+        </div>
+
+        <div>
+          ${helpers.escape(
+            helpers.first(
+              p.author?.name,
+              p.author?.username,
+              "Автор"
+            )
+          )}
+        </div>
+
+        <div>
+          ${helpers.escape(
+            p.status
+          )}
+        </div>
+
+        <div>
+          👁 ${helpers.formatNumber(p.views)}
+          · 👍 ${helpers.formatNumber(p.likes)}
+          · 💬 ${helpers.formatNumber(p.comments_count)}
+        </div>
+
+        <div
+          style="
+            display:flex;
+            flex-wrap:wrap;
+            gap:6px;
+            margin-top:10px;
+          "
+        >
+          <button
+            type="button"
+            data-to-action="admin-approve"
+            data-publication-id="${id}"
+          >
+            ✅ Одобрить
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-request-payment"
+            data-publication-id="${id}"
+          >
+            💰 Оплата
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-publish"
+            data-publication-id="${id}"
+          >
+            📢 Опубликовать
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-reject"
+            data-publication-id="${id}"
+          >
+            ❌ Отклонить
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-hide"
+            data-publication-id="${id}"
+          >
+            👁 Скрыть
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-pin"
+            data-publication-id="${id}"
+          >
+            📌 Закрепить
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-feature"
+            data-publication-id="${id}"
+          >
+            ⭐ Выделить
+          </button>
+
+          <button
+            type="button"
+            data-to-action="admin-delete"
+            data-publication-id="${id}"
+          >
+            🗑 Удалить
+          </button>
+        </div>
+      </article>
+    `;
+  }
+
+  TO.renderAdminPublicationCard =
+    renderAdminPublicationCard;
+
+  /* ============================================================
+     TEST USER SELECTION
+     ============================================================ */
+
+  async function selectTestUserById(
+    userId
+  ) {
+    const user =
+      await admin.user(
+        userId
+      );
+
+    if (!user) {
+      toast.error(
+        "Участник не найден."
+      );
+
+      return false;
+    }
+
+    return testing.select(
+      user
+    );
+  }
+
+  TO.selectTestUserById =
+    selectTestUserById;
+
+  /* ============================================================
+     TEST CENTER UI
+     ============================================================ */
+
+  function renderTestCenter(
+    container,
+    users = []
+  ) {
+    if (!container) return;
+
+    const selected =
+      actor.selected();
+
+    container.innerHTML = `
+      <section
+        class="to-test-center"
+        style="
+          padding:16px;
+          border:1px solid rgba(127,127,127,.25);
+          border-radius:16px;
+        "
+      >
+        <h2>🧪 Тестовый центр</h2>
+
+        <p>
+          Здесь администратор может безопасно
+          тестировать реальные пользовательские
+          сценарии через специальный тестовый режим.
+        </p>
+
+        <div>
+          <strong>Выбранный участник:</strong>
+          ${
+            selected
+              ? helpers.escape(
+                  helpers.first(
+                    selected.name,
+                    selected.full_name,
+                    selected.username,
+                    "Участник"
+                  )
+                )
+              : "не выбран"
+          }
+        </div>
+
+        ${
+          selected
+            ? `
+              <button
+                type="button"
+                data-to-action="disable-test-mode"
+              >
+                Выключить тестовый режим
+              </button>
+            `
+            : ""
+        }
+
+        <div
+          class="to-test-users"
+          style="
+            display:grid;
+            gap:8px;
+            margin-top:15px;
+          "
+        >
+          ${users
+            .map(
+              user =>
+                renderParticipantCard(
+                  user
+                )
+            )
+            .join("")}
+        </div>
+      </section>
+    `;
+
+    bindTestSelection(
+      container
+    );
+  }
+
+  function bindTestSelection(
+    root
+  ) {
+    root
+      .querySelectorAll(
+        '[data-to-action="select-test-user"]'
+      )
+      .forEach(button => {
+        if (
+          button.dataset.toBound === "1"
+        ) {
+          return;
+        }
+
+        button.dataset.toBound = "1";
+
+        button.addEventListener(
+          "click",
+          async () => {
+            const id =
+              button.dataset.userId;
+
+            await selectTestUserById(
+              id
+            );
+          }
+        );
+      });
+  }
+
+  TO.renderTestCenter =
+    renderTestCenter;
+
+  /* ============================================================
+     API ALIASES
+     ============================================================ */
+
+  TO.getPublications =
+    publications.list.bind(
+      publications
+    );
+
+  TO.getPublication =
+    publications.get.bind(
+      publications
+    );
+
+  TO.createPublication =
+    publications.create.bind(
+      publications
+    );
+
+  TO.updatePublication =
+    publications.edit.bind(
+      publications
+    );
+
+  TO.deletePublication =
+    publications.remove.bind(
+      publications
+    );
+
+  TO.restorePublication =
+    publications.restore.bind(
+      publications
+    );
+
+  TO.react =
+    reactions.toggle.bind(
+      reactions
+    );
+
+  TO.comment =
+    comments.create.bind(
+      comments
+    );
+
+  TO.save =
+    saves.toggle.bind(
+      saves
+    );
+
+  TO.share =
+    shares.native.bind(
+      shares
+    );
+
+  TO.followUser =
+    follow.toggle.bind(
+      follow
+    );
+
+  TO.sendMessage =
+    messages.send.bind(
+      messages
+    );
+
+  TO.getNotifications =
+    notifications.list.bind(
+      notifications
+    );
+
+  TO.report =
+    reports.create.bind(
+      reports
+    );
+
+  /* ============================================================
+     PUBLICATION STATUS HELPERS
+     ============================================================ */
+
+  TO.status = {
+    isPending(status) {
+      return status === "pending";
+    },
+
+    isWaitingPayment(status) {
+      return status ===
+        "waiting_payment";
+    },
+
+    isPaid(status) {
+      return status === "paid";
+    },
+
+    isPublished(status) {
+      return status === "published";
+    },
+
+    isRejected(status) {
+      return status === "rejected";
+    },
+
+    isHidden(status) {
+      return status === "hidden";
+    },
+
+    isDeleted(status) {
+      return status === "deleted";
+    }
+  };
+
+  /* ============================================================
+     URL HELPERS
+     ============================================================ */
+
+  TO.urls = {
+    publication(id) {
+      return new URL(
+        `/publication.html?id=${encodeURIComponent(
+          id
+        )}`,
+        location.origin
+      ).href;
+    },
+
+    profile(username) {
+      return new URL(
+        `/profile.html?user=${encodeURIComponent(
+          username
+        )}`,
+        location.origin
+      ).href;
+    },
+
+    messages(userId = "") {
+      return new URL(
+        `/messages.html${
+          userId
+            ? `?user=${encodeURIComponent(
+                userId
+              )}`
+            : ""
+        }`,
+        location.origin
+      ).href;
+    },
+
+    notifications() {
+      return "/notifications.html";
+    }
+  };
+
+  /* ============================================================
+     LOGIN / LOGOUT GLOBAL BUTTONS
+     ============================================================ */
+
+  document.addEventListener(
+    "click",
+    async event => {
+      const target =
+        event.target.closest(
+          "[data-to-action]"
+        );
+
+      if (!target) return;
+
+      const action =
+        target.dataset.toAction;
+
+      if (
+        action === "logout"
+      ) {
+        event.preventDefault();
+        await auth.logout();
+        updateAuthUI();
+        return;
+      }
+
+      if (
+        action === "admin-logout"
+      ) {
+        event.preventDefault();
+        await admin.logout();
+        location.reload();
+        return;
+      }
+
+      if (
+        action === "admin-refresh"
+      ) {
+        event.preventDefault();
+
+        const data =
+          await adminQuickRefresh();
+
+        const container =
+          document.querySelector(
+            "[data-to-stats]"
+          );
+
+        if (container) {
+          renderStats(
+            container,
+            data.dashboard
+          );
+        }
+
+        return;
+      }
+
+      if (
+        action === "select-test-user"
+      ) {
+        event.preventDefault();
+
+        await selectTestUserById(
+          target.dataset.userId
+        );
+
+        actor.renderIndicator();
+
+        return;
+      }
     }
   );
-}
 
+  /* ============================================================
+     SEARCH FORM AUTO SUPPORT
+     ============================================================ */
 
-function forbidden() {
-  return json({
-    ok: false,
-    error: "Доступ запрещён"
-  }, 403);
-}
+  document.addEventListener(
+    "submit",
+    async event => {
+      const form =
+        event.target.closest(
+          "[data-to-search]"
+        );
 
+      if (!form) return;
 
-function securityResponse(response) {
-  const headers =
-    new Headers(response.headers);
+      event.preventDefault();
 
-  headers.set(
-    "x-content-type-options",
-    "nosniff"
-  );
+      const input =
+        form.querySelector(
+          'input[name="q"], input[name="search"], input[type="search"]'
+        );
 
-  headers.set(
-    "x-frame-options",
-    "DENY"
-  );
+      const query =
+        input?.value?.trim() ||
+        "";
 
-  headers.set(
-    "referrer-policy",
-    "strict-origin-when-cross-origin"
-  );
+      if (!query) return;
 
-  headers.set(
-    "permissions-policy",
-    "camera=(), microphone=(), geolocation=()"
-  );
+      const results =
+        await search.all(
+          query
+        );
 
-  return new Response(
-    response.body,
-    {
-      status: response.status,
-      statusText: response.statusText,
-      headers
+      const container =
+        document.querySelector(
+          "[data-to-search-results]"
+        );
+
+      if (!container) return;
+
+      container.innerHTML = `
+        <div>
+          <h3>Публикации</h3>
+
+          ${
+            results.publications
+              .map(
+                p =>
+                  ui.publicationCard(
+                    p
+                  )
+              )
+              .join("") ||
+            "<p>Ничего не найдено.</p>"
+          }
+        </div>
+
+        <div>
+          <h3>Участники</h3>
+
+          ${
+            results.users
+              .map(
+                user =>
+                  renderParticipantCard(
+                    user
+                  )
+              )
+              .join("") ||
+            "<p>Участники не найдены.</p>"
+          }
+        </div>
+
+        <div>
+          <h3>Категории</h3>
+
+          ${
+            results.categories
+              .map(
+                category =>
+                  `<div>
+                    ${helpers.escape(
+                      category.label
+                    )}
+                  </div>`
+              )
+              .join("") ||
+            "<p>Категории не найдены.</p>"
+          }
+        </div>
+      `;
+
+      bindActions(
+        container
+      );
+
+      views.observe(
+        container
+      );
     }
   );
-}
+
+  /* ============================================================
+     COMMENT FORM AUTO SUPPORT
+     ============================================================ */
+
+  document.addEventListener(
+    "submit",
+    async event => {
+      const form =
+        event.target.closest(
+          "[data-to-comment-form]"
+        );
+
+      if (!form) return;
+
+      event.preventDefault();
+
+      const input =
+        form.querySelector(
+          "textarea, input[name='text']"
+        );
+
+      const publicationId =
+        form.dataset.publicationId ||
+        form.dataset.postId;
+
+      const parentId =
+        form.dataset.parentId ||
+        null;
+
+      if (!publicationId) {
+        toast.error(
+          "Не указана публикация."
+        );
+        return;
+      }
+
+      const text =
+        input?.value?.trim() ||
+        "";
+
+      if (!text) {
+        toast.warning(
+          "Введите комментарий."
+        );
+        return;
+      }
+
+      let result;
+
+      if (
+        actor.isTestMode()
+      ) {
+        result =
+          await testing.comment(
+            publicationId,
+            text,
+            parentId
+          );
+      } else {
+        result =
+          await comments.create(
+            publicationId,
+            text,
+            parentId
+          );
+      }
+
+      if (result?.ok) {
+        input.value = "";
+      }
+    }
+  );
+
+  /* ============================================================
+     MESSAGE FORM AUTO SUPPORT
+     ============================================================ */
+
+  document.addEventListener(
+    "submit",
+    async event => {
+      const form =
+        event.target.closest(
+          "[data-to-message-form]"
+        );
+
+      if (!form) return;
+
+      event.preventDefault();
+
+      const input =
+        form.querySelector(
+          "textarea, input[name='text']"
+        );
+
+      const text =
+        input?.value?.trim() ||
+        "";
+
+      const userId =
+        form.dataset.userId ||
+        null;
+
+      if (!text) return;
+
+      const result =
+        actor.isTestMode()
+          ? await testing.message(
+              text,
+              userId
+            )
+          : await messages.send(
+              text,
+              userId
+            );
+
+      if (result?.ok) {
+        input.value = "";
+      }
+    }
+  );
+
+  /* ============================================================
+     THEME CHANGE LISTENER
+     ============================================================ */
+
+  if (
+    window.matchMedia
+  ) {
+    const media =
+      window.matchMedia(
+        "(prefers-color-scheme: dark)"
+      );
+
+    media.addEventListener?.(
+      "change",
+      () => {
+        if (
+          theme.get() === "system"
+        ) {
+          theme.apply();
+        }
+      }
+    );
+  }
+
+  /* ============================================================
+     GLOBAL ERROR PROTECTION
+     ============================================================ */
+
+  window.addEventListener(
+    "unhandledrejection",
+    event => {
+      console.error(
+        "[Tajik Opportunities]",
+        event.reason
+      );
+    }
+  );
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+
+  async function init() {
+    try {
+      theme.apply();
+      translation.apply();
+
+      await auth.me();
+
+      updateAuthUI();
+
+      bindActions(
+        document
+      );
+
+      autoViews();
+
+      observeDOM();
+
+      actor.renderIndicator();
+
+      /*
+       * Обновляем авторизацию немного позже.
+       * Это позволяет существующим app.js/index.js
+       * успеть загрузить свои данные.
+       */
+      setTimeout(
+        async () => {
+          try {
+            await auth.me();
+            updateAuthUI();
+            bindActions(
+              document
+            );
+            actor.renderIndicator();
+          } catch {}
+        },
+        1500
+      );
+
+      /*
+       * Периодическое обновление уведомлений.
+       */
+      if (
+        !window.__TO_NOTIFICATION_TIMER
+      ) {
+        window.__TO_NOTIFICATION_TIMER =
+          setInterval(
+            async () => {
+              try {
+                const list =
+                  await notifications.list();
+
+                const unread =
+                  list.filter(
+                    item =>
+                      !helpers.bool(
+                        item.read ??
+                        item.is_read
+                      )
+                  ).length;
+
+                document
+                  .querySelectorAll(
+                    "[data-to-unread-notifications]"
+                  )
+                  .forEach(el => {
+                    el.textContent =
+                      helpers.formatNumber(
+                        unread
+                      );
+                  });
+              } catch {}
+            },
+            30000
+          );
+      }
+
+      /*
+       * Тестовый режим.
+       */
+      if (
+        actor.isTestMode() &&
+        actor.selected()
+      ) {
+        actor.renderIndicator();
+      }
+
+      /*
+       * Отдельно обновляем stats только
+       * если на странице есть соответствующий
+       * контейнер.
+       */
+      const statsContainer =
+        document.querySelector(
+          "[data-to-stats]"
+        );
+
+      if (statsContainer) {
+        const server =
+          await admin.stats();
+
+        renderStats(
+          statsContainer,
+          server
+        );
+      }
+
+      /*
+       * Автоматически подставляем категории
+       * в элементы select.
+       */
+      document
+        .querySelectorAll(
+          "select[data-to-categories]"
+        )
+        .forEach(select => {
+          if (
+            select.dataset.toCategoriesReady ===
+            "1"
+          ) {
+            return;
+          }
+
+          select.dataset.toCategoriesReady =
+            "1";
+
+          const current =
+            select.value;
+
+          select.innerHTML =
+            `<option value="">Выберите категорию</option>` +
+            CATEGORIES
+              .map(
+                ([id, label]) =>
+                  `<option value="${helpers.escape(
+                    id
+                  )}">
+                    ${helpers.escape(
+                      label
+                    )}
+                  </option>`
+              )
+              .join("");
+
+          select.value =
+            current;
+        });
+
+      console.info(
+        `[${SITE_NAME}] works.js initialized`
+      );
+    } catch (error) {
+      console.error(
+        `[${SITE_NAME}] init error`,
+        error
+      );
+    }
+  }
+
+  TO.init = init;
+
+  /* ============================================================
+     READY
+     ============================================================ */
+
+  if (
+    document.readyState ===
+    "loading"
+  ) {
+    document.addEventListener(
+      "DOMContentLoaded",
+      init,
+      {
+        once: true
+      }
+    );
+  } else {
+    init();
+  }
+
+})();
