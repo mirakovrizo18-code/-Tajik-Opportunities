@@ -1,26 +1,23 @@
-/* ============================================================
-   TAJIK OPPORTUNITIES
-   Global Frontend Application
-   Version 6.0
-   ============================================================ */
-
 (() => {
   "use strict";
 
-  /* ==========================================================
-     GLOBAL CONFIG
-     ========================================================== */
+  const API = "/api";
 
-  const API_BASE = "/api";
-
-  const TO = {
+  const SITE = {
     name: "Tajik Opportunities",
-    version: "6.0.0"
+    username: "@tajikopportunities"
   };
 
-  /* ==========================================================
-     HELPERS
-     ========================================================== */
+  const state = {
+    user: null,
+    notifications: [],
+    notificationCount: 0,
+    initialized: false
+  };
+
+  /* =========================================================
+     BASIC HELPERS
+  ========================================================= */
 
   const $ = (selector, parent = document) =>
     parent.querySelector(selector);
@@ -39,25 +36,13 @@
       .replace(/'/g, "&#039;");
   }
 
-  function truncate(text, length = 180) {
-    if (!text) return "";
-
-    const value = String(text);
-
-    if (value.length <= length) {
-      return value;
-    }
-
-    return value.slice(0, length).trim() + "…";
-  }
-
   function formatNumber(value) {
-    const number = Number(value || 0);
-
-    return new Intl.NumberFormat("ru-RU").format(number);
+    return new Intl.NumberFormat("ru-RU").format(
+      Number(value || 0)
+    );
   }
 
-  function formatDate(value, options = {}) {
+  function formatDate(value) {
     if (!value) return "";
 
     const date = new Date(value);
@@ -66,15 +51,11 @@
       return String(value);
     }
 
-    return new Intl.DateTimeFormat(
-      options.locale || "ru-RU",
-      {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        ...options
-      }
-    ).format(date);
+    return new Intl.DateTimeFormat("ru-RU", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    }).format(date);
   }
 
   function formatDateTime(value) {
@@ -95,6 +76,18 @@
     }).format(date);
   }
 
+  function debounce(fn, delay = 350) {
+    let timer;
+
+    return (...args) => {
+      clearTimeout(timer);
+
+      timer = setTimeout(() => {
+        fn(...args);
+      }, delay);
+    };
+  }
+
   function isValidURL(value) {
     if (!value) return false;
 
@@ -110,382 +103,147 @@
     }
   }
 
-  function debounce(callback, delay = 350) {
-    let timer;
-
-    return (...args) => {
-      clearTimeout(timer);
-
-      timer = setTimeout(() => {
-        callback(...args);
-      }, delay);
-    };
-  }
-
-  /* ==========================================================
+  /* =========================================================
      API
-     ========================================================== */
+  ========================================================= */
 
-  async function apiRequest(
+  async function request(
     endpoint,
     options = {}
   ) {
     const config = {
       credentials: "same-origin",
+      ...options,
       headers: {
-        "Content-Type": "application/json",
+        ...(options.body !== undefined
+          ? {
+              "Content-Type":
+                "application/json"
+            }
+          : {}),
         ...(options.headers || {})
-      },
-      ...options
+      }
     };
 
-    try {
-      const response = await fetch(
-        `${API_BASE}${endpoint}`,
-        config
-      );
+    const response = await fetch(
+      `${API}${endpoint}`,
+      config
+    );
 
-      const contentType =
-        response.headers.get("content-type") || "";
+    const type =
+      response.headers.get("content-type") || "";
 
-      let data;
+    let data;
 
-      if (contentType.includes("application/json")) {
-        data = await response.json();
-      } else {
-        data = await response.text();
-      }
-
-      if (!response.ok) {
-        const message =
-          typeof data === "object" && data?.error
-            ? data.error
-            : `Ошибка сервера: ${response.status}`;
-
-        throw new Error(message);
-      }
-
-      return data;
-    } catch (error) {
-      console.error(
-        "[Tajik Opportunities API]",
-        error
-      );
-
-      throw error;
+    if (type.includes("application/json")) {
+      data = await response.json();
+    } else {
+      data = await response.text();
     }
+
+    if (!response.ok) {
+      const message =
+        typeof data === "object" && data?.error
+          ? data.error
+          : `Ошибка сервера: ${response.status}`;
+
+      throw new Error(message);
+    }
+
+    return data;
   }
 
-  async function getJSON(endpoint) {
-    return apiRequest(endpoint, {
+  async function get(endpoint) {
+    return request(endpoint, {
       method: "GET"
     });
   }
 
-  async function postJSON(endpoint, body = {}) {
-    return apiRequest(endpoint, {
+  async function post(endpoint, body = {}) {
+    return request(endpoint, {
       method: "POST",
       body: JSON.stringify(body)
     });
   }
 
-  /* ==========================================================
-     MOBILE MENU
-     ========================================================== */
-
-  function closeMobileMenu() {
-    const button = $(".mobile-menu-button");
-    const nav = $(".site-nav");
-
-    if (!nav) return;
-
-    nav.classList.remove("open");
-
-    if (button) {
-      button.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-    }
-
-    document.body.classList.remove("no-scroll");
-  }
-
-  function openMobileMenu() {
-    const button = $(".mobile-menu-button");
-    const nav = $(".site-nav");
-
-    if (!nav) return;
-
-    nav.classList.add("open");
-
-    if (button) {
-      button.setAttribute(
-        "aria-expanded",
-        "true"
-      );
-    }
-
-    document.body.classList.add("no-scroll");
-  }
-
-  function initMobileMenu() {
-    const button = $(".mobile-menu-button");
-    const nav = $(".site-nav");
-
-    if (!button || !nav) return;
-
-    button.setAttribute(
-      "aria-expanded",
-      "false"
-    );
-
-    button.addEventListener("click", (event) => {
-      event.stopPropagation();
-
-      const isOpen =
-        nav.classList.contains("open");
-
-      if (isOpen) {
-        closeMobileMenu();
-      } else {
-        openMobileMenu();
-      }
-    });
-
-    $$("a", nav).forEach((link) => {
-      link.addEventListener("click", () => {
-        closeMobileMenu();
-      });
-    });
-
-    document.addEventListener("click", (event) => {
-      if (!nav.classList.contains("open")) {
-        return;
-      }
-
-      if (
-        !nav.contains(event.target) &&
-        !button.contains(event.target)
-      ) {
-        closeMobileMenu();
-      }
+  async function put(endpoint, body = {}) {
+    return request(endpoint, {
+      method: "PUT",
+      body: JSON.stringify(body)
     });
   }
 
-  /* ==========================================================
-     ESCAPE KEY
-     ========================================================== */
-
-  function initEscapeKey() {
-    document.addEventListener(
-      "keydown",
-      (event) => {
-        if (event.key !== "Escape") {
-          return;
-        }
-
-        $$(".modal.show").forEach(
-          (modal) => {
-            modal.classList.remove("show");
-          }
-        );
-
-        closeMobileMenu();
-
-        document.body.classList.remove(
-          "no-scroll"
-        );
-      }
-    );
-  }
-
-  /* ==========================================================
-     MODALS
-     ========================================================== */
-
-  function openModal(id) {
-    const modal = document.getElementById(id);
-
-    if (!modal) return false;
-
-    modal.classList.add("show");
-
-    document.body.classList.add("no-scroll");
-
-    return true;
-  }
-
-  function closeModal(modal) {
-    if (!modal) return;
-
-    modal.classList.remove("show");
-
-    if (!$(".modal.show")) {
-      document.body.classList.remove(
-        "no-scroll"
-      );
-    }
-  }
-
-  function closeAllModals() {
-    $$(".modal.show").forEach(
-      (modal) => {
-        modal.classList.remove("show");
-      }
-    );
-
-    document.body.classList.remove(
-      "no-scroll"
-    );
-  }
-
-  function initModals() {
-    $$("[data-modal-open]").forEach(
-      (trigger) => {
-        trigger.addEventListener(
-          "click",
-          (event) => {
-            event.preventDefault();
-
-            const modalId =
-              trigger.getAttribute(
-                "data-modal-open"
-              );
-
-            if (modalId) {
-              openModal(modalId);
-            }
-          }
-        );
-      }
-    );
-
-    $$("[data-modal-close]").forEach(
-      (trigger) => {
-        trigger.addEventListener(
-          "click",
-          () => {
-            const modal =
-              trigger.closest(".modal");
-
-            closeModal(modal);
-          }
-        );
-      }
-    );
-
-    $$(".modal").forEach((modal) => {
-      modal.addEventListener(
-        "click",
-        (event) => {
-          if (event.target === modal) {
-            closeModal(modal);
-          }
-        }
-      );
+  async function patch(endpoint, body = {}) {
+    return request(endpoint, {
+      method: "PATCH",
+      body: JSON.stringify(body)
     });
   }
 
-  /* ==========================================================
-     TOAST NOTIFICATIONS
-     ========================================================== */
+  async function del(endpoint) {
+    return request(endpoint, {
+      method: "DELETE"
+    });
+  }
 
-  function showToast(
-    message,
-    type = "success",
-    duration = 3500
-  ) {
-    let container =
-      $(".toast-container");
+  /* =========================================================
+     TOAST
+  ========================================================= */
+
+  function toast(message, type = "info") {
+    let container = $(".toast-container");
 
     if (!container) {
-      container =
-        document.createElement("div");
-
-      container.className =
-        "toast-container";
-
-      document.body.appendChild(
-        container
-      );
+      container = document.createElement("div");
+      container.className = "toast-container";
+      document.body.appendChild(container);
     }
 
-    const toast =
-      document.createElement("div");
+    const item = document.createElement("div");
 
-    toast.className =
-      `toast ${type}`;
+    item.className = `toast ${type}`;
+    item.textContent = message || "";
 
-    toast.setAttribute(
-      "role",
-      "status"
-    );
-
-    toast.textContent =
-      message || "";
-
-    container.appendChild(toast);
+    container.appendChild(item);
 
     requestAnimationFrame(() => {
-      toast.classList.add("show");
+      item.classList.add("show");
     });
 
     setTimeout(() => {
-      toast.classList.remove("show");
+      item.classList.remove("show");
 
       setTimeout(() => {
-        toast.remove();
+        item.remove();
 
-        if (
-          container.children.length === 0
-        ) {
+        if (!container.children.length) {
           container.remove();
         }
-      }, 300);
-    }, duration);
+      }, 250);
+    }, 3500);
 
-    return toast;
+    return item;
   }
 
-  function showSuccess(message) {
-    return showToast(
-      message,
-      "success"
-    );
-  }
+  const showSuccess = (message) =>
+    toast(message, "success");
 
-  function showError(message) {
-    return showToast(
-      message,
-      "error"
-    );
-  }
+  const showError = (message) =>
+    toast(message, "error");
 
-  function showInfo(message) {
-    return showToast(
-      message,
-      "info"
-    );
-  }
+  const showInfo = (message) =>
+    toast(message, "info");
 
-  function showWarning(message) {
-    return showToast(
-      message,
-      "warning"
-    );
-  }
+  const showWarning = (message) =>
+    toast(message, "warning");
 
-  /* ==========================================================
-     COPY TO CLIPBOARD
-     ========================================================== */
+  /* =========================================================
+     CLIPBOARD
+  ========================================================= */
 
   async function copyText(text) {
     if (!text) {
-      showError(
-        "Нечего копировать"
-      );
-
+      showError("Нечего копировать");
       return false;
     }
 
@@ -494,36 +252,21 @@
         navigator.clipboard &&
         window.isSecureContext
       ) {
-        await navigator.clipboard.writeText(
-          text
-        );
+        await navigator.clipboard.writeText(text);
       } else {
         const textarea =
-          document.createElement(
-            "textarea"
-          );
+          document.createElement("textarea");
 
         textarea.value = text;
+        textarea.style.position = "fixed";
+        textarea.style.left = "-9999px";
 
-        textarea.style.position =
-          "fixed";
-
-        textarea.style.left =
-          "-9999px";
-
-        textarea.style.top =
-          "-9999px";
-
-        document.body.appendChild(
-          textarea
-        );
+        document.body.appendChild(textarea);
 
         textarea.focus();
         textarea.select();
 
-        document.execCommand(
-          "copy"
-        );
+        document.execCommand("copy");
 
         textarea.remove();
       }
@@ -531,613 +274,24 @@
       showSuccess("Скопировано");
 
       return true;
-    } catch (error) {
-      console.error(error);
-
-      showError(
-        "Не удалось скопировать"
-      );
+    } catch {
+      showError("Не удалось скопировать");
 
       return false;
     }
   }
 
-  function initCopyButtons() {
-    $$("[data-copy]").forEach(
-      (button) => {
-        button.addEventListener(
-          "click",
-          async () => {
-            const value =
-              button.getAttribute(
-                "data-copy"
-              );
-
-            if (!value) return;
-
-            const copied =
-              await copyText(value);
-
-            if (copied) {
-              button.classList.add(
-                "copied"
-              );
-
-              setTimeout(() => {
-                button.classList.remove(
-                  "copied"
-                );
-              }, 1200);
-            }
-          }
-        );
-      }
-    );
-  }
-
-  /* ==========================================================
-     EXTERNAL LINKS
-     ========================================================== */
-
-  function initExternalLinks() {
-    $$("a[href]").forEach((link) => {
-      const href =
-        link.getAttribute("href");
-
-      if (!href) return;
-
-      if (
-        href.startsWith(
-          "javascript:"
-        )
-      ) {
-        return;
-      }
-
-      try {
-        const url = new URL(
-          href,
-          window.location.href
-        );
-
-        if (
-          url.origin !==
-          window.location.origin
-        ) {
-          link.setAttribute(
-            "target",
-            "_blank"
-          );
-
-          link.setAttribute(
-            "rel",
-            "noopener noreferrer"
-          );
-        }
-      } catch {
-        // Invalid URL.
-      }
-    });
-  }
-
-  /* ==========================================================
-     IMAGE FALLBACKS
-     ========================================================== */
-
-  function initImageFallbacks() {
-    $$("img").forEach((image) => {
-      image.addEventListener(
-        "error",
-        () => {
-          image.classList.add(
-            "image-error"
-          );
-
-          image.setAttribute(
-            "aria-hidden",
-            "true"
-          );
-        },
-        {
-          once: true
-        }
-      );
-
-      if (
-        image.complete &&
-        image.naturalWidth === 0
-      ) {
-        image.classList.add(
-          "image-error"
-        );
-      }
-    });
-  }
-
-  /* ==========================================================
-     LAZY IMAGES
-     ========================================================== */
-
-  function initLazyImages() {
-    $$("img[data-src]").forEach(
-      (image) => {
-        const source =
-          image.getAttribute(
-            "data-src"
-          );
-
-        if (!source) return;
-
-        if (
-          "IntersectionObserver" in
-          window
-        ) {
-          const observer =
-            new IntersectionObserver(
-              (entries, obs) => {
-                entries.forEach(
-                  (entry) => {
-                    if (
-                      !entry.isIntersecting
-                    ) {
-                      return;
-                    }
-
-                    image.src =
-                      source;
-
-                    image.removeAttribute(
-                      "data-src"
-                    );
-
-                    obs.unobserve(
-                      image
-                    );
-                  }
-                );
-              },
-              {
-                rootMargin:
-                  "200px"
-              }
-            );
-
-          observer.observe(image);
-        } else {
-          image.src = source;
-
-          image.removeAttribute(
-            "data-src"
-          );
-        }
-      }
-    );
-  }
-
-  /* ==========================================================
-     CURRENT YEAR
-     ========================================================== */
-
-  function initCurrentYear() {
-    const year =
-      new Date().getFullYear();
-
-    $$(
-      "[data-current-year]"
-    ).forEach((element) => {
-      element.textContent =
-        year;
-    });
-  }
-
-  /* ==========================================================
-     ACTIVE NAVIGATION
-     ========================================================== */
-
-  function initActiveNavigation() {
-    const currentPath =
-      window.location.pathname
-        .replace(/\/+$/, "");
-
-    $$(
-      ".site-nav a[href]"
-    ).forEach((link) => {
-      const href =
-        link.getAttribute(
-          "href"
-        );
-
-      if (!href) return;
-
-      if (
-        href.startsWith(
-          "http://"
-        ) ||
-        href.startsWith(
-          "https://"
-        ) ||
-        href.startsWith("#")
-      ) {
-        return;
-      }
-
-      let linkPath = href;
-
-      try {
-        linkPath =
-          new URL(
-            href,
-            window.location.origin
-          ).pathname
-            .replace(/\/+$/, "");
-      } catch {
-        return;
-      }
-
-      if (
-        linkPath ===
-        currentPath
-      ) {
-        link.classList.add(
-          "active"
-        );
-
-        link.setAttribute(
-          "aria-current",
-          "page"
-        );
-      }
-    });
-  }
-
-  /* ==========================================================
-     SEARCH
-     ========================================================== */
-
-  function initSearch() {
-    const inputs = $$(
-      "[data-site-search]"
-    );
-
-    inputs.forEach((input) => {
-      const form =
-        input.closest("form");
-
-      if (!form) return;
-
-      form.addEventListener(
-        "submit",
-        (event) => {
-          const query =
-            input.value.trim();
-
-          if (!query) {
-            event.preventDefault();
-            return;
-          }
-        }
-      );
-    });
-  }
-
-  /* ==========================================================
-     SEARCH PARAMETER HELPERS
-     ========================================================== */
-
-  function getURLParameter(
-    name
-  ) {
-    return new URLSearchParams(
-      window.location.search
-    ).get(name);
-  }
-
-  function setURLParameter(
-    name,
-    value
-  ) {
-    const url =
-      new URL(
-        window.location.href
-      );
-
-    if (
-      value === null ||
-      value === undefined ||
-      value === ""
-    ) {
-      url.searchParams.delete(
-        name
-      );
-    } else {
-      url.searchParams.set(
-        name,
-        value
-      );
-    }
-
-    window.history.replaceState(
-      {},
-      "",
-      url
-    );
-  }
-
-  /* ==========================================================
-     FORM UTILITIES
-     ========================================================== */
-
-  function getFormDataObject(
-    form
-  ) {
-    const formData =
-      new FormData(form);
-
-    const data = {};
-
-    for (
-      const [
-        key,
-        value
-      ] of formData.entries()
-    ) {
-      if (
-        Object.prototype.hasOwnProperty.call(
-          data,
-          key
-        )
-      ) {
-        if (
-          !Array.isArray(
-            data[key]
-          )
-        ) {
-          data[key] = [
-            data[key]
-          ];
-        }
-
-        data[key].push(value);
-      } else {
-        data[key] = value;
-      }
-    }
-
-    return data;
-  }
-
-  function setLoading(
-    element,
-    loading = true,
-    text = "Загрузка..."
-  ) {
-    if (!element) return;
-
-    if (loading) {
-      element.dataset.originalText =
-        element.textContent;
-
-      element.disabled = true;
-
-      element.classList.add(
-        "loading"
-      );
-
-      element.textContent = text;
-    } else {
-      element.disabled = false;
-
-      element.classList.remove(
-        "loading"
-      );
-
-      if (
-        element.dataset.originalText
-      ) {
-        element.textContent =
-          element.dataset.originalText;
-      }
-    }
-  }
-
-  /* ==========================================================
-     NUMBER INPUTS
-     ========================================================== */
-
-  function initNumberInputs() {
-    $$("input[type='number']").forEach(
-      (input) => {
-        input.addEventListener(
-          "input",
-          () => {
-            if (
-              input.value === ""
-            ) {
-              return;
-            }
-
-            const number =
-              Number(input.value);
-
-            if (
-              Number.isNaN(number)
-            ) {
-              input.value = "";
-            }
-          }
-        );
-      }
-    );
-  }
-
-  /* ==========================================================
-     AUTO RESIZE TEXTAREA
-     ========================================================== */
-
-  function autoResizeTextarea(
-    textarea
-  ) {
-    textarea.style.height =
-      "auto";
-
-    textarea.style.height =
-      `${textarea.scrollHeight}px`;
-  }
-
-  function initTextareas() {
-    $$("textarea").forEach(
-      (textarea) => {
-        if (
-          textarea.dataset.autoresize ===
-          "false"
-        ) {
-          return;
-        }
-
-        textarea.addEventListener(
-          "input",
-          () => {
-            autoResizeTextarea(
-              textarea
-            );
-          }
-        );
-
-        requestAnimationFrame(
-          () => {
-            autoResizeTextarea(
-              textarea
-            );
-          }
-        );
-      }
-    );
-  }
-
-  /* ==========================================================
-     CHARACTER COUNTERS
-     ========================================================== */
-
-  function initCharacterCounters() {
-    $$(
-      "[data-character-counter]"
-    ).forEach((counter) => {
-      const targetId =
-        counter.getAttribute(
-          "data-character-counter"
-        );
-
-      const target =
-        document.getElementById(
-          targetId
-        );
-
-      if (!target) return;
-
-      const update = () => {
-        const length =
-          target.value?.length ||
-          0;
-
-        counter.textContent =
-          formatNumber(length);
-      };
-
-      target.addEventListener(
-        "input",
-        update
-      );
-
-      update();
-    });
-  }
-
-  /* ==========================================================
-     URL PREVIEW
-     ========================================================== */
-
-  function createURLPreview(
-    url,
-    container
-  ) {
-    if (!container) return;
-
-    container.innerHTML = "";
-
-    if (!isValidURL(url)) {
-      return;
-    }
-
-    const link =
-      document.createElement("a");
-
-    link.href = url;
-
-    link.target = "_blank";
-
-    link.rel =
-      "noopener noreferrer";
-
-    link.textContent =
-      url;
-
-    container.appendChild(
-      link
-    );
-  }
-
-  /* ==========================================================
-     MEDIA URL HELPERS
-     ========================================================== */
-
-  function detectMediaType(url) {
-    if (!url) {
-      return "other";
-    }
-
-    const lower =
-      url.toLowerCase();
-
-    if (
-      /\.(jpg|jpeg|png|gif|webp|avif|svg)(\?.*)?$/.test(
-        lower
-      )
-    ) {
-      return "image";
-    }
-
-    if (
-      /\.(mp4|webm|mov|m4v)(\?.*)?$/.test(
-        lower
-      )
-    ) {
-      return "video";
-    }
-
-    if (
-      /\.(mp3|wav|ogg|m4a|aac|flac)(\?.*)?$/.test(
-        lower
-      )
-    ) {
-      return "audio";
-    }
-
-    return "link";
-  }
-
-  /* ==========================================================
+  /* =========================================================
      SHARE
-     ========================================================== */
+  ========================================================= */
 
-  async function shareURL(
-    url = window.location.href,
-    title = TO.name,
+  async function share(
+    url = location.href,
+    title = SITE.name,
     text = ""
   ) {
     try {
-      if (
-        navigator.share
-      ) {
+      if (navigator.share) {
         await navigator.share({
           title,
           text,
@@ -1147,14 +301,9 @@
         return true;
       }
 
-      return await copyText(
-        url
-      );
+      return await copyText(url);
     } catch (error) {
-      if (
-        error?.name ===
-        "AbortError"
-      ) {
+      if (error?.name === "AbortError") {
         return false;
       }
 
@@ -1162,135 +311,419 @@
     }
   }
 
-  function initShareButtons() {
-    $$("[data-share]").forEach(
-      (button) => {
-        button.addEventListener(
-          "click",
-          async () => {
-            const url =
-              button.getAttribute(
-                "data-share-url"
-              ) ||
-              window.location.href;
+  /* =========================================================
+     CURRENT USER
+  ========================================================= */
 
-            const title =
-              button.getAttribute(
-                "data-share-title"
-              ) ||
-              document.title;
+  async function loadCurrentUser() {
+    try {
+      const result = await get("/auth/me");
 
-            const text =
-              button.getAttribute(
-                "data-share-text"
-              ) ||
-              "";
+      state.user =
+        result?.user ||
+        result?.data ||
+        null;
 
-            await shareURL(
-              url,
-              title,
-              text
-            );
-          }
+      updateUserInterface();
+
+      return state.user;
+    } catch {
+      state.user = null;
+
+      updateUserInterface();
+
+      return null;
+    }
+  }
+
+  /* =========================================================
+     USER INTERFACE
+  ========================================================= */
+
+  function updateUserInterface() {
+    const user = state.user;
+
+    const profileText =
+      $("#headerProfileText");
+
+    const avatar =
+      $("#headerAvatar");
+
+    if (profileText) {
+      if (user) {
+        profileText.textContent =
+          user.username
+            ? `@${String(
+                user.username
+              ).replace(/^@/, "")}`
+            : user.name ||
+              "Профиль";
+      } else {
+        profileText.textContent =
+          "Войти";
+      }
+    }
+
+    if (avatar) {
+      if (user?.avatar_url) {
+        avatar.innerHTML = `
+          <img
+            src="${escapeHTML(
+              user.avatar_url
+            )}"
+            alt=""
+          >
+        `;
+      } else {
+        avatar.textContent = "👤";
+      }
+    }
+
+    $$("[data-user-name]").forEach(
+      element => {
+        element.textContent =
+          user?.name || "";
+      }
+    );
+
+    $$("[data-username]").forEach(
+      element => {
+        element.textContent =
+          user?.username
+            ? `@${String(
+                user.username
+              ).replace(/^@/, "")}`
+            : "";
+      }
+    );
+
+    $$("[data-auth-only]").forEach(
+      element => {
+        element.classList.toggle(
+          "hidden",
+          !user
+        );
+      }
+    );
+
+    $$("[data-guest-only]").forEach(
+      element => {
+        element.classList.toggle(
+          "hidden",
+          Boolean(user)
         );
       }
     );
   }
 
-  /* ==========================================================
-     FAVORITE / SAVE
-     ========================================================== */
+  /* =========================================================
+     LOGIN
+  ========================================================= */
 
-  async function toggleFavorite(
-    publicationId,
-    button = null
+  async function login(
+    username,
+    password
   ) {
-    if (!publicationId) {
-      return null;
-    }
-
     try {
-      const result =
-        await postJSON(
-          `/publications/${encodeURIComponent(
-            publicationId
-          )}/favorite`,
-          {}
-        );
-
-      if (button) {
-        button.classList.toggle(
-          "active",
-          Boolean(
-            result?.saved
-          )
-        );
-
-        const count =
-          button.querySelector(
-            "[data-save-count]"
-          );
-
-        if (
-          count &&
-          result?.saves !==
-            undefined
-        ) {
-          count.textContent =
-            formatNumber(
-              result.saves
-            );
+      const result = await post(
+        "/auth/login",
+        {
+          username,
+          password
         }
-      }
+      );
+
+      state.user =
+        result?.user ||
+        null;
+
+      updateUserInterface();
+
+      showSuccess("Вы вошли в аккаунт");
 
       return result;
     } catch (error) {
       showError(
         error.message ||
-          "Не удалось сохранить публикацию"
+          "Не удалось войти"
       );
 
-      return null;
+      throw error;
     }
   }
 
-  function initFavoriteButtons() {
-    $$(
-      "[data-favorite]"
-    ).forEach((button) => {
-      button.addEventListener(
-        "click",
+  /* =========================================================
+     REGISTER
+  ========================================================= */
+
+  async function register(data) {
+    try {
+      const result = await post(
+        "/auth/register",
+        data
+      );
+
+      state.user =
+        result?.user ||
+        null;
+
+      updateUserInterface();
+
+      showSuccess(
+        "Аккаунт успешно создан"
+      );
+
+      return result;
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось создать аккаунт"
+      );
+
+      throw error;
+    }
+  }
+
+  /* =========================================================
+     LOGOUT
+  ========================================================= */
+
+  async function logout() {
+    try {
+      await post("/auth/logout", {});
+    } catch {
+      // Session may already be expired.
+    }
+
+    state.user = null;
+
+    updateUserInterface();
+
+    showSuccess("Вы вышли из аккаунта");
+
+    setTimeout(() => {
+      if (
+        location.pathname !==
+        "/"
+      ) {
+        location.href = "/";
+      }
+    }, 500);
+  }
+
+  /* =========================================================
+     USERNAME
+  ========================================================= */
+
+  async function checkUsername(
+    username
+  ) {
+    if (!username) {
+      return {
+        available: false
+      };
+    }
+
+    try {
+      return await get(
+        `/auth/username?username=${encodeURIComponent(
+          username
+        )}`
+      );
+    } catch {
+      return {
+        available: false
+      };
+    }
+  }
+
+  function initUsernameChecker() {
+    const inputs = $$(
+      "[data-username-check]"
+    );
+
+    inputs.forEach(input => {
+      const result =
+        input.parentElement?.querySelector(
+          "[data-username-result]"
+        );
+
+      const check = debounce(
         async () => {
-          const id =
-            button.getAttribute(
-              "data-favorite"
+          const username =
+            input.value.trim();
+
+          if (!username) {
+            if (result) {
+              result.textContent = "";
+            }
+
+            return;
+          }
+
+          if (result) {
+            result.textContent =
+              "Проверяем...";
+          }
+
+          const response =
+            await checkUsername(
+              username
             );
 
-          await toggleFavorite(
-            id,
-            button
-          );
-        }
+          if (!result) return;
+
+          if (
+            response?.available
+          ) {
+            result.textContent =
+              "✅ свободен";
+
+            result.className =
+              "username-result available";
+          } else {
+            result.textContent =
+              "❌ уже занят";
+
+            result.className =
+              "username-result unavailable";
+          }
+        },
+        450
+      );
+
+      input.addEventListener(
+        "input",
+        check
       );
     });
   }
 
-  /* ==========================================================
-     REACTIONS
-     ========================================================== */
+  /* =========================================================
+     PROFILE
+  ========================================================= */
 
-  async function reactToPublication(
-    publicationId,
-    reaction = "like",
-    button = null
-  ) {
-    if (!publicationId) {
-      return null;
-    }
+  async function getProfile(username) {
+    const query = username
+      ? `?username=${encodeURIComponent(
+          username
+        )}`
+      : "";
 
+    return get(`/profile${query}`);
+  }
+
+  async function updateProfile(data) {
     try {
       const result =
-        await postJSON(
+        await patch(
+          "/profile",
+          data
+        );
+
+      state.user =
+        result?.user ||
+        result?.data ||
+        state.user;
+
+      updateUserInterface();
+
+      showSuccess(
+        "Профиль обновлён"
+      );
+
+      return result;
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось обновить профиль"
+      );
+
+      throw error;
+    }
+  }
+
+  /* =========================================================
+     PUBLICATIONS
+  ========================================================= */
+
+  async function getPublications(
+    params = {}
+  ) {
+    const query =
+      new URLSearchParams();
+
+    Object.entries(params).forEach(
+      ([key, value]) => {
+        if (
+          value !== undefined &&
+          value !== null &&
+          value !== ""
+        ) {
+          query.set(
+            key,
+            value
+          );
+        }
+      }
+    );
+
+    const suffix =
+      query.toString()
+        ? `?${query.toString()}`
+        : "";
+
+    return get(
+      `/publications${suffix}`
+    );
+  }
+
+  async function getPublication(
+    id
+  ) {
+    return get(
+      `/publications/${encodeURIComponent(
+        id
+      )}`
+    );
+  }
+
+  async function createPublication(
+    data
+  ) {
+    try {
+      const result =
+        await post(
+          "/publications",
+          data
+        );
+
+      showSuccess(
+        "Публикация отправлена на модерацию"
+      );
+
+      return result;
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось создать публикацию"
+      );
+
+      throw error;
+    }
+  }
+
+  /* =========================================================
+     REACTIONS
+  ========================================================= */
+
+  async function react(
+    publicationId,
+    reaction = "like"
+  ) {
+    try {
+      const result =
+        await post(
           `/publications/${encodeURIComponent(
             publicationId
           )}/react`,
@@ -1299,24 +732,10 @@
           }
         );
 
-      if (button) {
-        $$(".reaction-button").forEach(
-          (item) => {
-            if (
-              item.getAttribute(
-                "data-reaction"
-              ) === reaction
-            ) {
-              item.classList.toggle(
-                "active",
-                Boolean(
-                  result?.reacted
-                )
-              );
-            }
-          }
-        );
-      }
+      updateReactionButtons(
+        publicationId,
+        result
+      );
 
       return result;
     } catch (error) {
@@ -1329,51 +748,108 @@
     }
   }
 
-  function initReactionButtons() {
+  function updateReactionButtons(
+    publicationId,
+    result
+  ) {
     $$(
-      "[data-reaction]"
-    ).forEach((button) => {
-      button.addEventListener(
-        "click",
-        async () => {
-          const publicationId =
-            button.getAttribute(
-              "data-publication-id"
-            );
+      `[data-reaction-publication="${publicationId}"]`
+    ).forEach(button => {
+      const reaction =
+        button.getAttribute(
+          "data-reaction"
+        );
 
-          const reaction =
-            button.getAttribute(
-              "data-reaction"
-            ) ||
-            "like";
-
-          if (!publicationId) {
-            return;
-          }
-
-          await reactToPublication(
-            publicationId,
-            reaction,
-            button
-          );
-        }
+      button.classList.toggle(
+        "active",
+        Boolean(
+          result?.reaction ===
+            reaction ||
+          result?.current_reaction ===
+            reaction
+        )
       );
+
+      const count =
+        result?.counts?.[reaction];
+
+      const counter =
+        button.querySelector(
+          "[data-reaction-count]"
+        );
+
+      if (
+        counter &&
+        count !== undefined
+      ) {
+        counter.textContent =
+          formatNumber(count);
+      }
     });
   }
 
-  /* ==========================================================
-     VIEW COUNT
-     ========================================================== */
+  /* =========================================================
+     SAVE
+  ========================================================= */
 
-  async function registerView(
+  async function toggleSave(
     publicationId
   ) {
-    if (!publicationId) {
+    try {
+      const result =
+        await post(
+          `/publications/${encodeURIComponent(
+            publicationId
+          )}/favorite`,
+          {}
+        );
+
+      $$(
+        `[data-save="${publicationId}"]`
+      ).forEach(button => {
+        button.classList.toggle(
+          "active",
+          Boolean(
+            result?.saved
+          )
+        );
+
+        const counter =
+          button.querySelector(
+            "[data-save-count]"
+          );
+
+        if (
+          counter &&
+          result?.saves !== undefined
+        ) {
+          counter.textContent =
+            formatNumber(
+              result.saves
+            );
+        }
+      });
+
+      return result;
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось сохранить публикацию"
+      );
+
       return null;
     }
+  }
 
+  /* =========================================================
+     VIEWS
+  ========================================================= */
+
+  async function addView(
+    publicationId
+  ) {
     try {
-      return await postJSON(
+      return await post(
         `/publications/${encodeURIComponent(
           publicationId
         )}/view`,
@@ -1384,19 +860,15 @@
     }
   }
 
-  /* ==========================================================
+  /* =========================================================
      COMMENTS
-     ========================================================== */
+  ========================================================= */
 
-  async function loadComments(
+  async function getComments(
     publicationId
   ) {
-    if (!publicationId) {
-      return null;
-    }
-
     try {
-      return await getJSON(
+      return await get(
         `/publications/${encodeURIComponent(
           publicationId
         )}/comments`
@@ -1411,385 +883,457 @@
     }
   }
 
-  /* ==========================================================
-     REPORT
-     ========================================================== */
+  async function addComment(
+    publicationId,
+    text,
+    parentId = null
+  ) {
+    if (!text?.trim()) {
+      showError(
+        "Введите комментарий"
+      );
 
-  async function reportPublication(
+      return null;
+    }
+
+    try {
+      const result =
+        await post(
+          `/publications/${encodeURIComponent(
+            publicationId
+          )}/comments`,
+          {
+            text: text.trim(),
+            parent_id: parentId
+          }
+        );
+
+      showSuccess(
+        "Комментарий добавлен"
+      );
+
+      return result;
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось добавить комментарий"
+      );
+
+      return null;
+    }
+  }
+
+  /* =========================================================
+     FOLLOW
+  ========================================================= */
+
+  async function toggleFollow(
+    username
+  ) {
+    try {
+      return await post(
+        "/follows/toggle",
+        {
+          username
+        }
+      );
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось изменить подписку"
+      );
+
+      return null;
+    }
+  }
+
+  /* =========================================================
+     REPORT
+  ========================================================= */
+
+  async function report(
     publicationId,
     reason,
     details = ""
   ) {
-    if (!publicationId) {
-      return false;
-    }
-
     try {
-      await postJSON(
-        "/reports",
-        {
-          publication_id:
-            publicationId,
-          reason,
-          details
-        }
-      );
+      const result =
+        await post(
+          "/reports",
+          {
+            publication_id:
+              publicationId,
+            reason,
+            details
+          }
+        );
 
       showSuccess(
-        "Жалоба отправлена модераторам"
+        "Жалоба отправлена"
       );
 
-      return true;
+      return result;
     } catch (error) {
       showError(
         error.message ||
           "Не удалось отправить жалобу"
       );
 
-      return false;
+      return null;
     }
   }
 
-  /* ==========================================================
-     VISIBILITY HELPERS
-     ========================================================== */
+  /* =========================================================
+     MESSAGES
+  ========================================================= */
 
-  function showElement(
-    element
-  ) {
-    if (!element) return;
+  async function getChats() {
+    try {
+      return await get(
+        "/messages/chats"
+      );
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось загрузить чаты"
+      );
 
-    element.hidden = false;
-
-    element.classList.remove(
-      "hide"
-    );
+      return null;
+    }
   }
 
-  function hideElement(
-    element
+  async function getMessages(
+    userId
   ) {
-    if (!element) return;
+    try {
+      return await get(
+        `/messages/${encodeURIComponent(
+          userId
+        )}`
+      );
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось загрузить сообщения"
+      );
 
-    element.hidden = true;
-
-    element.classList.add(
-      "hide"
-    );
+      return null;
+    }
   }
 
-  /* ==========================================================
-     LOADING STATES
-     ========================================================== */
-
-  function showLoading(
-    element,
-    text = "Загрузка..."
+  async function sendMessage(
+    userId,
+    text,
+    publicationId = null
   ) {
-    if (!element) return;
+    if (!text?.trim()) {
+      return null;
+    }
 
-    element.innerHTML = `
-      <div class="loading-state">
-        <div class="loading-spinner" aria-hidden="true"></div>
-        <div>${escapeHTML(text)}</div>
-      </div>
-    `;
+    try {
+      const result =
+        await post(
+          "/messages/send",
+          {
+            user_id: userId,
+            text: text.trim(),
+            publication_id:
+              publicationId
+          }
+        );
 
-    showElement(element);
+      return result;
+    } catch (error) {
+      showError(
+        error.message ||
+          "Не удалось отправить сообщение"
+      );
+
+      return null;
+    }
   }
 
-  function showEmpty(
-    element,
-    text = "Ничего не найдено"
-  ) {
-    if (!element) return;
+  /* =========================================================
+     NOTIFICATIONS
+  ========================================================= */
 
-    element.innerHTML = `
-      <div class="empty-state">
-        <div class="empty-state-icon">🔎</div>
-        <div class="empty-state-title">
-          ${escapeHTML(text)}
+  async function loadNotifications() {
+    try {
+      const result =
+        await get(
+          "/notifications"
+        );
+
+      state.notifications =
+        result?.notifications ||
+        result?.items ||
+        [];
+
+      state.notificationCount =
+        result?.unread_count ||
+        result?.unread ||
+        state.notifications.filter(
+          item =>
+            !item.read &&
+            !item.is_read
+        ).length;
+
+      updateNotificationUI();
+
+      return result;
+    } catch {
+      state.notifications = [];
+      state.notificationCount = 0;
+
+      updateNotificationUI();
+
+      return null;
+    }
+  }
+
+  function updateNotificationUI() {
+    const badge =
+      $("#notificationBadge");
+
+    if (badge) {
+      badge.textContent =
+        formatNumber(
+          state.notificationCount
+        );
+
+      badge.classList.toggle(
+        "hidden",
+        !state.notificationCount
+      );
+    }
+  }
+
+  async function markNotificationRead(
+    id
+  ) {
+    try {
+      const result =
+        await post(
+          `/notifications/${encodeURIComponent(
+            id
+          )}/read`,
+          {}
+        );
+
+      await loadNotifications();
+
+      return result;
+    } catch {
+      return null;
+    }
+  }
+
+  /* =========================================================
+     NOTIFICATION PANEL
+  ========================================================= */
+
+  function renderNotifications() {
+    const list =
+      $("#notificationList");
+
+    if (!list) return;
+
+    if (!state.notifications.length) {
+      list.innerHTML = `
+        <div class="notification-empty">
+          Пока нет уведомлений.
         </div>
-      </div>
-    `;
+      `;
 
-    showElement(element);
-  }
-
-  function showErrorState(
-    element,
-    text = "Произошла ошибка"
-  ) {
-    if (!element) return;
-
-    element.innerHTML = `
-      <div class="error-state">
-        <div class="error-state-icon">⚠️</div>
-        <div class="error-state-title">
-          ${escapeHTML(text)}
-        </div>
-        <button type="button" data-retry>
-          Повторить
-        </button>
-      </div>
-    `;
-
-    showElement(element);
-  }
-
-  /* ==========================================================
-     CONNECTION STATUS
-     ========================================================== */
-
-  function updateConnectionStatus() {
-    const elements =
-      $$("[data-connection-status]");
-
-    if (!elements.length) {
       return;
     }
 
-    const online =
-      navigator.onLine;
+    list.innerHTML =
+      state.notifications
+        .map(item => {
+          const id =
+            item.id ?? "";
 
-    elements.forEach(
-      (element) => {
-        element.textContent =
-          online
-            ? "Онлайн"
-            : "Нет подключения";
+          const title =
+            item.title ||
+            item.type ||
+            "Уведомление";
 
-        element.classList.toggle(
-          "offline",
-          !online
-        );
+          const text =
+            item.message ||
+            item.text ||
+            "";
 
-        element.classList.toggle(
-          "online",
-          online
-        );
-      }
-    );
-  }
+          const date =
+            item.created_at
+              ? formatDateTime(
+                  item.created_at
+                )
+              : "";
 
-  function initConnectionStatus() {
-    window.addEventListener(
-      "online",
-      updateConnectionStatus
-    );
+          const unread =
+            !item.read &&
+            !item.is_read;
 
-    window.addEventListener(
-      "offline",
-      updateConnectionStatus
-    );
+          return `
+            <button
+              type="button"
+              class="notification-item ${
+                unread
+                  ? "unread"
+                  : ""
+              }"
+              data-notification-id="${escapeHTML(
+                id
+              )}"
+            >
+              <strong>
+                ${escapeHTML(title)}
+              </strong>
 
-    updateConnectionStatus();
-  }
+              <span>
+                ${escapeHTML(text)}
+              </span>
 
-  /* ==========================================================
-     PREVENT DOUBLE SUBMIT
-     ========================================================== */
+              ${
+                date
+                  ? `<small>${escapeHTML(
+                      date
+                    )}</small>`
+                  : ""
+              }
+            </button>
+          `;
+        })
+        .join("");
 
-  function initFormProtection() {
-    $$("form").forEach((form) => {
-      form.addEventListener(
-        "submit",
-        () => {
-          form.classList.add(
-            "submitting"
-          );
-
-          const buttons =
-            $$(
-              "button[type='submit']",
-              form
+    $$(
+      "[data-notification-id]",
+      list
+    ).forEach(button => {
+      button.addEventListener(
+        "click",
+        async () => {
+          const id =
+            button.getAttribute(
+              "data-notification-id"
             );
 
-          buttons.forEach(
-            (button) => {
-              button.dataset.originalText =
-                button.textContent;
-
-              button.disabled =
-                true;
-
-              button.classList.add(
-                "loading"
-              );
-            }
-          );
+          if (id) {
+            await markNotificationRead(
+              id
+            );
+          }
         }
       );
     });
   }
 
-  /* ==========================================================
-     BACK TO TOP
-     ========================================================== */
+  function initNotifications() {
+    const open =
+      $("#notificationsButton");
 
-  function initBackToTop() {
-    const button =
-      $("[data-back-to-top]");
+    const panel =
+      $("#notificationPanel");
 
-    if (!button) return;
+    const close =
+      $("#closeNotifications");
 
-    const update =
-      () => {
-        button.classList.toggle(
-          "show",
-          window.scrollY > 500
+    if (!open || !panel) {
+      return;
+    }
+
+    open.addEventListener(
+      "click",
+      async event => {
+        event.preventDefault();
+
+        panel.classList.toggle(
+          "hidden"
         );
-      };
 
-    window.addEventListener(
-      "scroll",
-      update,
-      {
-        passive: true
+        if (
+          !panel.classList.contains(
+            "hidden"
+          )
+        ) {
+          await loadNotifications();
+          renderNotifications();
+        }
       }
     );
 
-    button.addEventListener(
+    close?.addEventListener(
       "click",
       () => {
-        window.scrollTo({
-          top: 0,
-          behavior: "smooth"
-        });
+        panel.classList.add(
+          "hidden"
+        );
       }
     );
 
-    update();
-  }
-
-  /* ==========================================================
-     SCROLL REVEAL
-     ========================================================== */
-
-  function initScrollReveal() {
-    const elements =
-      $$("[data-reveal]");
-
-    if (!elements.length) {
-      return;
-    }
-
-    if (
-      !("IntersectionObserver" in
-        window)
-    ) {
-      elements.forEach(
-        (element) => {
-          element.classList.add(
-            "revealed"
-          );
+    document.addEventListener(
+      "click",
+      event => {
+        if (
+          panel.classList.contains(
+            "hidden"
+          )
+        ) {
+          return;
         }
-      );
 
-      return;
-    }
-
-    const observer =
-      new IntersectionObserver(
-        (entries) => {
-          entries.forEach(
-            (entry) => {
-              if (
-                !entry.isIntersecting
-              ) {
-                return;
-              }
-
-              entry.target.classList.add(
-                "revealed"
-              );
-
-              observer.unobserve(
-                entry.target
-              );
-            }
-          );
-        },
-        {
-          threshold: 0.08
+        if (
+          panel.contains(
+            event.target
+          ) ||
+          open.contains(
+            event.target
+          )
+        ) {
+          return;
         }
-      );
 
-    elements.forEach(
-      (element) => {
-        observer.observe(
-          element
+        panel.classList.add(
+          "hidden"
         );
       }
     );
   }
 
-  /* ==========================================================
-     LANGUAGE
-     ========================================================== */
+  /* =========================================================
+     CATEGORY FILTERS
+  ========================================================= */
 
-  function getStoredLanguage() {
-    try {
-      return (
-        localStorage.getItem(
-          "to_language"
-        ) || "ru"
-      );
-    } catch {
-      return "ru";
-    }
-  }
-
-  function setStoredLanguage(
-    language
-  ) {
-    try {
-      localStorage.setItem(
-        "to_language",
-        language
-      );
-    } catch {
-      // Storage unavailable.
-    }
-  }
-
-  function initLanguageSelector() {
+  function initCategoryFilters() {
     $$(
-      "[data-language-selector]"
-    ).forEach((select) => {
-      const current =
-        getStoredLanguage();
-
-      if (
-        select.querySelector(
-          `option[value="${current}"]`
-        )
-      ) {
-        select.value =
-          current;
-      }
-
-      select.addEventListener(
-        "change",
+      "[data-category]"
+    ).forEach(button => {
+      button.addEventListener(
+        "click",
         () => {
-          const language =
-            select.value;
+          const category =
+            button.getAttribute(
+              "data-category"
+            );
 
-          setStoredLanguage(
-            language
-          );
+          if (!category) return;
 
-          document.documentElement.setAttribute(
-            "lang",
-            language
-          );
+          $$(
+            "[data-category]"
+          ).forEach(item => {
+            item.classList.toggle(
+              "active",
+              item === button
+            );
+          });
 
           window.dispatchEvent(
             new CustomEvent(
-              "to:language-change",
+              "to:category-change",
               {
                 detail: {
-                  language
+                  category
                 }
               }
             )
@@ -1797,52 +1341,245 @@
         }
       );
     });
-
-    document.documentElement.setAttribute(
-      "lang",
-      getStoredLanguage()
-    );
   }
 
-  /* ==========================================================
-     KEYBOARD ACCESSIBILITY
-     ========================================================== */
+  /* =========================================================
+     SEARCH
+  ========================================================= */
 
-  function initKeyboardAccessibility() {
-    document.addEventListener(
-      "keydown",
-      (event) => {
-        if (
-          event.key === "Enter" &&
-          event.target.matches(
-            "[data-keyboard-click]"
+  function initSearch() {
+    const input =
+      $("#searchInput");
+
+    if (!input) return;
+
+    const clear =
+      $("#clearSearch");
+
+    const update =
+      debounce(() => {
+        const query =
+          input.value.trim();
+
+        clear?.classList.toggle(
+          "hidden",
+          !query
+        );
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "to:search",
+            {
+              detail: {
+                query
+              }
+            }
           )
-        ) {
-          event.target.click();
-        }
+        );
+      },
+      400);
+
+    input.addEventListener(
+      "input",
+      update
+    );
+
+    clear?.addEventListener(
+      "click",
+      () => {
+        input.value = "";
+        clear.classList.add(
+          "hidden"
+        );
+
+        window.dispatchEvent(
+          new CustomEvent(
+            "to:search",
+            {
+              detail: {
+                query: ""
+              }
+            }
+          )
+        );
       }
     );
   }
 
-  /* ==========================================================
-     GLOBAL CLICK ACTIONS
-     ========================================================== */
+  /* =========================================================
+     FILTERS
+  ========================================================= */
 
-  function initGlobalActions() {
+  function initFilters() {
+    const ids = [
+      "countryFilter",
+      "cityFilter",
+      "scopeFilter",
+      "sortSelect"
+    ];
+
+    ids.forEach(id => {
+      const element =
+        document.getElementById(id);
+
+      if (!element) return;
+
+      element.addEventListener(
+        "change",
+        () => {
+          window.dispatchEvent(
+            new CustomEvent(
+              "to:filters-change"
+            )
+          );
+        }
+      );
+
+      element.addEventListener(
+        "input",
+        debounce(() => {
+          window.dispatchEvent(
+            new CustomEvent(
+              "to:filters-change"
+            )
+          );
+        }, 400)
+      );
+    });
+  }
+
+  function getFilters() {
+    const category =
+      $(
+        ".category-card.active[data-category], .category-chip.active[data-category]"
+      )?.getAttribute(
+        "data-category"
+      ) || "all";
+
+    return {
+      search:
+        $("#searchInput")?.value
+          .trim() || "",
+
+      country:
+        $("#countryFilter")?.value
+          .trim() || "",
+
+      city:
+        $("#cityFilter")?.value
+          .trim() || "",
+
+      scope:
+        $("#scopeFilter")?.value ||
+        "",
+
+      sort:
+        $("#sortSelect")?.value ||
+        "newest",
+
+      category:
+        category === "all"
+          ? ""
+          : category
+    };
+  }
+
+  /* =========================================================
+     RESET FILTERS
+  ========================================================= */
+
+  function resetFilters() {
+    const ids = [
+      "searchInput",
+      "countryFilter",
+      "cityFilter"
+    ];
+
+    ids.forEach(id => {
+      const element =
+        document.getElementById(id);
+
+      if (element) {
+        element.value = "";
+      }
+    });
+
+    const scope =
+      $("#scopeFilter");
+
+    if (scope) {
+      scope.value = "";
+    }
+
+    const sort =
+      $("#sortSelect");
+
+    if (sort) {
+      sort.value = "newest";
+    }
+
+    $$(
+      "[data-category]"
+    ).forEach(
+      button => {
+        button.classList.toggle(
+          "active",
+          button.getAttribute(
+            "data-category"
+          ) === "all"
+        );
+      }
+    );
+
+    window.dispatchEvent(
+      new CustomEvent(
+        "to:filters-change"
+      )
+    );
+  }
+
+  function initResetFilters() {
+    [
+      "#resetFilters",
+      "#emptyReset"
+    ].forEach(selector => {
+      $(selector)?.addEventListener(
+        "click",
+        resetFilters
+      );
+    });
+  }
+
+  /* =========================================================
+     GLOBAL BUTTONS
+  ========================================================= */
+
+  function initGlobalButtons() {
     document.addEventListener(
       "click",
-      async (event) => {
-        const target =
+      async event => {
+        const button =
           event.target.closest(
             "[data-action]"
           );
 
-        if (!target) return;
+        if (!button) return;
 
         const action =
-          target.getAttribute(
+          button.getAttribute(
             "data-action"
           );
+
+        if (
+          action ===
+          "logout"
+        ) {
+          event.preventDefault();
+
+          await logout();
+
+          return;
+        }
 
         if (
           action ===
@@ -1851,11 +1588,13 @@
           event.preventDefault();
 
           await copyText(
-            target.getAttribute(
+            button.getAttribute(
               "data-url"
             ) ||
-              window.location.href
+              location.href
           );
+
+          return;
         }
 
         if (
@@ -1864,186 +1603,779 @@
         ) {
           event.preventDefault();
 
-          await shareURL(
-            target.getAttribute(
+          await share(
+            button.getAttribute(
               "data-url"
             ) ||
-              window.location.href,
-            target.getAttribute(
+              location.href,
+            button.getAttribute(
               "data-title"
             ) ||
               document.title,
-            target.getAttribute(
+            button.getAttribute(
               "data-text"
             ) ||
               ""
           );
+
+          return;
         }
 
         if (
           action ===
-          "back"
+          "save"
         ) {
           event.preventDefault();
 
-          if (
-            window.history.length >
-            1
-          ) {
-            window.history.back();
-          } else {
-            window.location.href =
-              "/";
+          const id =
+            button.getAttribute(
+              "data-publication-id"
+            );
+
+          if (id) {
+            await toggleSave(id);
+          }
+
+          return;
+        }
+
+        if (
+          action ===
+          "reaction"
+        ) {
+          event.preventDefault();
+
+          const id =
+            button.getAttribute(
+              "data-publication-id"
+            );
+
+          const reaction =
+            button.getAttribute(
+              "data-reaction"
+            ) ||
+            "like";
+
+          if (id) {
+            await react(
+              id,
+              reaction
+            );
+          }
+
+          return;
+        }
+      }
+    );
+  }
+
+  /* =========================================================
+     FORMS
+  ========================================================= */
+
+  function initAuthForms() {
+    const loginForm =
+      $("#loginForm");
+
+    if (loginForm) {
+      loginForm.addEventListener(
+        "submit",
+        async event => {
+          event.preventDefault();
+
+          const username =
+            loginForm.elements
+              .username?.value
+              ?.trim();
+
+          const password =
+            loginForm.elements
+              .password?.value || "";
+
+          if (!username) {
+            showError(
+              "Введите username"
+            );
+
+            return;
+          }
+
+          if (!password) {
+            showError(
+              "Введите пароль"
+            );
+
+            return;
+          }
+
+          const button =
+            loginForm.querySelector(
+              "[type='submit']"
+            );
+
+          if (button) {
+            button.disabled = true;
+          }
+
+          try {
+            await login(
+              username,
+              password
+            );
+
+            setTimeout(() => {
+              location.href =
+                "/";
+            }, 500);
+          } finally {
+            if (button) {
+              button.disabled = false;
+            }
           }
         }
+      );
+    }
 
-        if (
-          action ===
-          "top"
-        ) {
+    const registerForm =
+      $("#registerForm");
+
+    if (registerForm) {
+      registerForm.addEventListener(
+        "submit",
+        async event => {
           event.preventDefault();
 
-          window.scrollTo({
-            top: 0,
-            behavior: "smooth"
-          });
+          const data = {
+            name:
+              registerForm.elements
+                .name?.value
+                ?.trim(),
+
+            username:
+              registerForm.elements
+                .username?.value
+                ?.trim(),
+
+            password:
+              registerForm.elements
+                .password?.value || ""
+          };
+
+          if (!data.name) {
+            showError(
+              "Введите имя"
+            );
+
+            return;
+          }
+
+          if (!data.username) {
+            showError(
+              "Введите username"
+            );
+
+            return;
+          }
+
+          if (
+            data.password.length <
+            6
+          ) {
+            showError(
+              "Пароль должен содержать минимум 6 символов"
+            );
+
+            return;
+          }
+
+          const button =
+            registerForm.querySelector(
+              "[type='submit']"
+            );
+
+          if (button) {
+            button.disabled = true;
+          }
+
+          try {
+            await register(
+              data
+            );
+
+            setTimeout(() => {
+              location.href =
+                "/";
+            }, 500);
+          } finally {
+            if (button) {
+              button.disabled = false;
+            }
+          }
+        }
+      );
+    }
+  }
+
+  /* =========================================================
+     PUBLICATION FORM
+  ========================================================= */
+
+  function initPublicationForm() {
+    const form =
+      $("#publicationForm");
+
+    if (!form) return;
+
+    form.addEventListener(
+      "submit",
+      async event => {
+        event.preventDefault();
+
+        const data =
+          Object.fromEntries(
+            new FormData(form)
+          );
+
+        const media =
+          $$(
+            "[data-media-url]",
+            form
+          )
+            .map(input =>
+              input.value.trim()
+            )
+            .filter(Boolean);
+
+        if (media.length) {
+          data.media = media;
+        }
+
+        const button =
+          form.querySelector(
+            "[type='submit']"
+          );
+
+        if (button) {
+          button.disabled = true;
+        }
+
+        try {
+          await createPublication(
+            data
+          );
+
+          form.reset();
+
+          setTimeout(() => {
+            if (
+              location.pathname ===
+              "/add.html"
+            ) {
+              location.href =
+                "/";
+            }
+          }, 800);
+        } finally {
+          if (button) {
+            button.disabled = false;
+          }
         }
       }
     );
   }
 
-  /* ==========================================================
-     GLOBAL ERROR HANDLING
-     ========================================================== */
+  /* =========================================================
+     MEDIA URL ADDER
+  ========================================================= */
 
-  function initErrorHandling() {
-    window.addEventListener(
-      "error",
-      (event) => {
-        console.error(
-          "[Tajik Opportunities]",
-          event.error ||
-            event.message
+  function initMediaFields() {
+    $$(
+      "[data-add-media]"
+    ).forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          const container =
+            $(
+              button.getAttribute(
+                "data-add-media"
+              )
+            );
+
+          if (!container) return;
+
+          const wrapper =
+            document.createElement(
+              "div"
+            );
+
+          wrapper.className =
+            "media-url-row";
+
+          wrapper.innerHTML = `
+            <input
+              type="url"
+              data-media-url
+              placeholder="https://example.com/file"
+            >
+
+            <button
+              type="button"
+              data-remove-media
+            >
+              ×
+            </button>
+          `;
+
+          container.appendChild(
+            wrapper
+          );
+
+          wrapper
+            .querySelector(
+              "[data-remove-media]"
+            )
+            .addEventListener(
+              "click",
+              () => {
+                wrapper.remove();
+              }
+            );
+        }
+      );
+    });
+  }
+
+  /* =========================================================
+     TEXTAREA
+  ========================================================= */
+
+  function initTextareas() {
+    $$("textarea").forEach(
+      textarea => {
+        const resize =
+          () => {
+            textarea.style.height =
+              "auto";
+
+            textarea.style.height =
+              `${textarea.scrollHeight}px`;
+          };
+
+        textarea.addEventListener(
+          "input",
+          resize
         );
+
+        resize();
       }
     );
+  }
 
-    window.addEventListener(
-      "unhandledrejection",
-      (event) => {
-        console.error(
-          "[Tajik Opportunities]",
-          event.reason
+  /* =========================================================
+     CHARACTER COUNTERS
+  ========================================================= */
+
+  function initCounters() {
+    $$(
+      "[data-counter-for]"
+    ).forEach(counter => {
+      const target =
+        document.getElementById(
+          counter.getAttribute(
+            "data-counter-for"
+          )
+        );
+
+      if (!target) return;
+
+      const update =
+        () => {
+          counter.textContent =
+            formatNumber(
+              target.value.length
+            );
+        };
+
+      target.addEventListener(
+        "input",
+        update
+      );
+
+      update();
+    });
+  }
+
+  /* =========================================================
+     EXTERNAL LINKS
+  ========================================================= */
+
+  function initExternalLinks() {
+    $$("a[href]").forEach(
+      link => {
+        const href =
+          link.getAttribute(
+            "href"
+          );
+
+        if (!href) return;
+
+        try {
+          const url =
+            new URL(
+              href,
+              location.href
+            );
+
+          if (
+            url.origin !==
+            location.origin
+          ) {
+            link.target =
+              "_blank";
+
+            link.rel =
+              "noopener noreferrer";
+          }
+        } catch {
+          // Ignore invalid links.
+        }
+      }
+    );
+  }
+
+  /* =========================================================
+     IMAGE FALLBACK
+  ========================================================= */
+
+  function initImages() {
+    $$("img").forEach(
+      image => {
+        image.addEventListener(
+          "error",
+          () => {
+            image.classList.add(
+              "image-error"
+            );
+          },
+          {
+            once: true
+          }
         );
       }
     );
   }
 
-  /* ==========================================================
-     PUBLIC API
-     ========================================================== */
+  /* =========================================================
+     MOBILE MENU
+  ========================================================= */
 
-  function exposeGlobalAPI() {
-    window.TajikOpportunities = {
-      version: TO.version,
+  function initMobileMenu() {
+    const button =
+      $(".mobile-menu-button");
 
-      $,
-      $$,
+    const nav =
+      $(".site-nav");
 
-      escapeHTML,
-      truncate,
+    if (!button || !nav) {
+      return;
+    }
 
-      formatNumber,
-      formatDate,
-      formatDateTime,
+    button.addEventListener(
+      "click",
+      () => {
+        const open =
+          nav.classList.toggle(
+            "open"
+          );
 
-      isValidURL,
-      debounce,
+        button.setAttribute(
+          "aria-expanded",
+          String(open)
+        );
+      }
+    );
 
-      apiRequest,
-      getJSON,
-      postJSON,
+    $$("a", nav).forEach(
+      link => {
+        link.addEventListener(
+          "click",
+          () => {
+            nav.classList.remove(
+              "open"
+            );
 
-      openModal,
-      closeModal,
-      closeAllModals,
-
-      showToast,
-      showSuccess,
-      showError,
-      showInfo,
-      showWarning,
-
-      copyText,
-      shareURL,
-
-      toggleFavorite,
-      reactToPublication,
-      registerView,
-
-      loadComments,
-      reportPublication,
-
-      showLoading,
-      showEmpty,
-      showErrorState,
-
-      getFormDataObject,
-
-      setLoading,
-
-      getURLParameter,
-      setURLParameter,
-
-      detectMediaType,
-
-      showElement,
-      hideElement
-    };
+            button.setAttribute(
+              "aria-expanded",
+              "false"
+            );
+          }
+        );
+      }
+    );
   }
 
-  /* ==========================================================
-     INITIALIZATION
-     ========================================================== */
+  /* =========================================================
+     MODALS
+  ========================================================= */
 
-  function init() {
-    initMobileMenu();
-    initEscapeKey();
-    initModals();
+  function initModals() {
+    $$(
+      "[data-modal-open]"
+    ).forEach(button => {
+      button.addEventListener(
+        "click",
+        event => {
+          event.preventDefault();
 
-    initCopyButtons();
-    initShareButtons();
+          const id =
+            button.getAttribute(
+              "data-modal-open"
+            );
+
+          const modal =
+            document.getElementById(
+              id
+            );
+
+          if (modal) {
+            modal.classList.add(
+              "show"
+            );
+
+            document.body.classList.add(
+              "no-scroll"
+            );
+          }
+        }
+      );
+    });
+
+    $$(
+      "[data-modal-close]"
+    ).forEach(button => {
+      button.addEventListener(
+        "click",
+        () => {
+          const modal =
+            button.closest(
+              ".modal"
+            );
+
+          modal?.classList.remove(
+            "show"
+          );
+
+          if (
+            !$(".modal.show")
+          ) {
+            document.body.classList.remove(
+              "no-scroll"
+            );
+          }
+        }
+      );
+    });
+  }
+
+  /* =========================================================
+     CURRENT YEAR
+  ========================================================= */
+
+  function initYear() {
+    const year =
+      new Date().getFullYear();
+
+    $$(
+      "#currentYear, [data-current-year]"
+    ).forEach(
+      element => {
+        element.textContent =
+          year;
+      }
+    );
+  }
+
+  /* =========================================================
+     ONLINE STATUS
+  ========================================================= */
+
+  function updateOnlineStatus() {
+    $$(
+      "[data-connection-status]"
+    ).forEach(
+      element => {
+        element.textContent =
+          navigator.onLine
+            ? "Онлайн"
+            : "Нет подключения";
+
+        element.classList.toggle(
+          "offline",
+          !navigator.onLine
+        );
+      }
+    );
+  }
+
+  /* =========================================================
+     ESCAPE
+  ========================================================= */
+
+  function initEscape() {
+    document.addEventListener(
+      "keydown",
+      event => {
+        if (
+          event.key !==
+          "Escape"
+        ) {
+          return;
+        }
+
+        $$(".modal.show").forEach(
+          modal => {
+            modal.classList.remove(
+              "show"
+            );
+          }
+        );
+
+        $(
+          "#notificationPanel"
+        )?.classList.add(
+          "hidden"
+        );
+
+        document.body.classList.remove(
+          "no-scroll"
+        );
+      }
+    );
+  }
+
+  /* =========================================================
+     GLOBAL API
+  ========================================================= */
+
+  window.TajikOpportunities = {
+    site: SITE,
+    state,
+
+    $,
+    $$,
+
+    escapeHTML,
+    formatNumber,
+    formatDate,
+    formatDateTime,
+    debounce,
+    isValidURL,
+
+    request,
+    get,
+    post,
+    put,
+    patch,
+    del,
+
+    toast,
+    showSuccess,
+    showError,
+    showInfo,
+    showWarning,
+
+    copyText,
+    share,
+
+    login,
+    register,
+    logout,
+
+    loadCurrentUser,
+    getProfile,
+    updateProfile,
+    checkUsername,
+
+    getPublications,
+    getPublication,
+    createPublication,
+
+    react,
+    toggleSave,
+    addView,
+
+    getComments,
+    addComment,
+
+    toggleFollow,
+    report,
+
+    getChats,
+    getMessages,
+    sendMessage,
+
+    loadNotifications,
+    markNotificationRead,
+
+    getFilters,
+    resetFilters
+  };
+
+  /* =========================================================
+     INIT
+  ========================================================= */
+
+  async function init() {
+    if (state.initialized) {
+      return;
+    }
+
+    state.initialized = true;
+
+    initNotifications();
+    initCategoryFilters();
+    initSearch();
+    initFilters();
+    initResetFilters();
+
+    initGlobalButtons();
+
+    initAuthForms();
+    initPublicationForm();
+    initMediaFields();
+
+    initUsernameChecker();
+
+    initTextareas();
+    initCounters();
 
     initExternalLinks();
-    initImageFallbacks();
-    initLazyImages();
+    initImages();
 
-    initCurrentYear();
-    initActiveNavigation();
+    initMobileMenu();
+    initModals();
 
-    initSearch();
+    initYear();
+    initEscape();
 
-    initNumberInputs();
-    initTextareas();
-    initCharacterCounters();
+    window.addEventListener(
+      "online",
+      updateOnlineStatus
+    );
 
-    initFavoriteButtons();
-    initReactionButtons();
+    window.addEventListener(
+      "offline",
+      updateOnlineStatus
+    );
 
-    initConnectionStatus();
-    initFormProtection();
+    updateOnlineStatus();
 
-    initBackToTop();
-    initScrollReveal();
+    await loadCurrentUser();
 
-    initLanguageSelector();
-
-    initKeyboardAccessibility();
-    initGlobalActions();
-
-    initErrorHandling();
-
-    exposeGlobalAPI();
+    if (state.user) {
+      await loadNotifications();
+    }
 
     document.documentElement.classList.add(
       "js-ready"
@@ -2051,20 +2383,15 @@
 
     window.dispatchEvent(
       new CustomEvent(
-        "to:ready"
+        "to:ready",
+        {
+          detail: {
+            user: state.user
+          }
+        }
       )
     );
-
-    console.log(
-      `%c${TO.name} v${TO.version}`,
-      "font-weight:bold",
-      "Frontend initialized"
-    );
   }
-
-  /* ==========================================================
-     START
-     ========================================================== */
 
   if (
     document.readyState ===
