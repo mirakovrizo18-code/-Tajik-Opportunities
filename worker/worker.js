@@ -1,2375 +1,5253 @@
-/**
- * ============================================================
- * TAJIK OPPORTUNITIES
- * Cloudflare Worker
- * ============================================================
- *
- * Version: 2026.09.07
- *
- * Основные задачи:
- * - Static Assets
- * - API
- * - Profiles
- * - Opportunities
- * - Publications
- * - Messages
- * - Admin chat
- * - Anonymous messages
- * - Notifications
- * - Health check
- * - CORS
- * - Security headers
- * - D1
- * - KV
- *
- * ============================================================
- */
+// ============================================================
+// TAJIK OPPORTUNITIES
+// CLOUDFLARE WORKER
+// VERSION: 2026.09.07 SUPER PROJECT
+//
+// Includes:
+// - Authentication
+// - Registration / Login / Logout
+// - Cookie sessions
+// - Profiles
+// - Public profiles
+// - Username checking
+// - Publications
+// - Publication moderation
+// - Admin panel API
+// - Super Admin
+// - Admin / Moderator permissions
+// - User management
+// - Admin chat
+// - Notifications
+// - Audit logs
+// - Dashboard statistics
+// - D1 + KV compatibility
+// - Dynamic database schema detection
+// - Security headers
+// ============================================================
 
 const VERSION = "2026.09.07";
-const APP_NAME = "Tajik Opportunities";
+const SESSION_COOKIE = "to_session";
+const SESSION_DAYS = 30;
+const MAX_BODY = 2 * 1024 * 1024;
 
-const JSON_HEADERS = {
-  "Content-Type": "application/json; charset=UTF-8",
-  "Cache-Control": "no-store"
-};
-
-const TEXT_HEADERS = {
-  "Content-Type": "text/plain; charset=UTF-8",
-  "Cache-Control": "no-store"
-};
-
-const ALLOWED_METHODS = [
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-  "OPTIONS"
+const ALLOWED_ORIGINS = [
+  "https://tajik-opportunities.com",
+  "https://www.tajik-opportunities.com"
 ];
 
-/* ============================================================
-   MAIN WORKER
-============================================================ */
+// ============================================================
+// MAIN
+// ============================================================
 
 export default {
   async fetch(request, env, ctx) {
-    const requestId = crypto.randomUUID();
-
     try {
-      const response = await handleRequest(
-        request,
-        env,
-        ctx
-      );
-
-      return addSecurityHeaders(
-        addRequestId(response, requestId)
-      );
+      return await handleRequest(request, env, ctx);
     } catch (error) {
-      console.error(
-        "Worker error:",
-        error
-      );
+      console.error("WORKER ERROR:", error);
 
-      return addSecurityHeaders(
-        addRequestId(
-          jsonResponse(
-            {
-              success: false,
-              ok: false,
-              error: "INTERNAL_ERROR",
-              message:
-                "Произошла внутренняя ошибка сервера.",
-              requestId
-            },
-            500
-          ),
-          requestId
-        )
-      );
+      return json({
+        ok: false,
+        error: "INTERNAL_ERROR",
+        message: "Внутренняя ошибка сервера.",
+        version: VERSION
+      }, 500, request, env);
     }
   }
 };
 
-/* ============================================================
-   REQUEST ROUTER
-============================================================ */
+// ============================================================
+// REQUEST ROUTER
+// ============================================================
 
-async function handleRequest(
-  request,
-  env,
-  ctx
-) {
-  const url = new URL(
-    request.url
-  );
+async function handleRequest(request, env, ctx) {
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
 
-  const method =
-    request.method.toUpperCase();
-
-  if (
-    !ALLOWED_METHODS.includes(method)
-  ) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error: "METHOD_NOT_ALLOWED"
-      },
-      405,
-      {
-        Allow:
-          ALLOWED_METHODS.join(", ")
-      }
-    );
+  if (request.method === "OPTIONS") {
+    return corsResponse(request, env);
   }
 
-  if (method === "OPTIONS") {
-    return corsResponse();
-  }
-
-  /* ----------------------------------------------------------
-     HEALTH
-  ---------------------------------------------------------- */
-
-  if (
-    url.pathname === "/health" ||
-    url.pathname === "/api/health"
-  ) {
-    return jsonResponse({
-      success: true,
-      ok: true,
-      app: APP_NAME,
-      version: VERSION,
-      status: "ok",
-      timestamp:
-        new Date().toISOString()
+  if (request.method === "HEAD") {
+    return new Response(null, {
+      status: 200,
+      headers: securityHeaders(request, env)
     });
   }
 
-  /* ----------------------------------------------------------
-     API
-  ---------------------------------------------------------- */
-
   if (
-    url.pathname.startsWith("/api/")
+    request.method !== "GET" &&
+    request.method !== "POST" &&
+    request.method !== "PUT" &&
+    request.method !== "PATCH" &&
+    request.method !== "DELETE"
   ) {
-    return handleApi(
-      request,
-      env,
-      ctx
-    );
+    return json({
+      ok: false,
+      error: "METHOD_NOT_ALLOWED"
+    }, 405, request, env);
   }
 
-  /* ----------------------------------------------------------
-     STATIC ASSETS
-  ---------------------------------------------------------- */
+  // Health
+  if (path === "/health" || path === "/api/health") {
+    return json({
+      ok: true,
+      service: "Tajik Opportunities",
+      version: VERSION,
+      environment: env.ENVIRONMENT || "production",
+      database: !!env.DB,
+      kv: !!getKV(env),
+      time: new Date().toISOString()
+    }, 200, request, env);
+  }
 
+  // API
+  if (path === "/api" || path.startsWith("/api/")) {
+    return handleApi(request, env, ctx);
+  }
+
+  // Static assets
   if (env.ASSETS) {
-    return env.ASSETS.fetch(
-      request
-    );
+    const asset = await env.ASSETS.fetch(request);
+
+    if (asset.status !== 404) {
+      return withSecurityHeaders(asset, request, env);
+    }
   }
 
-  /* ----------------------------------------------------------
-     FALLBACK
-  ---------------------------------------------------------- */
-
-  return htmlResponse(`
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>${escapeHtml(APP_NAME)}</title>
-
-<style>
-*{
-  box-sizing:border-box;
-}
-
-body{
-  margin:0;
-  min-height:100vh;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  padding:24px;
-
-  background:
-    radial-gradient(
-      circle at 20% 0%,
-      rgba(32,199,122,.18),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 90% 10%,
-      rgba(229,199,107,.10),
-      transparent 30%
-    ),
-    linear-gradient(
-      135deg,
-      #04100b,
-      #071a12 50%,
-      #06130e
+  // SPA / HTML fallback
+  if (env.ASSETS && request.method === "GET") {
+    const fallback = await env.ASSETS.fetch(
+      new Request(new URL("/index.html", request.url), request)
     );
 
-  color:#f7faf8;
+    if (fallback.status !== 404) {
+      return withSecurityHeaders(fallback, request, env);
+    }
+  }
 
-  font-family:
-    Inter,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Arial,
-    sans-serif;
+  return json({
+    ok: false,
+    error: "NOT_FOUND"
+  }, 404, request, env);
 }
 
-.card{
-  width:min(680px,100%);
-  padding:45px 30px;
+// ============================================================
+// API ROUTER
+// ============================================================
 
-  border:
-    1px solid rgba(255,255,255,.09);
-
-  border-radius:28px;
-
-  text-align:center;
-
-  background:
-    rgba(15,38,28,.88);
-
-  box-shadow:
-    0 25px 80px rgba(0,0,0,.35);
-}
-
-.logo{
-  font-size:50px;
-  margin-bottom:15px;
-}
-
-h1{
-  margin:0 0 12px;
-}
-
-p{
-  color:#9caea5;
-  line-height:1.6;
-}
-</style>
-</head>
-
-<body>
-
-<div class="card">
-
-  <div class="logo">🇹🇯</div>
-
-  <h1>${escapeHtml(APP_NAME)}</h1>
-
-  <p>
-    Cloudflare Worker успешно запущен.
-  </p>
-
-</div>
-
-</body>
-</html>
-`);
-}
-
-/* ============================================================
-   API ROUTER
-============================================================ */
-
-async function handleApi(
-  request,
-  env,
-  ctx
-) {
-  const url = new URL(
-    request.url
-  );
-
-  const path =
-    normalizePath(
-      url.pathname
-    );
-
-  /* ----------------------------------------------------------
-     API INFORMATION
-  ---------------------------------------------------------- */
+async function handleApi(request, env, ctx) {
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
 
   if (path === "/api") {
-    return jsonResponse({
-      success: true,
+    return json({
       ok: true,
-      app: APP_NAME,
+      name: "Tajik Opportunities API",
       version: VERSION,
-
       endpoints: {
-        health:
-          "/api/health",
-
-        profile:
+        auth: [
+          "/api/auth/me",
+          "/api/auth/login",
+          "/api/auth/register",
+          "/api/auth/logout"
+        ],
+        profile: [
           "/api/profile",
-
-        opportunities:
-          "/api/opportunities",
-
-        publications:
-          "/api/publications",
-
-        messages:
-          "/api/messages",
-
-        adminChat:
-          "/api/admin-chat",
-
-        notifications:
+          "/api/profile/public",
+          "/api/username/check"
+        ],
+        publications: [
+          "/api/publications"
+        ],
+        admin: [
+          "/api/admin/me",
+          "/api/admin/dashboard",
+          "/api/admin/users",
+          "/api/admin/publications",
+          "/api/admin/chat",
+          "/api/admin/notifications",
+          "/api/admin/audit"
+        ],
+        chat: [
+          "/api/admin-chat"
+        ],
+        notifications: [
           "/api/notifications"
+        ]
       }
-    });
+    }, 200, request, env);
   }
 
-  /* ----------------------------------------------------------
-     PROFILE
-  ---------------------------------------------------------- */
+  // ---------------- AUTH ----------------
 
-  if (
-    path === "/api/profile"
-  ) {
-    return handleProfile(
-      request,
-      env
-    );
+  if (path === "/api/auth/me") {
+    return authMe(request, env);
   }
 
-  /* ----------------------------------------------------------
-     PUBLICATIONS
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/publications"
-  ) {
-    return handlePublications(
-      request,
-      env
-    );
+  if (path === "/api/auth/login") {
+    return authLogin(request, env);
   }
 
-  /* ----------------------------------------------------------
-     OPPORTUNITIES
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/opportunities"
-  ) {
-    return handleOpportunities(
-      request,
-      env
-    );
+  if (path === "/api/auth/register") {
+    return authRegister(request, env);
   }
 
-  /* ----------------------------------------------------------
-     MESSAGES
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/messages"
-  ) {
-    return handleMessages(
-      request,
-      env
-    );
+  if (path === "/api/auth/logout") {
+    return authLogout(request, env);
   }
 
-  /* ----------------------------------------------------------
-     ADMIN CHAT
-  ---------------------------------------------------------- */
+  // ---------------- PROFILE ----------------
 
-  if (
-    path === "/api/admin-chat"
-  ) {
-    return handleAdminChat(
-      request,
-      env
-    );
+  if (path === "/api/profile") {
+    return handleProfile(request, env);
   }
 
-  /* ----------------------------------------------------------
-     NOTIFICATIONS
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/notifications"
-  ) {
-    return handleNotifications(
-      request,
-      env
-    );
+  if (path === "/api/profile/public") {
+    return handlePublicProfile(request, env);
   }
 
-  return jsonResponse(
-    {
-      success: false,
-      ok: false,
-      error: "NOT_FOUND",
-      message:
-        "API endpoint не найден."
-    },
-    404
-  );
+  if (path === "/api/username/check") {
+    return handleUsernameCheck(request, env);
+  }
+
+  // ---------------- PUBLICATIONS ----------------
+
+  if (path === "/api/publications" || path === "/api/publications/") {
+    return handlePublications(request, env);
+  }
+
+  // ---------------- ADMIN API ----------------
+
+  if (path === "/api/admin" || path === "/api/admin/") {
+    return handleAdminRoot(request, env);
+  }
+
+  if (path.startsWith("/api/admin/")) {
+    return handleAdminApi(request, env);
+  }
+
+  // ---------------- ADMIN CHAT ----------------
+
+  if (path === "/api/admin-chat") {
+    return handleAdminChat(request, env);
+  }
+
+  // ---------------- NOTIFICATIONS ----------------
+
+  if (path === "/api/notifications") {
+    return handleNotifications(request, env);
+  }
+
+  // ---------------- EXISTING KV FEATURES ----------------
+
+  if (path === "/api/opportunities") {
+    return handleOpportunities(request, env);
+  }
+
+  if (path === "/api/messages") {
+    return handleMessages(request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "NOT_FOUND",
+    path
+  }, 404, request, env);
 }
 
-/* ============================================================
-   PUBLICATIONS API
-============================================================ */
+// ============================================================
+// AUTHENTICATION
+// ============================================================
 
-async function handlePublications(
-  request,
-  env
-) {
-  const method =
-    request.method.toUpperCase();
+async function authMe(request, env) {
+  const user = await getAuthenticatedUser(request, env);
 
-  /* ----------------------------------------------------------
-     CHECK D1
-  ---------------------------------------------------------- */
-
-  if (
-    !env.DB ||
-    typeof env.DB.prepare !==
-      "function"
-  ) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error: "DATABASE_NOT_CONFIGURED",
-        message:
-          "D1 database не подключена к Worker."
-      },
-      500
-    );
+  if (!user) {
+    return json({
+      ok: false,
+      authenticated: false,
+      user: null
+    }, 401, request, env);
   }
 
-  /* ----------------------------------------------------------
-     GET PUBLICATIONS
-  ---------------------------------------------------------- */
+  const admin = await getAdminContext(user, env);
 
-  if (method === "GET") {
-    const url =
-      new URL(request.url);
+  return json({
+    ok: true,
+    authenticated: true,
+    user: publicUser(user),
+    admin: admin
+      ? {
+          isAdmin: true,
+          role: admin.role,
+          permissions: admin.permissions
+        }
+      : {
+          isAdmin: false
+        }
+  }, 200, request, env);
+}
 
-    const category =
-      cleanText(
-        url.searchParams.get(
-          "category"
-        ),
-        100
-      );
+async function authRegister(request, env) {
+  if (!env.DB) {
+    return json({
+      ok: false,
+      error: "DATABASE_UNAVAILABLE"
+    }, 503, request, env);
+  }
 
-    const city =
-      cleanText(
-        url.searchParams.get(
-          "city"
-        ),
-        100
-      );
+  const body = await readJSON(request);
 
-    const status =
-      cleanText(
-        url.searchParams.get(
-          "status"
-        ),
-        50
-      ) || "published";
+  const name = cleanText(body.name, 100);
+  const username = normalizeUsername(body.username);
+  const password = String(body.password || "");
 
-    const search =
-      cleanText(
-        url.searchParams.get(
-          "search"
-        ),
-        200
-      );
+  if (name.length < 2) {
+    return json({
+      ok: false,
+      error: "INVALID_NAME",
+      message: "Введите корректное имя."
+    }, 400, request, env);
+  }
 
-    const limit =
-      clampNumber(
-        url.searchParams.get(
-          "limit"
-        ),
-        1,
-        100,
-        30
-      );
+  if (!isValidUsername(username)) {
+    return json({
+      ok: false,
+      error: "INVALID_USERNAME",
+      message: "Имя пользователя должно содержать 3–32 символа."
+    }, 400, request, env);
+  }
 
-    const offset =
-      clampNumber(
-        url.searchParams.get(
-          "offset"
-        ),
-        0,
-        1000000,
-        0
-      );
+  if (password.length < 6) {
+    return json({
+      ok: false,
+      error: "WEAK_PASSWORD",
+      message: "Пароль должен содержать минимум 6 символов."
+    }, 400, request, env);
+  }
 
-    const conditions = [];
-    const params = [];
+  const existing = await findUserByUsername(env.DB, username);
 
-    if (status) {
-      conditions.push(
-        "status = ?"
-      );
+  if (existing) {
+    return json({
+      ok: false,
+      error: "USERNAME_EXISTS",
+      message: "Это имя пользователя уже занято."
+    }, 409, request, env);
+  }
 
-      params.push(status);
-    }
+  const schema = await getTableSchema(env.DB, "users");
 
-    if (category) {
-      conditions.push(
-        "category = ?"
-      );
+  if (!schema.length) {
+    return json({
+      ok: false,
+      error: "USERS_TABLE_NOT_FOUND"
+    }, 500, request, env);
+  }
 
-      params.push(category);
-    }
+  const userId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const passwordHash = await hashPassword(password);
 
-    if (city) {
-      conditions.push(
-        "city = ?"
-      );
+  const values = {};
 
-      params.push(city);
-    }
+  putIfColumn(values, schema, "id", userId);
+  putIfColumn(values, schema, "user_id", userId);
+  putIfColumn(values, schema, "uid", userId);
 
-    if (search) {
-      conditions.push(`
-        (
-          title LIKE ?
-          OR text LIKE ?
-          OR city LIKE ?
-          OR category LIKE ?
-          OR hashtags LIKE ?
-        )
-      `);
+  putIfColumn(values, schema, "name", name);
+  putIfColumn(values, schema, "display_name", name);
+  putIfColumn(values, schema, "full_name", name);
 
-      const q = `%${search}%`;
+  putIfColumn(values, schema, "username", username);
+  putIfColumn(values, schema, "user_name", username);
 
-      params.push(
-        q,
-        q,
-        q,
-        q,
-        q
-      );
-    }
+  putIfColumn(values, schema, "password_hash", passwordHash);
+  putIfColumn(values, schema, "password", passwordHash);
+  putIfColumn(values, schema, "hash", passwordHash);
 
-    const where =
-      conditions.length
-        ? `WHERE ${conditions.join(
-            " AND "
-          )}`
-        : "";
+  putIfColumn(values, schema, "created_at", now);
+  putIfColumn(values, schema, "updated_at", now);
 
-    const sql = `
-      SELECT
-        *
-      FROM publications
-      ${where}
-      ORDER BY
-        COALESCE(
-          published_at,
-          created_at
-        ) DESC
-      LIMIT ?
-      OFFSET ?
-    `;
+  putIfColumn(values, schema, "role", "user");
+  putIfColumn(values, schema, "is_admin", 0);
+  putIfColumn(values, schema, "is_super_admin", 0);
+  putIfColumn(values, schema, "is_active", 1);
+  putIfColumn(values, schema, "status", "active");
 
-    params.push(
-      limit,
-      offset
-    );
+  putIfColumn(values, schema, "allow_messages", 1);
+  putIfColumn(values, schema, "show_followers", 1);
+  putIfColumn(values, schema, "is_public", 1);
 
-    const result =
-      await env.DB
-        .prepare(sql)
-        .bind(...params)
-        .all();
+  try {
+    await dynamicInsert(env.DB, "users", values);
+  } catch (error) {
+    console.error("REGISTER DB ERROR:", error);
 
-    const publications =
-      (result.results || [])
-        .map(
-          normalizePublicationFromDb
-        );
+    return json({
+      ok: false,
+      error: "REGISTRATION_FAILED",
+      message: "Не удалось создать аккаунт."
+    }, 500, request, env);
+  }
 
-    return jsonResponse({
-      success: true,
+  const user = await findUserById(env.DB, userId);
+
+  if (!user) {
+    return json({
+      ok: false,
+      error: "USER_CREATE_FAILED"
+    }, 500, request, env);
+  }
+
+  const token = await createSession(env, user);
+
+  await audit(env, {
+    action: "register",
+    userId: user.id,
+    username: user.username,
+    ip: request.headers.get("CF-Connecting-IP")
+  });
+
+  return jsonWithCookie({
+    ok: true,
+    authenticated: true,
+    user: publicUser(user)
+  }, 200, request, env, token);
+}
+
+async function authLogin(request, env) {
+  if (!env.DB) {
+    return json({
+      ok: false,
+      error: "DATABASE_UNAVAILABLE"
+    }, 503, request, env);
+  }
+
+  const body = await readJSON(request);
+
+  const username = normalizeUsername(body.username);
+  const password = String(body.password || "");
+
+  if (!username || !password) {
+    return json({
+      ok: false,
+      error: "MISSING_CREDENTIALS",
+      message: "Введите логин и пароль."
+    }, 400, request, env);
+  }
+
+  const user = await findUserByUsername(env.DB, username);
+
+  if (!user) {
+    return json({
+      ok: false,
+      error: "INVALID_CREDENTIALS",
+      message: "Неверное имя пользователя или пароль."
+    }, 401, request, env);
+  }
+
+  if (isUserBlocked(user)) {
+    return json({
+      ok: false,
+      error: "ACCOUNT_BLOCKED",
+      message: "Этот аккаунт заблокирован."
+    }, 403, request, env);
+  }
+
+  const storedHash = getPasswordHash(user);
+
+  if (!storedHash) {
+    return json({
+      ok: false,
+      error: "PASSWORD_NOT_CONFIGURED"
+    }, 500, request, env);
+  }
+
+  const valid = await verifyPassword(password, storedHash);
+
+  if (!valid) {
+    return json({
+      ok: false,
+      error: "INVALID_CREDENTIALS",
+      message: "Неверное имя пользователя или пароль."
+    }, 401, request, env);
+  }
+
+  const token = await createSession(env, user);
+
+  await audit(env, {
+    action: "login",
+    userId: user.id,
+    username: user.username,
+    ip: request.headers.get("CF-Connecting-IP")
+  });
+
+  return jsonWithCookie({
+    ok: true,
+    authenticated: true,
+    user: publicUser(user)
+  }, 200, request, env, token);
+}
+
+async function authLogout(request, env) {
+  const token = getCookie(request, SESSION_COOKIE);
+
+  if (token) {
+    await deleteSession(env, token);
+  }
+
+  const headers = new Headers(securityHeaders(request, env));
+
+  headers.append(
+    "Set-Cookie",
+    `${SESSION_COOKIE}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`
+  );
+
+  return new Response(JSON.stringify({
+    ok: true,
+    authenticated: false
+  }), {
+    status: 200,
+    headers: withJSONHeaders(headers)
+  });
+}
+
+// ============================================================
+// PROFILE
+// ============================================================
+
+async function handleProfile(request, env) {
+  const user = await getAuthenticatedUser(request, env);
+
+  if (!user) {
+    return json({
+      ok: false,
+      error: "UNAUTHORIZED"
+    }, 401, request, env);
+  }
+
+  if (request.method === "GET") {
+    const profile = await getProfileData(user, env);
+
+    return json({
       ok: true,
-      total:
-        publications.length,
-      publications
-    });
+      profile: {
+        ...publicUser(user),
+        ...profile
+      }
+    }, 200, request, env);
   }
 
-  /* ----------------------------------------------------------
-     POST PUBLICATION
-  ---------------------------------------------------------- */
-
-  if (method === "POST") {
-    return createPublication(
-      request,
-      env
-    );
-  }
-
-  return jsonResponse(
-    {
-      success: false,
+  if (
+    request.method !== "PUT" &&
+    request.method !== "PATCH" &&
+    request.method !== "POST"
+  ) {
+    return json({
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
-  );
+      error: "METHOD_NOT_ALLOWED"
+    }, 405, request, env);
+  }
+
+  const body = await readJSON(request);
+
+  const update = {
+    name: cleanText(body.name, 100),
+    username: normalizeUsername(body.username),
+    bio: cleanText(body.bio, 2000),
+    country: cleanText(body.country, 100),
+    city: cleanText(body.city, 100),
+    avatar: cleanText(body.avatar, 1000),
+    allow_messages: toBooleanNumber(body.allow_messages, 1),
+    show_followers: toBooleanNumber(body.show_followers, 1),
+    is_public: toBooleanNumber(body.is_public, 1)
+  };
+
+  if (!isValidUsername(update.username)) {
+    return json({
+      ok: false,
+      error: "INVALID_USERNAME"
+    }, 400, request, env);
+  }
+
+  if (update.username !== normalizeUsername(user.username)) {
+    const exists = await findUserByUsername(env.DB, update.username);
+
+    if (exists && exists.id !== user.id) {
+      return json({
+        ok: false,
+        error: "USERNAME_EXISTS",
+        message: "Это имя пользователя уже занято."
+      }, 409, request, env);
+    }
+  }
+
+  if (env.DB) {
+    await updateUserProfile(env.DB, user, update);
+  }
+
+  // KV profile remains as compatibility layer.
+  await saveProfileKV(env, user.id, update);
+
+  const updated = env.DB
+    ? await findUserById(env.DB, user.id)
+    : {
+        ...user,
+        ...update
+      };
+
+  return json({
+    ok: true,
+    profile: publicUser(updated || {
+      ...user,
+      ...update
+    })
+  }, 200, request, env);
 }
 
-/* ============================================================
-   CREATE PUBLICATION
-============================================================ */
+async function handlePublicProfile(request, env) {
+  const url = new URL(request.url);
+  const username = normalizeUsername(url.searchParams.get("username"));
 
-async function createPublication(
-  request,
-  env
-) {
-  /* ----------------------------------------------------------
-     AUTH
-  ---------------------------------------------------------- */
-
-  const userId =
-    getUserId(request);
-
-  if (!userId) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error: "AUTH_REQUIRED",
-        message:
-          "Необходима авторизация для создания публикации."
-      },
-      401
-    );
+  if (!username) {
+    return json({
+      ok: false,
+      error: "USERNAME_REQUIRED"
+    }, 400, request, env);
   }
 
-  /* ----------------------------------------------------------
-     BODY
-  ---------------------------------------------------------- */
+  const user = env.DB
+    ? await findUserByUsername(env.DB, username)
+    : null;
 
-  const body =
-    await readJson(request);
-
-  /* ----------------------------------------------------------
-     BASIC VALIDATION
-  ---------------------------------------------------------- */
-
-  const title =
-    cleanText(
-      body.title,
-      180
-    );
-
-  const content =
-    cleanText(
-      body.content,
-      10000
-    );
-
-  const category =
-    cleanText(
-      body.category,
-      100
-    );
-
-  if (
-    title.length < 5
-  ) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error:
-          "TITLE_TOO_SHORT",
-        message:
-          "Заголовок должен содержать минимум 5 символов."
-      },
-      400
-    );
+  if (!user) {
+    return json({
+      ok: false,
+      error: "USER_NOT_FOUND"
+    }, 404, request, env);
   }
 
-  if (
-    content.length < 20
-  ) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error:
-          "CONTENT_TOO_SHORT",
-        message:
-          "Описание должно содержать минимум 20 символов."
-      },
-      400
-    );
+  if (isUserBlocked(user)) {
+    return json({
+      ok: false,
+      error: "USER_NOT_FOUND"
+    }, 404, request, env);
+  }
+
+  const profile = await getProfileData(user, env);
+
+  return json({
+    ok: true,
+    profile: {
+      ...publicUser(user),
+      ...profile
+    }
+  }, 200, request, env);
+}
+
+async function handleUsernameCheck(request, env) {
+  const url = new URL(request.url);
+  const username = normalizeUsername(url.searchParams.get("username"));
+
+  if (!isValidUsername(username)) {
+    return json({
+      ok: true,
+      available: false,
+      valid: false
+    }, 200, request, env);
+  }
+
+  if (!env.DB) {
+    return json({
+      ok: true,
+      available: true,
+      valid: true
+    }, 200, request, env);
+  }
+
+  const existing = await findUserByUsername(env.DB, username);
+
+  return json({
+    ok: true,
+    available: !existing,
+    valid: true,
+    username
+  }, 200, request, env);
+}
+
+// ============================================================
+// PUBLICATIONS
+// ============================================================
+
+async function handlePublications(request, env) {
+  if (!env.DB) {
+    return json({
+      ok: false,
+      error: "DATABASE_UNAVAILABLE"
+    }, 503, request, env);
+  }
+
+  if (request.method === "GET") {
+    return listPublications(request, env);
+  }
+
+  if (request.method === "POST") {
+    return createPublication(request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "METHOD_NOT_ALLOWED"
+  }, 405, request, env);
+}
+
+async function listPublications(request, env) {
+  const url = new URL(request.url);
+
+  const category = cleanText(
+    url.searchParams.get("category"),
+    100
+  );
+
+  const city = cleanText(
+    url.searchParams.get("city"),
+    100
+  );
+
+  const status = cleanText(
+    url.searchParams.get("status") || "published",
+    50
+  );
+
+  const search = cleanText(
+    url.searchParams.get("search") || "",
+    200
+  );
+
+  const author = normalizeUsername(
+    url.searchParams.get("author") || ""
+  );
+
+  const limit = clampNumber(
+    Number(url.searchParams.get("limit") || 20),
+    1,
+    100
+  );
+
+  const offset = clampNumber(
+    Number(url.searchParams.get("offset") || 0),
+    0,
+    1000000
+  );
+
+  const schema = await getTableSchema(env.DB, "publications");
+
+  const conditions = [];
+  const binds = [];
+
+  if (hasColumn(schema, "status")) {
+    conditions.push(`status = ?`);
+    binds.push(status);
+  }
+
+  if (category && hasColumn(schema, "category")) {
+    conditions.push(`category = ?`);
+    binds.push(category);
+  }
+
+  if (city && hasColumn(schema, "city")) {
+    conditions.push(`city = ?`);
+    binds.push(city);
+  }
+
+  if (search && hasColumn(schema, "title") && hasColumn(schema, "text")) {
+    conditions.push(`(title LIKE ? OR text LIKE ?)`);
+    binds.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (author) {
+    const users = await findUserByUsername(env.DB, author);
+
+    if (!users) {
+      return json({
+        ok: true,
+        publications: [],
+        items: [],
+        total: 0,
+        limit,
+        offset
+      }, 200, request, env);
+    }
+
+    const userColumn =
+      firstExistingColumn(schema, [
+        "user_id",
+        "author_id",
+        "owner_id"
+      ]);
+
+    if (userColumn) {
+      conditions.push(`${quoteIdent(userColumn)} = ?`);
+      binds.push(users.id);
+    }
+  }
+
+  const where = conditions.length
+    ? `WHERE ${conditions.join(" AND ")}`
+    : "";
+
+  const orderColumn =
+    firstExistingColumn(schema, [
+      "created_at",
+      "published_at",
+      "updated_at",
+      "id"
+    ]) || "id";
+
+  const sql = `
+    SELECT *
+    FROM publications
+    ${where}
+    ORDER BY ${quoteIdent(orderColumn)} DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  binds.push(limit, offset);
+
+  const result = await env.DB
+    .prepare(sql)
+    .bind(...binds)
+    .all();
+
+  const rows = result.results || [];
+
+  return json({
+    ok: true,
+    publications: rows.map(normalizePublication),
+    items: rows.map(normalizePublication),
+    total: rows.length,
+    limit,
+    offset
+  }, 200, request, env);
+}
+
+async function createPublication(request, env) {
+  const user = await getAuthenticatedUser(request, env);
+
+  if (!user) {
+    return json({
+      ok: false,
+      error: "UNAUTHORIZED",
+      message: "Сначала войдите в аккаунт."
+    }, 401, request, env);
+  }
+
+  const body = await readJSON(request);
+
+  const title = cleanText(body.title, 300);
+  const content = cleanText(
+    body.content ?? body.text,
+    20000
+  );
+
+  const category = cleanText(body.category, 100);
+
+  if (!title || title.length < 3) {
+    return json({
+      ok: false,
+      error: "TITLE_REQUIRED"
+    }, 400, request, env);
+  }
+
+  if (!content || content.length < 3) {
+    return json({
+      ok: false,
+      error: "CONTENT_REQUIRED"
+    }, 400, request, env);
   }
 
   if (!category) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error:
-          "CATEGORY_REQUIRED",
-        message:
-          "Необходимо выбрать категорию."
-      },
-      400
-    );
+    return json({
+      ok: false,
+      error: "CATEGORY_REQUIRED"
+    }, 400, request, env);
   }
 
-  /* ----------------------------------------------------------
-     FIELDS
-  ---------------------------------------------------------- */
+  const schema = await getTableSchema(env.DB, "publications");
 
-  const subcategory =
-    cleanText(
-      body.subcategory,
-      100
-    );
+  const id = crypto.randomUUID();
+  const now = new Date().toISOString();
+  const trackingCode = generateTrackingCode();
 
-  const country =
-    cleanText(
-      body.country,
-      100
-    );
+  const media = normalizeMedia(body.media);
 
-  const city =
-    cleanText(
-      body.city,
-      100
-    );
+  const values = {};
 
-  const location =
-    cleanText(
-      body.location,
-      250
-    );
+  putIfColumn(values, schema, "id", id);
+  putIfColumn(values, schema, "user_id", user.id);
 
-  const scope =
-    cleanText(
-      body.scope,
-      100
-    );
+  putIfColumn(values, schema, "title", title);
+  putIfColumn(values, schema, "text", content);
+  putIfColumn(values, schema, "category", category);
 
-  const eventStart =
-    normalizeDateValue(
-      body.event_start
-    );
+  putIfColumn(
+    values,
+    schema,
+    "subcategory",
+    cleanText(body.subcategory, 100)
+  );
 
-  const eventEnd =
-    normalizeDateValue(
-      body.event_end
-    );
+  putIfColumn(values, schema, "country", cleanText(body.country, 100));
+  putIfColumn(values, schema, "city", cleanText(body.city, 100));
+  putIfColumn(values, schema, "location", cleanText(body.location, 300));
+  putIfColumn(values, schema, "scope", cleanText(body.scope, 50));
 
-  const deadline =
-    normalizeDateValue(
-      body.deadline
-    );
+  putIfColumn(values, schema, "event_start", cleanText(body.event_start, 100));
+  putIfColumn(values, schema, "event_end", cleanText(body.event_end, 100));
+  putIfColumn(values, schema, "deadline", cleanText(body.deadline, 100));
 
-  if (
-    eventStart &&
-    eventEnd &&
-    new Date(eventEnd) <
-      new Date(eventStart)
-  ) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error:
-          "INVALID_EVENT_DATES",
-        message:
-          "Дата окончания не может быть раньше даты начала."
-      },
-      400
+  putIfColumn(
+    values,
+    schema,
+    "price",
+    safeInteger(body.price, 0)
+  );
+
+  putIfColumn(values, schema, "currency", cleanText(body.currency, 20));
+  putIfColumn(
+    values,
+    schema,
+    "employment_type",
+    cleanText(body.employment_type, 100)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "work_format",
+    cleanText(body.work_format, 100)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "experience",
+    cleanText(body.experience, 500)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "education",
+    cleanText(body.education, 500)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "languages",
+    normalizeLanguages(body.languages)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "hashtags",
+    normalizeTags(body.tags ?? body.hashtags)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "media",
+    JSON.stringify(media)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "contact_name",
+    cleanText(body.contact_name || body.author_name || user.name, 200)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "contact_phone",
+    cleanText(body.contact_phone, 100)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "contact_email",
+    cleanText(body.contact_email, 200)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "contact_telegram",
+    cleanText(body.contact_telegram, 200)
+  );
+
+  putIfColumn(
+    values,
+    schema,
+    "external_url",
+    cleanText(body.external_url, 1000)
+  );
+
+  putIfColumn(values, schema, "language", cleanText(body.language || "ru", 20));
+
+  putIfColumn(
+    values,
+    schema,
+    "translate_all",
+    toBooleanNumber(body.translate_all, 0)
+  );
+
+  putIfColumn(values, schema, "status", "pending");
+  putIfColumn(values, schema, "views", 0);
+  putIfColumn(values, schema, "likes", 0);
+  putIfColumn(values, schema, "comments", 0);
+  putIfColumn(values, schema, "saves", 0);
+  putIfColumn(values, schema, "shares", 0);
+
+  putIfColumn(values, schema, "love", 0);
+  putIfColumn(values, schema, "support", 0);
+  putIfColumn(values, schema, "funny", 0);
+  putIfColumn(values, schema, "wow", 0);
+  putIfColumn(values, schema, "sad", 0);
+  putIfColumn(values, schema, "angry", 0);
+
+  putIfColumn(values, schema, "pinned", 0);
+  putIfColumn(values, schema, "featured", 0);
+
+  putIfColumn(values, schema, "tracking_code", trackingCode);
+  putIfColumn(values, schema, "created_at", now);
+  putIfColumn(values, schema, "updated_at", now);
+
+  putIfColumn(values, schema, "published_at", null);
+
+  try {
+    await dynamicInsert(env.DB, "publications", values);
+
+    await savePublicationMedia(
+      env.DB,
+      id,
+      media
     );
+  } catch (error) {
+    console.error("CREATE PUBLICATION ERROR:", error);
+
+    return json({
+      ok: false,
+      error: "PUBLICATION_CREATE_FAILED",
+      message: "Не удалось создать публикацию."
+    }, 500, request, env);
   }
 
-  /* ----------------------------------------------------------
-     PRICE
-  ---------------------------------------------------------- */
+  return json({
+    ok: true,
+    success: true,
+    id,
+    publication_id: id,
+    tracking_code: trackingCode,
+    code: trackingCode,
+    status: "pending",
+    message: "Публикация отправлена на модерацию."
+  }, 201, request, env);
+}
 
-  let price = 0;
+// ============================================================
+// ADMIN ROOT
+// ============================================================
 
-  if (
-    body.price !== undefined &&
-    body.price !== null &&
-    body.price !== ""
-  ) {
-    price =
-      Number(
-        body.price
-      );
+async function handleAdminRoot(request, env) {
+  const admin = await requireAdmin(request, env);
 
-    if (
-      !Number.isFinite(price) ||
-      price < 0
-    ) {
-      return jsonResponse(
-        {
-          success: false,
-          ok: false,
-          error:
-            "INVALID_PRICE",
-          message:
-            "Некорректная цена."
-        },
-        400
-      );
+  if (!admin.ok) return admin.response;
+
+  return json({
+    ok: true,
+    admin: {
+      user: publicUser(admin.user),
+      role: admin.role,
+      permissions: admin.permissions,
+      isSuperAdmin: admin.role === "super_admin"
+    },
+    endpoints: {
+      dashboard: "/api/admin/dashboard",
+      users: "/api/admin/users",
+      publications: "/api/admin/publications",
+      chat: "/api/admin/chat",
+      notifications: "/api/admin/notifications",
+      audit: "/api/admin/audit"
     }
+  }, 200, request, env);
+}
 
-    price = Math.round(price);
+// ============================================================
+// ADMIN API
+// ============================================================
+
+async function handleAdminApi(request, env) {
+  const admin = await requireAdmin(request, env);
+
+  if (!admin.ok) return admin.response;
+
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
+
+  // ---------------- ADMIN ME ----------------
+
+  if (path === "/api/admin/me") {
+    return json({
+      ok: true,
+      user: publicUser(admin.user),
+      role: admin.role,
+      permissions: admin.permissions,
+      isSuperAdmin: admin.role === "super_admin"
+    }, 200, request, env);
   }
 
-  const currency =
-    cleanText(
-      body.currency,
-      20
+  // ---------------- DASHBOARD ----------------
+
+  if (
+    path === "/api/admin/dashboard" ||
+    path === "/api/admin/stats"
+  ) {
+    return requirePermissionResponse(
+      admin,
+      "dashboard",
+      request,
+      env,
+      () => adminDashboard(request, env)
+    );
+  }
+
+  // ---------------- USERS ----------------
+
+  if (path === "/api/admin/users") {
+    return requirePermissionResponse(
+      admin,
+      "users",
+      request,
+      env,
+      () => adminUsers(request, env)
+    );
+  }
+
+  if (path.startsWith("/api/admin/users/")) {
+    return requirePermissionResponse(
+      admin,
+      "users",
+      request,
+      env,
+      () => adminUserRoute(request, env, path)
+    );
+  }
+
+  // ---------------- PUBLICATIONS ----------------
+
+  if (path === "/api/admin/publications") {
+    return requirePermissionResponse(
+      admin,
+      "publications",
+      request,
+      env,
+      () => adminPublications(request, env)
+    );
+  }
+
+  if (path.startsWith("/api/admin/publications/")) {
+    return requirePermissionResponse(
+      admin,
+      "publications",
+      request,
+      env,
+      () => adminPublicationRoute(request, env, path)
+    );
+  }
+
+  // ---------------- CHAT ----------------
+
+  if (
+    path === "/api/admin/chat" ||
+    path.startsWith("/api/admin/chat/")
+  ) {
+    return requirePermissionResponse(
+      admin,
+      "chat",
+      request,
+      env,
+      () => adminChatRoute(request, env, path)
+    );
+  }
+
+  // ---------------- NOTIFICATIONS ----------------
+
+  if (path === "/api/admin/notifications") {
+    return requirePermissionResponse(
+      admin,
+      "notifications",
+      request,
+      env,
+      () => adminNotifications(request, env)
+    );
+  }
+
+  // ---------------- AUDIT ----------------
+
+  if (path === "/api/admin/audit") {
+    return requirePermissionResponse(
+      admin,
+      "audit",
+      request,
+      env,
+      () => adminAudit(request, env)
+    );
+  }
+
+  return json({
+    ok: false,
+    error: "ADMIN_ROUTE_NOT_FOUND"
+  }, 404, request, env);
+}
+
+// ============================================================
+// ADMIN DASHBOARD
+// ============================================================
+
+async function adminDashboard(request, env) {
+  const stats = {
+    users: 0,
+    publications: 0,
+    pendingPublications: 0,
+    publishedPublications: 0,
+    rejectedPublications: 0,
+    messages: 0,
+    notifications: 0
+  };
+
+  if (env.DB) {
+    stats.users = await countTable(env.DB, "users");
+
+    stats.publications = await countTable(
+      env.DB,
+      "publications"
     );
 
-  const employmentType =
-    cleanText(
-      body.employment_type,
-      100
+    stats.pendingPublications = await countWhere(
+      env.DB,
+      "publications",
+      "status",
+      "pending"
     );
 
-  const workFormat =
-    cleanText(
-      body.work_format,
-      100
+    stats.publishedPublications = await countWhere(
+      env.DB,
+      "publications",
+      "status",
+      "published"
     );
 
-  const experience =
-    cleanText(
-      body.experience,
-      150
+    stats.rejectedPublications = await countWhere(
+      env.DB,
+      "publications",
+      "status",
+      "rejected"
     );
 
-  const education =
-    cleanText(
-      body.education,
-      150
+    stats.messages = await countTable(
+      env.DB,
+      "messages"
     );
 
-  const languages =
-    normalizeList(
-      body.languages
+    stats.notifications = await countTable(
+      env.DB,
+      "notifications"
     );
+  }
 
-  const tags =
-    normalizeList(
-      body.tags
-    );
+  const conversations = await getAdminChatIndex(env);
 
-  const contactName =
-    cleanText(
-      body.contact_name,
-      150
-    );
+  return json({
+    ok: true,
+    stats: {
+      ...stats,
+      adminChatConversations: conversations.length
+    },
+    generatedAt: new Date().toISOString()
+  }, 200, request, env);
+}
 
-  const contactPhone =
-    cleanText(
-      body.contact_phone,
-      60
-    );
+// ============================================================
+// ADMIN USERS
+// ============================================================
 
-  const contactEmail =
-    cleanText(
-      body.contact_email,
+async function adminUsers(request, env) {
+  if (!env.DB) {
+    return json({
+      ok: false,
+      error: "DATABASE_UNAVAILABLE"
+    }, 503, request, env);
+  }
+
+  if (request.method === "GET") {
+    const url = new URL(request.url);
+
+    const search = cleanText(
+      url.searchParams.get("search") || "",
       200
     );
 
-  const contactTelegram =
-    cleanText(
-      body.contact_telegram,
-      150
+    const limit = clampNumber(
+      Number(url.searchParams.get("limit") || 50),
+      1,
+      200
     );
 
-  const externalUrl =
-    cleanUrl(
-      body.external_url
+    const offset = clampNumber(
+      Number(url.searchParams.get("offset") || 0),
+      0,
+      1000000
     );
+
+    const schema = await getTableSchema(env.DB, "users");
+
+    const conditions = [];
+    const binds = [];
+
+    const searchColumns = [
+      "username",
+      "name",
+      "display_name",
+      "email",
+      "city"
+    ].filter(x => hasColumn(schema, x));
+
+    if (search && searchColumns.length) {
+      conditions.push(
+        "(" +
+        searchColumns
+          .map(column => `${quoteIdent(column)} LIKE ?`)
+          .join(" OR ") +
+        ")"
+      );
+
+      for (let i = 0; i < searchColumns.length; i++) {
+        binds.push(`%${search}%`);
+      }
+    }
+
+    const where = conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
+
+    const orderColumn =
+      firstExistingColumn(schema, [
+        "created_at",
+        "updated_at",
+        "id"
+      ]) || "id";
+
+    binds.push(limit, offset);
+
+    const result = await env.DB
+      .prepare(`
+        SELECT *
+        FROM users
+        ${where}
+        ORDER BY ${quoteIdent(orderColumn)} DESC
+        LIMIT ? OFFSET ?
+      `)
+      .bind(...binds)
+      .all();
+
+    return json({
+      ok: true,
+      users: (result.results || []).map(publicUser),
+      total: (result.results || []).length,
+      limit,
+      offset
+    }, 200, request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "METHOD_NOT_ALLOWED"
+  }, 405, request, env);
+}
+
+async function adminUserRoute(request, env, path) {
+  const segments = path.split("/").filter(Boolean);
+
+  // /api/admin/users/:id
+  const userId = segments[3];
+
+  if (!userId) {
+    return json({
+      ok: false,
+      error: "USER_ID_REQUIRED"
+    }, 400, request, env);
+  }
+
+  const user = await findUserById(env.DB, userId);
+
+  if (!user) {
+    return json({
+      ok: false,
+      error: "USER_NOT_FOUND"
+    }, 404, request, env);
+  }
+
+  // GET detail
+  if (request.method === "GET" && segments.length === 4) {
+    const publications = await getUserPublications(
+      env.DB,
+      user.id
+    );
+
+    return json({
+      ok: true,
+      user: publicUser(user),
+      publications
+    }, 200, request, env);
+  }
+
+  // PATCH
+  if (
+    request.method === "PATCH" &&
+    segments.length === 4
+  ) {
+    const body = await readJSON(request);
+
+    const targetIsAdmin = await getAdminContext(
+      user,
+      env
+    );
+
+    const requestedRole =
+      body.role !== undefined
+        ? normalizeRole(body.role)
+        : null;
+
+    // Only super_admin can change admin roles.
+    if (
+      (requestedRole ||
+        body.is_admin !== undefined ||
+        body.is_super_admin !== undefined) &&
+      adminRoleLevel(targetIsAdmin?.role) >= 0 &&
+      targetIsAdmin?.role !== "super_admin"
+    ) {
+      return json({
+        ok: false,
+        error: "SUPER_ADMIN_REQUIRED",
+        message: "Только super_admin может изменять права администраторов."
+      }, 403, request, env);
+    }
+
+    const schema = await getTableSchema(env.DB, "users");
+    const values = {};
+
+    const editable = [
+      "name",
+      "display_name",
+      "username",
+      "bio",
+      "country",
+      "city",
+      "avatar",
+      "email",
+      "phone",
+      "allow_messages",
+      "show_followers",
+      "is_public",
+      "status",
+      "is_active",
+      "is_verified",
+      "role",
+      "is_admin",
+      "is_super_admin"
+    ];
+
+    for (const field of editable) {
+      if (body[field] === undefined) continue;
+
+      let value = body[field];
+
+      if (
+        [
+          "allow_messages",
+          "show_followers",
+          "is_public",
+          "is_active",
+          "is_verified",
+          "is_admin",
+          "is_super_admin"
+        ].includes(field)
+      ) {
+        value = toBooleanNumber(value, 0);
+      }
+
+      if (field === "username") {
+        value = normalizeUsername(value);
+
+        if (!isValidUsername(value)) {
+          return json({
+            ok: false,
+            error: "INVALID_USERNAME"
+          }, 400, request, env);
+        }
+
+        const existing = await findUserByUsername(
+          env.DB,
+          value
+        );
+
+        if (existing && existing.id !== user.id) {
+          return json({
+            ok: false,
+            error: "USERNAME_EXISTS"
+          }, 409, request, env);
+        }
+      }
+
+      if (field === "role") {
+        value = normalizeRole(value);
+      }
+
+      if (
+        typeof value === "string" &&
+        ![
+          "username",
+          "email",
+          "phone",
+          "avatar",
+          "bio"
+        ].includes(field)
+      ) {
+        value = cleanText(value, 2000);
+      }
+
+      if (hasColumn(schema, field)) {
+        values[field] = value;
+      }
+    }
+
+    if (hasColumn(schema, "updated_at")) {
+      values.updated_at = new Date().toISOString();
+    }
+
+    await dynamicUpdate(
+      env.DB,
+      "users",
+      values,
+      getUserIdColumn(schema),
+      user.id
+    );
+
+    await audit(env, {
+      action: "admin_update_user",
+      actorId: requestUserId(request, env),
+      targetUserId: user.id,
+      targetUsername: user.username,
+      changes: values
+    });
+
+    const updated = await findUserById(
+      env.DB,
+      user.id
+    );
+
+    return json({
+      ok: true,
+      user: publicUser(updated)
+    }, 200, request, env);
+  }
+
+  // DELETE / block
+  if (
+    request.method === "DELETE" &&
+    segments.length === 4
+  ) {
+    const schema = await getTableSchema(
+      env.DB,
+      "users"
+    );
+
+    if (hasColumn(schema, "is_active")) {
+      await dynamicUpdate(
+        env.DB,
+        "users",
+        {
+          is_active: 0,
+          updated_at: new Date().toISOString()
+        },
+        getUserIdColumn(schema),
+        user.id
+      );
+    } else if (hasColumn(schema, "status")) {
+      await dynamicUpdate(
+        env.DB,
+        "users",
+        {
+          status: "deleted",
+          updated_at: new Date().toISOString()
+        },
+        getUserIdColumn(schema),
+        user.id
+      );
+    } else {
+      await env.DB
+        .prepare(
+          `DELETE FROM users WHERE ${quoteIdent(getUserIdColumn(schema))} = ?`
+        )
+        .bind(user.id)
+        .run();
+    }
+
+    await audit(env, {
+      action: "admin_delete_user",
+      targetUserId: user.id,
+      targetUsername: user.username
+    });
+
+    return json({
+      ok: true,
+      deleted: true
+    }, 200, request, env);
+  }
+
+  // Ban
+  if (
+    request.method === "POST" &&
+    segments[4] === "ban"
+  ) {
+    const schema = await getTableSchema(env.DB, "users");
+
+    const values = {};
+
+    if (hasColumn(schema, "is_active")) {
+      values.is_active = 0;
+    }
+
+    if (hasColumn(schema, "status")) {
+      values.status = "banned";
+    }
+
+    if (hasColumn(schema, "updated_at")) {
+      values.updated_at = new Date().toISOString();
+    }
+
+    await dynamicUpdate(
+      env.DB,
+      "users",
+      values,
+      getUserIdColumn(schema),
+      user.id
+    );
+
+    await audit(env, {
+      action: "admin_ban_user",
+      targetUserId: user.id
+    });
+
+    return json({
+      ok: true,
+      banned: true
+    }, 200, request, env);
+  }
+
+  // Unban
+  if (
+    request.method === "POST" &&
+    segments[4] === "unban"
+  ) {
+    const schema = await getTableSchema(env.DB, "users");
+
+    const values = {};
+
+    if (hasColumn(schema, "is_active")) {
+      values.is_active = 1;
+    }
+
+    if (hasColumn(schema, "status")) {
+      values.status = "active";
+    }
+
+    if (hasColumn(schema, "updated_at")) {
+      values.updated_at = new Date().toISOString();
+    }
+
+    await dynamicUpdate(
+      env.DB,
+      "users",
+      values,
+      getUserIdColumn(schema),
+      user.id
+    );
+
+    await audit(env, {
+      action: "admin_unban_user",
+      targetUserId: user.id
+    });
+
+    return json({
+      ok: true,
+      banned: false
+    }, 200, request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "ADMIN_USER_ROUTE_NOT_FOUND"
+  }, 404, request, env);
+}
+
+// ============================================================
+// ADMIN PUBLICATIONS
+// ============================================================
+
+async function adminPublications(request, env) {
+  if (!env.DB) {
+    return json({
+      ok: false,
+      error: "DATABASE_UNAVAILABLE"
+    }, 503, request, env);
+  }
+
+  if (request.method !== "GET") {
+    return json({
+      ok: false,
+      error: "METHOD_NOT_ALLOWED"
+    }, 405, request, env);
+  }
+
+  const url = new URL(request.url);
+
+  const status = cleanText(
+    url.searchParams.get("status") || "",
+    50
+  );
+
+  const search = cleanText(
+    url.searchParams.get("search") || "",
+    200
+  );
+
+  const limit = clampNumber(
+    Number(url.searchParams.get("limit") || 50),
+    1,
+    200
+  );
+
+  const offset = clampNumber(
+    Number(url.searchParams.get("offset") || 0),
+    0,
+    1000000
+  );
+
+  const schema = await getTableSchema(
+    env.DB,
+    "publications"
+  );
+
+  const conditions = [];
+  const binds = [];
+
+  if (status && hasColumn(schema, "status")) {
+    conditions.push("status = ?");
+    binds.push(status);
+  }
 
   if (
-    body.external_url &&
-    !externalUrl
+    search &&
+    hasColumn(schema, "title") &&
+    hasColumn(schema, "text")
   ) {
-    return jsonResponse(
-      {
-        success: false,
-        ok: false,
-        error:
-          "INVALID_EXTERNAL_URL",
-        message:
-          "Ссылка должна начинаться с http:// или https://."
-      },
-      400
+    conditions.push(
+      "(title LIKE ? OR text LIKE ?)"
+    );
+
+    binds.push(`%${search}%`);
+    binds.push(`%${search}%`);
+  }
+
+  const where = conditions.length
+    ? `WHERE ${conditions.join(" AND ")}`
+    : "";
+
+  const orderColumn =
+    firstExistingColumn(schema, [
+      "created_at",
+      "updated_at",
+      "id"
+    ]) || "id";
+
+  binds.push(limit, offset);
+
+  const result = await env.DB
+    .prepare(`
+      SELECT *
+      FROM publications
+      ${where}
+      ORDER BY ${quoteIdent(orderColumn)} DESC
+      LIMIT ? OFFSET ?
+    `)
+    .bind(...binds)
+    .all();
+
+  return json({
+    ok: true,
+    publications: (result.results || []).map(
+      normalizePublication
+    ),
+    total: (result.results || []).length,
+    limit,
+    offset
+  }, 200, request, env);
+}
+
+async function adminPublicationRoute(
+  request,
+  env,
+  path
+) {
+  const segments = path.split("/").filter(Boolean);
+
+  // /api/admin/publications/:id
+  const publicationId = segments[3];
+
+  if (!publicationId) {
+    return json({
+      ok: false,
+      error: "PUBLICATION_ID_REQUIRED"
+    }, 400, request, env);
+  }
+
+  const publication =
+    await findPublication(
+      env.DB,
+      publicationId
+    );
+
+  if (!publication) {
+    return json({
+      ok: false,
+      error: "PUBLICATION_NOT_FOUND"
+    }, 404, request, env);
+  }
+
+  // GET
+  if (
+    request.method === "GET" &&
+    segments.length === 4
+  ) {
+    return json({
+      ok: true,
+      publication: normalizePublication(publication)
+    }, 200, request, env);
+  }
+
+  // APPROVE
+  if (
+    request.method === "POST" &&
+    segments[4] === "approve"
+  ) {
+    return moderatePublication(
+      request,
+      env,
+      publication,
+      "published"
     );
   }
 
-  const authorName =
-    cleanText(
-      body.author_name,
-      150
-    );
-
-  const language =
-    cleanText(
-      body.language,
-      20
-    ) || "ru";
-
-  const translateAll =
-    body.translate_all === true ||
-    body.translate_all === 1 ||
-    body.translate_all === "1"
-      ? 1
-      : 0;
-
-  /* ----------------------------------------------------------
-     MEDIA
-  ---------------------------------------------------------- */
-
-  const media =
-    normalizeMedia(
-      body.media
-    );
-
-  for (
-    const item of media
+  // REJECT
+  if (
+    request.method === "POST" &&
+    segments[4] === "reject"
   ) {
-    if (
-      !isHttpUrl(
-        item.url
-      )
-    ) {
-      return jsonResponse(
-        {
-          success: false,
+    const body = await readJSON(request);
+
+    return moderatePublication(
+      request,
+      env,
+      publication,
+      "rejected",
+      cleanText(body.reason, 2000)
+    );
+  }
+
+  // PIN
+  if (
+    request.method === "POST" &&
+    segments[4] === "pin"
+  ) {
+    return togglePublicationFlag(
+      request,
+      env,
+      publication,
+      "pinned"
+    );
+  }
+
+  // FEATURE
+  if (
+    request.method === "POST" &&
+    segments[4] === "feature"
+  ) {
+    return togglePublicationFlag(
+      request,
+      env,
+      publication,
+      "featured"
+    );
+  }
+
+  // PATCH
+  if (
+    request.method === "PATCH" &&
+    segments.length === 4
+  ) {
+    const body = await readJSON(request);
+
+    const schema = await getTableSchema(
+      env.DB,
+      "publications"
+    );
+
+    const allowed = [
+      "title",
+      "text",
+      "category",
+      "subcategory",
+      "country",
+      "city",
+      "location",
+      "scope",
+      "event_start",
+      "event_end",
+      "deadline",
+      "price",
+      "currency",
+      "employment_type",
+      "work_format",
+      "experience",
+      "education",
+      "languages",
+      "hashtags",
+      "contact_name",
+      "contact_phone",
+      "contact_email",
+      "contact_telegram",
+      "external_url",
+      "status",
+      "pinned",
+      "featured",
+      "rejection_reason",
+      "published_at"
+    ];
+
+    const values = {};
+
+    for (const field of allowed) {
+      if (body[field] === undefined) continue;
+      if (!hasColumn(schema, field)) continue;
+
+      let value = body[field];
+
+      if (field === "price") {
+        value = safeInteger(value, 0);
+      }
+
+      if (
+        field === "pinned" ||
+        field === "featured"
+      ) {
+        value = toBooleanNumber(value, 0);
+      }
+
+      if (
+        field === "hashtags" &&
+        Array.isArray(value)
+      ) {
+        value = normalizeTags(value);
+      }
+
+      if (
+        field === "languages" &&
+        Array.isArray(value)
+      ) {
+        value = normalizeLanguages(value);
+      }
+
+      if (typeof value === "string") {
+        value = cleanText(value, 20000);
+      }
+
+      values[field] = value;
+    }
+
+    if (hasColumn(schema, "updated_at")) {
+      values.updated_at = new Date().toISOString();
+    }
+
+    await dynamicUpdate(
+      env.DB,
+      "publications",
+      values,
+      "id",
+      publicationId
+    );
+
+    await audit(env, {
+      action: "admin_update_publication",
+      targetPublicationId: publicationId,
+      changes: values
+    });
+
+    const updated = await findPublication(
+      env.DB,
+      publicationId
+    );
+
+    return json({
+      ok: true,
+      publication: normalizePublication(updated)
+    }, 200, request, env);
+  }
+
+  // DELETE
+  if (
+    request.method === "DELETE" &&
+    segments.length === 4
+  ) {
+    await deletePublication(
+      env.DB,
+      publicationId
+    );
+
+    await audit(env, {
+      action: "admin_delete_publication",
+      targetPublicationId: publicationId
+    });
+
+    return json({
+      ok: true,
+      deleted: true
+    }, 200, request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "ADMIN_PUBLICATION_ROUTE_NOT_FOUND"
+  }, 404, request, env);
+}
+
+async function moderatePublication(
+  request,
+  env,
+  publication,
+  status,
+  rejectionReason = ""
+) {
+  const schema = await getTableSchema(
+    env.DB,
+    "publications"
+  );
+
+  const values = {};
+
+  if (hasColumn(schema, "status")) {
+    values.status = status;
+  }
+
+  if (hasColumn(schema, "updated_at")) {
+    values.updated_at = new Date().toISOString();
+  }
+
+  if (
+    status === "published" &&
+    hasColumn(schema, "published_at")
+  ) {
+    values.published_at = new Date().toISOString();
+  }
+
+  if (
+    status === "published" &&
+    hasColumn(schema, "rejection_reason")
+  ) {
+    values.rejection_reason = null;
+  }
+
+  if (
+    status === "rejected" &&
+    hasColumn(schema, "rejection_reason")
+  ) {
+    values.rejection_reason =
+      rejectionReason || "Отклонено администратором.";
+  }
+
+  await dynamicUpdate(
+    env.DB,
+    "publications",
+    values,
+    "id",
+    publication.id
+  );
+
+  await audit(env, {
+    action: `publication_${status}`,
+    targetPublicationId: publication.id,
+    reason: rejectionReason
+  });
+
+  const updated = await findPublication(
+    env.DB,
+    publication.id
+  );
+
+  return json({
+    ok: true,
+    status,
+    publication: normalizePublication(updated)
+  }, 200, request, env);
+}
+
+async function togglePublicationFlag(
+  request,
+  env,
+  publication,
+  field
+) {
+  const schema = await getTableSchema(
+    env.DB,
+    "publications"
+  );
+
+  if (!hasColumn(schema, field)) {
+    return json({
+      ok: false,
+      error: "FIELD_NOT_SUPPORTED",
+      field
+    }, 400, request, env);
+  }
+
+  const current = Number(
+    publication[field] || 0
+  );
+
+  const value = current ? 0 : 1;
+
+  await dynamicUpdate(
+    env.DB,
+    "publications",
+    {
+      [field]: value,
+      updated_at: new Date().toISOString()
+    },
+    "id",
+    publication.id
+  );
+
+  await audit(env, {
+    action: `publication_${field}`,
+    targetPublicationId: publication.id,
+    value
+  });
+
+  return json({
+    ok: true,
+    [field]: !!value
+  }, 200, request, env);
+}
+
+// ============================================================
+// ADMIN CHAT
+// ============================================================
+
+async function adminChatRoute(
+  request,
+  env,
+  path
+) {
+  const segments = path.split("/").filter(Boolean);
+  const conversationId = segments[3] || null;
+
+  if (request.method === "GET") {
+    if (conversationId) {
+      const conversation =
+        await getAdminConversation(
+          env,
+          conversationId
+        );
+
+      if (!conversation) {
+        return json({
           ok: false,
-          error:
-            "INVALID_MEDIA_URL",
-          message:
-            "Некоторые ссылки на медиафайлы некорректны."
-        },
-        400
+          error: "CONVERSATION_NOT_FOUND"
+        }, 404, request, env);
+      }
+
+      return json({
+        ok: true,
+        conversation
+      }, 200, request, env);
+    }
+
+    const conversations =
+      await getAdminChatIndex(env);
+
+    const detailed = [];
+
+    for (const id of conversations) {
+      const conversation =
+        await getAdminConversation(env, id);
+
+      if (conversation) {
+        detailed.push(
+          await enrichConversation(
+            conversation,
+            env
+          )
+        );
+      }
+    }
+
+    return json({
+      ok: true,
+      conversations: detailed
+    }, 200, request, env);
+  }
+
+  if (
+    request.method === "POST" ||
+    request.method === "PATCH"
+  ) {
+    const body = await readJSON(request);
+
+    if (
+      body.action === "close" &&
+      conversationId
+    ) {
+      const conversation =
+        await getAdminConversation(
+          env,
+          conversationId
+        );
+
+      if (!conversation) {
+        return json({
+          ok: false,
+          error: "CONVERSATION_NOT_FOUND"
+        }, 404, request, env);
+      }
+
+      conversation.status = "closed";
+      conversation.updatedAt =
+        new Date().toISOString();
+
+      await saveAdminConversation(
+        env,
+        conversation
+      );
+
+      return json({
+        ok: true,
+        conversation
+      }, 200, request, env);
+    }
+
+    if (
+      conversationId &&
+      (body.message || body.text)
+    ) {
+      const conversation =
+        await getAdminConversation(
+          env,
+          conversationId
+        );
+
+      if (!conversation) {
+        return json({
+          ok: false,
+          error: "CONVERSATION_NOT_FOUND"
+        }, 404, request, env);
+      }
+
+      const text = cleanText(
+        body.message || body.text,
+        10000
+      );
+
+      if (!text) {
+        return json({
+          ok: false,
+          error: "MESSAGE_REQUIRED"
+        }, 400, request, env);
+      }
+
+      const message = {
+        id: crypto.randomUUID(),
+        senderType: "admin",
+        senderId: requestUserId(
+          request,
+          env
+        ),
+        text,
+        createdAt: new Date().toISOString(),
+        read: false
+      };
+
+      conversation.messages =
+        Array.isArray(conversation.messages)
+          ? conversation.messages
+          : [];
+
+      conversation.messages.push(message);
+
+      conversation.updatedAt =
+        new Date().toISOString();
+
+      conversation.unreadForUser =
+        Number(conversation.unreadForUser || 0) + 1;
+
+      conversation.status = "open";
+
+      await saveAdminConversation(
+        env,
+        conversation
+      );
+
+      return json({
+        ok: true,
+        message,
+        conversationId
+      }, 200, request, env);
+    }
+  }
+
+  return json({
+    ok: false,
+    error: "ADMIN_CHAT_ROUTE_NOT_FOUND"
+  }, 404, request, env);
+}
+
+// ============================================================
+// USER + ADMIN CHAT
+// ============================================================
+
+async function handleAdminChat(request, env) {
+  if (request.method === "GET") {
+    return getUserAdminChat(request, env);
+  }
+
+  if (request.method === "POST") {
+    return postUserAdminChat(request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "METHOD_NOT_ALLOWED"
+  }, 405, request, env);
+}
+
+async function getUserAdminChat(request, env) {
+  const user = await getAuthenticatedUser(
+    request,
+    env
+  );
+
+  const admin = user
+    ? await getAdminContext(user, env)
+    : null;
+
+  const url = new URL(request.url);
+  const conversationId =
+    cleanText(
+      url.searchParams.get("conversationId") ||
+      url.searchParams.get("conversation_id") ||
+      "",
+      200
+    );
+
+  // ADMIN CAN SEE EVERYTHING
+  if (admin) {
+    const ids = await getAdminChatIndex(env);
+    const conversations = [];
+
+    for (const id of ids) {
+      const conversation =
+        await getAdminConversation(env, id);
+
+      if (conversation) {
+        conversations.push(
+          await enrichConversation(
+            conversation,
+            env
+          )
+        );
+      }
+    }
+
+    if (conversationId) {
+      const conversation =
+        await getAdminConversation(
+          env,
+          conversationId
+        );
+
+      if (!conversation) {
+        return json({
+          ok: false,
+          error: "CONVERSATION_NOT_FOUND"
+        }, 404, request, env);
+      }
+
+      return json({
+        ok: true,
+        conversation:
+          await enrichConversation(
+            conversation,
+            env
+          )
+      }, 200, request, env);
+    }
+
+    return json({
+      ok: true,
+      conversations
+    }, 200, request, env);
+  }
+
+  // USER
+  if (conversationId) {
+    const conversation =
+      await getAdminConversation(
+        env,
+        conversationId
+      );
+
+    if (!conversation) {
+      return json({
+        ok: false,
+        error: "CONVERSATION_NOT_FOUND"
+      }, 404, request, env);
+    }
+
+    // Authenticated users can access their own conversation.
+    if (
+      user &&
+      conversation.userId &&
+      conversation.userId !== user.id
+    ) {
+      return json({
+        ok: false,
+        error: "FORBIDDEN"
+      }, 403, request, env);
+    }
+
+    // Mark admin messages as read.
+    conversation.unreadForUser = 0;
+
+    await saveAdminConversation(
+      env,
+      conversation
+    );
+
+    return json({
+      ok: true,
+      conversation
+    }, 200, request, env);
+  }
+
+  const ids = await getAdminChatIndex(env);
+  const conversations = [];
+
+  for (const id of ids) {
+    const conversation =
+      await getAdminConversation(env, id);
+
+    if (!conversation) continue;
+
+    if (
+      user &&
+      conversation.userId === user.id
+    ) {
+      conversations.push(conversation);
+    }
+  }
+
+  return json({
+    ok: true,
+    conversations
+  }, 200, request, env);
+}
+
+async function postUserAdminChat(
+  request,
+  env
+) {
+  const body = await readJSON(request);
+
+  const user = await getAuthenticatedUser(
+    request,
+    env
+  );
+
+  const text = cleanText(
+    body.message || body.text,
+    10000
+  );
+
+  if (!text) {
+    return json({
+      ok: false,
+      error: "MESSAGE_REQUIRED"
+    }, 400, request, env);
+  }
+
+  let conversationId = cleanText(
+    body.conversationId ||
+    body.conversation_id ||
+    "",
+    200
+  );
+
+  let conversation = conversationId
+    ? await getAdminConversation(
+        env,
+        conversationId
+      )
+    : null;
+
+  // Anonymous/new user
+  if (!conversation) {
+    conversationId =
+      crypto.randomUUID();
+
+    conversation = {
+      id: conversationId,
+      userId: user?.id || null,
+      username: user?.username || null,
+      displayName:
+        user?.name ||
+        cleanText(body.name, 200) ||
+        "Анонимный пользователь",
+      anonymous: !user,
+      status: "open",
+      createdAt:
+        new Date().toISOString(),
+      updatedAt:
+        new Date().toISOString(),
+      unreadForAdmin: 0,
+      unreadForUser: 0,
+      messages: []
+    };
+
+    await addAdminChatIndex(
+      env,
+      conversationId
+    );
+  }
+
+  // Security: authenticated user cannot write
+  // into another user's conversation.
+  if (
+    user &&
+    conversation.userId &&
+    conversation.userId !== user.id
+  ) {
+    return json({
+      ok: false,
+      error: "FORBIDDEN"
+    }, 403, request, env);
+  }
+
+  // Existing anonymous conversation can be claimed
+  // by same browser/user only when it had no user ID.
+  if (
+    user &&
+    !conversation.userId
+  ) {
+    conversation.userId = user.id;
+    conversation.username = user.username;
+    conversation.displayName = user.name;
+    conversation.anonymous = false;
+  }
+
+  const message = {
+    id: crypto.randomUUID(),
+    senderType: "user",
+    senderId: user?.id || null,
+    senderUsername:
+      user?.username || null,
+    text,
+    createdAt:
+      new Date().toISOString(),
+    read: false
+  };
+
+  conversation.messages =
+    Array.isArray(conversation.messages)
+      ? conversation.messages
+      : [];
+
+  conversation.messages.push(message);
+
+  conversation.updatedAt =
+    new Date().toISOString();
+
+  conversation.unreadForAdmin =
+    Number(conversation.unreadForAdmin || 0) + 1;
+
+  conversation.status = "open";
+
+  await saveAdminConversation(
+    env,
+    conversation
+  );
+
+  return json({
+    ok: true,
+    success: true,
+    conversationId,
+    message,
+    conversation
+  }, 201, request, env);
+}
+
+// ============================================================
+// ADMIN NOTIFICATIONS
+// ============================================================
+
+async function adminNotifications(request, env) {
+  const body = await readJSON(request);
+
+  if (request.method === "GET") {
+    const url = new URL(request.url);
+
+    const limit = clampNumber(
+      Number(url.searchParams.get("limit") || 100),
+      1,
+      500
+    );
+
+    if (env.DB) {
+      const schema =
+        await getTableSchema(
+          env.DB,
+          "notifications"
+        );
+
+      if (schema.length) {
+        const rows =
+          await env.DB.prepare(`
+            SELECT *
+            FROM notifications
+            ORDER BY rowid DESC
+            LIMIT ?
+          `)
+            .bind(limit)
+            .all();
+
+        return json({
+          ok: true,
+          notifications:
+            rows.results || []
+        }, 200, request, env);
+      }
+    }
+
+    return json({
+      ok: true,
+      notifications:
+        await getKVJSON(
+          env,
+          "notifications:admin",
+          []
+        )
+    }, 200, request, env);
+  }
+
+  if (request.method === "POST") {
+    const title = cleanText(
+      body.title,
+      300
+    );
+
+    const message = cleanText(
+      body.message || body.text,
+      5000
+    );
+
+    const targetUserId =
+      cleanText(
+        body.user_id ||
+        body.userId ||
+        "",
+        200
+      );
+
+    if (!message) {
+      return json({
+        ok: false,
+        error: "MESSAGE_REQUIRED"
+      }, 400, request, env);
+    }
+
+    const notification = {
+      id: crypto.randomUUID(),
+      title: title || "Tajik Opportunities",
+      message,
+      userId: targetUserId || null,
+      createdAt: new Date().toISOString(),
+      read: false,
+      type: cleanText(
+        body.type || "system",
+        50
+      )
+    };
+
+    let savedToD1 = false;
+
+    if (env.DB) {
+      try {
+        const schema =
+          await getTableSchema(
+            env.DB,
+            "notifications"
+          );
+
+        const values = {};
+
+        putIfColumn(
+          values,
+          schema,
+          "id",
+          notification.id
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "user_id",
+          notification.userId
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "title",
+          notification.title
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "message",
+          notification.message
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "text",
+          notification.message
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "type",
+          notification.type
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "read",
+          0
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "is_read",
+          0
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "created_at",
+          notification.createdAt
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "updated_at",
+          notification.createdAt
+        );
+
+        await dynamicInsert(
+          env.DB,
+          "notifications",
+          values
+        );
+
+        savedToD1 = true;
+      } catch (error) {
+        console.error(
+          "ADMIN NOTIFICATION D1:",
+          error
+        );
+      }
+    }
+
+    if (!savedToD1) {
+      const current =
+        await getKVJSON(
+          env,
+          "notifications:admin",
+          []
+        );
+
+      current.unshift(
+        notification
+      );
+
+      await putKVJSON(
+        env,
+        "notifications:admin",
+        current.slice(0, 1000)
+      );
+    }
+
+    return json({
+      ok: true,
+      notification
+    }, 201, request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "METHOD_NOT_ALLOWED"
+  }, 405, request, env);
+}
+
+// ============================================================
+// USER NOTIFICATIONS
+// ============================================================
+
+async function handleNotifications(
+  request,
+  env
+) {
+  const user =
+    await getAuthenticatedUser(
+      request,
+      env
+    );
+
+  if (!user) {
+    return json({
+      ok: false,
+      error: "UNAUTHORIZED"
+    }, 401, request, env);
+  }
+
+  if (request.method === "GET") {
+    if (env.DB) {
+      try {
+        const schema =
+          await getTableSchema(
+            env.DB,
+            "notifications"
+          );
+
+        const userColumn =
+          firstExistingColumn(
+            schema,
+            ["user_id", "userId", "recipient_id"]
+          );
+
+        if (userColumn) {
+          const result =
+            await env.DB.prepare(`
+              SELECT *
+              FROM notifications
+              WHERE ${quoteIdent(userColumn)} = ?
+              ORDER BY rowid DESC
+              LIMIT 100
+            `)
+              .bind(user.id)
+              .all();
+
+          return json({
+            ok: true,
+            notifications:
+              result.results || []
+          }, 200, request, env);
+        }
+      } catch (error) {
+        console.error(
+          "USER NOTIFICATIONS:",
+          error
+        );
+      }
+    }
+
+    const list =
+      await getKVJSON(
+        env,
+        `notifications:${user.id}`,
+        []
+      );
+
+    return json({
+      ok: true,
+      notifications: list
+    }, 200, request, env);
+  }
+
+  if (
+    request.method === "POST" ||
+    request.method === "PATCH"
+  ) {
+    const body =
+      await readJSON(request);
+
+    if (body.action === "read") {
+      const id =
+        cleanText(
+          body.id,
+          200
+        );
+
+      if (
+        env.DB &&
+        id
+      ) {
+        try {
+          const schema =
+            await getTableSchema(
+              env.DB,
+              "notifications"
+            );
+
+          const idColumn =
+            firstExistingColumn(
+              schema,
+              ["id"]
+            );
+
+          const readColumn =
+            firstExistingColumn(
+              schema,
+              ["read", "is_read"]
+            );
+
+          if (
+            idColumn &&
+            readColumn
+          ) {
+            await env.DB.prepare(`
+              UPDATE notifications
+              SET ${quoteIdent(readColumn)} = 1
+              WHERE ${quoteIdent(idColumn)} = ?
+            `)
+              .bind(id)
+              .run();
+          }
+        } catch (error) {
+          console.error(
+            "READ NOTIFICATION:",
+            error
+          );
+        }
+      }
+
+      return json({
+        ok: true,
+        read: true
+      }, 200, request, env);
+    }
+  }
+
+  return json({
+    ok: false,
+    error: "METHOD_NOT_ALLOWED"
+  }, 405, request, env);
+}
+
+// ============================================================
+// ADMIN AUDIT
+// ============================================================
+
+async function adminAudit(request, env) {
+  if (!env.DB) {
+    return json({
+      ok: false,
+      error: "DATABASE_UNAVAILABLE"
+    }, 503, request, env);
+  }
+
+  const url = new URL(request.url);
+
+  const limit = clampNumber(
+    Number(url.searchParams.get("limit") || 100),
+    1,
+    500
+  );
+
+  const schema =
+    await getTableSchema(
+      env.DB,
+      "audit_logs"
+    );
+
+  if (!schema.length) {
+    return json({
+      ok: true,
+      logs: []
+    }, 200, request, env);
+  }
+
+  const result =
+    await env.DB.prepare(`
+      SELECT *
+      FROM audit_logs
+      ORDER BY rowid DESC
+      LIMIT ?
+    `)
+      .bind(limit)
+      .all();
+
+  return json({
+    ok: true,
+    logs:
+      result.results || []
+  }, 200, request, env);
+}
+
+// ============================================================
+// ADMIN AUTHORIZATION
+// ============================================================
+
+async function requireAdmin(request, env) {
+  const user =
+    await getAuthenticatedUser(
+      request,
+      env
+    );
+
+  if (!user) {
+    return {
+      ok: false,
+      response: json({
+        ok: false,
+        error: "UNAUTHORIZED",
+        message: "Требуется авторизация."
+      }, 401, request, env)
+    };
+  }
+
+  const admin =
+    await getAdminContext(
+      user,
+      env
+    );
+
+  if (!admin) {
+    return {
+      ok: false,
+      response: json({
+        ok: false,
+        error: "ADMIN_ACCESS_REQUIRED",
+        message: "Недостаточно прав."
+      }, 403, request, env)
+    };
+  }
+
+  return {
+    ok: true,
+    ...admin
+  };
+}
+
+function requirePermissionResponse(
+  admin,
+  permission,
+  request,
+  env,
+  handler
+) {
+  if (!hasPermission(admin, permission)) {
+    return json({
+      ok: false,
+      error: "PERMISSION_DENIED",
+      permission
+    }, 403, request, env);
+  }
+
+  return handler();
+}
+
+async function getAdminContext(user, env) {
+  if (!user) return null;
+
+  let adminRow = null;
+
+  if (env.DB) {
+    try {
+      const schema =
+        await getTableSchema(
+          env.DB,
+          "admins"
+        );
+
+      if (schema.length) {
+        const userIdColumn =
+          firstExistingColumn(
+            schema,
+            ["user_id", "userid", "uid"]
+          );
+
+        const usernameColumn =
+          firstExistingColumn(
+            schema,
+            ["username", "user_name"]
+          );
+
+        const idColumn =
+          firstExistingColumn(
+            schema,
+            ["id"]
+          );
+
+        if (userIdColumn) {
+          adminRow =
+            await env.DB.prepare(`
+              SELECT *
+              FROM admins
+              WHERE ${quoteIdent(userIdColumn)} = ?
+              LIMIT 1
+            `)
+              .bind(user.id)
+              .first();
+        }
+
+        if (!adminRow && usernameColumn) {
+          adminRow =
+            await env.DB.prepare(`
+              SELECT *
+              FROM admins
+              WHERE LOWER(${quoteIdent(usernameColumn)}) = LOWER(?)
+              LIMIT 1
+            `)
+              .bind(user.username)
+              .first();
+        }
+
+        if (!adminRow && idColumn) {
+          adminRow =
+            await env.DB.prepare(`
+              SELECT *
+              FROM admins
+              WHERE ${quoteIdent(idColumn)} = ?
+              LIMIT 1
+            `)
+              .bind(user.id)
+              .first();
+        }
+      }
+    } catch (error) {
+      console.error(
+        "ADMIN LOOKUP:",
+        error
       );
     }
   }
 
-  /* ----------------------------------------------------------
-     IDS
-  ---------------------------------------------------------- */
+  // Admin can also be represented directly
+  // in users table.
+  const userRole =
+    normalizeRole(
+      user.role
+    );
+
+  const userIsAdmin =
+    truthy(
+      user.is_admin
+    );
+
+  const userIsSuper =
+    truthy(
+      user.is_super_admin
+    ) ||
+    userRole === "super_admin";
+
+  if (
+    !adminRow &&
+    !userIsAdmin &&
+    !userIsSuper &&
+    !["admin", "moderator"].includes(userRole)
+  ) {
+    return null;
+  }
+
+  const rowRole =
+    adminRow
+      ? normalizeRole(
+          adminRow.role ||
+          adminRow.admin_role
+        )
+      : null;
+
+  const role =
+    userIsSuper
+      ? "super_admin"
+      : rowRole ||
+        userRole ||
+        (adminRow ? "admin" : "admin");
+
+  // If an admin record exists without a role,
+  // grant full admin rights for compatibility.
+  const permissions =
+    parsePermissions(
+      adminRow?.permissions ??
+      adminRow?.permission ??
+      user.permissions
+    );
+
+  if (
+    adminRow &&
+    (
+      adminRow.is_active !== undefined &&
+      !truthy(adminRow.is_active)
+    )
+  ) {
+    return null;
+  }
+
+  if (
+    adminRow &&
+    adminRow.status !== undefined &&
+    ["disabled", "inactive", "blocked", "banned"]
+      .includes(
+        String(adminRow.status).toLowerCase()
+      )
+  ) {
+    return null;
+  }
+
+  return {
+    user,
+    adminRow,
+    role,
+    permissions
+  };
+}
+
+function hasPermission(admin, permission) {
+  if (!admin) return false;
+
+  if (admin.role === "super_admin") {
+    return true;
+  }
+
+  // Existing admin record without explicit
+  // permissions = full admin for compatibility.
+  if (
+    !admin.permissions ||
+    admin.permissions.length === 0
+  ) {
+    return true;
+  }
+
+  if (
+    admin.permissions.includes("*") ||
+    admin.permissions.includes("all")
+  ) {
+    return true;
+  }
+
+  return admin.permissions.includes(
+    permission
+  );
+}
+
+// ============================================================
+// SESSION MANAGEMENT
+// ============================================================
+
+async function createSession(env, user) {
+  const token =
+    await randomToken(48);
+
+  const expiresAt =
+    new Date(
+      Date.now() +
+      SESSION_DAYS *
+      24 *
+      60 *
+      60 *
+      1000
+    ).toISOString();
+
+  let saved = false;
+
+  if (env.DB) {
+    try {
+      const schema =
+        await getTableSchema(
+          env.DB,
+          "sessions"
+        );
+
+      if (schema.length) {
+        const values = {};
+
+        putIfColumn(
+          values,
+          schema,
+          "id",
+          crypto.randomUUID()
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "token",
+          token
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "session_token",
+          token
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "user_id",
+          user.id
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "userid",
+          user.id
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "expires_at",
+          expiresAt
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "expires",
+          expiresAt
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "created_at",
+          new Date().toISOString()
+        );
+
+        putIfColumn(
+          values,
+          schema,
+          "updated_at",
+          new Date().toISOString()
+        );
+
+        await dynamicInsert(
+          env.DB,
+          "sessions",
+          values
+        );
+
+        saved = true;
+      }
+    } catch (error) {
+      console.error(
+        "D1 SESSION:",
+        error
+      );
+    }
+  }
+
+  if (!saved) {
+    const kv = getKV(env);
+
+    if (kv) {
+      await kv.put(
+        `session:${token}`,
+        JSON.stringify({
+          userId: user.id,
+          expiresAt
+        }),
+        {
+          expirationTtl:
+            SESSION_DAYS *
+            24 *
+            60 *
+            60
+        }
+      );
+
+      saved = true;
+    }
+  }
+
+  if (!saved) {
+    throw new Error(
+      "No session storage available"
+    );
+  }
+
+  return token;
+}
+
+async function loadSession(env, token) {
+  if (!token) return null;
+
+  if (env.DB) {
+    try {
+      const schema =
+        await getTableSchema(
+          env.DB,
+          "sessions"
+        );
+
+      if (schema.length) {
+        const tokenColumn =
+          firstExistingColumn(
+            schema,
+            [
+              "token",
+              "session_token"
+            ]
+          );
+
+        if (tokenColumn) {
+          const row =
+            await env.DB.prepare(`
+              SELECT *
+              FROM sessions
+              WHERE ${quoteIdent(tokenColumn)} = ?
+              LIMIT 1
+            `)
+              .bind(token)
+              .first();
+
+          if (row) {
+            const expiresColumn =
+              firstExistingColumn(
+                schema,
+                [
+                  "expires_at",
+                  "expires"
+                ]
+              );
+
+            if (
+              expiresColumn &&
+              row[expiresColumn]
+            ) {
+              const expires =
+                Date.parse(
+                  row[expiresColumn]
+                );
+
+              if (
+                Number.isFinite(expires) &&
+                expires <= Date.now()
+              ) {
+                await deleteSession(
+                  env,
+                  token
+                );
+
+                return null;
+              }
+            }
+
+            const userIdColumn =
+              firstExistingColumn(
+                schema,
+                [
+                  "user_id",
+                  "userid",
+                  "uid"
+                ]
+              );
+
+            if (
+              userIdColumn &&
+              row[userIdColumn]
+            ) {
+              return {
+                userId:
+                  String(
+                    row[userIdColumn]
+                  )
+              };
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error(
+        "LOAD SESSION D1:",
+        error
+      );
+    }
+  }
+
+  const kv = getKV(env);
+
+  if (kv) {
+    const value =
+      await kv.get(
+        `session:${token}`,
+        "json"
+      );
+
+    if (!value) return null;
+
+    if (
+      value.expiresAt &&
+      Date.parse(value.expiresAt) <= Date.now()
+    ) {
+      await kv.delete(
+        `session:${token}`
+      );
+
+      return null;
+    }
+
+    return value;
+  }
+
+  return null;
+}
+
+async function deleteSession(env, token) {
+  if (!token) return;
+
+  if (env.DB) {
+    try {
+      const schema =
+        await getTableSchema(
+          env.DB,
+          "sessions"
+        );
+
+      const tokenColumn =
+        firstExistingColumn(
+          schema,
+          [
+            "token",
+            "session_token"
+          ]
+        );
+
+      if (tokenColumn) {
+        await env.DB.prepare(`
+          DELETE FROM sessions
+          WHERE ${quoteIdent(tokenColumn)} = ?
+        `)
+          .bind(token)
+          .run();
+      }
+    } catch (error) {
+      console.error(
+        "DELETE SESSION D1:",
+        error
+      );
+    }
+  }
+
+  const kv = getKV(env);
+
+  if (kv) {
+    await kv.delete(
+      `session:${token}`
+    );
+  }
+}
+
+// ============================================================
+// CURRENT USER
+// ============================================================
+
+async function getAuthenticatedUser(
+  request,
+  env
+) {
+  if (!env.DB) return null;
+
+  const cookieToken =
+    getCookie(
+      request,
+      SESSION_COOKIE
+    );
+
+  if (cookieToken) {
+    const session =
+      await loadSession(
+        env,
+        cookieToken
+      );
+
+    if (session?.userId) {
+      const user =
+        await findUserById(
+          env.DB,
+          session.userId
+        );
+
+      if (user && !isUserBlocked(user)) {
+        return user;
+      }
+    }
+  }
+
+  // Legacy compatibility:
+  // X-User-ID / Bearer only works when the
+  // user actually exists in D1.
+  const legacyId =
+    request.headers.get(
+      "X-User-ID"
+    );
+
+  if (legacyId) {
+    const user =
+      await findUserById(
+        env.DB,
+        legacyId
+      );
+
+    if (user && !isUserBlocked(user)) {
+      return user;
+    }
+  }
+
+  const auth =
+    request.headers.get(
+      "Authorization"
+    );
+
+  if (
+    auth &&
+    auth.startsWith("Bearer ")
+  ) {
+    const token =
+      auth.slice(7).trim();
+
+    const session =
+      await loadSession(
+        env,
+        token
+      );
+
+    if (session?.userId) {
+      const user =
+        await findUserById(
+          env.DB,
+          session.userId
+        );
+
+      if (user && !isUserBlocked(user)) {
+        return user;
+      }
+    }
+  }
+
+  return null;
+}
+
+function requestUserId(
+  request,
+  env
+) {
+  const id =
+    request.headers.get(
+      "X-User-ID"
+    );
+
+  return id || null;
+}
+
+// ============================================================
+// USERS / D1
+// ============================================================
+
+async function findUserById(db, id) {
+  if (!db || !id) return null;
+
+  const schema =
+    await getTableSchema(
+      db,
+      "users"
+    );
+
+  const idColumn =
+    getUserIdColumn(schema);
+
+  if (!idColumn) return null;
+
+  return db.prepare(`
+    SELECT *
+    FROM users
+    WHERE ${quoteIdent(idColumn)} = ?
+    LIMIT 1
+  `)
+    .bind(id)
+    .first();
+}
+
+async function findUserByUsername(
+  db,
+  username
+) {
+  if (!db || !username) return null;
+
+  const schema =
+    await getTableSchema(
+      db,
+      "users"
+    );
+
+  const usernameColumn =
+    firstExistingColumn(
+      schema,
+      [
+        "username",
+        "user_name",
+        "login"
+      ]
+    );
+
+  if (!usernameColumn) return null;
+
+  return db.prepare(`
+    SELECT *
+    FROM users
+    WHERE LOWER(${quoteIdent(usernameColumn)}) = LOWER(?)
+    LIMIT 1
+  `)
+    .bind(
+      normalizeUsername(username)
+    )
+    .first();
+}
+
+function getUserIdColumn(schema) {
+  return (
+    firstExistingColumn(
+      schema,
+      [
+        "id",
+        "user_id",
+        "uid"
+      ]
+    ) || "id"
+  );
+}
+
+async function updateUserProfile(
+  db,
+  user,
+  update
+) {
+  const schema =
+    await getTableSchema(
+      db,
+      "users"
+    );
+
+  const values = {};
+
+  for (const [
+    key,
+    value
+  ] of Object.entries(update)) {
+    if (hasColumn(schema, key)) {
+      values[key] = value;
+    }
+  }
+
+  if (hasColumn(schema, "updated_at")) {
+    values.updated_at =
+      new Date().toISOString();
+  }
+
+  if (!Object.keys(values).length) {
+    return;
+  }
+
+  await dynamicUpdate(
+    db,
+    "users",
+    values,
+    getUserIdColumn(schema),
+    user.id
+  );
+}
+
+async function getProfileData(
+  user,
+  env
+) {
+  const kvProfile =
+    await getKVJSON(
+      env,
+      `profile:${user.id}`,
+      {}
+    );
+
+  return {
+    bio:
+      user.bio ??
+      kvProfile.bio ??
+      "",
+    country:
+      user.country ??
+      kvProfile.country ??
+      "",
+    city:
+      user.city ??
+      kvProfile.city ??
+      "",
+    avatar:
+      user.avatar ??
+      kvProfile.avatar ??
+      "",
+    allow_messages:
+      user.allow_messages ??
+      kvProfile.allow_messages ??
+      1,
+    show_followers:
+      user.show_followers ??
+      kvProfile.show_followers ??
+      1,
+    is_public:
+      user.is_public ??
+      kvProfile.is_public ??
+      1
+  };
+}
+
+async function saveProfileKV(
+  env,
+  userId,
+  data
+) {
+  const kv = getKV(env);
+
+  if (!kv) return;
+
+  const existing =
+    await getKVJSON(
+      env,
+      `profile:${userId}`,
+      {}
+    );
+
+  await kv.put(
+    `profile:${userId}`,
+    JSON.stringify({
+      ...existing,
+      ...data,
+      updatedAt:
+        new Date().toISOString()
+    })
+  );
+}
+
+function publicUser(user) {
+  if (!user) return null;
 
   const id =
-    crypto.randomUUID();
+    user.id ??
+    user.user_id ??
+    user.uid ??
+    null;
 
-  const trackingCode =
-    await generateTrackingCode(
-      env.DB
-    );
+  const username =
+    user.username ??
+    user.user_name ??
+    user.login ??
+    "";
 
-  const now =
-    new Date().toISOString();
+  const name =
+    user.name ??
+    user.display_name ??
+    user.full_name ??
+    "";
 
-  /*
-   * В существующей таблице
-   * publications нет author_name.
-   *
-   * Поэтому имя автора сохраняем
-   * через contact_name, если
-   * contact_name ещё не передан.
-   */
+  return {
+    id,
+    username,
+    name,
 
-  const finalContactName =
-    contactName ||
-    authorName;
+    bio:
+      user.bio ??
+      "",
 
-  /* ----------------------------------------------------------
-     HASHTAGS
-  ---------------------------------------------------------- */
+    country:
+      user.country ??
+      "",
 
-  const hashtags =
-    JSON.stringify(
-      tags
-    );
+    city:
+      user.city ??
+      "",
 
-  /* ----------------------------------------------------------
-     MEDIA JSON
-  ---------------------------------------------------------- */
+    avatar:
+      user.avatar ??
+      "",
 
-  const mediaJson =
-    JSON.stringify(
-      media
-    );
+    email:
+      user.email ??
+      "",
 
-  /* ----------------------------------------------------------
-     INSERT PUBLICATION
-  ---------------------------------------------------------- */
+    phone:
+      user.phone ??
+      "",
 
-  const insertPublication = env.DB
-    .prepare(`
-      INSERT INTO publications (
-        id,
-        user_id,
-        title,
-        text,
-        category,
-        city,
-        country,
-        hashtags,
-        media,
-        status,
-        views,
-        likes,
-        comments,
-        saves,
-        shares,
-        love,
-        support,
-        funny,
-        wow,
-        sad,
-        angry,
-        price,
-        pinned,
-        featured,
-        created_at,
-        updated_at,
-        tracking_code,
-        subcategory,
-        location,
-        scope,
-        event_start,
-        event_end,
-        deadline,
-        currency,
-        employment_type,
-        experience,
-        published_at,
-        rejection_reason,
-        translate_all,
-        language,
-        contact_telegram,
-        contact_email,
-        contact_phone,
-        contact_name,
-        education,
-        work_format,
-        external_url,
-        languages
-      )
-      VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        0, 0, 0, 0, 0, 0, 0, 0,
-        0, 0, 0, ?, 0, 0, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        NULL, NULL, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?
-      )
+    role:
+      normalizeRole(
+        user.role || "user"
+      ),
+
+    is_admin:
+      truthy(
+        user.is_admin
+      ),
+
+    is_super_admin:
+      truthy(
+        user.is_super_admin
+      ),
+
+    allow_messages:
+      truthy(
+        user.allow_messages ??
+        1
+      ),
+
+    show_followers:
+      truthy(
+        user.show_followers ??
+        1
+      ),
+
+    is_public:
+      truthy(
+        user.is_public ??
+        1
+      ),
+
+    status:
+      user.status ??
+      "active",
+
+    is_active:
+      user.is_active === undefined
+        ? true
+        : truthy(user.is_active),
+
+    is_verified:
+      truthy(
+        user.is_verified
+      ),
+
+    created_at:
+      user.created_at ??
+      null
+  };
+}
+
+function isUserBlocked(user) {
+  if (!user) return true;
+
+  if (
+    user.is_active !== undefined &&
+    !truthy(user.is_active)
+  ) {
+    return true;
+  }
+
+  const status =
+    String(
+      user.status || ""
+    ).toLowerCase();
+
+  return [
+    "banned",
+    "blocked",
+    "deleted",
+    "disabled"
+  ].includes(status);
+}
+
+// ============================================================
+// PUBLICATION HELPERS
+// ============================================================
+
+async function findPublication(
+  db,
+  id
+) {
+  if (!db || !id) return null;
+
+  return db.prepare(`
+    SELECT *
+    FROM publications
+    WHERE id = ?
+    LIMIT 1
+  `)
+    .bind(id)
+    .first();
+}
+
+async function deletePublication(
+  db,
+  id
+) {
+  try {
+    await db.prepare(`
+      DELETE FROM publication_media
+      WHERE publication_id = ?
     `)
-    .bind(
-      id,
-      userId,
-      title,
-      content,
-      category,
-      city,
-      country,
-      hashtags,
-      mediaJson,
-
-      "pending",
-
-      price,
-
-      now,
-      now,
-
-      trackingCode,
-
-      subcategory,
-      location,
-      scope,
-      eventStart,
-      eventEnd,
-      deadline,
-      currency,
-      employmentType,
-      experience,
-
-      translateAll,
-      language,
-
-      contactTelegram,
-      contactEmail,
-      contactPhone,
-      finalContactName,
-      education,
-      workFormat,
-      externalUrl,
-
-      JSON.stringify(
-        languages
-      )
-    );
-
-  /* ----------------------------------------------------------
-     MEDIA INSERTS
-  ---------------------------------------------------------- */
-
-  const statements = [
-    insertPublication
-  ];
-
-  for (
-    const item of media
-  ) {
-    statements.push(
-      env.DB
-        .prepare(`
-          INSERT INTO publication_media (
-            id,
-            publication_id,
-            media_type,
-            media_url,
-            media_caption,
-            created_at
-          )
-          VALUES (?, ?, ?, ?, ?, ?)
-        `)
-        .bind(
-          crypto.randomUUID(),
-          id,
-          item.type,
-          item.url,
-          item.caption || "",
-          now
-        )
-    );
+      .bind(id)
+      .run();
+  } catch (_) {
+    // Media table may be unavailable.
   }
 
-  /* ----------------------------------------------------------
-     BATCH
-  ---------------------------------------------------------- */
+  await db.prepare(`
+    DELETE FROM publications
+    WHERE id = ?
+  `)
+    .bind(id)
+    .run();
+}
 
-  await env.DB.batch(
-    statements
+async function getUserPublications(
+  db,
+  userId
+) {
+  const schema =
+    await getTableSchema(
+      db,
+      "publications"
+    );
+
+  const userColumn =
+    firstExistingColumn(
+      schema,
+      [
+        "user_id",
+        "author_id",
+        "owner_id"
+      ]
+    );
+
+  if (!userColumn) return [];
+
+  const result =
+    await db.prepare(`
+      SELECT *
+      FROM publications
+      WHERE ${quoteIdent(userColumn)} = ?
+      ORDER BY rowid DESC
+      LIMIT 100
+    `)
+      .bind(userId)
+      .all();
+
+  return (
+    result.results || []
+  ).map(
+    normalizePublication
   );
+}
 
-  /* ----------------------------------------------------------
-     RESPONSE
-  ---------------------------------------------------------- */
+async function savePublicationMedia(
+  db,
+  publicationId,
+  media
+) {
+  if (!Array.isArray(media)) return;
 
-  return jsonResponse(
-    {
-      success: true,
-      ok: true,
+  try {
+    const schema =
+      await getTableSchema(
+        db,
+        "publication_media"
+      );
 
-      message:
-        "Публикация успешно отправлена на модерацию.",
+    if (!schema.length) return;
 
-      tracking_code:
-        trackingCode,
+    for (const item of media) {
+      const values = {};
 
-      publication: {
-        id,
-        tracking_code:
-          trackingCode,
-        status: "pending",
-        title,
-        category,
-        city,
-        created_at: now
+      putIfColumn(
+        values,
+        schema,
+        "id",
+        crypto.randomUUID()
+      );
+
+      putIfColumn(
+        values,
+        schema,
+        "publication_id",
+        publicationId
+      );
+
+      putIfColumn(
+        values,
+        schema,
+        "media_type",
+        cleanText(
+          item.type ||
+          item.media_type ||
+          "image",
+          50
+        )
+      );
+
+      putIfColumn(
+        values,
+        schema,
+        "media_url",
+        cleanText(
+          item.url ||
+          item.media_url ||
+          "",
+          2000
+        )
+      );
+
+      putIfColumn(
+        values,
+        schema,
+        "media_caption",
+        cleanText(
+          item.caption,
+          1000
+        )
+      );
+
+      putIfColumn(
+        values,
+        schema,
+        "created_at",
+        new Date().toISOString()
+      );
+
+      if (
+        values.media_url
+      ) {
+        await dynamicInsert(
+          db,
+          "publication_media",
+          values
+        );
       }
-    },
-    201
-  );
-}
-
-/* ============================================================
-   TRACKING CODE
-============================================================ */
-
-async function generateTrackingCode(
-  db
-) {
-  for (
-    let attempt = 0;
-    attempt < 10;
-    attempt++
-  ) {
-    const random =
-      crypto.randomUUID()
-        .replaceAll(
-          "-",
-          ""
-        )
-        .slice(
-          0,
-          8
-        )
-        .toUpperCase();
-
-    const code =
-      `TO-${random}`;
-
-    const existing =
-      await db
-        .prepare(`
-          SELECT id
-          FROM publications
-          WHERE tracking_code = ?
-          LIMIT 1
-        `)
-        .bind(code)
-        .first();
-
-    if (!existing) {
-      return code;
     }
+  } catch (error) {
+    console.error(
+      "MEDIA SAVE:",
+      error
+    );
   }
-
-  throw new Error(
-    "Unable to generate unique tracking code"
-  );
 }
 
-/* ============================================================
-   NORMALIZE PUBLICATION
-============================================================ */
+function normalizePublication(row) {
+  if (!row) return null;
 
-function normalizePublicationFromDb(
-  row
-) {
-  let hashtags = [];
   let media = [];
-  let languages = [];
 
-  try {
-    if (
-      row.hashtags
-    ) {
+  if (row.media) {
+    try {
+      const parsed =
+        typeof row.media === "string"
+          ? JSON.parse(row.media)
+          : row.media;
+
+      if (Array.isArray(parsed)) {
+        media = parsed;
+      }
+    } catch (_) {
+      media = [];
+    }
+  }
+
+  let hashtags = [];
+
+  if (row.hashtags) {
+    if (Array.isArray(row.hashtags)) {
+      hashtags = row.hashtags;
+    } else {
       hashtags =
-        JSON.parse(
-          row.hashtags
-        );
+        String(row.hashtags)
+          .split(/[,\s]+/)
+          .map(x => x.trim())
+          .filter(Boolean);
     }
-  } catch {
-    hashtags =
-      row.hashtags
-        ? String(
-            row.hashtags
-          )
-            .split(",")
-            .map(
-              item =>
-                item.trim()
-            )
-            .filter(Boolean)
-        : [];
-  }
-
-  try {
-    if (
-      row.media
-    ) {
-      media =
-        JSON.parse(
-          row.media
-        );
-    }
-  } catch {
-    media = [];
-  }
-
-  try {
-    if (
-      row.languages
-    ) {
-      languages =
-        JSON.parse(
-          row.languages
-        );
-    }
-  } catch {
-    languages =
-      row.languages
-        ? String(
-            row.languages
-          )
-            .split(",")
-            .map(
-              item =>
-                item.trim()
-            )
-            .filter(Boolean)
-        : [];
   }
 
   return {
     ...row,
 
     content:
-      row.text || "",
+      row.text ??
+      row.content ??
+      "",
+
+    text:
+      row.text ??
+      row.content ??
+      "",
 
     tags:
       hashtags,
 
-    languages,
+    hashtags,
 
-    media
+    media,
+
+    author_id:
+      row.user_id ??
+      row.author_id ??
+      null,
+
+    trackingCode:
+      row.tracking_code ??
+      null
   };
 }
 
-/* ============================================================
-   PROFILE API
-============================================================ */
-
-async function handleProfile(
-  request,
-  env
-) {
-  const method =
-    request.method.toUpperCase();
-
-  if (
-    method === "GET"
-  ) {
-    const userId =
-      getUserId(request);
-
-    if (!userId) {
-      return jsonResponse({
-        success: true,
-        authenticated: false,
-        profile: null
-      });
-    }
-
-    const profile =
-      await readKV(
-        env,
-        `profile:${userId}`
-      );
-
-    return jsonResponse({
-      success: true,
-      authenticated: true,
-      profile:
-        profile ||
-        createEmptyProfile(
-          userId
-        )
-    });
-  }
-
-  if (
-    method === "POST" ||
-    method === "PUT" ||
-    method === "PATCH"
-  ) {
-    const userId =
-      getUserId(request);
-
-    if (!userId) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "AUTH_REQUIRED",
-          message:
-            "Необходима авторизация."
-        },
-        401
-      );
-    }
-
-    const body =
-      await readJson(
-        request
-      );
-
-    const oldProfile =
-      (await readKV(
-        env,
-        `profile:${userId}`
-      )) ||
-      createEmptyProfile(
-        userId
-      );
-
-    const profile = {
-      ...oldProfile,
-      ...sanitizeProfile(
-        body
-      ),
-      id: userId,
-      updatedAt:
-        new Date().toISOString()
-    };
-
-    await writeKV(
-      env,
-      `profile:${userId}`,
-      profile
-    );
-
-    return jsonResponse({
-      success: true,
-      profile
-    });
-  }
-
-  return jsonResponse(
-    {
-      success: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
-  );
-}
-
-/* ============================================================
-   OPPORTUNITIES API
-============================================================ */
+// ============================================================
+// EXISTING KV OPPORTUNITIES
+// ============================================================
 
 async function handleOpportunities(
   request,
   env
 ) {
-  const method =
-    request.method.toUpperCase();
+  const key = "opportunities";
 
-  if (
-    method === "GET"
-  ) {
-    const url =
-      new URL(request.url);
-
-    const category =
-      url.searchParams.get(
-        "category"
-      );
-
-    const city =
-      url.searchParams.get(
-        "city"
-      );
-
-    const search =
-      url.searchParams.get(
-        "search"
-      );
-
-    const limit =
-      clampNumber(
-        url.searchParams.get(
-          "limit"
-        ),
-        1,
-        100,
-        30
-      );
-
-    let opportunities =
-      (await readKV(
-        env,
-        "opportunities:index"
-      )) || [];
-
-    if (category) {
-      opportunities =
-        opportunities.filter(
-          item =>
-            String(
-              item.category || ""
-            ).toLowerCase() ===
-            category.toLowerCase()
-        );
-    }
-
-    if (city) {
-      opportunities =
-        opportunities.filter(
-          item =>
-            String(
-              item.city || ""
-            ).toLowerCase() ===
-            city.toLowerCase()
-        );
-    }
-
-    if (search) {
-      const q =
-        search.toLowerCase();
-
-      opportunities =
-        opportunities.filter(
-          item => {
-            const text = [
-              item.title,
-              item.description,
-              item.company,
-              item.city,
-              item.category
-            ]
-              .filter(Boolean)
-              .join(" ")
-              .toLowerCase();
-
-            return text.includes(q);
-          }
-        );
-    }
-
-    opportunities =
-      opportunities
-        .sort(
-          (a, b) =>
-            new Date(
-              b.createdAt || 0
-            ) -
-            new Date(
-              a.createdAt || 0
-            )
+  if (request.method === "GET") {
+    return json({
+      ok: true,
+      opportunities:
+        await getKVJSON(
+          env,
+          key,
+          []
         )
-        .slice(
-          0,
-          limit
-        );
-
-    return jsonResponse({
-      success: true,
-      total:
-        opportunities.length,
-      opportunities
-    });
+    }, 200, request, env);
   }
 
   if (
-    method === "POST"
+    request.method === "POST"
   ) {
-    const userId =
-      getUserId(request);
-
-    if (!userId) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "AUTH_REQUIRED"
-        },
-        401
+    const user =
+      await getAuthenticatedUser(
+        request,
+        env
       );
+
+    if (!user) {
+      return json({
+        ok: false,
+        error: "UNAUTHORIZED"
+      }, 401, request, env);
     }
 
     const body =
-      await readJson(
-        request
+      await readJSON(request);
+
+    const list =
+      await getKVJSON(
+        env,
+        key,
+        []
       );
 
-    if (!body.title) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "TITLE_REQUIRED"
-        },
-        400
-      );
-    }
-
-    const opportunity = {
-      id:
-        crypto.randomUUID(),
-
-      ownerId:
-        userId,
-
-      title:
-        cleanText(
-          body.title,
-          180
-        ),
-
-      description:
-        cleanText(
-          body.description,
-          5000
-        ),
-
-      category:
-        cleanText(
-          body.category,
-          100
-        ),
-
-      city:
-        cleanText(
-          body.city,
-          100
-        ),
-
-      company:
-        cleanText(
-          body.company,
-          180
-        ),
-
-      salary:
-        cleanText(
-          body.salary,
-          150
-        ),
-
-      schedule:
-        cleanText(
-          body.schedule,
-          150
-        ),
-
-      status:
-        "active",
-
+    const item = {
+      id: crypto.randomUUID(),
+      ...body,
+      userId: user.id,
       createdAt:
-        new Date().toISOString(),
-
-      updatedAt:
         new Date().toISOString()
     };
 
-    const list =
-      (await readKV(
-        env,
-        "opportunities:index"
-      )) || [];
+    list.unshift(item);
 
-    list.unshift(
-      opportunity
-    );
-
-    await writeKV(
+    await putKVJSON(
       env,
-      "opportunities:index",
-      list.slice(
-        0,
-        1000
-      )
+      key,
+      list.slice(0, 1000)
     );
 
-    return jsonResponse(
-      {
-        success: true,
-        opportunity
-      },
-      201
-    );
+    return json({
+      ok: true,
+      opportunity: item
+    }, 201, request, env);
   }
 
-  return jsonResponse(
-    {
-      success: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
-  );
+  return json({
+    ok: false,
+    error: "METHOD_NOT_ALLOWED"
+  }, 405, request, env);
 }
 
-/* ============================================================
-   USER MESSAGES
-============================================================ */
+// ============================================================
+// EXISTING MESSAGES
+// ============================================================
 
 async function handleMessages(
   request,
   env
 ) {
-  const method =
-    request.method.toUpperCase();
-
-  const userId =
-    getUserId(request);
-
-  if (!userId) {
-    return jsonResponse(
-      {
-        success: false,
-        error:
-          "AUTH_REQUIRED"
-      },
-      401
+  const user =
+    await getAuthenticatedUser(
+      request,
+      env
     );
+
+  if (!user) {
+    return json({
+      ok: false,
+      error: "UNAUTHORIZED"
+    }, 401, request, env);
+  }
+
+  const key =
+    `messages:${user.id}`;
+
+  if (request.method === "GET") {
+    return json({
+      ok: true,
+      messages:
+        await getKVJSON(
+          env,
+          key,
+          []
+        )
+    }, 200, request, env);
   }
 
   if (
-    method === "GET"
-  ) {
-    const messages =
-      (await readKV(
-        env,
-        `messages:${userId}`
-      )) || [];
-
-    return jsonResponse({
-      success: true,
-      messages
-    });
-  }
-
-  if (
-    method === "POST"
+    request.method === "POST"
   ) {
     const body =
-      await readJson(
-        request
-      );
+      await readJSON(request);
 
-    if (!body.text) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "MESSAGE_REQUIRED"
-        },
-        400
+    const list =
+      await getKVJSON(
+        env,
+        key,
+        []
       );
-    }
 
     const message = {
-      id:
-        crypto.randomUUID(),
-
-      userId,
-
-      text:
-        cleanText(
-          body.text,
-          5000
-        ),
-
+      id: crypto.randomUUID(),
+      ...body,
+      userId: user.id,
       createdAt:
-        new Date().toISOString(),
-
-      read: false
+        new Date().toISOString()
     };
 
-    const messages =
-      (await readKV(
-        env,
-        `messages:${userId}`
-      )) || [];
+    list.push(message);
 
-    messages.push(
-      message
-    );
-
-    await writeKV(
+    await putKVJSON(
       env,
-      `messages:${userId}`,
-      messages.slice(
-        -500
-      )
+      key,
+      list.slice(-1000)
     );
 
-    return jsonResponse(
-      {
-        success: true,
-        message
-      },
-      201
-    );
+    return json({
+      ok: true,
+      message
+    }, 201, request, env);
   }
 
-  return jsonResponse(
-    {
-      success: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
+  return json({
+    ok: false,
+    error: "METHOD_NOT_ALLOWED"
+  }, 405, request, env);
+}
+
+// ============================================================
+// ADMIN CHAT STORAGE
+// ============================================================
+
+async function getAdminChatIndex(env) {
+  return getKVJSON(
+    env,
+    "admin-chat:index",
+    []
   );
 }
 
-/* ============================================================
-   ADMIN CHAT
-============================================================ */
+async function addAdminChatIndex(
+  env,
+  conversationId
+) {
+  const index =
+    await getAdminChatIndex(env);
 
-async function handleAdminChat(
-  request,
+  if (!index.includes(conversationId)) {
+    index.unshift(conversationId);
+  }
+
+  await putKVJSON(
+    env,
+    "admin-chat:index",
+    index.slice(0, 5000)
+  );
+}
+
+async function getAdminConversation(
+  env,
+  id
+) {
+  if (!id) return null;
+
+  return getKVJSON(
+    env,
+    `admin-chat:${id}`,
+    null
+  );
+}
+
+async function saveAdminConversation(
+  env,
+  conversation
+) {
+  const kv = getKV(env);
+
+  if (!kv) {
+    throw new Error(
+      "KV binding is required for admin chat"
+    );
+  }
+
+  await kv.put(
+    `admin-chat:${conversation.id}`,
+    JSON.stringify(conversation)
+  );
+
+  await addAdminChatIndex(
+    env,
+    conversation.id
+  );
+}
+
+async function enrichConversation(
+  conversation,
   env
 ) {
-  const method =
-    request.method.toUpperCase();
-
-  const userId =
-    getUserId(request);
-
-  /* ----------------------------------------------------------
-     POST MESSAGE
-  ---------------------------------------------------------- */
+  const result = {
+    ...conversation
+  };
 
   if (
-    method === "POST"
+    conversation.userId &&
+    env.DB
   ) {
-    const body =
-      await readJson(
-        request
+    const user =
+      await findUserById(
+        env.DB,
+        conversation.userId
       );
 
-    if (!body.text) {
-      return jsonResponse(
-        {
-          success: false,
-          error:
-            "MESSAGE_REQUIRED"
-        },
-        400
-      );
+    if (user) {
+      result.user = publicUser(user);
     }
+  }
 
-    const anonymous =
-      body.anonymous === true;
+  return result;
+}
 
-    const conversationId =
-      body.conversationId ||
-      crypto.randomUUID();
+// ============================================================
+// KV HELPERS
+// ============================================================
 
-    const message = {
-      id:
-        crypto.randomUUID(),
+function getKV(env) {
+  return (
+    env.DATA ||
+    env.KV ||
+    env.STORAGE ||
+    null
+  );
+}
 
-      conversationId,
+async function getKVJSON(
+  env,
+  key,
+  fallback
+) {
+  const kv = getKV(env);
 
-      senderType:
-        "user",
+  if (!kv) return fallback;
 
-      userId:
-        userId || null,
+  try {
+    const value =
+      await kv.get(
+        key,
+        "json"
+      );
 
-      anonymous,
-
-      text:
-        cleanText(
-          body.text,
-          5000
-        ),
-
-      createdAt:
-        new Date().toISOString(),
-
-      readByAdmin:
-        false
-    };
-
-    const key =
-      `admin-chat:${conversationId}`;
-
-    const conversation =
-      (await readKV(
-        env,
-        key
-      )) || {
-        id:
-          conversationId,
-
-        userId:
-          userId || null,
-
-        anonymous,
-
-        createdAt:
-          new Date().toISOString(),
-
-        updatedAt:
-          new Date().toISOString(),
-
-        messages: []
-      };
-
-    conversation.messages.push(
-      message
+    return value ?? fallback;
+  } catch (error) {
+    console.error(
+      "KV GET:",
+      error
     );
 
-    conversation.updatedAt =
+    return fallback;
+  }
+}
+
+async function putKVJSON(
+  env,
+  key,
+  value
+) {
+  const kv = getKV(env);
+
+  if (!kv) return;
+
+  await kv.put(
+    key,
+    JSON.stringify(value)
+  );
+}
+
+// ============================================================
+// AUDIT LOGS
+// ============================================================
+
+async function audit(env, data) {
+  if (!env.DB) return;
+
+  try {
+    const schema =
+      await getTableSchema(
+        env.DB,
+        "audit_logs"
+      );
+
+    if (!schema.length) return;
+
+    const now =
       new Date().toISOString();
 
-    await writeKV(
-      env,
-      key,
-      conversation
+    const values = {};
+
+    putIfColumn(
+      values,
+      schema,
+      "id",
+      crypto.randomUUID()
     );
 
-    const conversations =
-      (await readKV(
-        env,
-        "admin-chat:index"
-      )) || [];
+    putIfColumn(
+      values,
+      schema,
+      "user_id",
+      data.actorId ||
+      data.userId ||
+      null
+    );
 
-    const existing =
-      conversations.find(
-        item =>
-          item.id ===
-          conversationId
-      );
+    putIfColumn(
+      values,
+      schema,
+      "admin_id",
+      data.actorId ||
+      null
+    );
 
-    if (!existing) {
-      conversations.unshift({
-        id:
-          conversationId,
-
-        userId:
-          userId || null,
-
-        anonymous,
-
-        unread:
-          true,
-
-        createdAt:
-          conversation.createdAt,
-
-        updatedAt:
-          conversation.updatedAt
-      });
-    } else {
-      existing.unread =
-        true;
-
-      existing.updatedAt =
-        conversation.updatedAt;
-    }
-
-    await writeKV(
-      env,
-      "admin-chat:index",
-      conversations.slice(
-        0,
-        1000
+    putIfColumn(
+      values,
+      schema,
+      "action",
+      cleanText(
+        data.action,
+        200
       )
     );
 
-    return jsonResponse(
-      {
-        success: true,
-        conversationId,
-        message
-      },
-      201
+    putIfColumn(
+      values,
+      schema,
+      "target_user_id",
+      data.targetUserId ||
+      null
+    );
+
+    putIfColumn(
+      values,
+      schema,
+      "target_publication_id",
+      data.targetPublicationId ||
+      null
+    );
+
+    putIfColumn(
+      values,
+      schema,
+      "details",
+      JSON.stringify(data)
+    );
+
+    putIfColumn(
+      values,
+      schema,
+      "metadata",
+      JSON.stringify(data)
+    );
+
+    putIfColumn(
+      values,
+      schema,
+      "created_at",
+      now
+    );
+
+    putIfColumn(
+      values,
+      schema,
+      "timestamp",
+      now
+    );
+
+    await dynamicInsert(
+      env.DB,
+      "audit_logs",
+      values
+    );
+  } catch (error) {
+    console.error(
+      "AUDIT ERROR:",
+      error
     );
   }
+}
 
-  /* ----------------------------------------------------------
-     GET
-  ---------------------------------------------------------- */
+// ============================================================
+// D1 SCHEMA / SQL HELPERS
+// ============================================================
 
-  if (
-    method === "GET"
-  ) {
-    const url =
-      new URL(request.url);
+const schemaCache = new Map();
 
-    const conversationId =
-      url.searchParams.get(
-        "conversationId"
-      );
+async function getTableSchema(
+  db,
+  table
+) {
+  if (!db) return [];
 
-    if (!conversationId) {
-      return jsonResponse({
-        success: true,
-
-        conversations:
-          (await readKV(
-            env,
-            "admin-chat:index"
-          )) || []
-      });
-    }
-
-    const conversation =
-      await readKV(
-        env,
-        `admin-chat:${conversationId}`
-      );
-
-    return jsonResponse({
-      success: true,
-      conversation:
-        conversation || null
-    });
+  if (schemaCache.has(table)) {
+    return schemaCache.get(table);
   }
 
-  return jsonResponse(
-    {
-      success: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
+  const safe =
+    quoteIdent(table);
+
+  try {
+    const result =
+      await db.prepare(
+        `PRAGMA table_info(${safe})`
+      ).all();
+
+    const schema =
+      result.results || [];
+
+    schemaCache.set(
+      table,
+      schema
+    );
+
+    return schema;
+  } catch (error) {
+    console.error(
+      `SCHEMA ${table}:`,
+      error
+    );
+
+    return [];
+  }
+}
+
+function hasColumn(
+  schema,
+  name
+) {
+  return schema.some(
+    column =>
+      String(column.name).toLowerCase() ===
+      String(name).toLowerCase()
   );
 }
 
-/* ============================================================
-   NOTIFICATIONS
-============================================================ */
-
-async function handleNotifications(
-  request,
-  env
+function firstExistingColumn(
+  schema,
+  candidates
 ) {
-  const userId =
-    getUserId(request);
+  for (const candidate of candidates) {
+    const found =
+      schema.find(
+        column =>
+          String(column.name).toLowerCase() ===
+          String(candidate).toLowerCase()
+      );
 
-  if (!userId) {
-    return jsonResponse(
-      {
-        success: false,
-        error:
-          "AUTH_REQUIRED"
-      },
-      401
-    );
-  }
-
-  const notifications =
-    (await readKV(
-      env,
-      `notifications:${userId}`
-    )) || [];
-
-  return jsonResponse({
-    success: true,
-
-    unread:
-      notifications.filter(
-        item =>
-          !item.read
-      ).length,
-
-    notifications
-  });
-}
-
-/* ============================================================
-   PROFILE HELPERS
-============================================================ */
-
-function createEmptyProfile(
-  userId
-) {
-  return {
-    id: userId,
-
-    name: "",
-
-    username: "",
-
-    avatar: "",
-
-    cover: "",
-
-    bio: "",
-
-    city: "",
-
-    phone: "",
-
-    email: "",
-
-    verified: false,
-
-    createdAt:
-      new Date().toISOString(),
-
-    updatedAt:
-      new Date().toISOString()
-  };
-}
-
-function sanitizeProfile(
-  data
-) {
-  return {
-    name:
-      cleanText(
-        data.name,
-        120
-      ),
-
-    username:
-      cleanText(
-        data.username,
-        80
-      ),
-
-    avatar:
-      cleanText(
-        data.avatar,
-        1000
-      ),
-
-    cover:
-      cleanText(
-        data.cover,
-        1000
-      ),
-
-    bio:
-      cleanText(
-        data.bio,
-        2000
-      ),
-
-    city:
-      cleanText(
-        data.city,
-        100
-      ),
-
-    phone:
-      cleanText(
-        data.phone,
-        50
-      ),
-
-    email:
-      cleanText(
-        data.email,
-        200
-      )
-  };
-}
-
-/* ============================================================
-   KV STORAGE
-============================================================ */
-
-async function readKV(
-  env,
-  key
-) {
-  if (
-    env.DATA &&
-    typeof env.DATA.get ===
-      "function"
-  ) {
-    return env.DATA.get(
-      key,
-      "json"
-    );
-  }
-
-  if (
-    env.KV &&
-    typeof env.KV.get ===
-      "function"
-  ) {
-    return env.KV.get(
-      key,
-      "json"
-    );
+    if (found) {
+      return found.name;
+    }
   }
 
   return null;
 }
 
-async function writeKV(
-  env,
-  key,
+function putIfColumn(
+  object,
+  schema,
+  column,
   value
 ) {
   if (
-    env.DATA &&
-    typeof env.DATA.put ===
-      "function"
+    value === undefined ||
+    !hasColumn(schema, column)
   ) {
-    await env.DATA.put(
-      key,
-      JSON.stringify(
-        value
-      )
-    );
-
-    return true;
+    return;
   }
 
-  if (
-    env.KV &&
-    typeof env.KV.put ===
-      "function"
-  ) {
-    await env.KV.put(
-      key,
-      JSON.stringify(
-        value
+  object[column] = value;
+}
+
+async function dynamicInsert(
+  db,
+  table,
+  values
+) {
+  const schema =
+    await getTableSchema(
+      db,
+      table
+    );
+
+  const allowed =
+    new Set(
+      schema.map(
+        column => column.name
       )
     );
 
-    return true;
+  const entries =
+    Object.entries(values)
+      .filter(
+        ([key, value]) =>
+          allowed.has(key) &&
+          value !== undefined
+      );
+
+  if (!entries.length) {
+    throw new Error(
+      `No valid columns for INSERT into ${table}`
+    );
+  }
+
+  const columns =
+    entries
+      .map(
+        ([key]) =>
+          quoteIdent(key)
+      )
+      .join(", ");
+
+  const placeholders =
+    entries
+      .map(() => "?")
+      .join(", ");
+
+  const params =
+    entries.map(
+      ([, value]) => value
+    );
+
+  await db.prepare(`
+    INSERT INTO ${quoteIdent(table)}
+    (${columns})
+    VALUES (${placeholders})
+  `)
+    .bind(...params)
+    .run();
+}
+
+async function dynamicUpdate(
+  db,
+  table,
+  values,
+  whereColumn,
+  whereValue
+) {
+  const schema =
+    await getTableSchema(
+      db,
+      table
+    );
+
+  const allowed =
+    new Set(
+      schema.map(
+        column => column.name
+      )
+    );
+
+  const entries =
+    Object.entries(values)
+      .filter(
+        ([key, value]) =>
+          allowed.has(key) &&
+          value !== undefined
+      );
+
+  if (!entries.length) {
+    return;
+  }
+
+  const setClause =
+    entries
+      .map(
+        ([key]) =>
+          `${quoteIdent(key)} = ?`
+      )
+      .join(", ");
+
+  const params =
+    entries.map(
+      ([, value]) => value
+    );
+
+  params.push(whereValue);
+
+  await db.prepare(`
+    UPDATE ${quoteIdent(table)}
+    SET ${setClause}
+    WHERE ${quoteIdent(whereColumn)} = ?
+  `)
+    .bind(...params)
+    .run();
+}
+
+function quoteIdent(value) {
+  if (
+    !/^[A-Za-z_][A-Za-z0-9_]*$/.test(
+      String(value)
+    )
+  ) {
+    throw new Error(
+      "Unsafe SQL identifier"
+    );
+  }
+
+  return `"${value}"`;
+}
+
+// ============================================================
+// COUNTERS
+// ============================================================
+
+async function countTable(
+  db,
+  table
+) {
+  try {
+    const schema =
+      await getTableSchema(
+        db,
+        table
+      );
+
+    if (!schema.length) return 0;
+
+    const result =
+      await db.prepare(`
+        SELECT COUNT(*) AS count
+        FROM ${quoteIdent(table)}
+      `)
+        .first();
+
+    return Number(
+      result?.count || 0
+    );
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function countWhere(
+  db,
+  table,
+  column,
+  value
+) {
+  try {
+    const schema =
+      await getTableSchema(
+        db,
+        table
+      );
+
+    if (!hasColumn(schema, column)) {
+      return 0;
+    }
+
+    const result =
+      await db.prepare(`
+        SELECT COUNT(*) AS count
+        FROM ${quoteIdent(table)}
+        WHERE ${quoteIdent(column)} = ?
+      `)
+        .bind(value)
+        .first();
+
+    return Number(
+      result?.count || 0
+    );
+  } catch (_) {
+    return 0;
+  }
+}
+
+// ============================================================
+// PASSWORD SECURITY
+// ============================================================
+
+async function hashPassword(
+  password
+) {
+  const iterations = 120000;
+
+  const salt =
+    crypto.getRandomValues(
+      new Uint8Array(16)
+    );
+
+  const key =
+    await crypto.subtle.importKey(
+      "raw",
+      new TextEncoder().encode(
+        password
+      ),
+      {
+        name: "PBKDF2"
+      },
+      false,
+      [
+        "deriveBits"
+      ]
+    );
+
+  const bits =
+    await crypto.subtle.deriveBits(
+      {
+        name: "PBKDF2",
+        salt,
+        iterations,
+        hash: "SHA-256"
+      },
+      key,
+      256
+    );
+
+  return [
+    "pbkdf2",
+    iterations,
+    bytesToHex(salt),
+    bytesToHex(
+      new Uint8Array(bits)
+    )
+  ].join("$");
+}
+
+async function verifyPassword(
+  password,
+  stored
+) {
+  const value =
+    String(stored || "");
+
+  // New secure format
+  if (
+    value.startsWith(
+      "pbkdf2$"
+    )
+  ) {
+    const parts =
+      value.split("$");
+
+    if (parts.length !== 4) {
+      return false;
+    }
+
+    const iterations =
+      Number(parts[1]);
+
+    const salt =
+      hexToBytes(parts[2]);
+
+    const expected =
+      hexToBytes(parts[3]);
+
+    if (
+      !iterations ||
+      !salt.length ||
+      !expected.length
+    ) {
+      return false;
+    }
+
+    const key =
+      await crypto.subtle.importKey(
+        "raw",
+        new TextEncoder().encode(
+          password
+        ),
+        {
+          name: "PBKDF2"
+        },
+        false,
+        [
+          "deriveBits"
+        ]
+      );
+
+    const bits =
+      await crypto.subtle.deriveBits(
+        {
+          name: "PBKDF2",
+          salt,
+          iterations,
+          hash: "SHA-256"
+        },
+        key,
+        expected.length * 8
+      );
+
+    return timingSafeEqual(
+      new Uint8Array(bits),
+      expected
+    );
+  }
+
+  // Legacy SHA-256 compatibility
+  if (
+    /^[a-f0-9]{64}$/i.test(value)
+  ) {
+    const digest =
+      await sha256(password);
+
+    return timingSafeEqual(
+      hexToBytes(digest),
+      hexToBytes(value)
+    );
   }
 
   return false;
 }
 
-/* ============================================================
-   USER IDENTIFICATION
-============================================================ */
+function getPasswordHash(user) {
+  return (
+    user.password_hash ??
+    user.password ??
+    user.hash ??
+    null
+  );
+}
 
-function getUserId(
-  request
-) {
-  /* ----------------------------------------------------------
-     X-User-ID
-  ---------------------------------------------------------- */
-
-  const header =
-    request.headers.get(
-      "X-User-ID"
+async function sha256(text) {
+  const buffer =
+    await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(text)
     );
 
-  if (header) {
-    return sanitizeId(
-      header
-    );
+  return bytesToHex(
+    new Uint8Array(buffer)
+  );
+}
+
+function timingSafeEqual(a, b) {
+  if (
+    !a ||
+    !b ||
+    a.length !== b.length
+  ) {
+    return false;
   }
 
-  /* ----------------------------------------------------------
-     BEARER
-  ---------------------------------------------------------- */
+  let result = 0;
 
-  const authorization =
-    request.headers.get(
-      "Authorization"
+  for (
+    let i = 0;
+    i < a.length;
+    i++
+  ) {
+    result |=
+      a[i] ^ b[i];
+  }
+
+  return result === 0;
+}
+
+// ============================================================
+// TOKEN
+// ============================================================
+
+async function randomToken(bytes = 32) {
+  const array =
+    crypto.getRandomValues(
+      new Uint8Array(bytes)
     );
 
-  if (
-    authorization &&
-    authorization.startsWith(
-      "Bearer "
+  return bytesToHex(array);
+}
+
+function bytesToHex(bytes) {
+  return Array
+    .from(bytes)
+    .map(
+      b =>
+        b
+          .toString(16)
+          .padStart(2, "0")
     )
+    .join("");
+}
+
+function hexToBytes(hex) {
+  if (
+    !hex ||
+    hex.length % 2 !== 0
   ) {
-    return sanitizeId(
-      authorization.slice(
-        7
-      )
+    return new Uint8Array();
+  }
+
+  const result =
+    new Uint8Array(
+      hex.length / 2
+    );
+
+  for (
+    let i = 0;
+    i < result.length;
+    i++
+  ) {
+    result[i] =
+      parseInt(
+        hex.substr(i * 2, 2),
+        16
+      );
+  }
+
+  return result;
+}
+
+// ============================================================
+// COOKIE
+// ============================================================
+
+function getCookie(
+  request,
+  name
+) {
+  const cookie =
+    request.headers.get(
+      "Cookie"
+    );
+
+  if (!cookie) return null;
+
+  const parts =
+    cookie.split(";");
+
+  for (const part of parts) {
+    const index =
+      part.indexOf("=");
+
+    if (index === -1) continue;
+
+    const key =
+      part
+        .slice(0, index)
+        .trim();
+
+    if (key !== name) continue;
+
+    return decodeURIComponent(
+      part
+        .slice(index + 1)
+        .trim()
     );
   }
 
   return null;
 }
 
-function sanitizeId(
-  value
-) {
-  return String(value)
-    .trim()
-    .replace(
-      /[^a-zA-Z0-9_\-:.@]/g,
-      ""
-    )
-    .slice(
-      0,
-      200
-    ) || null;
-}
+// ============================================================
+// RESPONSE / CORS / SECURITY
+// ============================================================
 
-/* ============================================================
-   JSON
-============================================================ */
-
-async function readJson(
-  request
-) {
-  const contentType =
-    request.headers.get(
-      "content-type"
-    ) || "";
-
-  if (
-    !contentType.includes(
-      "application/json"
-    )
-  ) {
-    return {};
-  }
-
-  try {
-    const text =
-      await request.text();
-
-    if (!text) {
-      return {};
-    }
-
-    const parsed =
-      JSON.parse(text);
-
-    if (
-      !parsed ||
-      typeof parsed !==
-        "object"
-    ) {
-      return {};
-    }
-
-    return parsed;
-  } catch {
-    throw new Error(
-      "Invalid JSON body"
-    );
-  }
-}
-
-/* ============================================================
-   JSON RESPONSE
-============================================================ */
-
-function jsonResponse(
+function json(
   data,
   status = 200,
-  extraHeaders = {}
+  request,
+  env
 ) {
   const headers =
     new Headers(
-      JSON_HEADERS
+      securityHeaders(
+        request,
+        env
+      )
     );
 
-  Object.entries(
-    extraHeaders
-  ).forEach(
-    ([key, value]) =>
-      headers.set(
-        key,
-        String(value)
-      )
+  headers.set(
+    "Content-Type",
+    "application/json; charset=utf-8"
   );
 
   return new Response(
-    JSON.stringify(
-      data,
-      null,
-      2
-    ),
+    JSON.stringify(data),
     {
       status,
       headers
@@ -2377,69 +5255,82 @@ function jsonResponse(
   );
 }
 
-/* ============================================================
-   HTML RESPONSE
-============================================================ */
-
-function htmlResponse(
-  html,
-  status = 200
+function jsonWithCookie(
+  data,
+  status,
+  request,
+  env,
+  token
 ) {
+  const headers =
+    new Headers(
+      securityHeaders(
+        request,
+        env
+      )
+    );
+
+  headers.set(
+    "Content-Type",
+    "application/json; charset=utf-8"
+  );
+
+  headers.append(
+    "Set-Cookie",
+    `${SESSION_COOKIE}=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${SESSION_DAYS * 24 * 60 * 60}`
+  );
+
   return new Response(
-    html,
+    JSON.stringify(data),
     {
       status,
-      headers: {
-        "Content-Type":
-          "text/html; charset=UTF-8",
-
-        "Cache-Control":
-          "no-store"
-      }
+      headers
     }
   );
 }
 
-/* ============================================================
-   CORS
-============================================================ */
+function corsResponse(
+  request,
+  env
+) {
+  const headers =
+    new Headers(
+      securityHeaders(
+        request,
+        env
+      )
+    );
 
-function corsResponse() {
+  headers.set(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+  );
+
+  headers.set(
+    "Access-Control-Allow-Headers",
+    "Content-Type, Authorization, X-User-ID, Accept"
+  );
+
+  headers.set(
+    "Access-Control-Allow-Credentials",
+    "true"
+  );
+
   return new Response(
     null,
     {
       status: 204,
-
-      headers: {
-        "Access-Control-Allow-Origin":
-          "*",
-
-        "Access-Control-Allow-Methods":
-          ALLOWED_METHODS.join(
-            ", "
-          ),
-
-        "Access-Control-Allow-Headers":
-          "Content-Type, Authorization, X-User-ID",
-
-        "Access-Control-Max-Age":
-          "86400"
-      }
+      headers
     }
   );
 }
 
-/* ============================================================
-   SECURITY HEADERS
-============================================================ */
-
-function addSecurityHeaders(
-  response
+function securityHeaders(
+  request,
+  env
 ) {
   const headers =
-    new Headers(
-      response.headers
-    );
+    new Headers();
 
   headers.set(
     "X-Content-Type-Options",
@@ -2462,75 +5353,173 @@ function addSecurityHeaders(
   );
 
   headers.set(
-    "Access-Control-Allow-Origin",
-    "*"
+    "X-XSS-Protection",
+    "0"
   );
 
-  headers.set(
-    "Access-Control-Allow-Methods",
-    ALLOWED_METHODS.join(
-      ", "
+  const origin =
+    request?.headers.get(
+      "Origin"
+    );
+
+  if (
+    origin &&
+    (
+      ALLOWED_ORIGINS.includes(origin) ||
+      origin === new URL(
+        request.url
+      ).origin
     )
-  );
+  ) {
+    headers.set(
+      "Access-Control-Allow-Origin",
+      origin
+    );
 
-  headers.set(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-User-ID"
-  );
+    headers.set(
+      "Access-Control-Allow-Credentials",
+      "true"
+    );
 
-  return new Response(
-    response.body,
-    {
-      status:
-        response.status,
+    headers.set(
+      "Vary",
+      "Origin"
+    );
+  }
 
-      statusText:
-        response.statusText,
-
-      headers
-    }
-  );
+  return headers;
 }
 
-function addRequestId(
+function withSecurityHeaders(
   response,
-  requestId
+  request,
+  env
 ) {
   const headers =
     new Headers(
       response.headers
     );
 
-  headers.set(
-    "X-Request-ID",
-    requestId
-  );
+  const security =
+    securityHeaders(
+      request,
+      env
+    );
+
+  for (
+    const [
+      key,
+      value
+    ] of security.entries()
+  ) {
+    if (!headers.has(key)) {
+      headers.set(
+        key,
+        value
+      );
+    }
+  }
 
   return new Response(
     response.body,
     {
       status:
         response.status,
-
       statusText:
         response.statusText,
-
       headers
     }
   );
 }
 
-/* ============================================================
-   TEXT HELPERS
-============================================================ */
+function withJSONHeaders(
+  headers
+) {
+  headers.set(
+    "Content-Type",
+    "application/json; charset=utf-8"
+  );
+
+  return headers;
+}
+
+// ============================================================
+// REQUEST BODY
+// ============================================================
+
+async function readJSON(request) {
+  const contentLength =
+    Number(
+      request.headers.get(
+        "Content-Length"
+      ) || 0
+    );
+
+  if (
+    contentLength &&
+    contentLength > MAX_BODY
+  ) {
+    throw new Error(
+      "Request body too large"
+    );
+  }
+
+  const text =
+    await request.text();
+
+  if (!text) return {};
+
+  if (
+    text.length >
+    MAX_BODY
+  ) {
+    throw new Error(
+      "Request body too large"
+    );
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    throw new Error(
+      "Invalid JSON"
+    );
+  }
+}
+
+// ============================================================
+// NORMALIZATION
+// ============================================================
+
+function normalizePath(path) {
+  if (!path) return "/";
+
+  const clean =
+    path.replace(
+      /\/+/g,
+      "/"
+    );
+
+  if (
+    clean.length > 1 &&
+    clean.endsWith("/")
+  ) {
+    return clean.slice(
+      0,
+      -1
+    );
+  }
+
+  return clean;
+}
 
 function cleanText(
   value,
-  maxLength = 1000
+  max = 1000
 ) {
   if (
-    value === undefined ||
-    value === null
+    value === null ||
+    value === undefined
   ) {
     return "";
   }
@@ -2541,312 +5530,342 @@ function cleanText(
       ""
     )
     .trim()
-    .slice(
-      0,
-      maxLength
-    );
+    .slice(0, max);
 }
 
-/* ============================================================
-   URL HELPERS
-============================================================ */
-
-function cleanUrl(
+function normalizeUsername(
   value
 ) {
-  if (
-    value === undefined ||
-    value === null ||
-    value === ""
-  ) {
-    return "";
-  }
-
-  const url =
-    String(value).trim();
-
-  return isHttpUrl(
-    url
+  return cleanText(
+    value,
+    32
   )
-    ? url.slice(
-        0,
-        2000
-      )
-    : "";
+    .toLowerCase()
+    .replace(
+      /^@/,
+      ""
+    );
 }
 
-function isHttpUrl(
-  value
+function isValidUsername(
+  username
 ) {
-  try {
-    const url =
-      new URL(
-        String(value)
-      );
+  return /^[a-z0-9_.-]{3,32}$/i.test(
+    username
+  );
+}
 
-    return (
-      url.protocol ===
-        "http:" ||
-      url.protocol ===
-        "https:"
-    );
-  } catch {
-    return false;
+function normalizeRole(
+  role
+) {
+  const value =
+    String(
+      role || ""
+    )
+      .toLowerCase()
+      .trim();
+
+  if (
+    [
+      "superadmin",
+      "super-admin",
+      "super_admin",
+      "owner"
+    ].includes(value)
+  ) {
+    return "super_admin";
+  }
+
+  if (
+    [
+      "moderator",
+      "mod"
+    ].includes(value)
+  ) {
+    return "moderator";
+  }
+
+  if (
+    [
+      "admin",
+      "administrator"
+    ].includes(value)
+  ) {
+    return "admin";
+  }
+
+  return value || "user";
+}
+
+function adminRoleLevel(role) {
+  switch (
+    normalizeRole(role)
+  ) {
+    case "super_admin":
+      return 3;
+
+    case "admin":
+      return 2;
+
+    case "moderator":
+      return 1;
+
+    default:
+      return 0;
   }
 }
 
-/* ============================================================
-   DATE HELPERS
-============================================================ */
-
-function normalizeDateValue(
+function parsePermissions(
   value
 ) {
   if (
-    value === undefined ||
     value === null ||
+    value === undefined ||
     value === ""
   ) {
-    return null;
+    return [];
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .map(
+        x =>
+          String(x)
+            .trim()
+            .toLowerCase()
+      )
+      .filter(Boolean);
+  }
+
+  if (
+    typeof value === "object"
+  ) {
+    return Object.entries(value)
+      .filter(
+        ([, enabled]) =>
+          !!enabled
+      )
+      .map(
+        ([key]) =>
+          String(key)
+            .trim()
+            .toLowerCase()
+      );
   }
 
   const text =
     String(value).trim();
 
-  if (!text) {
-    return null;
+  try {
+    const parsed =
+      JSON.parse(text);
+
+    return parsePermissions(
+      parsed
+    );
+  } catch (_) {
+    return text
+      .split(/[,\s]+/)
+      .map(
+        x =>
+          x
+            .trim()
+            .toLowerCase()
+      )
+      .filter(Boolean);
   }
-
-  const date =
-    new Date(text);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return null;
-  }
-
-  return date.toISOString();
 }
 
-/* ============================================================
-   LIST HELPERS
-============================================================ */
+function truthy(value) {
+  if (
+    value === true ||
+    value === 1
+  ) {
+    return true;
+  }
 
-function normalizeList(
-  value
+  const text =
+    String(
+      value ?? ""
+    ).toLowerCase();
+
+  return [
+    "1",
+    "true",
+    "yes",
+    "on"
+  ].includes(text);
+}
+
+function toBooleanNumber(
+  value,
+  fallback = 0
 ) {
   if (
     value === undefined ||
     value === null
   ) {
-    return [];
+    return fallback;
   }
 
-  if (
-    Array.isArray(value)
-  ) {
-    return value
-      .map(
-        item =>
-          cleanText(
-            item,
-            100
-          )
-      )
-      .filter(Boolean)
-      .slice(
-        0,
-        100
-      );
-  }
-
-  return String(value)
-    .split(
-      /[,;\n]/
-    )
-    .map(
-      item =>
-        cleanText(
-          item,
-          100
-        )
-    )
-    .filter(Boolean)
-    .slice(
-      0,
-      100
-    );
+  return truthy(value)
+    ? 1
+    : 0;
 }
 
-/* ============================================================
-   MEDIA HELPERS
-============================================================ */
-
-function normalizeMedia(
-  value
-) {
-  if (
-    !Array.isArray(value)
-  ) {
-    return [];
-  }
-
-  return value
-    .map(
-      item => {
-        if (
-          typeof item ===
-          "string"
-        ) {
-          return {
-            type:
-              "image",
-            url:
-              cleanText(
-                item,
-                2000
-              ),
-            caption:
-              ""
-          };
-        }
-
-        if (
-          !item ||
-          typeof item !==
-            "object"
-        ) {
-          return null;
-        }
-
-        const type =
-          cleanText(
-            item.type ||
-              item.media_type ||
-              "image",
-            50
-          );
-
-        const url =
-          cleanText(
-            item.url ||
-              item.media_url ||
-              "",
-            2000
-          );
-
-        const caption =
-          cleanText(
-            item.caption ||
-              item.media_caption ||
-              "",
-            500
-          );
-
-        if (!url) {
-          return null;
-        }
-
-        return {
-          type:
-            type || "image",
-
-          url,
-
-          caption
-        };
-      }
-    )
-    .filter(Boolean)
-    .slice(
-      0,
-      50
-    );
-}
-
-/* ============================================================
-   HTML ESCAPE
-============================================================ */
-
-function escapeHtml(
-  value
-) {
-  return String(value)
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
-}
-
-/* ============================================================
-   PATH
-============================================================ */
-
-function normalizePath(
-  path
-) {
-  if (!path) {
-    return "/";
-  }
-
-  if (
-    path.length > 1 &&
-    path.endsWith("/")
-  ) {
-    return path.slice(
-      0,
-      -1
-    );
-  }
-
-  return path;
-}
-
-/* ============================================================
-   NUMBER
-============================================================ */
-
-function clampNumber(
+function safeInteger(
   value,
-  min,
-  max,
-  fallback
+  fallback = 0
 ) {
   const number =
     Number(value);
 
   if (
-    !Number.isFinite(
-      number
-    )
+    !Number.isFinite(number)
   ) {
     return fallback;
+  }
+
+  return Math.round(number);
+}
+
+function clampNumber(
+  value,
+  min,
+  max
+) {
+  if (
+    !Number.isFinite(value)
+  ) {
+    return min;
   }
 
   return Math.min(
     max,
     Math.max(
       min,
-      Math.floor(number)
+      value
     )
   );
-    }
+}
+
+function normalizeTags(
+  tags
+) {
+  if (
+    tags === null ||
+    tags === undefined
+  ) {
+    return "";
+  }
+
+  if (
+    !Array.isArray(tags)
+  ) {
+    return cleanText(
+      tags,
+      2000
+    );
+  }
+
+  return tags
+    .map(
+      tag =>
+        cleanText(
+          tag,
+          100
+        )
+    )
+    .filter(Boolean)
+    .join(" ");
+}
+
+function normalizeLanguages(
+  languages
+) {
+  if (
+    languages === null ||
+    languages === undefined
+  ) {
+    return "";
+  }
+
+  if (
+    Array.isArray(languages)
+  ) {
+    return languages
+      .map(
+        x =>
+          cleanText(
+            x,
+            50
+          )
+      )
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  return cleanText(
+    languages,
+    500
+  );
+}
+
+function normalizeMedia(
+  media
+) {
+  if (
+    !Array.isArray(media)
+  ) {
+    return [];
+  }
+
+  return media
+    .slice(0, 50)
+    .map(
+      item => ({
+        type:
+          cleanText(
+            item?.type ||
+            item?.media_type ||
+            "image",
+            50
+          ),
+        url:
+          cleanText(
+            item?.url ||
+            item?.media_url ||
+            "",
+            2000
+          ),
+        caption:
+          cleanText(
+            item?.caption,
+            1000
+          )
+      })
+    )
+    .filter(
+      item =>
+        !!item.url
+    );
+}
+
+// ============================================================
+// IDs
+// ============================================================
+
+function generateTrackingCode() {
+  const timestamp =
+    Date.now()
+      .toString(36)
+      .toUpperCase();
+
+  const random =
+    Math.random()
+      .toString(36)
+      .slice(2, 8)
+      .toUpperCase();
+
+  return `TO-${timestamp}-${random}`;
+}
