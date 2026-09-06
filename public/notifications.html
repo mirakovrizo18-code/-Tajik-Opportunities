@@ -11,7 +11,11 @@
     content="Уведомления Tajik Opportunities — новые сообщения, ответы администрации и обновления."
   >
 
-  <link rel="icon" href="/images/Image_2026_09_05_19_01_30.jpg">
+  <link
+    rel="icon"
+    href="/images/Image_2026_09_05_19_01_30.jpg"
+  >
+
   <link rel="stylesheet" href="/css/style.css">
 
   <style>
@@ -22,7 +26,7 @@
     .notifications-page {
       max-width: 1050px;
       margin: 0 auto;
-      padding: 30px 20px 60px;
+      padding: 30px 20px 70px;
     }
 
     .notifications-header {
@@ -36,10 +40,12 @@
     .notifications-title-wrap h1 {
       margin: 0 0 8px;
       font-size: clamp(29px, 4vw, 43px);
+      line-height: 1.15;
     }
 
     .notifications-title-wrap p {
       margin: 0;
+      max-width: 700px;
       opacity: .68;
       line-height: 1.6;
     }
@@ -61,6 +67,21 @@
       font: inherit;
       font-weight: 800;
       cursor: pointer;
+      transition:
+        transform .18s ease,
+        opacity .18s ease,
+        background .18s ease;
+    }
+
+    .notification-action:hover {
+      transform: translateY(-1px);
+      background: rgba(127,127,127,.06);
+    }
+
+    .notification-action:disabled {
+      opacity: .5;
+      cursor: not-allowed;
+      transform: none;
     }
 
     .notification-action.primary {
@@ -113,7 +134,7 @@
     }
 
     /* =========================================================
-       NOTIFICATION CARD
+       NOTIFICATION BOX
        ========================================================= */
 
     .notifications-box {
@@ -193,8 +214,8 @@
     .notification-icon.admin {
       background: linear-gradient(
         135deg,
-        rgba(0,0,0,.9),
-        rgba(90,90,90,.75)
+        rgba(0,0,0,.92),
+        rgba(90,90,90,.78)
       );
       color: #fff;
     }
@@ -249,38 +270,37 @@
     }
 
     /* =========================================================
-       EMPTY
+       EMPTY / LOADING / ERROR
        ========================================================= */
 
-    .notifications-empty {
-      padding: 70px 25px;
+    .notifications-empty,
+    .notifications-loading,
+    .notifications-error {
+      padding: 65px 25px;
       text-align: center;
     }
 
-    .notifications-empty-icon {
-      font-size: 65px;
+    .notifications-empty-icon,
+    .notifications-error-icon {
+      font-size: 60px;
       margin-bottom: 13px;
     }
 
-    .notifications-empty h2 {
+    .notifications-empty h2,
+    .notifications-error h2 {
       margin: 0 0 10px;
     }
 
-    .notifications-empty p {
+    .notifications-empty p,
+    .notifications-error p {
       margin: 0 auto;
-      max-width: 470px;
+      max-width: 500px;
       opacity: .62;
       line-height: 1.6;
     }
 
-    /* =========================================================
-       LOADING
-       ========================================================= */
-
     .notifications-loading {
-      padding: 60px 20px;
-      text-align: center;
-      opacity: .6;
+      opacity: .65;
     }
 
     .loading-spinner {
@@ -299,29 +319,6 @@
       }
     }
 
-    /* =========================================================
-       ERROR
-       ========================================================= */
-
-    .notifications-error {
-      padding: 45px 25px;
-      text-align: center;
-    }
-
-    .notifications-error-icon {
-      font-size: 50px;
-      margin-bottom: 10px;
-    }
-
-    .notifications-error h2 {
-      margin: 0 0 8px;
-    }
-
-    .notifications-error p {
-      opacity: .62;
-      line-height: 1.6;
-    }
-
     .retry-button {
       margin-top: 15px;
       min-height: 43px;
@@ -335,7 +332,7 @@
     }
 
     /* =========================================================
-       UNREAD COUNT
+       COUNT
        ========================================================= */
 
     .page-count {
@@ -363,10 +360,10 @@
        DARK MODE
        ========================================================= */
 
-    .dark .notifications-box,
     body.dark .notifications-box,
-    .dark .notifications-login,
-    body.dark .notifications-login {
+    body.dark .notifications-login,
+    .dark .notifications-box,
+    .dark .notifications-login {
       background: #151515;
     }
 
@@ -377,7 +374,7 @@
     @media (max-width: 700px) {
 
       .notifications-page {
-        padding: 21px 12px 45px;
+        padding: 21px 12px 55px;
       }
 
       .notifications-header {
@@ -434,6 +431,10 @@
       .notification-action {
         width: 100%;
       }
+
+      .notifications-login {
+        padding: 30px 18px;
+      }
     }
   </style>
 </head>
@@ -445,9 +446,14 @@
        ======================================================= -->
 
   <header class="site-header">
+
     <div class="container">
 
-      <a href="/" class="brand" aria-label="Tajik Opportunities">
+      <a
+        href="/"
+        class="brand"
+        aria-label="Tajik Opportunities"
+      >
         <img
           src="/images/Image_2026_09_05_19_01_30.jpg"
           alt="Tajik Opportunities"
@@ -470,6 +476,7 @@
           title="Уведомления"
         >
           🔔
+
           <span
             id="headerUnreadCount"
             class="notification-count hidden"
@@ -480,6 +487,7 @@
           href="/profile.html"
           class="header-profile"
           aria-label="Профиль"
+          title="Профиль"
         >
           👤
         </a>
@@ -487,6 +495,7 @@
       </div>
 
     </div>
+
   </header>
 
   <!-- =======================================================
@@ -501,6 +510,7 @@
 
         <h1>
           🔔 Уведомления
+
           <span
             id="pageUnreadCount"
             class="page-count hidden"
@@ -508,7 +518,8 @@
         </h1>
 
         <p>
-          Здесь будут появляться новые сообщения, ответы администрации
+          Здесь будут появляться новые сообщения,
+          ответы администрации, обновления публикаций
           и другие важные события Tajik Opportunities.
         </p>
 
@@ -569,7 +580,7 @@
     </section>
 
     <!-- =====================================================
-         NOTIFICATIONS
+         APP
          ===================================================== -->
 
     <section
@@ -617,16 +628,12 @@
       <small>Создать</small>
     </a>
 
-    <a
-      href="/messages.html"
-    >
+    <a href="/messages.html">
       <span>💬</span>
       <small>Сообщения</small>
     </a>
 
-    <a
-      href="/profile.html"
-    >
+    <a href="/profile.html">
       <span>👤</span>
       <small>Профиль</small>
     </a>
@@ -645,7 +652,7 @@
   ></div>
 
   <!-- =======================================================
-       APP
+       APPLICATION
        ======================================================= -->
 
   <script src="/js/app.js"></script>
@@ -656,19 +663,13 @@
       "use strict";
 
       /* ======================================================
-         API
+         API — ТОЛЬКО СУЩЕСТВУЮЩИЕ ROUTES WORKER
          ====================================================== */
 
       const API = {
-
         me: "/api/auth/me",
-
         notifications: "/api/notifications",
-
-        read: "/api/notifications/read",
-
-        readAll: "/api/notifications/read-all"
-
+        read: "/api/notifications/read"
       };
 
       /* ======================================================
@@ -676,47 +677,27 @@
          ====================================================== */
 
       const state = {
-
         user: null,
-
         notifications: [],
-
         loading: false,
-
         pollingTimer: null
-
       };
 
       /* ======================================================
          ELEMENTS
          ====================================================== */
 
-      const $ = selector =>
+      const $ = (selector) =>
         document.querySelector(selector);
 
       const elements = {
-
-        loginState:
-          $("#loginState"),
-
-        notificationsApp:
-          $("#notificationsApp"),
-
-        notificationsList:
-          $("#notificationsList"),
-
-        markAllButton:
-          $("#markAllButton"),
-
-        refreshButton:
-          $("#refreshButton"),
-
-        headerUnreadCount:
-          $("#headerUnreadCount"),
-
-        pageUnreadCount:
-          $("#pageUnreadCount")
-
+        loginState: $("#loginState"),
+        notificationsApp: $("#notificationsApp"),
+        notificationsList: $("#notificationsList"),
+        markAllButton: $("#markAllButton"),
+        refreshButton: $("#refreshButton"),
+        headerUnreadCount: $("#headerUnreadCount"),
+        pageUnreadCount: $("#pageUnreadCount")
       };
 
       /* ======================================================
@@ -726,70 +707,105 @@
       function escapeHTML(value) {
 
         return String(value ?? "")
-
           .replaceAll("&", "&amp;")
-
           .replaceAll("<", "&lt;")
-
           .replaceAll(">", "&gt;")
-
           .replaceAll('"', "&quot;")
-
           .replaceAll("'", "&#039;");
+
+      }
+
+      function safeSameOriginUrl(value) {
+
+        if (!value) {
+          return null;
+        }
+
+        try {
+
+          const url = new URL(
+            String(value),
+            window.location.origin
+          );
+
+          if (
+            url.origin !==
+            window.location.origin
+          ) {
+            return null;
+          }
+
+          return url.href;
+
+        } catch {
+
+          return null;
+
+        }
 
       }
 
       function showToast(message) {
 
         if (
-          typeof window.showToast === "function"
+          typeof window.showToast ===
+          "function"
         ) {
 
           window.showToast(message);
-
           return;
 
         }
 
-        const toast =
-          $("#toast");
+        const toast = $("#toast");
 
-        if (!toast) return;
+        if (!toast) {
+          return;
+        }
 
         toast.textContent = message;
 
         toast.classList.add("show");
 
-        clearTimeout(showToast.timer);
+        clearTimeout(
+          showToast.timer
+        );
 
         showToast.timer =
           setTimeout(() => {
 
-            toast.classList.remove("show");
+            toast.classList.remove(
+              "show"
+            );
 
           }, 3000);
 
       }
 
-      async function request(url, options = {}) {
+      async function request(
+        url,
+        options = {}
+      ) {
+
+        const requestOptions = {
+          credentials: "include",
+          ...options,
+          headers: {
+            ...(options.body
+              ? {
+                  "Content-Type":
+                    "application/json"
+                }
+              : {}),
+            ...(options.headers || {})
+          }
+        };
 
         const response =
-          await fetch(url, {
-
-            credentials: "include",
-
-            headers: {
-
-              "Content-Type":
-                "application/json",
-
-              ...(options.headers || {})
-
-            },
-
-            ...options
-
-          });
+          await fetch(
+            url,
+            requestOptions
+          );
 
         let data = null;
 
@@ -808,11 +824,9 @@
 
           const error =
             new Error(
-
               data?.message ||
               data?.error ||
-              `Ошибка запроса: ${response.status}`
-
+              `Ошибка ${response.status}`
             );
 
           error.status =
@@ -831,16 +845,25 @@
 
       function extractUser(data) {
 
-        if (!data) return null;
+        if (!data) {
+          return null;
+        }
 
-        if (data.user)
+        if (data.user) {
           return data.user;
+        }
 
-        if (data.profile)
+        if (data.profile) {
           return data.profile;
+        }
 
-        if (data.account)
+        if (data.account) {
           return data.account;
+        }
+
+        if (data.data?.user) {
+          return data.data.user;
+        }
 
         return data;
 
@@ -848,20 +871,51 @@
 
       function extractNotifications(data) {
 
-        if (Array.isArray(data))
+        if (Array.isArray(data)) {
           return data;
+        }
 
-        return (
+        if (
+          Array.isArray(
+            data?.notifications
+          )
+        ) {
+          return data.notifications;
+        }
 
-          data?.notifications ||
+        if (
+          Array.isArray(
+            data?.items
+          )
+        ) {
+          return data.items;
+        }
 
-          data?.items ||
+        if (
+          Array.isArray(
+            data?.data
+          )
+        ) {
+          return data.data;
+        }
 
-          data?.data ||
+        if (
+          Array.isArray(
+            data?.data?.notifications
+          )
+        ) {
+          return data.data.notifications;
+        }
 
-          []
+        if (
+          Array.isArray(
+            data?.data?.items
+          )
+        ) {
+          return data.data.items;
+        }
 
-        );
+        return [];
 
       }
 
@@ -871,8 +925,9 @@
 
       function formatTime(value) {
 
-        if (!value)
+        if (!value) {
           return "";
+        }
 
         const date =
           new Date(value);
@@ -882,9 +937,7 @@
             date.getTime()
           )
         ) {
-
           return "";
-
         }
 
         const now =
@@ -903,13 +956,16 @@
         const day =
           24 * hour;
 
-        if (diff < minute)
+        if (diff < minute) {
           return "только что";
+        }
 
         if (diff < hour) {
 
           return (
-            Math.floor(diff / minute) +
+            Math.floor(
+              diff / minute
+            ) +
             " мин. назад"
           );
 
@@ -918,8 +974,24 @@
         if (diff < day) {
 
           return (
-            Math.floor(diff / hour) +
+            Math.floor(
+              diff / hour
+            ) +
             " ч. назад"
+          );
+
+        }
+
+        if (
+          diff <
+          7 * day
+        ) {
+
+          return (
+            Math.floor(
+              diff / day
+            ) +
+            " дн. назад"
           );
 
         }
@@ -955,15 +1027,19 @@
          TYPE
          ====================================================== */
 
-      function normalizeType(notification) {
+      function normalizeType(
+        notification
+      ) {
 
         return String(
 
-          notification.type ||
+          notification?.type ||
 
-          notification.kind ||
+          notification?.kind ||
 
-          notification.category ||
+          notification?.category ||
+
+          notification?.event_type ||
 
           ""
 
@@ -973,80 +1049,83 @@
 
       }
 
-      function getNotificationIcon(notification) {
+      function getNotificationIcon(
+        notification
+      ) {
 
         const type =
-          normalizeType(notification);
+          normalizeType(
+            notification
+          );
 
         if (
           type.includes("message") ||
           type.includes("chat")
         ) {
-
           return "💬";
-
         }
 
         if (
           type.includes("admin") ||
           type.includes("support")
         ) {
-
           return "🛡️";
-
         }
 
         if (
           type.includes("publication") ||
           type.includes("post")
         ) {
-
           return "📄";
-
         }
 
         if (
           type.includes("like") ||
-          type.includes("favorite")
+          type.includes("favorite") ||
+          type.includes("reaction")
         ) {
-
           return "❤️";
-
         }
 
         if (
-          type.includes("comment")
+          type.includes("comment") ||
+          type.includes("reply")
         ) {
-
           return "💬";
-
         }
 
         if (
           type.includes("approved") ||
           type.includes("success")
         ) {
-
           return "✅";
+        }
 
+        if (
+          type.includes("rejected") ||
+          type.includes("declined")
+        ) {
+          return "❌";
         }
 
         if (
           type.includes("warning")
         ) {
-
           return "⚠️";
-
         }
 
         return "🔔";
 
       }
 
-      function isAdminNotification(notification) {
+      function isAdminNotification(
+        notification
+      ) {
 
         const type =
-          normalizeType(notification);
+          normalizeType(
+            notification
+          );
 
         return (
 
@@ -1054,28 +1133,29 @@
 
           type.includes("support") ||
 
-          notification.is_admin === true ||
+          notification?.is_admin === true ||
 
-          notification.from_admin === true ||
+          notification?.from_admin === true ||
 
-          notification.sender_type === "admin"
+          notification?.sender_type ===
+            "admin"
 
         );
 
       }
 
       /* ======================================================
-         TITLE / TEXT
+         TITLE
          ====================================================== */
 
-      function getTitle(notification) {
+      function getTitle(
+        notification
+      ) {
 
         if (
-          notification.title
+          notification?.title
         ) {
-
           return notification.title;
-
         }
 
         if (
@@ -1083,66 +1163,79 @@
             notification
           )
         ) {
-
           return "🇹🇯 Tajik Opportunities✅";
-
         }
 
         const type =
-          normalizeType(notification);
+          normalizeType(
+            notification
+          );
 
         if (
           type.includes("message") ||
           type.includes("chat")
         ) {
-
           return "Новое сообщение";
-
         }
 
         if (
           type.includes("like") ||
-          type.includes("favorite")
+          type.includes("favorite") ||
+          type.includes("reaction")
         ) {
-
           return "Новая реакция";
-
         }
 
         if (
-          type.includes("comment")
+          type.includes("comment") ||
+          type.includes("reply")
         ) {
-
           return "Новый комментарий";
-
         }
 
         if (
           type.includes("publication") ||
           type.includes("post")
         ) {
-
           return "Обновление публикации";
+        }
 
+        if (
+          type.includes("approved")
+        ) {
+          return "Публикация одобрена";
+        }
+
+        if (
+          type.includes("rejected") ||
+          type.includes("declined")
+        ) {
+          return "Публикация отклонена";
         }
 
         return "Новое уведомление";
 
       }
 
-      function getText(notification) {
+      /* ======================================================
+         TEXT
+         ====================================================== */
+
+      function getText(
+        notification
+      ) {
 
         return (
 
-          notification.message ||
+          notification?.message ||
 
-          notification.text ||
+          notification?.text ||
 
-          notification.content ||
+          notification?.content ||
 
-          notification.body ||
+          notification?.body ||
 
-          notification.description ||
+          notification?.description ||
 
           ""
 
@@ -1154,41 +1247,63 @@
          READ STATE
          ====================================================== */
 
-      function isUnread(notification) {
+      function isUnread(
+        notification
+      ) {
 
         if (
-          notification.read === true
+          notification?.read === true
         ) {
-
           return false;
-
         }
 
         if (
-          notification.is_read === true
+          notification?.is_read === true
         ) {
-
           return false;
-
         }
 
         if (
-          notification.read_at
+          notification?.read_at
         ) {
-
           return false;
-
         }
 
         if (
-          notification.unread === false
+          notification?.unread === false
         ) {
-
           return false;
-
         }
 
         return true;
+
+      }
+
+      /* ======================================================
+         SHOW STATES
+         ====================================================== */
+
+      function showLogin() {
+
+        elements.loginState
+          ?.classList
+          .remove("hidden");
+
+        elements.notificationsApp
+          ?.classList
+          .add("hidden");
+
+      }
+
+      function showAuthenticated() {
+
+        elements.loginState
+          ?.classList
+          .add("hidden");
+
+        elements.notificationsApp
+          ?.classList
+          .remove("hidden");
 
       }
 
@@ -1201,19 +1316,107 @@
         try {
 
           const data =
-            await request(API.me);
+            await request(
+              API.me
+            );
 
           state.user =
             extractUser(data);
 
-          if (!state.user)
-            throw new Error(
-              "Пользователь не найден"
-            );
+          if (
+            !state.user
+          ) {
+
+            showLogin();
+            return false;
+
+          }
 
           showAuthenticated();
 
+          return true;
+
         } catch (error) {
+
+          if (
+            error.status === 401 ||
+            error.status === 403
+          ) {
+
+            showLogin();
+
+            return false;
+
+          }
+
+          console.error(
+            "Auth error:",
+            error
+          );
+
+          showLogin();
+
+          return false;
+
+        }
+
+      }
+
+      /* ======================================================
+         LOAD NOTIFICATIONS
+         ====================================================== */
+
+      async function loadNotifications(
+        options = {}
+      ) {
+
+        if (
+          state.loading &&
+          !options.force
+        ) {
+          return;
+        }
+
+        state.loading = true;
+
+        if (
+          !state.notifications.length
+        ) {
+
+          elements.notificationsList.innerHTML = `
+
+            <div class="notifications-loading">
+
+              <div class="loading-spinner"></div>
+
+              Загрузка уведомлений...
+
+            </div>
+
+          `;
+
+        }
+
+        try {
+
+          const data =
+            await request(
+              API.notifications
+            );
+
+          state.notifications =
+            extractNotifications(
+              data
+            );
+
+          renderNotifications();
+
+        } catch (error) {
+
+          console.error(
+            "Notifications error:",
+            error
+          );
 
           if (
             error.status === 401 ||
@@ -1225,89 +1428,6 @@
             return;
 
           }
-
-          const possibleUser =
-
-            window.currentUser ||
-
-            window.TO_USER ||
-
-            window.TajikOpportunitiesUser;
-
-          if (possibleUser) {
-
-            state.user =
-              possibleUser;
-
-            showAuthenticated();
-
-            return;
-
-          }
-
-          showLogin();
-
-        }
-
-      }
-
-      function showLogin() {
-
-        elements.loginState
-          .classList
-          .remove("hidden");
-
-        elements.notificationsApp
-          .classList
-          .add("hidden");
-
-      }
-
-      function showAuthenticated() {
-
-        elements.loginState
-          .classList
-          .add("hidden");
-
-        elements.notificationsApp
-          .classList
-          .remove("hidden");
-
-        loadNotifications();
-
-        startPolling();
-
-      }
-
-      /* ======================================================
-         LOAD
-         ====================================================== */
-
-      async function loadNotifications() {
-
-        if (state.loading)
-          return;
-
-        state.loading = true;
-
-        try {
-
-          const data =
-            await request(
-              API.notifications
-            );
-
-          state.notifications =
-            extractNotifications(data);
-
-          renderNotifications();
-
-        } catch (error) {
-
-          console.error(
-            "Notifications error:",
-            error
-          );
 
           elements.notificationsList.innerHTML = `
 
@@ -1322,7 +1442,12 @@
               </h2>
 
               <p>
-                Попробуйте обновить страницу.
+                ${
+                  escapeHTML(
+                    error.message ||
+                    "Попробуйте обновить страницу."
+                  )
+                }
               </p>
 
               <button
@@ -1337,17 +1462,17 @@
 
           `;
 
-          const retry =
+          const retryButton =
             $("#retryButton");
 
-          if (retry) {
-
-            retry.addEventListener(
+          retryButton
+            ?.addEventListener(
               "click",
-              loadNotifications
+              () =>
+                loadNotifications({
+                  force: true
+                })
             );
-
-          }
 
         } finally {
 
@@ -1398,12 +1523,16 @@
         elements.notificationsList.innerHTML =
 
           state.notifications
-
             .map(
-              (notification, index) => {
+              (
+                notification,
+                index
+              ) => {
 
                 const unread =
-                  isUnread(notification);
+                  isUnread(
+                    notification
+                  );
 
                 const icon =
                   getNotificationIcon(
@@ -1427,21 +1556,23 @@
 
                 const createdAt =
 
-                  notification.created_at ||
+                  notification?.created_at ||
 
-                  notification.createdAt ||
+                  notification?.createdAt ||
 
-                  notification.timestamp ||
+                  notification?.timestamp ||
 
-                  notification.date ||
+                  notification?.date ||
 
-                  notification.time;
+                  notification?.time ||
+
+                  "";
 
                 const id =
 
-                  notification.id ||
+                  notification?.id ||
 
-                  notification.notification_id ||
+                  notification?.notification_id ||
 
                   `notification-${index}`;
 
@@ -1453,7 +1584,9 @@
                       notification-item
                       ${unread ? "unread" : ""}
                     "
-                    data-notification-id="${escapeHTML(id)}"
+                    data-notification-id="${escapeHTML(
+                      id
+                    )}"
                   >
 
                     <div
@@ -1475,7 +1608,9 @@
 
                         <div class="notification-time">
                           ${escapeHTML(
-                            formatTime(createdAt)
+                            formatTime(
+                              createdAt
+                            )
                           )}
                         </div>
 
@@ -1515,47 +1650,52 @@
           .querySelectorAll(
             ".notification-item"
           )
-          .forEach(item => {
+          .forEach(
+            (item) => {
 
-            item.addEventListener(
-              "click",
-              () => {
+              item.addEventListener(
+                "click",
+                () => {
 
-                const id =
-                  item.dataset
-                    .notificationId;
+                  const id =
+                    item.dataset
+                      .notificationId;
 
-                const notification =
-                  state.notifications.find(
-                    notification => {
+                  const notification =
+                    state.notifications.find(
+                      (itemNotification) => {
 
-                      const notificationId =
+                        const itemId =
 
-                        notification.id ||
+                          itemNotification?.id ||
 
-                        notification.notification_id;
+                          itemNotification?.notification_id;
 
-                      return String(
-                        notificationId
-                      ) === String(id);
+                        return (
+                          String(
+                            itemId
+                          ) ===
+                          String(id)
+                        );
 
-                    }
-                  );
+                      }
+                    );
 
-                if (
-                  notification
-                ) {
-
-                  openNotification(
+                  if (
                     notification
-                  );
+                  ) {
+
+                    openNotification(
+                      notification
+                    );
+
+                  }
 
                 }
+              );
 
-              }
-            );
-
-          });
+            }
+          );
 
         updateUnreadCounters();
 
@@ -1572,6 +1712,11 @@
             isUnread
           ).length;
 
+        const text =
+          unread > 99
+            ? "99+"
+            : String(unread);
+
         if (
           elements.headerUnreadCount
         ) {
@@ -1580,9 +1725,7 @@
 
             elements.headerUnreadCount
               .textContent =
-              unread > 99
-                ? "99+"
-                : String(unread);
+              text;
 
             elements.headerUnreadCount
               .classList
@@ -1606,9 +1749,7 @@
 
             elements.pageUnreadCount
               .textContent =
-              unread > 99
-                ? "99+"
-                : String(unread);
+              text;
 
             elements.pageUnreadCount
               .classList
@@ -1619,6 +1760,193 @@
             elements.pageUnreadCount
               .classList
               .add("hidden");
+
+          }
+
+        }
+
+      }
+
+      /* ======================================================
+         MARK ONE READ
+         ====================================================== */
+
+      async function markAsRead(
+        notification
+      ) {
+
+        if (
+          !isUnread(notification)
+        ) {
+          return true;
+        }
+
+        const id =
+
+          notification?.id ||
+
+          notification?.notification_id;
+
+        if (!id) {
+          return false;
+        }
+
+        try {
+
+          await request(
+            API.read,
+            {
+              method: "POST",
+
+              body:
+                JSON.stringify({
+                  notification_id:
+                    id
+                })
+            }
+          );
+
+          notification.read =
+            true;
+
+          notification.is_read =
+            true;
+
+          notification.unread =
+            false;
+
+          notification.read_at =
+            new Date().toISOString();
+
+          return true;
+
+        } catch (error) {
+
+          console.debug(
+            "Mark notification read:",
+            error
+          );
+
+          return false;
+
+        }
+
+      }
+
+      /* ======================================================
+         MARK ALL READ
+         ======================================================
+
+         В текущем Worker нет отдельного
+         /api/notifications/read-all.
+
+         Поэтому «Прочитать все» отправляет
+         POST /api/notifications/read
+         отдельно для каждого непрочитанного
+         уведомления.
+
+         Это полностью совместимо с текущим Worker.
+         ====================================================== */
+
+      async function markAllAsRead() {
+
+        const unread =
+          state.notifications.filter(
+            isUnread
+          );
+
+        if (
+          !unread.length
+        ) {
+
+          showToast(
+            "Все уведомления уже прочитаны."
+          );
+
+          return;
+
+        }
+
+        const button =
+          elements.markAllButton;
+
+        if (button) {
+
+          button.disabled =
+            true;
+
+          button.textContent =
+            "⏳ Обработка...";
+
+        }
+
+        try {
+
+          let successCount = 0;
+
+          for (
+            const notification of unread
+          ) {
+
+            const success =
+              await markAsRead(
+                notification
+              );
+
+            if (success) {
+              successCount++;
+            }
+
+          }
+
+          renderNotifications();
+
+          if (
+            successCount ===
+            unread.length
+          ) {
+
+            showToast(
+              "Все уведомления прочитаны."
+            );
+
+          } else if (
+            successCount > 0
+          ) {
+
+            showToast(
+              `Прочитано: ${successCount} из ${unread.length}.`
+            );
+
+          } else {
+
+            showToast(
+              "Не удалось отметить уведомления."
+            );
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Read all error:",
+            error
+          );
+
+          showToast(
+            error.message ||
+            "Не удалось отметить уведомления."
+          );
+
+        } finally {
+
+          if (button) {
+
+            button.disabled =
+              false;
+
+            button.textContent =
+              "✓ Прочитать все";
 
           }
 
@@ -1638,38 +1966,45 @@
           notification
         );
 
-        const url =
-
-          notification.url ||
-
-          notification.link ||
-
-          notification.href;
+        renderNotifications();
 
         const conversationId =
 
-          notification.conversation_id ||
+          notification?.conversation_id ||
 
-          notification.chat_id;
+          notification?.chat_id ||
+
+          notification?.conversationId;
 
         const publicationId =
 
-          notification.publication_id ||
+          notification?.publication_id ||
 
-          notification.post_id;
+          notification?.post_id ||
+
+          notification?.publicationId;
+
+        const url =
+
+          notification?.url ||
+
+          notification?.link ||
+
+          notification?.href;
 
         const type =
           normalizeType(
             notification
           );
 
+        /* --------------------------------------------------
+           CHAT
+           -------------------------------------------------- */
+
         if (
           conversationId ||
           type.includes("message") ||
-          type.includes("chat") ||
-          isAdminNotification(
-            notification
-          )
+          type.includes("chat")
         ) {
 
           if (
@@ -1692,12 +2027,16 @@
 
         }
 
+        /* --------------------------------------------------
+           PUBLICATION
+           -------------------------------------------------- */
+
         if (
           publicationId
         ) {
 
           window.location.href =
-            `/publication.html?id=${encodeURIComponent(
+            `/?publication=${encodeURIComponent(
               publicationId
             )}`;
 
@@ -1705,169 +2044,36 @@
 
         }
 
-        if (url) {
-
-          try {
-
-            const parsed =
-              new URL(
-                url,
-                window.location.origin
-              );
-
-            if (
-              parsed.origin ===
-              window.location.origin
-            ) {
-
-              window.location.href =
-                parsed.href;
-
-              return;
-
-            }
-
-          } catch {}
-
-        }
-
-      }
-
-      /* ======================================================
-         MARK ONE READ
-         ====================================================== */
-
-      async function markAsRead(
-        notification
-      ) {
+        /* --------------------------------------------------
+           ADMIN / SUPPORT
+           -------------------------------------------------- */
 
         if (
-          !isUnread(notification)
+          isAdminNotification(
+            notification
+          )
         ) {
 
-          return;
-
-        }
-
-        const id =
-
-          notification.id ||
-
-          notification.notification_id;
-
-        if (!id)
-          return;
-
-        try {
-
-          await request(
-            API.read,
-            {
-              method: "POST",
-
-              body:
-                JSON.stringify({
-                  notification_id: id
-                })
-            }
-          );
-
-          notification.read = true;
-
-          notification.is_read = true;
-
-          notification.unread = false;
-
-          renderNotifications();
-
-        } catch (error) {
-
-          console.debug(
-            "Mark notification read:",
-            error
-          );
-
-        }
-
-      }
-
-      /* ======================================================
-         MARK ALL
-         ====================================================== */
-
-      async function markAllAsRead() {
-
-        const unread =
-          state.notifications.filter(
-            isUnread
-          );
-
-        if (!unread.length) {
-
-          showToast(
-            "Все уведомления уже прочитаны."
-          );
+          window.location.href =
+            "/messages.html";
 
           return;
 
         }
 
-        elements.markAllButton.disabled =
-          true;
+        /* --------------------------------------------------
+           SAME-ORIGIN URL
+           -------------------------------------------------- */
 
-        try {
-
-          await request(
-            API.readAll,
-            {
-              method: "POST",
-
-              body:
-                JSON.stringify({})
-            }
+        const safeUrl =
+          safeSameOriginUrl(
+            url
           );
 
-          state.notifications
-            .forEach(
-              notification => {
+        if (safeUrl) {
 
-                notification.read =
-                  true;
-
-                notification.is_read =
-                  true;
-
-                notification.unread =
-                  false;
-
-                notification.read_at =
-                  new Date().toISOString();
-
-              }
-            );
-
-          renderNotifications();
-
-          showToast(
-            "Все уведомления прочитаны."
-          );
-
-        } catch (error) {
-
-          console.error(
-            "Read all error:",
-            error
-          );
-
-          showToast(
-            error.message ||
-            "Не удалось отметить уведомления."
-          );
-
-        } finally {
-
-          elements.markAllButton.disabled =
-            false;
+          window.location.href =
+            safeUrl;
 
         }
 
@@ -1888,9 +2094,7 @@
               if (
                 document.hidden
               ) {
-
                 return;
-
               }
 
               try {
@@ -1908,6 +2112,19 @@
                 renderNotifications();
 
               } catch (error) {
+
+                if (
+                  error.status === 401 ||
+                  error.status === 403
+                ) {
+
+                  stopPolling();
+
+                  showLogin();
+
+                  return;
+
+                }
 
                 console.debug(
                   "Notification polling:",
@@ -1944,26 +2161,78 @@
          ====================================================== */
 
       elements.refreshButton
-        .addEventListener(
+        ?.addEventListener(
           "click",
           async () => {
 
-            elements.refreshButton.disabled =
+            if (
+              state.loading
+            ) {
+              return;
+            }
+
+            elements.refreshButton
+              .disabled =
               true;
 
-            await loadNotifications();
+            const oldText =
+              elements.refreshButton
+                .textContent;
 
-            elements.refreshButton.disabled =
-              false;
+            elements.refreshButton
+              .textContent =
+              "⏳ Загрузка...";
+
+            try {
+
+              await loadNotifications({
+                force: true
+              });
+
+            } finally {
+
+              elements.refreshButton
+                .disabled =
+                false;
+
+              elements.refreshButton
+                .textContent =
+                oldText ||
+                "↻ Обновить";
+
+            }
 
           }
         );
 
       elements.markAllButton
-        .addEventListener(
+        ?.addEventListener(
           "click",
           markAllAsRead
         );
+
+      document.addEventListener(
+        "visibilitychange",
+        () => {
+
+          if (
+            document.hidden
+          ) {
+            return;
+          }
+
+          if (
+            state.user
+          ) {
+
+            loadNotifications({
+              force: true
+            });
+
+          }
+
+        }
+      );
 
       window.addEventListener(
         "beforeunload",
@@ -1974,10 +2243,27 @@
          INIT
          ====================================================== */
 
-      loadCurrentUser();
+      async function init() {
+
+        const authenticated =
+          await loadCurrentUser();
+
+        if (
+          !authenticated
+        ) {
+          return;
+        }
+
+        await loadNotifications();
+
+        startPolling();
+
+      }
+
+      init();
 
     })();
   </script>
 
 </body>
-    </html>
+</html>
