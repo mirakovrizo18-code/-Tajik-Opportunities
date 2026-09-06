@@ -2,36 +2,19 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <meta name="theme-color" content="#0b3d2e">
-
-  <meta
-    name="description"
-    content="Tajik Opportunities — международная платформа полезных возможностей: работа, образование, новости, гранты, конкурсы, мероприятия, проекты, услуги и многое другое."
-  >
-
-  <meta
-    name="keywords"
-    content="Tajik Opportunities, Таджикистан, работа, вакансии, образование, гранты, конкурсы, мероприятия, стартапы, проекты, новости, услуги, возможности"
-  >
+  <meta name="description" content="Tajik Opportunities — международная платформа возможностей, общения, публикаций, работы, образования, проектов, услуг, новостей и многого другого.">
 
   <meta property="og:title" content="Tajik Opportunities">
-  <meta
-    property="og:description"
-    content="Находите возможности. Создавайте возможности."
-  >
+  <meta property="og:description" content="Находите возможности. Создавайте возможности. Общайтесь. Делитесь.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Tajik Opportunities">
 
-  <title>Tajik Opportunities — платформа возможностей</title>
+  <title>Tajik Opportunities</title>
 
-  <link
-    rel="icon"
-    href="/images/Image_2026_09_05_19_01_30.jpg"
-  >
-
+  <link rel="icon" href="/images/Image_2026_09_05_19_01_30.jpg">
   <link rel="stylesheet" href="/css/style.css">
 </head>
 
@@ -55,19 +38,11 @@
       </span>
 
       <span class="brand-text">
-
-        <strong>
-          Tajik Opportunities
-        </strong>
-
-        <small>
-          Платформа возможностей
-        </small>
-
+        <strong>Tajik Opportunities</strong>
+        <small>Платформа возможностей</small>
       </span>
 
     </a>
-
 
     <nav class="desktop-nav">
 
@@ -79,21 +54,45 @@
         🔎 Найти
       </a>
 
-      <a href="/add.html" class="nav-link">
+      <a href="#categories" class="nav-link">
+        📚 Категории
+      </a>
+
+      <a href="#create" class="nav-link">
         ＋ Создать
       </a>
 
     </nav>
 
-
     <div class="header-actions">
 
-      <a
-        href="/add.html"
-        class="header-action"
+      <button
+        type="button"
+        class="header-icon-button"
+        id="notificationsButton"
+        title="Уведомления"
       >
-        <span>＋</span>
-        <span>Предложить</span>
+        🔔
+        <span
+          id="notificationBadge"
+          class="notification-badge hidden"
+        >
+          0
+        </span>
+      </button>
+
+      <a
+        href="/profile.html"
+        class="header-profile"
+        id="headerProfile"
+      >
+        <span class="profile-avatar" id="headerAvatar">
+          👤
+        </span>
+
+        <span id="headerProfileText">
+          Войти
+        </span>
       </a>
 
     </div>
@@ -101,6 +100,44 @@
   </div>
 
 </header>
+
+
+<!-- =========================================================
+     NOTIFICATION PANEL
+========================================================= -->
+
+<div
+  id="notificationPanel"
+  class="notification-panel hidden"
+>
+
+  <div class="notification-panel-header">
+
+    <strong>
+      🔔 Уведомления
+    </strong>
+
+    <button
+      type="button"
+      id="closeNotifications"
+    >
+      ×
+    </button>
+
+  </div>
+
+  <div
+    id="notificationList"
+    class="notification-list"
+  >
+
+    <div class="notification-empty">
+      Пока нет новых уведомлений.
+    </div>
+
+  </div>
+
+</div>
 
 
 <!-- =========================================================
@@ -124,26 +161,19 @@
         🇹🇯 Tajik Opportunities
       </div>
 
-
       <h1>
-
         Находите возможности.
         <span>
           Создавайте возможности.
         </span>
-
       </h1>
 
-
       <p class="hero-description">
-
-        Единая платформа, где люди и организации
-        находят работу, образование, новости,
-        гранты, конкурсы, мероприятия, проекты,
-        услуги и множество других возможностей.
-
+        Международная платформа, где люди находят
+        работу, образование, новости, гранты,
+        конкурсы, мероприятия, проекты, услуги,
+        идеи и множество других возможностей.
       </p>
-
 
       <div class="hero-actions">
 
@@ -154,12 +184,28 @@
           🔎 Смотреть возможности
         </a>
 
-
         <a
           href="/add.html"
           class="btn btn-secondary"
+          id="create"
         >
           ＋ Создать публикацию
+        </a>
+
+      </div>
+
+      <div class="hero-links">
+
+        <a href="/profile.html">
+          👤 Мой профиль
+        </a>
+
+        <a href="/messages.html">
+          💬 Сообщения
+        </a>
+
+        <a href="/saved.html">
+          🔖 Сохранённое
         </a>
 
       </div>
@@ -172,120 +218,232 @@
 
 
 <!-- =========================================================
-     QUICK CATEGORIES
+     QUICK ACTIONS
 ========================================================= -->
 
-<section class="quick-categories">
+<section class="quick-actions">
 
   <div class="container">
 
-    <div class="quick-category-list">
+    <div class="quick-actions-grid">
 
-      <button
-        class="quick-category"
-        data-category="all"
-      >
+      <a href="/add.html" class="quick-action-card">
+        <span>📢</span>
+        <strong>Предложить публикацию</strong>
+        <small>Поделитесь полезной информацией</small>
+      </a>
+
+      <a href="/profile.html" class="quick-action-card">
+        <span>👤</span>
+        <strong>Рассказать о себе</strong>
+        <small>Создайте свой профиль</small>
+      </a>
+
+      <a href="#categories" class="quick-action-card">
+        <span>🔎</span>
+        <strong>Найти возможность</strong>
+        <small>Ищите среди публикаций</small>
+      </a>
+
+      <a href="/messages.html" class="quick-action-card">
+        <span>💬</span>
+        <strong>Сообщения</strong>
+        <small>Общайтесь с участниками</small>
+      </a>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- =========================================================
+     CATEGORIES
+========================================================= -->
+
+<section
+  class="categories-section"
+  id="categories"
+>
+
+  <div class="container">
+
+    <div class="section-heading">
+
+      <div>
+
+        <span class="section-kicker">
+          Исследуйте платформу
+        </span>
+
+        <h2>
+          Все возможности
+        </h2>
+
+      </div>
+
+      <p class="section-description">
+        Выбирайте интересующее направление
+        или смотрите всё сразу.
+      </p>
+
+    </div>
+
+
+    <div
+      class="categories-grid"
+      id="categoriesGrid"
+    >
+
+      <button class="category-card active" data-category="all">
         <span>✨</span>
         <strong>Все</strong>
+        <small>Все публикации</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="jobs"
-      >
+      <button class="category-card" data-category="jobs">
         <span>💼</span>
         <strong>Работа</strong>
+        <small>Вакансии и сотрудники</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="education"
-      >
-        <span>🎓</span>
-        <strong>Образование</strong>
+      <button class="category-card" data-category="job_seekers">
+        <span>🔎</span>
+        <strong>Ищу работу</strong>
+        <small>Профили соискателей</small>
       </button>
 
+      <button class="category-card" data-category="profiles">
+        <span>👤</span>
+        <strong>Профили</strong>
+        <small>Люди и специалисты</small>
+      </button>
 
-      <button
-        class="quick-category"
-        data-category="news"
-      >
+      <button class="category-card" data-category="news">
         <span>📰</span>
         <strong>Новости</strong>
+        <small>Новости и события</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="grants"
-      >
-        <span>💰</span>
-        <strong>Гранты</strong>
+      <button class="category-card" data-category="education">
+        <span>🎓</span>
+        <strong>Образование</strong>
+        <small>Учёба и развитие</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="competitions"
-      >
-        <span>🏆</span>
-        <strong>Конкурсы</strong>
+      <button class="category-card" data-category="courses">
+        <span>📚</span>
+        <strong>Курсы</strong>
+        <small>Курсы и обучение</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="events"
-      >
-        <span>📅</span>
-        <strong>Мероприятия</strong>
+      <button class="category-card" data-category="opportunities">
+        <span>🎁</span>
+        <strong>Возможности</strong>
+        <small>Новые возможности</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="startups"
-      >
-        <span>🚀</span>
-        <strong>Стартапы</strong>
+      <button class="category-card" data-category="announcements">
+        <span>📢</span>
+        <strong>Объявления</strong>
+        <small>Полезные объявления</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="services"
-      >
+      <button class="category-card" data-category="services">
         <span>🤝</span>
         <strong>Услуги</strong>
+        <small>Услуги специалистов</small>
       </button>
 
-
-      <button
-        class="quick-category"
-        data-category="volunteering"
-      >
-        <span>❤️</span>
-        <strong>Волонтёрство</strong>
-      </button>
-
-
-      <button
-        class="quick-category"
-        data-category="projects"
-      >
+      <button class="category-card" data-category="projects">
         <span>💡</span>
         <strong>Проекты</strong>
+        <small>Идеи и проекты</small>
       </button>
 
+      <button class="category-card" data-category="startups">
+        <span>🚀</span>
+        <strong>Стартапы</strong>
+        <small>Стартапы и бизнес</small>
+      </button>
 
-      <button
-        class="quick-category"
-        data-category="other"
-      >
+      <button class="category-card" data-category="events">
+        <span>📅</span>
+        <strong>Мероприятия</strong>
+        <small>События и встречи</small>
+      </button>
+
+      <button class="category-card" data-category="competitions">
+        <span>🏆</span>
+        <strong>Конкурсы</strong>
+        <small>Конкурсы и отборы</small>
+      </button>
+
+      <button class="category-card" data-category="grants">
+        <span>💰</span>
+        <strong>Гранты</strong>
+        <small>Финансирование</small>
+      </button>
+
+      <button class="category-card" data-category="volunteering">
+        <span>❤️</span>
+        <strong>Волонтёрство</strong>
+        <small>Помощь и волонтёры</small>
+      </button>
+
+      <button class="category-card" data-category="products">
+        <span>🛍️</span>
+        <strong>Товары</strong>
+        <small>Товары и предложения</small>
+      </button>
+
+      <button class="category-card" data-category="business">
+        <span>🏢</span>
+        <strong>Бизнес</strong>
+        <small>Компании и предприниматели</small>
+      </button>
+
+      <button class="category-card" data-category="it">
+        <span>💻</span>
+        <strong>IT</strong>
+        <small>Технологии</small>
+      </button>
+
+      <button class="category-card" data-category="sport">
+        <span>⚽</span>
+        <strong>Спорт</strong>
+        <small>Спорт и активности</small>
+      </button>
+
+      <button class="category-card" data-category="music">
+        <span>🎵</span>
+        <strong>Музыка</strong>
+        <small>Музыка и творчество</small>
+      </button>
+
+      <button class="category-card" data-category="culture">
+        <span>🎭</span>
+        <strong>Культура</strong>
+        <small>Культура и искусство</small>
+      </button>
+
+      <button class="category-card" data-category="travel">
+        <span>✈️</span>
+        <strong>Путешествия</strong>
+        <small>Путешествия</small>
+      </button>
+
+      <button class="category-card" data-category="help">
+        <span>🆘</span>
+        <strong>Помощь</strong>
+        <small>Помощь и поддержка</small>
+      </button>
+
+      <button class="category-card" data-category="other">
         <span>➕</span>
         <strong>Другое</strong>
+        <small>Другие возможности</small>
       </button>
 
     </div>
@@ -306,13 +464,12 @@
 
   <div class="container">
 
-
     <div class="section-heading">
 
       <div>
 
         <span class="section-kicker">
-          Откройте новое
+          Лента
         </span>
 
         <h2>
@@ -321,38 +478,28 @@
 
       </div>
 
-
       <p class="section-description">
-
-        Ищите возможности по категории,
-        стране, городу и другим параметрам.
-
+        Новости, возможности, объявления,
+        проекты и другие полезные публикации.
       </p>
 
     </div>
 
 
-    <!-- =====================================================
-         SEARCH
-    ====================================================== -->
+    <!-- SEARCH -->
 
     <div class="search-box">
 
-      <span
-        class="search-icon"
-        aria-hidden="true"
-      >
+      <span class="search-icon">
         🔎
       </span>
-
 
       <input
         id="searchInput"
         type="search"
-        placeholder="Поиск возможностей, новостей, вакансий..."
+        placeholder="Поиск публикаций, возможностей, людей..."
         autocomplete="off"
       >
-
 
       <button
         id="clearSearch"
@@ -365,12 +512,9 @@
     </div>
 
 
-    <!-- =====================================================
-         ADVANCED FILTERS
-    ====================================================== -->
+    <!-- FILTERS -->
 
     <div class="advanced-filters">
-
 
       <div class="filter-group">
 
@@ -381,7 +525,7 @@
         <input
           id="countryFilter"
           type="text"
-          placeholder="Например: Таджикистан"
+          placeholder="Любая страна"
         >
 
       </div>
@@ -396,7 +540,7 @@
         <input
           id="cityFilter"
           type="text"
-          placeholder="Например: Душанбе"
+          placeholder="Любой город"
         >
 
       </div>
@@ -419,7 +563,7 @@
           </option>
 
           <option value="national">
-            🇹🇯 Национальные
+            🌎 Национальные
           </option>
 
           <option value="international">
@@ -444,11 +588,11 @@
         <select id="sortSelect">
 
           <option value="newest">
-            Сначала новые
+            🆕 Новые
           </option>
 
           <option value="oldest">
-            Сначала старые
+            📅 Старые
           </option>
 
           <option value="popular">
@@ -456,7 +600,15 @@
           </option>
 
           <option value="views">
-            👁️ Больше просмотров
+            👁️ Просмотры
+          </option>
+
+          <option value="likes">
+            ❤️ Реакции
+          </option>
+
+          <option value="comments">
+            💬 Комментарии
           </option>
 
         </select>
@@ -466,214 +618,21 @@
     </div>
 
 
-    <!-- =====================================================
-         CATEGORY FILTER
-    ====================================================== -->
+    <!-- ACTIVE FILTERS -->
 
-    <div class="filters-row">
-
-      <div
-        class="categories-wrapper"
-        id="categoryFilters"
-      >
-
-        <button
-          class="category-chip active"
-          data-category="all"
-        >
-          ✨ Все
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="jobs"
-        >
-          💼 Работа
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="job_seekers"
-        >
-          👤 Соискатели
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="news"
-        >
-          📰 Новости
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="education"
-        >
-          🎓 Образование
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="opportunities"
-        >
-          ✨ Возможности
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="announcements"
-        >
-          📢 Объявления
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="services"
-        >
-          🤝 Услуги
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="startups"
-        >
-          🚀 Стартапы
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="projects"
-        >
-          💡 Проекты
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="events"
-        >
-          📅 Мероприятия
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="competitions"
-        >
-          🏆 Конкурсы
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="grants"
-        >
-          💰 Гранты
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="volunteering"
-        >
-          ❤️ Волонтёрство
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="housing"
-        >
-          🏠 Жильё
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="transport"
-        >
-          🚗 Транспорт
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="products"
-        >
-          🛍️ Товары
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="courses"
-        >
-          📚 Курсы
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="it"
-        >
-          💻 IT
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="creative"
-        >
-          🎨 Творчество
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="sport"
-        >
-          ⚽ Спорт
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="music"
-        >
-          🎵 Музыка
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="gaming"
-        >
-          🎮 Игры
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="advertising"
-        >
-          📣 Реклама
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="help"
-        >
-          🆘 Помощь
-        </button>
-
-        <button
-          class="category-chip"
-          data-category="other"
-        >
-          ➕ Другое
-        </button>
-
-      </div>
-
-    </div>
+    <div
+      id="activeFilters"
+      class="active-filters hidden"
+    ></div>
 
 
-    <!-- =====================================================
-         RESULTS
-    ====================================================== -->
+    <!-- RESULTS -->
 
     <div class="results-toolbar">
 
       <div id="resultsInfo">
         Загружаем публикации...
       </div>
-
 
       <button
         id="resetFilters"
@@ -686,9 +645,7 @@
     </div>
 
 
-    <!-- =====================================================
-         LOADING
-    ====================================================== -->
+    <!-- LOADING -->
 
     <div
       id="loadingState"
@@ -698,27 +655,22 @@
       <div class="loading-spinner"></div>
 
       <p>
-        Загружаем возможности...
+        Загружаем публикации...
       </p>
 
     </div>
 
 
-    <!-- =====================================================
-         PUBLICATIONS
-    ====================================================== -->
+    <!-- POSTS -->
 
     <div
       id="postsGrid"
       class="posts-grid"
       aria-live="polite"
-    >
-    </div>
+    ></div>
 
 
-    <!-- =====================================================
-         EMPTY
-    ====================================================== -->
+    <!-- EMPTY -->
 
     <div
       id="emptyState"
@@ -729,17 +681,14 @@
         🔎
       </div>
 
-
       <h3>
         Ничего не найдено
       </h3>
 
-
       <p>
-        Попробуйте изменить запрос,
-        категорию, город или другие фильтры.
+        Попробуйте изменить поиск,
+        категорию или фильтры.
       </p>
-
 
       <button
         id="emptyReset"
@@ -752,9 +701,7 @@
     </div>
 
 
-    <!-- =====================================================
-         ERROR
-    ====================================================== -->
+    <!-- ERROR -->
 
     <div
       id="errorState"
@@ -765,17 +712,13 @@
         ⚠️
       </div>
 
-
       <h3>
         Не удалось загрузить публикации
       </h3>
 
-
       <p>
-        Проверьте интернет-соединение
-        и попробуйте ещё раз.
+        Попробуйте обновить страницу.
       </p>
-
 
       <button
         id="retryButton"
@@ -793,7 +736,164 @@
 
 
 <!-- =========================================================
-     CREATE CTA
+     SOCIAL FEATURES
+========================================================= -->
+
+<section class="features-section">
+
+  <div class="container">
+
+    <div class="section-heading">
+
+      <div>
+
+        <span class="section-kicker">
+          Не только публикации
+        </span>
+
+        <h2>
+          Общайтесь и участвуйте
+        </h2>
+
+      </div>
+
+    </div>
+
+
+    <div class="features-grid">
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          👤
+        </div>
+
+        <h3>
+          Профили участников
+        </h3>
+
+        <p>
+          Узнавайте, с кем вы общаетесь:
+          имя, username и дополнительные
+          сведения, которые пользователь
+          решил указать.
+        </p>
+
+        <a href="/profile.html">
+          Открыть профиль →
+        </a>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          💬
+        </div>
+
+        <h3>
+          Личные сообщения
+        </h3>
+
+        <p>
+          Общайтесь с участниками напрямую
+          через платформу.
+        </p>
+
+        <a href="/messages.html">
+          Открыть сообщения →
+        </a>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          ❤️
+        </div>
+
+        <h3>
+          Реакции
+        </h3>
+
+        <p>
+          Ставьте разные реакции,
+          сохраняйте публикации и
+          показывайте своё отношение.
+        </p>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          📤
+        </div>
+
+        <h3>
+          Делитесь
+        </h3>
+
+        <p>
+          Отправляйте интересные публикации
+          друзьям и другим людям.
+        </p>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          🔖
+        </div>
+
+        <h3>
+          Сохранённое
+        </h3>
+
+        <p>
+          Сохраняйте важные публикации,
+          чтобы вернуться к ним позже.
+        </p>
+
+        <a href="/saved.html">
+          Мои сохранения →
+        </a>
+
+      </article>
+
+
+      <article class="feature-card">
+
+        <div class="feature-icon">
+          🌍
+        </div>
+
+        <h3>
+          Международный формат
+        </h3>
+
+        <p>
+          Публикации могут быть местными,
+          национальными, международными
+          или полностью онлайн.
+        </p>
+
+      </article>
+
+    </div>
+
+  </div>
+
+</section>
+
+
+<!-- =========================================================
+     CREATE PUBLICATION
 ========================================================= -->
 
 <section class="submission-cta">
@@ -808,38 +908,33 @@
           💡
         </span>
 
-
         <div>
 
           <span class="section-kicker">
-            У вас есть что предложить?
+            Есть чем поделиться?
           </span>
 
-
           <h2>
-            Создайте свою публикацию
+            Создайте публикацию
           </h2>
 
-
           <p>
-
-            Поделитесь вакансией, новостью,
-            образовательной программой, грантом,
-            мероприятием, услугой, проектом
-            или любой другой полезной информацией.
-
+            Вакансия, новость, мероприятие,
+            грант, конкурс, проект, услуга,
+            объявление или другая полезная
+            информация — предложите её
+            нашей платформе.
           </p>
 
         </div>
 
       </div>
 
-
       <a
         href="/add.html"
         class="btn btn-light"
       >
-        ＋ Создать публикацию →
+        ＋ Создать публикацию
       </a>
 
     </div>
@@ -850,144 +945,51 @@
 
 
 <!-- =========================================================
-     PLATFORM FEATURES
+     OFFICIAL ACCOUNT
 ========================================================= -->
 
-<section class="features-section">
+<section class="official-section">
 
   <div class="container">
 
-    <div class="section-heading">
+    <div class="official-card">
 
-      <div>
+      <div class="official-avatar">
+        🇹🇯
+      </div>
 
-        <span class="section-kicker">
-          Больше возможностей
-        </span>
+      <div class="official-content">
 
-        <h2>
-          Всё полезное — в одном месте
-        </h2>
+        <div class="official-name">
+
+          <strong>
+            Tajik Opportunities
+          </strong>
+
+          <span class="verified-badge">
+            ✓
+          </span>
+
+        </div>
+
+        <div class="official-username">
+          @tajikopportunities
+        </div>
+
+        <p>
+          Официальный аккаунт платформы.
+          Здесь публикуются важные уведомления,
+          ответы и информация для участников.
+        </p>
 
       </div>
 
-    </div>
-
-
-    <div class="features-grid">
-
-
-      <article class="feature-card">
-
-        <div class="feature-icon">
-          🔎
-        </div>
-
-        <h3>
-          Умный поиск
-        </h3>
-
-        <p>
-          Ищите публикации по словам,
-          категориям, странам, городам
-          и другим параметрам.
-        </p>
-
-      </article>
-
-
-      <article class="feature-card">
-
-        <div class="feature-icon">
-          🌍
-        </div>
-
-        <h3>
-          Международная платформа
-        </h3>
-
-        <p>
-          Возможности могут быть локальными,
-          национальными, международными
-          или полностью онлайн.
-        </p>
-
-      </article>
-
-
-      <article class="feature-card">
-
-        <div class="feature-icon">
-          ❤️
-        </div>
-
-        <h3>
-          Реакции и сохранения
-        </h3>
-
-        <p>
-          Ставьте реакции, сохраняйте
-          интересные публикации и
-          делитесь ими с другими.
-        </p>
-
-      </article>
-
-
-      <article class="feature-card">
-
-        <div class="feature-icon">
-          💬
-        </div>
-
-        <h3>
-          Обсуждения
-        </h3>
-
-        <p>
-          Комментируйте публикации,
-          отвечайте другим пользователям
-          и участвуйте в обсуждениях.
-        </p>
-
-      </article>
-
-
-      <article class="feature-card">
-
-        <div class="feature-icon">
-          📢
-        </div>
-
-        <h3>
-          Свои публикации
-        </h3>
-
-        <p>
-          Любой участник может предложить
-          полезную публикацию. Перед
-          публикацией она проходит модерацию.
-        </p>
-
-      </article>
-
-
-      <article class="feature-card">
-
-        <div class="feature-icon">
-          🛡️
-        </div>
-
-        <h3>
-          Модерация
-        </h3>
-
-        <p>
-          Публикации проверяются администрацией
-          перед появлением в общей ленте.
-        </p>
-
-      </article>
+      <a
+        href="/profile.html?username=%40tajikopportunities"
+        class="btn btn-secondary"
+      >
+        Открыть профиль
+      </a>
 
     </div>
 
@@ -1006,11 +1008,9 @@
 
     <div class="telegram-card">
 
-
       <div class="telegram-icon">
         ✈️
       </div>
-
 
       <div class="telegram-content">
 
@@ -1018,20 +1018,17 @@
           Мы также в Telegram
         </span>
 
-
         <h2>
-          Следите за новыми возможностями
+          Следите за новостями
         </h2>
 
-
         <p>
-          Новости, важные публикации
-          и новые возможности появляются
-          также в нашем Telegram.
+          Дополнительные новости, публикации
+          и важные объявления появляются
+          в Telegram.
         </p>
 
       </div>
-
 
       <div class="telegram-actions">
 
@@ -1041,9 +1038,8 @@
           rel="noopener noreferrer"
           class="telegram-button"
         >
-          ✈️ Канал ↗
+          ✈️ Канал
         </a>
-
 
         <a
           href="https://t.me/Tajik_Opportunities_Group"
@@ -1051,7 +1047,7 @@
           rel="noopener noreferrer"
           class="telegram-button telegram-button-outline"
         >
-          👥 Группа ↗
+          👥 Группа
         </a>
 
       </div>
@@ -1073,23 +1069,18 @@
 
   <div class="container">
 
-
     <div class="footer-main">
-
 
       <div class="footer-brand">
 
         <a href="/" class="brand">
 
           <span class="brand-logo">
-
             <img
               src="/images/Image_2026_09_05_19_01_30.jpg"
               alt="Tajik Opportunities"
             >
-
           </span>
-
 
           <span class="brand-text">
 
@@ -1105,10 +1096,10 @@
 
         </a>
 
-
         <p>
-          Платформа полезных возможностей
-          для людей, организаций и проектов.
+          Международная платформа возможностей
+          для людей, организаций, специалистов,
+          проектов и сообществ.
         </p>
 
       </div>
@@ -1128,12 +1119,41 @@
           🔎 Найти
         </a>
 
-        <a href="/add.html">
-          ＋ Создать публикацию
+        <a href="#categories">
+          📚 Категории
         </a>
 
-        <a href="/status.html">
-          🔎 Проверить заявку
+        <a href="/add.html">
+          ＋ Создать
+        </a>
+
+        <a href="/profile.html">
+          👤 Профиль
+        </a>
+
+      </div>
+
+
+      <div class="footer-column">
+
+        <h3>
+          Социальные функции
+        </h3>
+
+        <a href="/messages.html">
+          💬 Сообщения
+        </a>
+
+        <a href="/saved.html">
+          🔖 Сохранённое
+        </a>
+
+        <a href="/profile.html">
+          👥 Участники
+        </a>
+
+        <a href="/notifications.html">
+          🔔 Уведомления
         </a>
 
       </div>
@@ -1179,7 +1199,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >
-          ✈️ Наш канал ↗
+          ✈️ Канал
         </a>
 
         <a
@@ -1187,7 +1207,7 @@
           target="_blank"
           rel="noopener noreferrer"
         >
-          👥 Наша группа ↗
+          👥 Группа
         </a>
 
       </div>
@@ -1198,12 +1218,10 @@
     <div class="footer-bottom">
 
       <p>
-        ©
-        <span id="currentYear"></span>
+        © <span id="currentYear"></span>
         Tajik Opportunities.
         Все права защищены.
       </p>
-
 
       <p>
         🇹🇯 Создано в Таджикистане
@@ -1224,7 +1242,6 @@
   class="mobile-nav"
   aria-label="Мобильная навигация"
 >
-
 
   <a
     href="/"
@@ -1260,7 +1277,7 @@
 
   <a
     href="/add.html"
-    class="mobile-nav-item"
+    class="mobile-nav-item mobile-nav-create"
   >
 
     <span class="mobile-nav-icon">
@@ -1275,18 +1292,32 @@
 
 
   <a
-    href="https://t.me/Tajik_Opportunities"
-    target="_blank"
-    rel="noopener noreferrer"
+    href="/messages.html"
     class="mobile-nav-item"
   >
 
     <span class="mobile-nav-icon">
-      ✈️
+      💬
     </span>
 
     <span>
-      Telegram
+      Чаты
+    </span>
+
+  </a>
+
+
+  <a
+    href="/profile.html"
+    class="mobile-nav-item"
+  >
+
+    <span class="mobile-nav-icon">
+      👤
+    </span>
+
+    <span>
+      Профиль
     </span>
 
   </a>
@@ -1303,12 +1334,11 @@
   class="toast"
   role="status"
   aria-live="polite"
->
-</div>
+></div>
 
 
 <!-- =========================================================
-     JAVASCRIPT
+     SCRIPTS
 ========================================================= -->
 
 <script src="/js/app.js"></script>
