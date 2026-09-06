@@ -12,13 +12,6 @@ const NO_STORE = {
   "cache-control": "no-store"
 };
 
-
-/*
- * ============================================================
- * JSON RESPONSE
- * ============================================================
- */
-
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -30,26 +23,16 @@ function json(data, status = 200, extra = {}) {
   });
 }
 
-
-/*
- * ============================================================
- * HELPERS
- * ============================================================
- */
-
 function clean(value, max = 5000) {
   return String(value ?? "")
     .trim()
     .slice(0, max);
 }
 
-
 function safeUrl(value) {
   const valueClean = clean(value, 1000);
 
-  if (!valueClean) {
-    return null;
-  }
+  if (!valueClean) return null;
 
   try {
     const url = new URL(valueClean);
@@ -64,11 +47,9 @@ function safeUrl(value) {
   }
 }
 
-
 function newId() {
   return crypto.randomUUID();
 }
-
 
 function trackingCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -80,13 +61,6 @@ function trackingCode() {
     .map((byte) => chars[byte % chars.length])
     .join("");
 }
-
-
-/*
- * ============================================================
- * BASE64
- * ============================================================
- */
 
 function base64UrlEncode(bytes) {
   let binary = "";
@@ -101,7 +75,6 @@ function base64UrlEncode(bytes) {
     .replace(/=+$/g, "");
 }
 
-
 function base64UrlDecode(value) {
   let normalized = value
     .replace(/-/g, "+")
@@ -115,16 +88,9 @@ function base64UrlDecode(value) {
 
   return Uint8Array.from(
     binary,
-    (char) => char.charCodeAt(0)
+    char => char.charCodeAt(0)
   );
 }
-
-
-/*
- * ============================================================
- * HMAC
- * ============================================================
- */
 
 async function hmac(
   value,
@@ -161,28 +127,22 @@ async function hmac(
   );
 }
 
-
-/*
- * ============================================================
- * ADMIN SESSION
- * ============================================================
- */
-
 async function createAdminSession(secret) {
   const expiresAt =
     Math.floor(Date.now() / 1000) +
     SESSION_SECONDS;
 
-  const value = `admin.${expiresAt}`;
+  const value =
+    `admin.${expiresAt}`;
 
-  const signature = await hmac(
-    value,
-    secret
-  );
+  const signature =
+    await hmac(
+      value,
+      secret
+    );
 
   return `${value}.${signature}`;
 }
-
 
 async function isAdmin(request, env) {
   if (!env.ADMIN_PASSWORD) {
@@ -192,15 +152,19 @@ async function isAdmin(request, env) {
   const cookieHeader =
     request.headers.get("Cookie") || "";
 
-  const match = cookieHeader.match(
-    new RegExp(`${COOKIE}=([^;]+)`)
-  );
+  const match =
+    cookieHeader.match(
+      new RegExp(
+        `${COOKIE}=([^;]+)`
+      )
+    );
 
   if (!match) {
     return false;
   }
 
-  const parts = match[1].split(".");
+  const parts =
+    match[1].split(".");
 
   if (parts.length !== 3) {
     return false;
@@ -216,7 +180,11 @@ async function isAdmin(request, env) {
     return false;
   }
 
-  if (!Number.isFinite(Number(expiresAt))) {
+  if (
+    !Number.isFinite(
+      Number(expiresAt)
+    )
+  ) {
     return false;
   }
 
@@ -239,17 +207,57 @@ async function isAdmin(request, env) {
   }
 }
 
+/* ============================================================
+   DATABASE PREPARATION
+============================================================ */
 
-/*
- * ============================================================
- * VALIDATION
- * ============================================================
- */
+async function prepareDatabase(env) {
+  /*
+   * Добавляем необходимые поля для корзины.
+   * Если они уже существуют, ошибки игнорируются.
+   */
+
+  const queries = [
+    `
+      ALTER TABLE posts
+      ADD COLUMN deleted_at TEXT
+    `,
+    `
+      ALTER TABLE posts
+      ADD COLUMN deleted_reason TEXT
+    `,
+    `
+      ALTER TABLE submissions
+      ADD COLUMN deleted_at TEXT
+    `,
+    `
+      ALTER TABLE submissions
+      ADD COLUMN deleted_reason TEXT
+    `
+  ];
+
+  for (const sql of queries) {
+    try {
+      await env.DB.prepare(sql).run();
+    } catch {
+      // Колонка уже существует — ничего делать не нужно.
+    }
+  }
+}
+
+/* ============================================================
+   VALIDATION
+============================================================ */
 
 function validateSubmission(body) {
-  const title = clean(body.title, 180);
-  const content = clean(body.content, 12000);
-  const category = clean(body.category, 80);
+  const title =
+    clean(body.title, 180);
+
+  const content =
+    clean(body.content, 12000);
+
+  const category =
+    clean(body.category, 80);
 
   const authorName =
     clean(body.author_name, 120);
@@ -268,7 +276,8 @@ function validateSubmission(body) {
 
   if (honeypot) {
     return {
-      error: "Не удалось отправить заявку."
+      error:
+        "Не удалось отправить заявку."
     };
   }
 
@@ -288,7 +297,8 @@ function validateSubmission(body) {
 
   if (!category) {
     return {
-      error: "Выберите категорию."
+      error:
+        "Выберите категорию."
     };
   }
 
@@ -296,48 +306,48 @@ function validateSubmission(body) {
     title,
     content,
     category,
-    authorName: authorName || null,
-    contact: contact || null,
+    authorName:
+      authorName || null,
+    contact:
+      contact || null,
     imageUrl,
     linkUrl
   };
 }
 
-
-/*
- * ============================================================
- * PUBLIC POSTS
- * ============================================================
- */
+/* ============================================================
+   PUBLIC POSTS
+============================================================ */
 
 async function getPosts(env) {
-  const result = await env.DB.prepare(
-    `
-      SELECT
-        id,
-        title,
-        content,
-        category,
-        image_url,
-        link_url,
-        contact,
-        author_name,
-        published_at
-      FROM posts
-      ORDER BY published_at DESC
-      LIMIT 500
-    `
-  ).all();
+  await prepareDatabase(env);
+
+  const result =
+    await env.DB.prepare(
+      `
+        SELECT
+          id,
+          title,
+          content,
+          category,
+          image_url,
+          link_url,
+          contact,
+          author_name,
+          published_at
+        FROM posts
+        WHERE deleted_at IS NULL
+        ORDER BY published_at DESC
+        LIMIT 500
+      `
+    ).all();
 
   return result.results || [];
 }
 
-
-/*
- * ============================================================
- * CREATE SUBMISSION
- * ============================================================
- */
+/* ============================================================
+   CREATE SUBMISSION
+============================================================ */
 
 async function createSubmission(
   request,
@@ -346,12 +356,14 @@ async function createSubmission(
   let body;
 
   try {
-    body = await request.json();
+    body =
+      await request.json();
   } catch {
     return json(
       {
         ok: false,
-        error: "Некорректные данные."
+        error:
+          "Некорректные данные."
       },
       400
     );
@@ -364,7 +376,8 @@ async function createSubmission(
     return json(
       {
         ok: false,
-        error: validated.error
+        error:
+          validated.error
       },
       400
     );
@@ -380,9 +393,11 @@ async function createSubmission(
     linkUrl
   } = validated;
 
-  const submissionId = newId();
+  const submissionId =
+    newId();
 
-  let code = trackingCode();
+  let code =
+    trackingCode();
 
   for (
     let attempt = 0;
@@ -405,7 +420,9 @@ async function createSubmission(
             status,
             created_at
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+          VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?
+          )
         `
       )
         .bind(
@@ -430,7 +447,11 @@ async function createSubmission(
         201
       );
     } catch (error) {
-      if (!String(error).includes("UNIQUE")) {
+      if (
+        !String(error)
+          .toUpperCase()
+          .includes("UNIQUE")
+      ) {
         console.error(
           "Submission error:",
           error
@@ -446,7 +467,8 @@ async function createSubmission(
         );
       }
 
-      code = trackingCode();
+      code =
+        trackingCode();
     }
   }
 
@@ -460,23 +482,22 @@ async function createSubmission(
   );
 }
 
-
-/*
- * ============================================================
- * SUBMISSION STATUS
- * ============================================================
- */
+/* ============================================================
+   SUBMISSION STATUS
+============================================================ */
 
 async function getSubmissionStatus(
   request,
   env
 ) {
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
-  const code = clean(
-    url.searchParams.get("code"),
-    30
-  ).toUpperCase();
+  const code =
+    clean(
+      url.searchParams.get("code"),
+      30
+    ).toUpperCase();
 
   if (!code) {
     return json(
@@ -528,12 +549,9 @@ async function getSubmissionStatus(
   );
 }
 
-
-/*
- * ============================================================
- * ADMIN LOGIN
- * ============================================================
- */
+/* ============================================================
+   ADMIN LOGIN
+============================================================ */
 
 async function adminLogin(
   request,
@@ -554,12 +572,14 @@ async function adminLogin(
   let body = {};
 
   try {
-    body = await request.json();
+    body =
+      await request.json();
   } catch {
     return json(
       {
         ok: false,
-        error: "Некорректные данные."
+        error:
+          "Некорректные данные."
       },
       400,
       NO_STORE
@@ -571,12 +591,14 @@ async function adminLogin(
 
   if (
     !password ||
-    password !== env.ADMIN_PASSWORD
+    password !==
+      env.ADMIN_PASSWORD
   ) {
     return json(
       {
         ok: false,
-        error: "Неверный пароль."
+        error:
+          "Неверный пароль."
       },
       401,
       NO_STORE
@@ -606,13 +628,6 @@ async function adminLogin(
   );
 }
 
-
-/*
- * ============================================================
- * ADMIN LOGOUT
- * ============================================================
- */
-
 async function adminLogout() {
   return json(
     {
@@ -627,23 +642,21 @@ async function adminLogout() {
         "HttpOnly; " +
         "Secure; " +
         "SameSite=Strict; " +
-        "Max-Age=0"
+        "Max-Age=0`
     }
   );
 }
 
-
-/*
- * ============================================================
- * ADMIN SUBMISSIONS
- * ============================================================
- */
+/* ============================================================
+   ADMIN SUBMISSIONS
+============================================================ */
 
 async function adminSubmissions(
   request,
   env
 ) {
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
   const requestedStatus =
     clean(
@@ -670,6 +683,7 @@ async function adminSubmissions(
         SELECT *
         FROM submissions
         WHERE status = ?
+          AND deleted_at IS NULL
         ORDER BY created_at DESC
         LIMIT 500
       `
@@ -688,23 +702,23 @@ async function adminSubmissions(
   );
 }
 
-
-/*
- * ============================================================
- * APPROVE SUBMISSION
- * ============================================================
- */
+/* ============================================================
+   APPROVE SUBMISSION
+============================================================ */
 
 async function approveSubmission(
   submissionId,
   env
 ) {
+  await prepareDatabase(env);
+
   const submission =
     await env.DB.prepare(
       `
         SELECT *
         FROM submissions
         WHERE id = ?
+          AND deleted_at IS NULL
       `
     )
       .bind(submissionId)
@@ -714,7 +728,8 @@ async function approveSubmission(
     return json(
       {
         ok: false,
-        error: "Заявка не найдена."
+        error:
+          "Заявка не найдена."
       },
       404,
       NO_STORE
@@ -722,7 +737,8 @@ async function approveSubmission(
   }
 
   if (
-    submission.status !== "pending"
+    submission.status !==
+    "pending"
   ) {
     return json(
       {
@@ -752,9 +768,13 @@ async function approveSubmission(
             link_url,
             contact,
             author_name,
-            published_at
+            published_at,
+            deleted_at,
+            deleted_reason
           )
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL
+          )
         `
       ).bind(
         newId(),
@@ -803,7 +823,7 @@ async function approveSubmission(
       {
         ok: false,
         error:
-          "Не удалось одобрить заявку."
+          "Не удалось опубликовать заявку."
       },
       500,
       NO_STORE
@@ -811,28 +831,31 @@ async function approveSubmission(
   }
 }
 
-
-/*
- * ============================================================
- * REJECT SUBMISSION
- * ============================================================
- */
+/* ============================================================
+   REJECT SUBMISSION
+============================================================ */
 
 async function rejectSubmission(
   request,
   submissionId,
   env
 ) {
+  await prepareDatabase(env);
+
   let body = {};
 
   try {
-    body = await request.json();
+    body =
+      await request.json();
   } catch {
     body = {};
   }
 
   const reason =
-    clean(body.reason, 1000) ||
+    clean(
+      body.reason,
+      1000
+    ) ||
     "Материал не соответствует требованиям платформы.";
 
   const now =
@@ -848,6 +871,7 @@ async function rejectSubmission(
           reviewed_at = ?
         WHERE id = ?
           AND status = 'pending'
+          AND deleted_at IS NULL
       `
     )
       .bind(
@@ -872,24 +896,23 @@ async function rejectSubmission(
   return json(
     {
       ok: true,
-      message: "Заявка отклонена."
+      message:
+        "Заявка отклонена."
     },
     200,
     NO_STORE
   );
 }
 
-
-/*
- * ============================================================
- * ADMIN — ALL POSTS
- * ============================================================
- */
+/* ============================================================
+   ADMIN POSTS
+============================================================ */
 
 async function adminPosts(
-  request,
   env
 ) {
+  await prepareDatabase(env);
+
   const result =
     await env.DB.prepare(
       `
@@ -905,6 +928,7 @@ async function adminPosts(
           author_name,
           published_at
         FROM posts
+        WHERE deleted_at IS NULL
         ORDER BY published_at DESC
         LIMIT 500
       `
@@ -922,17 +946,16 @@ async function adminPosts(
   );
 }
 
-
-/*
- * ============================================================
- * ADMIN — GET ONE POST
- * ============================================================
- */
+/* ============================================================
+   GET ONE POST
+============================================================ */
 
 async function adminGetPost(
   postId,
   env
 ) {
+  await prepareDatabase(env);
+
   const post =
     await env.DB.prepare(
       `
@@ -949,6 +972,7 @@ async function adminGetPost(
           published_at
         FROM posts
         WHERE id = ?
+          AND deleted_at IS NULL
       `
     )
       .bind(postId)
@@ -958,7 +982,8 @@ async function adminGetPost(
     return json(
       {
         ok: false,
-        error: "Пост не найден."
+        error:
+          "Пост не найден."
       },
       404,
       NO_STORE
@@ -975,27 +1000,28 @@ async function adminGetPost(
   );
 }
 
-
-/*
- * ============================================================
- * ADMIN — UPDATE POST
- * ============================================================
- */
+/* ============================================================
+   UPDATE POST
+============================================================ */
 
 async function adminUpdatePost(
   request,
   postId,
   env
 ) {
+  await prepareDatabase(env);
+
   let body = {};
 
   try {
-    body = await request.json();
+    body =
+      await request.json();
   } catch {
     return json(
       {
         ok: false,
-        error: "Некорректные данные."
+        error:
+          "Некорректные данные."
       },
       400,
       NO_STORE
@@ -1012,16 +1038,26 @@ async function adminUpdatePost(
     clean(body.category, 80);
 
   const authorName =
-    clean(body.author_name, 120);
+    clean(
+      body.author_name,
+      120
+    );
 
   const contact =
-    clean(body.contact, 300);
+    clean(
+      body.contact,
+      300
+    );
 
   const imageUrl =
-    safeUrl(body.image_url);
+    safeUrl(
+      body.image_url
+    );
 
   const linkUrl =
-    safeUrl(body.link_url);
+    safeUrl(
+      body.link_url
+    );
 
   if (title.length < 5) {
     return json(
@@ -1051,7 +1087,8 @@ async function adminUpdatePost(
     return json(
       {
         ok: false,
-        error: "Укажите категорию."
+        error:
+          "Укажите категорию."
       },
       400,
       NO_STORE
@@ -1071,6 +1108,7 @@ async function adminUpdatePost(
           contact = ?,
           author_name = ?
         WHERE id = ?
+          AND deleted_at IS NULL
       `
     )
       .bind(
@@ -1089,7 +1127,8 @@ async function adminUpdatePost(
     return json(
       {
         ok: false,
-        error: "Пост не найден."
+        error:
+          "Пост не найден."
       },
       404,
       NO_STORE
@@ -1107,61 +1146,266 @@ async function adminUpdatePost(
   );
 }
 
+/* ============================================================
+   MOVE POST TO TRASH
+============================================================ */
 
-/*
- * ============================================================
- * ADMIN — DELETE POST
- * ============================================================
- */
-
-async function adminDeletePost(
+async function adminTrashPost(
   postId,
   env
 ) {
-  const post =
+  await prepareDatabase(env);
+
+  const now =
+    new Date().toISOString();
+
+  const result =
     await env.DB.prepare(
       `
-        SELECT id
-        FROM posts
+        UPDATE posts
+        SET
+          deleted_at = ?,
+          deleted_reason = 'deleted_by_admin'
         WHERE id = ?
+          AND deleted_at IS NULL
       `
     )
-      .bind(postId)
-      .first();
+      .bind(
+        now,
+        postId
+      )
+      .run();
 
-  if (!post) {
+  if (!result.meta.changes) {
     return json(
       {
         ok: false,
-        error: "Пост не найден."
+        error:
+          "Пост не найден."
       },
       404,
       NO_STORE
     );
   }
 
-  try {
+  return json(
+    {
+      ok: true,
+      message:
+        "Пост перемещён в корзину."
+    },
+    200,
+    NO_STORE
+  );
+}
+
+/* ============================================================
+   TRASH — ALL DELETED POSTS
+============================================================ */
+
+async function adminTrash(
+  env
+) {
+  await prepareDatabase(env);
+
+  const result =
     await env.DB.prepare(
       `
-        DELETE FROM posts
+        SELECT
+          id,
+          submission_id,
+          title,
+          content,
+          category,
+          image_url,
+          link_url,
+          contact,
+          author_name,
+          published_at,
+          deleted_at,
+          deleted_reason
+        FROM posts
+        WHERE deleted_at IS NOT NULL
+        ORDER BY deleted_at DESC
+        LIMIT 500
+      `
+    )
+      .all();
+
+  const rejected =
+    await env.DB.prepare(
+      `
+        SELECT
+          id,
+          title,
+          content,
+          category,
+          image_url,
+          link_url,
+          contact,
+          author_name,
+          tracking_code,
+          status,
+          rejection_reason,
+          created_at,
+          reviewed_at
+        FROM submissions
+        WHERE status = 'rejected'
+          AND deleted_at IS NULL
+        ORDER BY reviewed_at DESC
+        LIMIT 500
+      `
+    )
+      .all();
+
+  return json(
+    {
+      ok: true,
+      posts:
+        result.results || [],
+      rejected_submissions:
+        rejected.results || []
+    },
+    200,
+    NO_STORE
+  );
+}
+
+/* ============================================================
+   RESTORE POST
+============================================================ */
+
+async function adminRestorePost(
+  postId,
+  env
+) {
+  await prepareDatabase(env);
+
+  const result =
+    await env.DB.prepare(
+      `
+        UPDATE posts
+        SET
+          deleted_at = NULL,
+          deleted_reason = NULL
         WHERE id = ?
+          AND deleted_at IS NOT NULL
       `
     )
       .bind(postId)
       .run();
 
+  if (!result.meta.changes) {
+    return json(
+      {
+        ok: false,
+        error:
+          "Пост в корзине не найден."
+      },
+      404,
+      NO_STORE
+    );
+  }
+
+  return json(
+    {
+      ok: true,
+      message:
+        "Пост восстановлен."
+    },
+    200,
+    NO_STORE
+  );
+}
+
+/* ============================================================
+   PERMANENT DELETE POST
+============================================================ */
+
+async function adminPermanentDeletePost(
+  postId,
+  env
+) {
+  await prepareDatabase(env);
+
+  const result =
+    await env.DB.prepare(
+      `
+        DELETE FROM posts
+        WHERE id = ?
+          AND deleted_at IS NOT NULL
+      `
+    )
+      .bind(postId)
+      .run();
+
+  if (!result.meta.changes) {
+    return json(
+      {
+        ok: false,
+        error:
+          "Пост в корзине не найден."
+      },
+      404,
+      NO_STORE
+    );
+  }
+
+  return json(
+    {
+      ok: true,
+      message:
+        "Пост окончательно удалён."
+    },
+    200,
+    NO_STORE
+  );
+}
+
+/* ============================================================
+   EMPTY TRASH
+============================================================ */
+
+async function adminEmptyTrash(
+  env
+) {
+  await prepareDatabase(env);
+
+  try {
+    await env.DB.batch([
+      env.DB.prepare(
+        `
+          DELETE FROM posts
+          WHERE deleted_at IS NOT NULL
+        `
+      ),
+
+      env.DB.prepare(
+        `
+          UPDATE submissions
+          SET
+            deleted_at = ?,
+            deleted_reason = 'trash_cleared'
+          WHERE status = 'rejected'
+            AND deleted_at IS NULL
+        `
+      ).bind(
+        new Date().toISOString()
+      )
+    ]);
+
     return json(
       {
         ok: true,
         message:
-          "Пост успешно удалён."
+          "Корзина полностью очищена."
       },
       200,
       NO_STORE
     );
   } catch (error) {
     console.error(
-      "Delete post error:",
+      "Empty trash error:",
       error
     );
 
@@ -1169,7 +1413,7 @@ async function adminDeletePost(
       {
         ok: false,
         error:
-          "Не удалось удалить пост."
+          "Не удалось очистить корзину."
       },
       500,
       NO_STORE
@@ -1177,23 +1421,153 @@ async function adminDeletePost(
   }
 }
 
+/* ============================================================
+   RESTORE REJECTED SUBMISSION
+============================================================ */
 
-/*
- * ============================================================
- * ADMIN — STATISTICS
- * ============================================================
- */
+async function adminRestoreRejectedSubmission(
+  submissionId,
+  env
+) {
+  await prepareDatabase(env);
+
+  const result =
+    await env.DB.prepare(
+      `
+        UPDATE submissions
+        SET
+          status = 'pending',
+          rejection_reason = NULL,
+          reviewed_at = NULL,
+          deleted_at = NULL,
+          deleted_reason = NULL
+        WHERE id = ?
+          AND status = 'rejected'
+      `
+    )
+      .bind(
+        submissionId
+      )
+      .run();
+
+  if (!result.meta.changes) {
+    return json(
+      {
+        ok: false,
+        error:
+          "Отклонённая заявка не найдена."
+      },
+      404,
+      NO_STORE
+    );
+  }
+
+  return json(
+    {
+      ok: true,
+      message:
+        "Заявка восстановлена и снова ожидает проверки."
+    },
+    200,
+    NO_STORE
+  );
+}
+
+/* ============================================================
+   PERMANENT DELETE REJECTED SUBMISSION
+============================================================ */
+
+async function adminPermanentDeleteRejectedSubmission(
+  submissionId,
+  env
+) {
+  await prepareDatabase(env);
+
+  const result =
+    await env.DB.prepare(
+      `
+        DELETE FROM submissions
+        WHERE id = ?
+          AND status = 'rejected'
+      `
+    )
+      .bind(
+        submissionId
+      )
+      .run();
+
+  if (!result.meta.changes) {
+    return json(
+      {
+        ok: false,
+        error:
+          "Отклонённая заявка не найдена."
+      },
+      404,
+      NO_STORE
+    );
+  }
+
+  return json(
+    {
+      ok: true,
+      message:
+        "Отклонённая заявка окончательно удалена."
+    },
+    200,
+    NO_STORE
+  );
+}
+
+/* ============================================================
+   ADMIN STATS
+============================================================ */
 
 async function adminStats(env) {
+  await prepareDatabase(env);
+
   const result =
     await env.DB.prepare(
       `
         SELECT
-          (SELECT COUNT(*) FROM posts) AS total_posts,
-          (SELECT COUNT(*) FROM submissions WHERE status = 'pending') AS pending,
-          (SELECT COUNT(*) FROM submissions WHERE status = 'approved') AS approved,
-          (SELECT COUNT(*) FROM submissions WHERE status = 'rejected') AS rejected,
-          (SELECT COUNT(*) FROM submissions) AS total_submissions
+          (
+            SELECT COUNT(*)
+            FROM posts
+            WHERE deleted_at IS NULL
+          ) AS total_posts,
+
+          (
+            SELECT COUNT(*)
+            FROM posts
+            WHERE deleted_at IS NOT NULL
+          ) AS trash_posts,
+
+          (
+            SELECT COUNT(*)
+            FROM submissions
+            WHERE status = 'pending'
+              AND deleted_at IS NULL
+          ) AS pending,
+
+          (
+            SELECT COUNT(*)
+            FROM submissions
+            WHERE status = 'approved'
+              AND deleted_at IS NULL
+          ) AS approved,
+
+          (
+            SELECT COUNT(*)
+            FROM submissions
+            WHERE status = 'rejected'
+              AND deleted_at IS NULL
+          ) AS rejected,
+
+          (
+            SELECT COUNT(*)
+            FROM submissions
+            WHERE deleted_at IS NULL
+          ) AS total_submissions
       `
     )
       .first();
@@ -1201,25 +1575,62 @@ async function adminStats(env) {
   return json(
     {
       ok: true,
-      stats: result || {
-        total_posts: 0,
-        pending: 0,
-        approved: 0,
-        rejected: 0,
-        total_submissions: 0
-      }
+      stats:
+        result || {
+          total_posts: 0,
+          trash_posts: 0,
+          pending: 0,
+          approved: 0,
+          rejected: 0,
+          total_submissions: 0
+        }
     },
     200,
     NO_STORE
   );
 }
 
+/* ============================================================
+   DELETE ALL POSTS
+============================================================ */
 
-/*
- * ============================================================
- * API ROUTER
- * ============================================================
- */
+async function adminTrashAllPosts(
+  env
+) {
+  await prepareDatabase(env);
+
+  const now =
+    new Date().toISOString();
+
+  const result =
+    await env.DB.prepare(
+      `
+        UPDATE posts
+        SET
+          deleted_at = ?,
+          deleted_reason = 'all_posts_deleted_by_admin'
+        WHERE deleted_at IS NULL
+      `
+    )
+      .bind(now)
+      .run();
+
+  return json(
+    {
+      ok: true,
+      deleted:
+        result.meta.changes || 0,
+      message:
+        "Все публикации перемещены в корзину."
+    },
+    200,
+    NO_STORE
+  );
+}
+
+/* ============================================================
+   API ROUTER
+============================================================ */
 
 async function handleApi(
   request,
@@ -1234,12 +1645,7 @@ async function handleApi(
   const method =
     request.method;
 
-
-  /*
-   * ----------------------------------------------------------
-   * PUBLIC POSTS
-   * ----------------------------------------------------------
-   */
+  /* PUBLIC */
 
   if (
     path === "/api/posts" &&
@@ -1254,13 +1660,6 @@ async function handleApi(
     });
   }
 
-
-  /*
-   * ----------------------------------------------------------
-   * PUBLIC SUBMISSIONS
-   * ----------------------------------------------------------
-   */
-
   if (
     path === "/api/submissions" &&
     method === "POST"
@@ -1270,7 +1669,6 @@ async function handleApi(
       env
     );
   }
-
 
   if (
     path === "/api/submissions/status" &&
@@ -1282,51 +1680,32 @@ async function handleApi(
     );
   }
 
-
-  /*
-   * ==========================================================
-   * ADMIN API
-   * ==========================================================
-   */
+  /* ADMIN LOGIN */
 
   if (
-    path.startsWith("/api/admin/")
+    path === "/api/admin/login" &&
+    method === "POST"
   ) {
+    return adminLogin(
+      request,
+      env
+    );
+  }
 
+  if (
+    path === "/api/admin/logout" &&
+    method === "POST"
+  ) {
+    return adminLogout();
+  }
 
-    /*
-     * LOGIN
-     */
+  /* ADMIN PROTECTION */
 
-    if (
-      path === "/api/admin/login" &&
-      method === "POST"
-    ) {
-      return adminLogin(
-        request,
-        env
-      );
-    }
-
-
-    /*
-     * LOGOUT
-     */
-
-    if (
-      path === "/api/admin/logout" &&
-      method === "POST"
-    ) {
-      return adminLogout();
-    }
-
-
-    /*
-     * --------------------------------------------------------
-     * EVERYTHING BELOW REQUIRES ADMIN AUTHORIZATION
-     * --------------------------------------------------------
-     */
-
+  if (
+    path.startsWith(
+      "/api/admin/"
+    )
+  ) {
     const authorized =
       await isAdmin(
         request,
@@ -1345,13 +1724,6 @@ async function handleApi(
       );
     }
 
-
-    /*
-     * --------------------------------------------------------
-     * CHECK AUTH
-     * --------------------------------------------------------
-     */
-
     if (
       path === "/api/admin/me" &&
       method === "GET"
@@ -1366,12 +1738,7 @@ async function handleApi(
       );
     }
 
-
-    /*
-     * --------------------------------------------------------
-     * STATISTICS
-     * --------------------------------------------------------
-     */
+    /* STATS */
 
     if (
       path === "/api/admin/stats" &&
@@ -1380,15 +1747,11 @@ async function handleApi(
       return adminStats(env);
     }
 
-
-    /*
-     * --------------------------------------------------------
-     * ALL SUBMISSIONS
-     * --------------------------------------------------------
-     */
+    /* SUBMISSIONS */
 
     if (
-      path === "/api/admin/submissions" &&
+      path ===
+        "/api/admin/submissions" &&
       method === "GET"
     ) {
       return adminSubmissions(
@@ -1396,13 +1759,6 @@ async function handleApi(
         env
       );
     }
-
-
-    /*
-     * --------------------------------------------------------
-     * APPROVE SUBMISSION
-     * --------------------------------------------------------
-     */
 
     const approveMatch =
       path.match(
@@ -1418,13 +1774,6 @@ async function handleApi(
         env
       );
     }
-
-
-    /*
-     * --------------------------------------------------------
-     * REJECT SUBMISSION
-     * --------------------------------------------------------
-     */
 
     const rejectMatch =
       path.match(
@@ -1442,42 +1791,129 @@ async function handleApi(
       );
     }
 
-
-    /*
-     * ========================================================
-     * POSTS MANAGEMENT
-     * ========================================================
-     */
-
-
-    /*
-     * ALL POSTS
-     */
+    /* POSTS */
 
     if (
-      path === "/api/admin/posts" &&
+      path ===
+        "/api/admin/posts" &&
       method === "GET"
     ) {
-      return adminPosts(
-        request,
+      return adminPosts(env);
+    }
+
+    if (
+      path ===
+        "/api/admin/posts/all/trash" &&
+      method === "POST"
+    ) {
+      return adminTrashAllPosts(
         env
       );
     }
 
+    /* TRASH */
 
-    /*
-     * SINGLE POST
-     */
+    if (
+      path ===
+        "/api/admin/trash" &&
+      method === "GET"
+    ) {
+      return adminTrash(env);
+    }
+
+    if (
+      path ===
+        "/api/admin/trash/empty" &&
+      method === "DELETE"
+    ) {
+      return adminEmptyTrash(
+        env
+      );
+    }
+
+    const postTrashMatch =
+      path.match(
+        /^\/api\/admin\/posts\/([^/]+)\/trash$/
+      );
+
+    if (
+      postTrashMatch &&
+      method === "POST"
+    ) {
+      return adminTrashPost(
+        postTrashMatch[1],
+        env
+      );
+    }
+
+    const postRestoreMatch =
+      path.match(
+        /^\/api\/admin\/posts\/([^/]+)\/restore$/
+      );
+
+    if (
+      postRestoreMatch &&
+      method === "POST"
+    ) {
+      return adminRestorePost(
+        postRestoreMatch[1],
+        env
+      );
+    }
+
+    const postPermanentDeleteMatch =
+      path.match(
+        /^\/api\/admin\/posts\/([^/]+)\/permanent$/
+      );
+
+    if (
+      postPermanentDeleteMatch &&
+      method === "DELETE"
+    ) {
+      return adminPermanentDeletePost(
+        postPermanentDeleteMatch[1],
+        env
+      );
+    }
+
+    /* REJECTED SUBMISSIONS */
+
+    const rejectedRestoreMatch =
+      path.match(
+        /^\/api\/admin\/submissions\/([^/]+)\/restore$/
+      );
+
+    if (
+      rejectedRestoreMatch &&
+      method === "POST"
+    ) {
+      return adminRestoreRejectedSubmission(
+        rejectedRestoreMatch[1],
+        env
+      );
+    }
+
+    const rejectedPermanentDeleteMatch =
+      path.match(
+        /^\/api\/admin\/submissions\/([^/]+)\/permanent$/
+      );
+
+    if (
+      rejectedPermanentDeleteMatch &&
+      method === "DELETE"
+    ) {
+      return adminPermanentDeleteRejectedSubmission(
+        rejectedPermanentDeleteMatch[1],
+        env
+      );
+    }
+
+    /* ONE POST */
 
     const postMatch =
       path.match(
         /^\/api\/admin\/posts\/([^/]+)$/
       );
-
-
-    /*
-     * GET SINGLE POST
-     */
 
     if (
       postMatch &&
@@ -1489,11 +1925,6 @@ async function handleApi(
       );
     }
 
-
-    /*
-     * UPDATE POST
-     */
-
     if (
       postMatch &&
       method === "PUT"
@@ -1504,29 +1935,7 @@ async function handleApi(
         env
       );
     }
-
-
-    /*
-     * DELETE POST
-     */
-
-    if (
-      postMatch &&
-      method === "DELETE"
-    ) {
-      return adminDeletePost(
-        postMatch[1],
-        env
-      );
-    }
   }
-
-
-  /*
-   * ==========================================================
-   * UNKNOWN API
-   * ==========================================================
-   */
 
   return json(
     {
@@ -1538,27 +1947,22 @@ async function handleApi(
   );
 }
 
-
-/*
- * ============================================================
- * MAIN WORKER
- * ============================================================
- */
+/* ============================================================
+   WORKER
+============================================================ */
 
 export default {
-  async fetch(request, env) {
+  async fetch(
+    request,
+    env
+  ) {
     const url =
       new URL(request.url);
 
-
-    /*
-     * ----------------------------------------------------------
-     * API
-     * ----------------------------------------------------------
-     */
-
     if (
-      url.pathname.startsWith("/api/")
+      url.pathname.startsWith(
+        "/api/"
+      )
     ) {
       try {
         return await handleApi(
@@ -1583,22 +1987,10 @@ export default {
       }
     }
 
-
-    /*
-     * ----------------------------------------------------------
-     * STATIC WEBSITE
-     * ----------------------------------------------------------
-     */
-
     let response =
       await env.ASSETS.fetch(
         request
       );
-
-
-    /*
-     * Главная страница
-     */
 
     if (
       response.status === 404 &&
@@ -1621,7 +2013,6 @@ export default {
           indexRequest
         );
     }
-
 
     return response;
   }
