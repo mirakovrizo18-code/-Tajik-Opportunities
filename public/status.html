@@ -1,501 +1,1755 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0f172a">
 
-    <meta name="theme-color" content="#0f172a">
+  <meta
+    name="description"
+    content="Проверка статуса вашей публикации на Tajik Opportunities."
+  >
 
-    <meta
-        name="description"
-        content="Проверка статуса вашей публикации на Tajik Opportunities."
-    >
+  <title>Проверить статус — Tajik Opportunities</title>
 
-    <title>Проверить статус — Tajik Opportunities</title>
+  <link
+    rel="icon"
+    href="/images/Image_2026_09_05_19_01_30.jpg"
+  >
 
-    <link
-        rel="icon"
-        href="/images/Image_2026_09_05_19_01_30.jpg"
-    >
-
-    <link rel="stylesheet" href="/css/style.css">
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 
 <body>
 
-    <!-- HEADER -->
-    <header class="site-header">
-        <div class="container header-inner">
+<header class="site-header">
+  <div class="container header-inner">
 
-            <a href="/" class="site-logo">
-                <img
-                    src="/images/Image_2026_09_05_19_01_30.jpg"
-                    alt="Tajik Opportunities"
-                >
+    <a class="site-brand" href="/">
+      <img
+        src="/images/Image_2026_09_05_19_01_30.jpg"
+        alt="Tajik Opportunities"
+      >
 
-                <span class="site-logo-text">
-                    Tajik Opportunities
-                </span>
+      <span class="site-brand-text">
+        <span class="site-brand-title">
+          🇹🇯 Tajik Opportunities
+        </span>
+
+        <span class="site-brand-subtitle">
+          Возможности рядом с вами
+        </span>
+      </span>
+    </a>
+
+    <nav
+      class="desktop-nav"
+      aria-label="Основная навигация"
+    >
+      <a href="/">Главная</a>
+      <a href="/add.html">Создать</a>
+      <a
+        href="/status.html"
+        class="active"
+      >
+        Проверить статус
+      </a>
+      <a href="/saved.html">Сохранённые</a>
+      <a href="/messages.html">Сообщения</a>
+      <a href="/notifications.html">Уведомления</a>
+    </nav>
+
+    <div class="header-actions">
+
+      <a
+        class="icon-button"
+        href="/notifications.html"
+        aria-label="Уведомления"
+        title="Уведомления"
+      >
+        🔔
+        <span
+          id="notificationBadge"
+          class="hidden"
+        >0</span>
+      </a>
+
+      <a
+        class="profile-button"
+        href="/profile.html"
+        aria-label="Профиль"
+      >
+        <span id="headerAvatar">👤</span>
+        <span id="headerProfileText">
+          Профиль
+        </span>
+      </a>
+
+      <button
+        class="icon-button mobile-menu-button"
+        id="mobileMenuButton"
+        type="button"
+        aria-label="Меню"
+        aria-expanded="false"
+      >
+        ☰
+      </button>
+
+    </div>
+  </div>
+
+  <nav
+    class="mobile-nav"
+    id="mobileNav"
+    aria-label="Мобильная навигация"
+  >
+    <a href="/">🏠 Главная</a>
+    <a href="/add.html">➕ Создать публикацию</a>
+    <a href="/status.html" class="active">
+      🔎 Проверить статус
+    </a>
+    <a href="/saved.html">🔖 Сохранённые</a>
+    <a href="/messages.html">💬 Сообщения</a>
+    <a href="/notifications.html">
+      🔔 Уведомления
+    </a>
+    <a href="/profile.html">👤 Профиль</a>
+  </nav>
+</header>
+
+
+<main class="page-main">
+
+  <section class="page-hero">
+
+    <div class="container">
+
+      <div class="page-hero-content">
+
+        <span class="eyebrow">
+          🇹🇯 Tajik Opportunities
+        </span>
+
+        <h1>
+          Проверить статус публикации
+        </h1>
+
+        <p>
+          Введите код отслеживания, который вы получили
+          после отправки публикации.
+        </p>
+
+      </div>
+
+    </div>
+
+  </section>
+
+
+  <section class="status-section">
+
+    <div class="container">
+
+      <div class="status-card">
+
+        <div class="status-card-header">
+
+          <div class="status-card-icon">
+            🔎
+          </div>
+
+          <div>
+
+            <h2>
+              Код отслеживания
+            </h2>
+
+            <p>
+              Введите код, чтобы узнать текущий статус.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <form
+          id="statusForm"
+          class="status-form"
+        >
+
+          <div class="form-group">
+
+            <label for="trackingCodeInput">
+              Код отслеживания
+            </label>
+
+            <input
+              id="trackingCodeInput"
+              name="trackingCode"
+              type="text"
+              placeholder="Например: TO-ABC12345"
+              autocomplete="off"
+              maxlength="100"
+              required
+            >
+
+            <small>
+              Код был показан после отправки вашей публикации.
+            </small>
+
+          </div>
+
+
+          <button
+            id="statusSubmit"
+            class="btn btn-primary"
+            type="submit"
+          >
+
+            <span
+              id="buttonText"
+              class="button-text"
+            >
+              Проверить статус
+            </span>
+
+            <span
+              id="buttonLoading"
+              class="button-loading"
+              hidden
+            >
+              Проверяем...
+            </span>
+
+          </button>
+
+        </form>
+
+
+        <div
+          id="statusLoading"
+          class="status-loading"
+          hidden
+        >
+
+          <div class="loading-spinner"></div>
+
+          <p>
+            Проверяем статус публикации...
+          </p>
+
+        </div>
+
+
+        <div
+          id="statusEmpty"
+          class="status-empty"
+          hidden
+        >
+
+          <div class="status-empty-icon">
+            🔍
+          </div>
+
+          <h3>
+            Публикация не найдена
+          </h3>
+
+          <p>
+            Проверьте правильность кода отслеживания
+            и попробуйте ещё раз.
+          </p>
+
+        </div>
+
+
+        <div
+          id="statusError"
+          class="status-error"
+          hidden
+        >
+
+          <div class="status-error-icon">
+            ⚠️
+          </div>
+
+          <h3>
+            Не удалось проверить статус
+          </h3>
+
+          <p id="statusErrorMessage">
+            Произошла ошибка. Попробуйте ещё раз.
+          </p>
+
+          <button
+            id="statusRetry"
+            class="btn btn-secondary"
+            type="button"
+          >
+            Попробовать снова
+          </button>
+
+        </div>
+
+
+        <div
+          id="statusResult"
+          class="status-result"
+          hidden
+        >
+
+          <div class="status-result-header">
+
+            <div
+              id="statusIcon"
+              class="status-result-icon"
+            >
+              📄
+            </div>
+
+            <div>
+
+              <span class="status-result-label">
+                Статус публикации
+              </span>
+
+              <h3 id="statusValue">
+                —
+              </h3>
+
+            </div>
+
+          </div>
+
+
+          <div class="status-result-details">
+
+            <div class="status-detail">
+
+              <span class="status-detail-label">
+                Название
+              </span>
+
+              <strong id="statusTitle">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="status-detail">
+
+              <span class="status-detail-label">
+                Категория
+              </span>
+
+              <strong id="statusCategory">
+                —
+              </strong>
+
+            </div>
+
+
+            <div class="status-detail">
+
+              <span class="status-detail-label">
+                Дата отправки
+              </span>
+
+              <strong id="statusDate">
+                —
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="statusReasonBlock"
+            class="status-reason"
+            hidden
+          >
+
+            <div class="status-reason-title">
+              Причина отклонения
+            </div>
+
+            <p id="statusReason">
+              —
+            </p>
+
+          </div>
+
+
+          <div
+            id="statusPostLink"
+            class="status-post-link"
+            hidden
+          >
+
+            <a
+              id="statusPostUrl"
+              href="#"
+              class="btn btn-primary"
+            >
+              Открыть публикацию
             </a>
 
-            <button
-                class="mobile-menu-button"
-                type="button"
-                aria-label="Открыть меню"
-                aria-expanded="false"
-            >
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+          </div>
 
-            <nav class="site-nav" aria-label="Основная навигация">
-                <a href="/">Главная</a>
-                <a href="/add.html">Добавить публикацию</a>
-                <a href="/status.html" class="active">Проверить статус</a>
-            </nav>
+
+          <button
+            id="statusCheckAgain"
+            class="btn btn-secondary"
+            type="button"
+          >
+            Проверить другой код
+          </button>
 
         </div>
-    </header>
 
+      </div>
 
-    <!-- MAIN -->
-    <main class="page-main">
 
-        <section class="page-hero">
-            <div class="container">
+      <div class="status-info">
 
-                <div class="page-hero-content">
-                    <span class="eyebrow">
-                        Tajik Opportunities
-                    </span>
+        <div class="status-info-item">
 
-                    <h1>
-                        Проверить статус публикации
-                    </h1>
+          <div class="status-info-icon">
+            📝
+          </div>
 
-                    <p>
-                        Введите код отслеживания, который вы получили
-                        после отправки публикации.
-                    </p>
-                </div>
+          <div>
 
-            </div>
-        </section>
+            <h3>
+              Отправили публикацию?
+            </h3>
 
+            <p>
+              Сохраните код отслеживания после отправки.
+              Он понадобится для проверки статуса.
+            </p>
 
-        <!-- STATUS -->
-        <section class="status-section">
-            <div class="container">
-
-                <div class="status-card">
-
-                    <div class="status-card-header">
-                        <div class="status-card-icon">
-                            🔎
-                        </div>
-
-                        <div>
-                            <h2>
-                                Код отслеживания
-                            </h2>
-
-                            <p>
-                                Введите код, чтобы узнать текущий статус.
-                            </p>
-                        </div>
-                    </div>
-
-
-                    <!-- FORM -->
-                    <form id="statusForm" class="status-form">
-
-                        <div class="form-group">
-                            <label for="trackingCodeInput">
-                                Код отслеживания
-                            </label>
-
-                            <input
-                                id="trackingCodeInput"
-                                name="trackingCode"
-                                type="text"
-                                placeholder="Например: TO-ABC12345"
-                                autocomplete="off"
-                                maxlength="100"
-                                required
-                            >
-
-                            <small>
-                                Код был показан после отправки вашей публикации.
-                            </small>
-                        </div>
-
-
-                        <button
-                            id="statusSubmit"
-                            class="btn btn-primary"
-                            type="submit"
-                        >
-                            <span class="button-text">
-                                Проверить статус
-                            </span>
-
-                            <span class="button-loading" hidden>
-                                Проверяем...
-                            </span>
-                        </button>
-
-                    </form>
-
-
-                    <!-- LOADING -->
-                    <div
-                        id="statusLoading"
-                        class="status-loading"
-                        hidden
-                    >
-                        <div class="loading-spinner"></div>
-
-                        <p>
-                            Проверяем статус публикации...
-                        </p>
-                    </div>
-
-
-                    <!-- EMPTY -->
-                    <div
-                        id="statusEmpty"
-                        class="status-empty"
-                        hidden
-                    >
-                        <div class="status-empty-icon">
-                            🔍
-                        </div>
-
-                        <h3>
-                            Публикация не найдена
-                        </h3>
-
-                        <p>
-                            Проверьте правильность кода отслеживания
-                            и попробуйте ещё раз.
-                        </p>
-                    </div>
-
-
-                    <!-- ERROR -->
-                    <div
-                        id="statusError"
-                        class="status-error"
-                        hidden
-                    >
-                        <div class="status-error-icon">
-                            ⚠️
-                        </div>
-
-                        <h3>
-                            Не удалось проверить статус
-                        </h3>
-
-                        <p id="statusErrorMessage">
-                            Произошла ошибка. Попробуйте ещё раз.
-                        </p>
-
-                        <button
-                            id="statusRetry"
-                            class="btn btn-secondary"
-                            type="button"
-                        >
-                            Попробовать снова
-                        </button>
-                    </div>
-
-
-                    <!-- RESULT -->
-                    <div
-                        id="statusResult"
-                        class="status-result"
-                        hidden
-                    >
-
-                        <div class="status-result-header">
-
-                            <div
-                                id="statusIcon"
-                                class="status-result-icon"
-                            >
-                                📄
-                            </div>
-
-                            <div>
-                                <span class="status-result-label">
-                                    Статус публикации
-                                </span>
-
-                                <h3 id="statusValue">
-                                    —
-                                </h3>
-                            </div>
-
-                        </div>
-
-
-                        <div class="status-result-details">
-
-                            <div class="status-detail">
-                                <span class="status-detail-label">
-                                    Название
-                                </span>
-
-                                <strong id="statusTitle">
-                                    —
-                                </strong>
-                            </div>
-
-
-                            <div class="status-detail">
-                                <span class="status-detail-label">
-                                    Категория
-                                </span>
-
-                                <strong id="statusCategory">
-                                    —
-                                </strong>
-                            </div>
-
-
-                            <div class="status-detail">
-                                <span class="status-detail-label">
-                                    Дата отправки
-                                </span>
-
-                                <strong id="statusDate">
-                                    —
-                                </strong>
-                            </div>
-
-                        </div>
-
-
-                        <!-- REJECTION REASON -->
-                        <div
-                            id="statusReasonBlock"
-                            class="status-reason"
-                            hidden
-                        >
-                            <div class="status-reason-title">
-                                Причина отклонения
-                            </div>
-
-                            <p id="statusReason">
-                                —
-                            </p>
-                        </div>
-
-
-                        <!-- APPROVED POST -->
-                        <div
-                            id="statusPostLink"
-                            class="status-post-link"
-                            hidden
-                        >
-                            <a
-                                id="statusPostUrl"
-                                href="#"
-                                class="btn btn-primary"
-                            >
-                                Открыть публикацию
-                            </a>
-                        </div>
-
-
-                        <button
-                            id="statusCheckAgain"
-                            class="btn btn-secondary"
-                            type="button"
-                        >
-                            Проверить другой код
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-                <!-- INFO -->
-                <div class="status-info">
-
-                    <div class="status-info-item">
-                        <div class="status-info-icon">
-                            📝
-                        </div>
-
-                        <div>
-                            <h3>
-                                Отправили публикацию?
-                            </h3>
-
-                            <p>
-                                Сохраните код отслеживания после отправки.
-                                Он понадобится для проверки статуса.
-                            </p>
-                        </div>
-                    </div>
-
-
-                    <div class="status-info-item">
-                        <div class="status-info-icon">
-                            ⏳
-                        </div>
-
-                        <div>
-                            <h3>
-                                Ожидайте проверки
-                            </h3>
-
-                            <p>
-                                Публикации проходят модерацию перед
-                                размещением на сайте.
-                            </p>
-                        </div>
-                    </div>
-
-
-                    <div class="status-info-item">
-                        <div class="status-info-icon">
-                            📢
-                        </div>
-
-                        <div>
-                            <h3>
-                                Публикация одобрена?
-                            </h3>
-
-                            <p>
-                                После одобрения вы сможете открыть
-                                опубликованный материал.
-                            </p>
-                        </div>
-                    </div>
-
-                </div>
-
-            </div>
-        </section>
-
-    </main>
-
-
-    <!-- FOOTER -->
-    <footer class="site-footer">
-        <div class="container">
-
-            <div class="footer-main">
-
-                <div class="footer-brand">
-
-                    <a href="/" class="site-logo">
-                        <img
-                            src="/images/Image_2026_09_05_19_01_30.jpg"
-                            alt="Tajik Opportunities"
-                        >
-
-                        <span class="site-logo-text">
-                            Tajik Opportunities
-                        </span>
-                    </a>
-
-                    <p>
-                        Возможности для Таджикистана:
-                        образование, работа, конкурсы,
-                        программы и полезные инициативы.
-                    </p>
-
-                </div>
-
-
-                <div class="footer-links">
-
-                    <div class="footer-column">
-                        <h3>
-                            Навигация
-                        </h3>
-
-                        <a href="/">
-                            Главная
-                        </a>
-
-                        <a href="/add.html">
-                            Добавить публикацию
-                        </a>
-
-                        <a href="/status.html">
-                            Проверить статус
-                        </a>
-                    </div>
-
-
-                    <div class="footer-column">
-                        <h3>
-                            Сообщество
-                        </h3>
-
-                        <a
-                            href="https://t.me/Tajik_Opportunities"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Telegram-канал
-                        </a>
-
-                        <a
-                            href="https://t.me/Tajik_Opportunities_Group"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Telegram-группа
-                        </a>
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="footer-bottom">
-
-                <p>
-                    © <span id="currentYear"></span>
-                    Tajik Opportunities.
-                    Все права защищены.
-                </p>
-
-                <p>
-                    Сделано для Таджикистана 🇹🇯
-                </p>
-
-            </div>
+          </div>
 
         </div>
-    </footer>
 
 
-    <!-- TOAST -->
-    <div
-        id="toast"
-        class="toast"
-        role="status"
-        aria-live="polite"
-        hidden
-    >
-        <span class="toast-message"></span>
+        <div class="status-info-item">
+
+          <div class="status-info-icon">
+            ⏳
+          </div>
+
+          <div>
+
+            <h3>
+              Ожидайте проверки
+            </h3>
+
+            <p>
+              Публикации проходят модерацию перед
+              размещением на сайте.
+            </p>
+
+          </div>
+
+        </div>
+
+
+        <div class="status-info-item">
+
+          <div class="status-info-icon">
+            📢
+          </div>
+
+          <div>
+
+            <h3>
+              Публикация одобрена?
+            </h3>
+
+            <p>
+              После одобрения вы сможете открыть
+              опубликованный материал.
+            </p>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </section>
+
+</main>
+
+
+<footer class="site-footer">
+
+  <div class="container">
+
+    <div class="footer-main">
+
+      <div class="footer-brand">
+
+        <a
+          href="/"
+          class="site-logo"
+        >
+
+          <img
+            src="/images/Image_2026_09_05_19_01_30.jpg"
+            alt="Tajik Opportunities"
+          >
+
+          <span class="site-logo-text">
+            Tajik Opportunities
+          </span>
+
+        </a>
+
+        <p>
+          Возможности для Таджикистана:
+          образование, работа, конкурсы,
+          программы и полезные инициативы.
+        </p>
+
+      </div>
+
+
+      <div class="footer-links">
+
+        <div class="footer-column">
+
+          <h3>
+            Навигация
+          </h3>
+
+          <a href="/">
+            Главная
+          </a>
+
+          <a href="/add.html">
+            Добавить публикацию
+          </a>
+
+          <a href="/status.html">
+            Проверить статус
+          </a>
+
+          <a href="/saved.html">
+            Сохранённые
+          </a>
+
+        </div>
+
+
+        <div class="footer-column">
+
+          <h3>
+            Сообщество
+          </h3>
+
+          <a
+            href="https://t.me/Tajik_Opportunities"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Telegram-канал
+          </a>
+
+          <a
+            href="https://t.me/Tajik_Opportunities_Group"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Telegram-группа
+          </a>
+
+        </div>
+
+      </div>
+
     </div>
 
 
-    <!-- SCRIPTS -->
-    <script src="/js/app.js"></script>
-    <script src="/js/status.js"></script>
+    <div class="footer-bottom">
+
+      <p>
+        ©
+        <span id="currentYear"></span>
+        Tajik Opportunities.
+        Все права защищены.
+      </p>
+
+      <p>
+        Сделано для Таджикистана 🇹🇯
+      </p>
+
+    </div>
+
+  </div>
+
+</footer>
+
+
+<div
+  id="toast"
+  class="toast"
+  role="status"
+  aria-live="polite"
+  hidden
+>
+  <span class="toast-message"></span>
+</div>
+
+
+<script>
+(() => {
+
+  "use strict";
+
+
+  const $ = (id) =>
+    document.getElementById(id);
+
+
+  let currentPublication = null;
+
+
+  function escapeHtml(value) {
+
+    return String(value ?? "")
+
+      .replaceAll("&", "&amp;")
+
+      .replaceAll("<", "&lt;")
+
+      .replaceAll(">", "&gt;")
+
+      .replaceAll('"', "&quot;")
+
+      .replaceAll("'", "&#039;");
+
+  }
+
+
+  function safeUrl(value) {
+
+    try {
+
+      const url =
+        new URL(
+          String(value || ""),
+          window.location.origin
+        );
+
+
+      if (
+        url.protocol === "http:" ||
+        url.protocol === "https:"
+      ) {
+
+        return url.href;
+
+      }
+
+
+      return "#";
+
+    } catch {
+
+      return "#";
+
+    }
+
+  }
+
+
+  async function api(
+    url,
+    options = {}
+  ) {
+
+    const response =
+      await fetch(
+        url,
+        {
+          credentials: "include",
+
+          ...options,
+
+          headers: {
+
+            ...(options.body
+              ? {
+                  "Content-Type":
+                    "application/json"
+                }
+              : {}),
+
+            ...(options.headers || {})
+
+          }
+
+        }
+      );
+
+
+    let data = {};
+
+
+    try {
+
+      data =
+        await response.json();
+
+    } catch {
+
+      data = {};
+
+    }
+
+
+    if (!response.ok) {
+
+      const error =
+        new Error(
+          data?.message ||
+          data?.error ||
+          `Ошибка ${response.status}`
+        );
+
+
+      error.status =
+        response.status;
+
+
+      throw error;
+
+    }
+
+
+    return data;
+
+  }
+
+
+  function setLoading(loading) {
+
+    const submit =
+      $("statusSubmit");
+
+
+    const text =
+      $("buttonText");
+
+
+    const loader =
+      $("buttonLoading");
+
+
+    if (submit) {
+
+      submit.disabled =
+        loading;
+
+    }
+
+
+    if (text) {
+
+      text.hidden =
+        loading;
+
+    }
+
+
+    if (loader) {
+
+      loader.hidden =
+        !loading;
+
+    }
+
+
+    $("statusLoading")
+      ?.toggleAttribute(
+        "hidden",
+        !loading
+      );
+
+  }
+
+
+  function hideResultStates() {
+
+    [
+      "statusEmpty",
+      "statusError",
+      "statusResult"
+    ]
+      .forEach(
+        (id) => {
+
+          $(id)
+            ?.setAttribute(
+              "hidden",
+              ""
+            );
+
+        }
+      );
+
+  }
+
+
+  function showToast(
+    message,
+    type = "info"
+  ) {
+
+    const toast =
+      $("toast");
+
+
+    if (!toast) return;
+
+
+    const text =
+      toast.querySelector(
+        ".toast-message"
+      );
+
+
+    if (text) {
+
+      text.textContent =
+        message;
+
+    }
+
+
+    toast.className =
+      `toast ${type}`;
+
+
+    toast.hidden =
+      false;
+
+
+    requestAnimationFrame(
+      () => {
+
+        toast.classList.add(
+          "show"
+        );
+
+      }
+    );
+
+
+    clearTimeout(
+      toast._timer
+    );
+
+
+    toast._timer =
+      setTimeout(
+        () => {
+
+          toast.classList.remove(
+            "show"
+          );
+
+
+          setTimeout(
+            () => {
+
+              toast.hidden =
+                true;
+
+            },
+            250
+          );
+
+        },
+        3000
+      );
+
+  }
+
+
+  function formatDate(value) {
+
+    if (!value) {
+
+      return "—";
+
+    }
+
+
+    const date =
+      new Date(value);
+
+
+    if (
+      Number.isNaN(
+        date.getTime()
+      )
+    ) {
+
+      return "—";
+
+    }
+
+
+    return new Intl.DateTimeFormat(
+      "ru-RU",
+      {
+        day: "2-digit",
+        month: "2-digit",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }
+    ).format(date);
+
+  }
+
+
+  function getStatusInfo(
+    value
+  ) {
+
+    const status =
+      String(
+        value || ""
+      )
+        .toLowerCase()
+        .trim();
+
+
+    if (
+      [
+        "approved",
+        "published",
+        "active",
+        "approved_post",
+        "опубликовано",
+        "одобрено"
+      ].includes(status)
+    ) {
+
+      return {
+        text: "Опубликовано",
+        icon: "✅"
+      };
+
+    }
+
+
+    if (
+      [
+        "rejected",
+        "declined",
+        "отклонено"
+      ].includes(status)
+    ) {
+
+      return {
+        text: "Отклонено",
+        icon: "❌"
+      };
+
+    }
+
+
+    if (
+      [
+        "pending",
+        "moderation",
+        "review",
+        "на проверке",
+        "ожидает"
+      ].includes(status)
+    ) {
+
+      return {
+        text: "На проверке",
+        icon: "⏳"
+      };
+
+    }
+
+
+    if (
+      [
+        "draft",
+        "черновик"
+      ].includes(status)
+    ) {
+
+      return {
+        text: "Черновик",
+        icon: "📝"
+      };
+
+    }
+
+
+    return {
+      text:
+        value ||
+        "На проверке",
+      icon: "📄"
+    };
+
+  }
+
+
+  function normalizePublication(
+    data
+  ) {
+
+    const publication =
+      data?.publication ||
+      data?.post ||
+      data?.item ||
+      data?.data ||
+      data;
+
+
+    return {
+
+      id:
+        publication?.id ??
+        publication?.publication_id ??
+        null,
+
+
+      title:
+        publication?.title ||
+        "Без названия",
+
+
+      category:
+        publication?.category ||
+        publication?.category_name ||
+        "Другое",
+
+
+      status:
+        publication?.status ||
+        publication?.moderation_status ||
+        publication?.state ||
+        "pending",
+
+
+      reason:
+        publication?.rejection_reason ||
+        publication?.reason ||
+        publication?.moderation_reason ||
+        publication?.rejected_reason ||
+        "",
+
+
+      tracking_code:
+        publication?.tracking_code ||
+        publication?.trackingCode ||
+        publication?.code ||
+        "",
+
+
+      created_at:
+        publication?.created_at ||
+        publication?.submitted_at ||
+        publication?.date ||
+        "",
+
+
+      published_id:
+        publication?.published_id ||
+        publication?.post_id ||
+        publication?.publication_id ||
+        publication?.id ||
+        null
+
+    };
+
+  }
+
+
+  function renderResult(
+    publication
+  ) {
+
+    currentPublication =
+      publication;
+
+
+    const info =
+      getStatusInfo(
+        publication.status
+      );
+
+
+    $("statusIcon").textContent =
+      info.icon;
+
+
+    $("statusValue").textContent =
+      info.text;
+
+
+    $("statusTitle").textContent =
+      publication.title ||
+      "—";
+
+
+    $("statusCategory").textContent =
+      publication.category ||
+      "—";
+
+
+    $("statusDate").textContent =
+      formatDate(
+        publication.created_at
+      );
+
+
+    const reasonBlock =
+      $("statusReasonBlock");
+
+
+    const reason =
+      publication.reason;
+
+
+    if (reason) {
+
+      $("statusReason").textContent =
+        reason;
+
+
+      reasonBlock?.removeAttribute(
+        "hidden"
+      );
+
+    } else {
+
+      reasonBlock?.setAttribute(
+        "hidden",
+        ""
+      );
+
+    }
+
+
+    const postLink =
+      $("statusPostLink");
+
+
+    const postUrl =
+      $("statusPostUrl");
+
+
+    const status =
+      String(
+        publication.status ||
+        ""
+      )
+        .toLowerCase()
+        .trim();
+
+
+    const approved =
+      [
+        "approved",
+        "published",
+        "active",
+        "approved_post",
+        "опубликовано",
+        "одобрено"
+      ].includes(status);
+
+
+    if (
+      approved &&
+      publication.published_id
+    ) {
+
+      postUrl.href =
+        `/post.html?id=${encodeURIComponent(
+          publication.published_id
+        )}`;
+
+
+      postLink?.removeAttribute(
+        "hidden"
+      );
+
+    } else {
+
+      postLink?.setAttribute(
+        "hidden",
+        ""
+      );
+
+    }
+
+
+    hideResultStates();
+
+
+    $("statusResult")
+      ?.removeAttribute(
+        "hidden"
+      );
+
+  }
+
+
+  async function checkStatus(
+    trackingCode
+  ) {
+
+    const code =
+      String(
+        trackingCode || ""
+      )
+        .trim();
+
+
+    if (!code) {
+
+      showToast(
+        "Введите код отслеживания.",
+        "error"
+      );
+
+      return;
+
+    }
+
+
+    setLoading(true);
+
+
+    hideResultStates();
+
+
+    try {
+
+      /*
+       * Проверка статуса через API.
+       *
+       * Основной вариант:
+       * GET /api/publications?tracking_code=...
+       *
+       * Также пробуем варианты,
+       * чтобы страница была совместима
+       * с разными ответами сервера.
+       */
+
+      const endpoints = [
+
+        `/api/publications?tracking_code=${encodeURIComponent(
+          code
+        )}`,
+
+        `/api/publications?code=${encodeURIComponent(
+          code
+        )}`,
+
+        `/api/status?tracking_code=${encodeURIComponent(
+          code
+        )}`
+
+      ];
+
+
+      let found = null;
+
+
+      for (
+        const endpoint
+        of endpoints
+      ) {
+
+        try {
+
+          const data =
+            await api(
+              endpoint
+            );
+
+
+          let items = [];
+
+
+          if (
+            Array.isArray(data)
+          ) {
+
+            items =
+              data;
+
+          } else if (
+            Array.isArray(
+              data?.publications
+            )
+          ) {
+
+            items =
+              data.publications;
+
+          } else if (
+            Array.isArray(
+              data?.posts
+            )
+          ) {
+
+            items =
+              data.posts;
+
+          } else if (
+            Array.isArray(
+              data?.items
+            )
+          ) {
+
+            items =
+              data.items;
+
+          } else if (
+            Array.isArray(
+              data?.data
+            )
+          ) {
+
+            items =
+              data.data;
+
+          } else {
+
+            const single =
+              data?.publication ||
+              data?.post ||
+              data?.item;
+
+
+            if (single) {
+
+              items =
+                [single];
+
+            }
+
+          }
+
+
+          const matching =
+            items.find(
+              (item) => {
+
+                const normalized =
+                  normalizePublication(
+                    item
+                  );
+
+
+                return (
+                  String(
+                    normalized.tracking_code
+                  ).toLowerCase() ===
+                  code.toLowerCase()
+                );
+
+              }
+            );
+
+
+          if (matching) {
+
+            found =
+              normalizePublication(
+                matching
+              );
+
+            break;
+
+          }
+
+
+          /*
+           * Если сервер вернул одну публикацию
+           * и она уже соответствует запросу.
+           */
+
+          if (
+            items.length === 1
+          ) {
+
+            const normalized =
+              normalizePublication(
+                items[0]
+              );
+
+
+            if (
+              normalized.id !== null
+            ) {
+
+              found =
+                normalized;
+
+              break;
+
+            }
+
+          }
+
+        } catch (error) {
+
+          if (
+            error.status === 404
+          ) {
+
+            continue;
+
+          }
+
+
+          console.debug(
+            "Endpoint статуса недоступен:",
+            endpoint
+          );
+
+        }
+
+      }
+
+
+      if (!found) {
+
+        $("statusEmpty")
+          ?.removeAttribute(
+            "hidden"
+          );
+
+        return;
+
+      }
+
+
+      renderResult(
+        found
+      );
+
+    } catch (error) {
+
+      console.error(
+        "Ошибка проверки статуса:",
+        error
+      );
+
+
+      $("statusErrorMessage")
+        .textContent =
+          error.message ||
+          "Не удалось проверить статус публикации.";
+
+
+      $("statusError")
+        ?.removeAttribute(
+          "hidden"
+        );
+
+    } finally {
+
+      setLoading(false);
+
+    }
+
+  }
+
+
+  function resetForm() {
+
+    currentPublication =
+      null;
+
+
+    hideResultStates();
+
+
+    $("trackingCodeInput")
+      ?.focus();
+
+  }
+
+
+  function setupEvents() {
+
+    $("statusForm")
+      ?.addEventListener(
+        "submit",
+        (event) => {
+
+          event.preventDefault();
+
+
+          checkStatus(
+            $("trackingCodeInput")
+              ?.value
+          );
+
+        }
+      );
+
+
+    $("statusRetry")
+      ?.addEventListener(
+        "click",
+        () => {
+
+          resetForm();
+
+        }
+      );
+
+
+    $("statusCheckAgain")
+      ?.addEventListener(
+        "click",
+        () => {
+
+          resetForm();
+
+        }
+      );
+
+
+    $("trackingCodeInput")
+      ?.addEventListener(
+        "input",
+        (event) => {
+
+          event.target.value =
+            event.target.value.trimStart();
+
+        }
+      );
+
+
+    const mobileButton =
+      $("mobileMenuButton");
+
+
+    const mobileNav =
+      $("mobileNav");
+
+
+    mobileButton
+      ?.addEventListener(
+        "click",
+        () => {
+
+          const open =
+            mobileNav?.classList.toggle(
+              "open"
+            );
+
+
+          mobileButton.setAttribute(
+            "aria-expanded",
+            String(Boolean(open))
+          );
+
+        }
+      );
+
+
+    const year =
+      $("currentYear");
+
+
+    if (year) {
+
+      year.textContent =
+        new Date().getFullYear();
+
+    }
+
+  }
+
+
+  async function updateNotifications() {
+
+    const badge =
+      $("notificationBadge");
+
+
+    if (!badge) return;
+
+
+    try {
+
+      const data =
+        await api(
+          "/api/notifications"
+        );
+
+
+      const notifications =
+        Array.isArray(data)
+          ? data
+          : Array.isArray(
+              data?.notifications
+            )
+            ? data.notifications
+            : Array.isArray(
+                data?.items
+              )
+              ? data.items
+              : Array.isArray(
+                  data?.data
+                )
+                ? data.data
+                : [];
+
+
+      const unread =
+        notifications.filter(
+          (item) =>
+            !(
+              item.read ||
+              item.is_read ||
+              item.read_at
+            )
+        ).length;
+
+
+      if (
+        unread > 0
+      ) {
+
+        badge.textContent =
+          unread > 99
+            ? "99+"
+            : String(unread);
+
+
+        badge.classList.remove(
+          "hidden"
+        );
+
+      } else {
+
+        badge.classList.add(
+          "hidden"
+        );
+
+      }
+
+    } catch {
+
+      badge.classList.add(
+        "hidden"
+      );
+
+    }
+
+  }
+
+
+  function loadCodeFromUrl() {
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+
+    const code =
+      params.get("code") ||
+      params.get("tracking_code") ||
+      params.get("tracking");
+
+
+    if (!code) {
+
+      return;
+
+    }
+
+
+    const input =
+      $("trackingCodeInput");
+
+
+    if (input) {
+
+      input.value =
+        code;
+
+    }
+
+
+    checkStatus(
+      code
+    );
+
+  }
+
+
+  function init() {
+
+    setupEvents();
+
+    updateNotifications();
+
+    loadCodeFromUrl();
+
+  }
+
+
+  window.TajikOpportunitiesStatus = {
+
+    check(code) {
+
+      return checkStatus(
+        code
+      );
+
+    },
+
+    reset() {
+
+      resetForm();
+
+    },
+
+    getCurrent() {
+
+      return currentPublication;
+
+    }
+
+  };
+
+
+  init();
+
+})();
+</script>
 
 </body>
-  </html>
+</html>
