@@ -1,24 +1,16 @@
-/* ============================================================
-   TAJIK OPPORTUNITIES
-   Homepage publications
-   Professional publication experience
-   ============================================================ */
-
 (() => {
   "use strict";
 
-  const API_URL = "/api/posts";
+  const API_URL = "/api/publications";
 
   let allPosts = [];
   let filteredPosts = [];
 
-  let currentCategory = "all";
+  let currentCategory = "";
   let currentSearch = "";
   let currentSort = "newest";
 
-  /* ==========================================================
-     DOM
-     ========================================================== */
+  const PREVIEW_LENGTH = 220;
 
   const searchInput =
     document.getElementById("searchInput");
@@ -27,7 +19,7 @@
     document.getElementById("clearSearch");
 
   const categoryButtons =
-    document.querySelectorAll(".category-chip");
+    document.querySelectorAll("[data-category]");
 
   const sortSelect =
     document.getElementById("sortSelect");
@@ -56,16 +48,6 @@
   const retryButton =
     document.getElementById("retryButton");
 
-  /* ==========================================================
-     CONSTANTS
-     ========================================================== */
-
-  const PREVIEW_LENGTH = 220;
-
-  /* ==========================================================
-     HELPERS
-     ========================================================== */
-
   function escapeHtml(value) {
     return String(value ?? "")
       .replace(/&/g, "&amp;")
@@ -86,54 +68,17 @@
   function formatContent(value) {
     const text = normalizeText(value);
 
-    if (!text) {
-      return "";
-    }
+    if (!text) return "";
 
     return escapeHtml(text)
       .replace(/\n{3,}/g, "\n\n")
       .replace(/\n/g, "<br>");
   }
 
-  function formatDate(value) {
-    if (!value) {
-      return "";
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-
-    return new Intl.DateTimeFormat("ru-RU", {
-      day: "numeric",
-      month: "long",
-      year: "numeric"
-    }).format(date);
-  }
-
-  function formatDateTime(value) {
-    if (!value) {
-      return "";
-    }
-
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return "";
-    }
-
-    return new Intl.DateTimeFormat("ru-RU", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    }).format(date);
-  }
-
-  function truncateText(value, maxLength = PREVIEW_LENGTH) {
+  function truncateText(
+    value,
+    maxLength = PREVIEW_LENGTH
+  ) {
     const text = normalizeText(value);
 
     if (text.length <= maxLength) {
@@ -157,6 +102,52 @@
     return shortened.trim() + "…";
   }
 
+  function formatDate(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat(
+      "ru-RU",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric"
+      }
+    ).format(date);
+  }
+
+  function formatDateTime(value) {
+    if (!value) return "";
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat(
+      "ru-RU",
+      {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      }
+    ).format(date);
+  }
+
+  function formatNumber(value) {
+    return new Intl.NumberFormat(
+      "ru-RU"
+    ).format(Number(value || 0));
+  }
+
   function getCategoryIcon(category) {
     const icons = {
       "Новости": "📰",
@@ -167,6 +158,13 @@
       "Стажировки": "🚀",
       "Мероприятия": "📅",
       "Волонтёрство": "🤝",
+      "Возможности": "🎁",
+      "Объявления": "📢",
+      "Услуги": "🤝",
+      "Идеи и проекты": "💡",
+      "Стартапы": "🚀",
+      "Полезное": "📚",
+      "Товары": "🛍️",
       "Другое": "✨"
     };
 
@@ -174,36 +172,19 @@
   }
 
   function getCategoryClass(category) {
-    const classes = {
-      "Новости": "news",
-      "Вакансии": "jobs",
-      "Образование": "education",
-      "Гранты": "grants",
-      "Конкурсы": "competitions",
-      "Стажировки": "internships",
-      "Мероприятия": "events",
-      "Волонтёрство": "volunteering",
-      "Другое": "other"
-    };
-
-    return classes[category] || "other";
+    return String(category || "other")
+      .toLowerCase()
+      .replace(/[^\p{L}\p{N}]+/gu, "-")
+      .replace(/^-+|-+$/g, "") || "other";
   }
 
   function showElement(element) {
-    if (!element) return;
-
-    element.classList.remove("hidden");
+    element?.classList.remove("hidden");
   }
 
   function hideElement(element) {
-    if (!element) return;
-
-    element.classList.add("hidden");
+    element?.classList.add("hidden");
   }
-
-  /* ==========================================================
-     LOADING / ERROR / EMPTY
-     ========================================================== */
 
   function showLoading() {
     showElement(loadingState);
@@ -213,12 +194,7 @@
     hideElement(postsGrid);
   }
 
-  function hideLoading() {
-    hideElement(loadingState);
-    showElement(postsGrid);
-  }
-
-  function showError() {
+  function showError(message) {
     hideElement(loadingState);
     hideElement(emptyState);
     hideElement(postsGrid);
@@ -227,6 +203,7 @@
 
     if (resultsInfo) {
       resultsInfo.textContent =
+        message ||
         "Не удалось загрузить публикации.";
     }
   }
@@ -239,21 +216,103 @@
     showElement(postsGrid);
   }
 
-  /* ==========================================================
-     FETCH POSTS
-     ========================================================== */
+  function normalizePost(post) {
+    return {
+      ...post,
+
+      id:
+        post.id ??
+        post.publication_id ??
+        post.post_id,
+
+      title:
+        post.title ||
+        post.name ||
+        "Без заголовка",
+
+      content:
+        post.content ||
+        post.description ||
+        post.text ||
+        "",
+
+      category:
+        post.category ||
+        post.type ||
+        "Другое",
+
+      author_name:
+        post.author_name ||
+        post.user_name ||
+        post.name_author ||
+        "",
+
+      author_username:
+        post.author_username ||
+        post.username ||
+        "",
+
+      published_at:
+        post.published_at ||
+        post.created_at ||
+        post.date ||
+        null,
+
+      image_url:
+        post.image_url ||
+        post.cover_url ||
+        "",
+
+      link_url:
+        post.link_url ||
+        post.source_url ||
+        "",
+
+      views_count:
+        post.views_count ??
+        post.views ??
+        0,
+
+      likes_count:
+        post.likes_count ??
+        post.likes ??
+        0,
+
+      comments_count:
+        post.comments_count ??
+        post.comments ??
+        0,
+
+      shares_count:
+        post.shares_count ??
+        post.shares ??
+        0,
+
+      saves_count:
+        post.saves_count ??
+        post.saves ??
+        0
+    };
+  }
 
   async function loadPosts() {
     showLoading();
 
     try {
-      const response = await fetch(API_URL, {
-        method: "GET",
-        headers: {
-          "Accept": "application/json"
-        },
-        cache: "no-store"
-      });
+      const response =
+        await fetch(
+          API_URL,
+          {
+            method: "GET",
+            headers: {
+              Accept:
+                "application/json"
+            },
+            credentials:
+              "same-origin",
+            cache: "no-store"
+          }
+        );
 
       if (!response.ok) {
         throw new Error(
@@ -264,34 +323,35 @@
       const data =
         await response.json();
 
-      if (
-        !data ||
-        !Array.isArray(data.posts)
-      ) {
-        throw new Error(
-          "Некорректный ответ API."
-        );
-      }
+      const posts =
+        Array.isArray(data)
+          ? data
+          : Array.isArray(data?.posts)
+            ? data.posts
+            : Array.isArray(data?.publications)
+              ? data.publications
+              : Array.isArray(data?.items)
+                ? data.items
+                : [];
 
-      allPosts = data.posts;
+      allPosts =
+        posts.map(normalizePost);
 
-      hideLoading();
+      hideElement(loadingState);
 
       applyFilters();
 
     } catch (error) {
       console.error(
-        "Failed to load posts:",
+        "Failed to load publications:",
         error
       );
 
-      showError();
+      showError(
+        "Не удалось загрузить публикации. Попробуйте ещё раз."
+      );
     }
   }
-
-  /* ==========================================================
-     FILTERS
-     ========================================================== */
 
   function applyFilters() {
     const search =
@@ -300,13 +360,16 @@
         .toLowerCase();
 
     filteredPosts =
-      allPosts.filter((post) => {
-
-        const categoryMatches =
-          currentCategory === "all" ||
+      allPosts.filter(post => {
+        const category =
           String(
             post.category || ""
-          ) === currentCategory;
+          ).trim();
+
+        const categoryMatches =
+          !currentCategory ||
+          currentCategory === "all" ||
+          category === currentCategory;
 
         if (!categoryMatches) {
           return false;
@@ -320,7 +383,14 @@
           post.title,
           post.content,
           post.category,
-          post.author_name
+          post.author_name,
+          post.author_username,
+          post.country,
+          post.city,
+          post.location,
+          ...(Array.isArray(post.tags)
+            ? post.tags
+            : [])
         ]
           .filter(Boolean)
           .join(" ")
@@ -332,47 +402,81 @@
       });
 
     sortPosts();
-
     renderPosts();
     updateResultsInfo();
     updateFilterButtons();
   }
 
-  /* ==========================================================
-     SORT
-     ========================================================== */
-
   function sortPosts() {
-    filteredPosts.sort((a, b) => {
+    filteredPosts.sort(
+      (a, b) => {
+        if (
+          currentSort ===
+          "popular"
+        ) {
+          return (
+            Number(
+              b.views_count || 0
+            ) -
+            Number(
+              a.views_count || 0
+            )
+          );
+        }
 
-      const dateA =
-        new Date(
-          a.published_at || 0
-        ).getTime();
+        if (
+          currentSort ===
+          "likes"
+        ) {
+          return (
+            Number(
+              b.likes_count || 0
+            ) -
+            Number(
+              a.likes_count || 0
+            )
+          );
+        }
 
-      const dateB =
-        new Date(
-          b.published_at || 0
-        ).getTime();
+        if (
+          currentSort ===
+          "oldest"
+        ) {
+          return (
+            getTime(
+              a.published_at
+            ) -
+            getTime(
+              b.published_at
+            )
+          );
+        }
 
-      if (
-        currentSort === "oldest"
-      ) {
-        return dateA - dateB;
+        return (
+          getTime(
+            b.published_at
+          ) -
+          getTime(
+            a.published_at
+          )
+        );
       }
-
-      return dateB - dateA;
-    });
+    );
   }
 
-  /* ==========================================================
-     RENDER POSTS
-     ========================================================== */
+  function getTime(value) {
+    if (!value) return 0;
+
+    const time =
+      new Date(value).getTime();
+
+    return Number.isNaN(time)
+      ? 0
+      : time;
+  }
 
   function renderPosts() {
-    if (!postsGrid) {
-      return;
-    }
+    if (!postsGrid) return;
 
     postsGrid.innerHTML = "";
 
@@ -387,133 +491,176 @@
     const fragment =
       document.createDocumentFragment();
 
-    filteredPosts.forEach((post) => {
-      fragment.appendChild(
-        createPostCard(post)
-      );
-    });
+    filteredPosts.forEach(
+      post => {
+        fragment.appendChild(
+          createPostCard(post)
+        );
+      }
+    );
 
     postsGrid.appendChild(
       fragment
     );
   }
 
-  /* ==========================================================
-     POST CARD
-     ========================================================== */
-
   function createPostCard(post) {
-
     const article =
-      document.createElement("article");
+      document.createElement(
+        "article"
+      );
 
     article.className =
       "post-card";
 
-    const rawCategory =
-      String(
-        post.category || "Другое"
-      );
+    if (post.id !== undefined) {
+      article.dataset.postId =
+        post.id;
+    }
 
     const category =
-      escapeHtml(
-        rawCategory
+      String(
+        post.category ||
+        "Другое"
       );
 
     const categoryIcon =
       getCategoryIcon(
-        rawCategory
+        category
       );
 
     const categoryClass =
       getCategoryClass(
-        rawCategory
+        category
       );
 
     const title =
       escapeHtml(
-        post.title ||
-        "Без заголовка"
+        post.title
       );
 
     const rawContent =
       normalizeText(
-        post.content || ""
+        post.content
       );
 
     const preview =
       truncateText(
-        rawContent,
-        PREVIEW_LENGTH
-      );
-
-    const shortContent =
-      escapeHtml(
-        preview
-      );
-
-    const fullContent =
-      formatContent(
         rawContent
       );
-
-    const date =
-      escapeHtml(
-        formatDate(
-          post.published_at
-        )
-      );
-
-    const dateTime =
-      escapeHtml(
-        formatDateTime(
-          post.published_at
-        )
-      );
-
-    const imageUrl =
-      typeof post.image_url === "string"
-        ? post.image_url.trim()
-        : "";
-
-    const linkUrl =
-      typeof post.link_url === "string"
-        ? post.link_url.trim()
-        : "";
 
     const hasLongContent =
       rawContent.length >
       PREVIEW_LENGTH;
 
-    /* --------------------------------------------------------
-       IMAGE
-       -------------------------------------------------------- */
+    const date =
+      formatDate(
+        post.published_at
+      );
 
-    let imageHtml = "";
+    const dateTime =
+      formatDateTime(
+        post.published_at
+      );
 
-    if (imageUrl) {
+    const imageUrl =
+      String(
+        post.image_url || ""
+      ).trim();
 
-      imageHtml = `
-        <div class="post-card-image">
+    const linkUrl =
+      String(
+        post.link_url || ""
+      ).trim();
 
-          <img
-            src="${escapeHtml(imageUrl)}"
-            alt="${title}"
-            loading="lazy"
-            decoding="async"
-            onerror="
-              this.parentElement.classList.add('image-error');
-              this.style.display='none';
-            "
-          >
+    const authorName =
+      String(
+        post.author_name || ""
+      ).trim();
 
-        </div>
-      `;
-    }
+    const authorUsername =
+      String(
+        post.author_username || ""
+      )
+        .replace(/^@/, "")
+        .trim();
 
-    /* --------------------------------------------------------
-       DETAILS BUTTON
-       -------------------------------------------------------- */
+    const authorHtml =
+      authorName ||
+      authorUsername
+        ? `
+          <div class="post-author">
+            <div class="post-author-avatar">
+              ${
+                post.author_avatar
+                  ? `
+                    <img
+                      src="${escapeHtml(
+                        post.author_avatar
+                      )}"
+                      alt=""
+                      loading="lazy"
+                    >
+                  `
+                  : "👤"
+              }
+            </div>
+
+            <div class="post-author-info">
+
+              ${
+                authorName
+                  ? `
+                    <strong>
+                      ${escapeHtml(
+                        authorName
+                      )}
+                    </strong>
+                  `
+                  : ""
+              }
+
+              ${
+                authorUsername
+                  ? `
+                    <span>
+                      @${escapeHtml(
+                        authorUsername
+                      )}
+                    </span>
+                  `
+                  : ""
+              }
+
+            </div>
+          </div>
+        `
+        : "";
+
+    const imageHtml =
+      imageUrl &&
+      /^https?:\/\//i.test(
+        imageUrl
+      )
+        ? `
+          <div class="post-card-image">
+
+            <img
+              src="${escapeHtml(
+                imageUrl
+              )}"
+              alt="${title}"
+              loading="lazy"
+              decoding="async"
+              onerror="
+                this.parentElement.classList.add('image-error');
+                this.style.display='none';
+              "
+            >
+
+          </div>
+        `
+        : "";
 
     const moreButtonHtml =
       hasLongContent
@@ -522,10 +669,10 @@
             type="button"
             class="post-card-link post-card-more"
             aria-expanded="false"
-            aria-label="Показать полное описание публикации"
           >
-
-            <span class="post-card-more-text">
+            <span
+              class="post-card-more-text"
+            >
               Подробнее
             </span>
 
@@ -535,26 +682,24 @@
             >
               ↓
             </span>
-
           </button>
         `
         : "";
 
-    /* --------------------------------------------------------
-       SOURCE BUTTON
-       -------------------------------------------------------- */
-
     const sourceButtonHtml =
-      linkUrl
+      linkUrl &&
+      /^https?:\/\//i.test(
+        linkUrl
+      )
         ? `
           <a
-            href="${escapeHtml(linkUrl)}"
+            href="${escapeHtml(
+              linkUrl
+            )}"
             target="_blank"
             rel="noopener noreferrer"
             class="post-card-link post-card-source"
-            aria-label="Открыть источник публикации"
           >
-
             <span>
               Перейти к источнику
             </span>
@@ -562,14 +707,14 @@
             <span aria-hidden="true">
               ↗
             </span>
-
           </a>
         `
         : "";
 
-    /* --------------------------------------------------------
-       CARD
-       -------------------------------------------------------- */
+    const postId =
+      escapeHtml(
+        post.id ?? ""
+      );
 
     article.innerHTML = `
       ${imageHtml}
@@ -579,7 +724,9 @@
         <div class="post-card-meta">
 
           <span
-            class="post-category post-category-${categoryClass}"
+            class="post-category post-category-${escapeHtml(
+              categoryClass
+            )}"
           >
             <span
               class="post-category-icon"
@@ -589,7 +736,9 @@
             </span>
 
             <span>
-              ${category}
+              ${escapeHtml(
+                category
+              )}
             </span>
           </span>
 
@@ -598,11 +747,16 @@
               ? `
                 <time
                   datetime="${escapeHtml(
-                    post.published_at || ""
+                    post.published_at ||
+                    ""
                   )}"
-                  title="${dateTime}"
+                  title="${escapeHtml(
+                    dateTime
+                  )}"
                 >
-                  ${date}
+                  ${escapeHtml(
+                    date
+                  )}
                 </time>
               `
               : ""
@@ -610,14 +764,22 @@
 
         </div>
 
-        <h3 class="post-card-title">
+        ${authorHtml}
+
+        <h3
+          class="post-card-title"
+        >
           ${title}
         </h3>
 
         <div class="post-card-text">
 
-          <p class="post-card-excerpt">
-            ${shortContent}
+          <p
+            class="post-card-excerpt"
+          >
+            ${escapeHtml(
+              preview
+            )}
           </p>
 
           ${
@@ -630,7 +792,9 @@
                   <div
                     class="post-card-full-inner"
                   >
-                    ${fullContent}
+                    ${formatContent(
+                      rawContent
+                    )}
                   </div>
                 </div>
               `
@@ -640,17 +804,159 @@
         </div>
 
         ${
+          post.country ||
+          post.city ||
+          post.location
+            ? `
+              <div class="post-location">
+
+                ${
+                  post.country
+                    ? `
+                      <span>
+                        🌍
+                        ${escapeHtml(
+                          post.country
+                        )}
+                      </span>
+                    `
+                    : ""
+                }
+
+                ${
+                  post.city
+                    ? `
+                      <span>
+                        📍
+                        ${escapeHtml(
+                          post.city
+                        )}
+                      </span>
+                    `
+                    : ""
+                }
+
+              </div>
+            `
+            : ""
+        }
+
+        <div
+          class="post-card-stats"
+        >
+
+          <span>
+            👁️
+            ${formatNumber(
+              post.views_count
+            )}
+          </span>
+
+          <span>
+            ❤️
+            ${formatNumber(
+              post.likes_count
+            )}
+          </span>
+
+          <span>
+            💬
+            ${formatNumber(
+              post.comments_count
+            )}
+          </span>
+
+          <span>
+            📤
+            ${formatNumber(
+              post.shares_count
+            )}
+          </span>
+
+          <span>
+            🔖
+            ${formatNumber(
+              post.saves_count
+            )}
+          </span>
+
+        </div>
+
+        <div
+          class="post-card-interactions"
+        >
+
+          <button
+            type="button"
+            class="post-interaction"
+            data-action="reaction"
+            data-publication-id="${postId}"
+            data-reaction="like"
+            data-reaction-publication="${postId}"
+          >
+            ❤️
+            <span>
+              Нравится
+            </span>
+          </button>
+
+          <a
+            href="/post.html?id=${encodeURIComponent(
+              post.id ?? ""
+            )}"
+            class="post-interaction"
+          >
+            💬
+            <span>
+              Комментарии
+            </span>
+          </a>
+
+          <button
+            type="button"
+            class="post-interaction"
+            data-action="share"
+            data-url="${escapeHtml(
+              `${location.origin}/post.html?id=${encodeURIComponent(
+                post.id ?? ""
+              )}`
+            )}"
+            data-title="${title}"
+          >
+            📤
+            <span>
+              Поделиться
+            </span>
+          </button>
+
+          <button
+            type="button"
+            class="post-interaction"
+            data-action="save"
+            data-publication-id="${postId}"
+            data-save="${postId}"
+          >
+            🔖
+            <span>
+              Сохранить
+            </span>
+          </button>
+
+        </div>
+
+        ${
           moreButtonHtml ||
           sourceButtonHtml
             ? `
-              <div class="post-card-footer">
+              <div
+                class="post-card-footer"
+              >
 
-                <div class="post-card-actions">
-
+                <div
+                  class="post-card-actions"
+                >
                   ${moreButtonHtml}
-
                   ${sourceButtonHtml}
-
                 </div>
 
               </div>
@@ -661,172 +967,228 @@
       </div>
     `;
 
-    /* ========================================================
-       EXPAND / COLLAPSE
-       ======================================================== */
-
     const moreButton =
       article.querySelector(
         ".post-card-more"
       );
 
-    const fullContentElement =
+    const fullContent =
       article.querySelector(
         ".post-card-full-content"
       );
 
     if (
       moreButton &&
-      fullContentElement
+      fullContent
     ) {
-
       moreButton.addEventListener(
         "click",
         () => {
-
-          const isOpen =
+          const open =
             moreButton.getAttribute(
               "aria-expanded"
             ) === "true";
 
-          if (isOpen) {
+          moreButton.setAttribute(
+            "aria-expanded",
+            String(!open)
+          );
 
-            fullContentElement.classList.add(
-              "hidden"
+          fullContent.classList.toggle(
+            "hidden",
+            open
+          );
+
+          fullContent.setAttribute(
+            "aria-hidden",
+            String(open)
+          );
+
+          const text =
+            moreButton.querySelector(
+              ".post-card-more-text"
             );
 
-            fullContentElement.setAttribute(
-              "aria-hidden",
-              "true"
+          const icon =
+            moreButton.querySelector(
+              ".post-card-more-icon"
             );
 
-            moreButton.setAttribute(
-              "aria-expanded",
-              "false"
-            );
+          if (text) {
+            text.textContent =
+              open
+                ? "Подробнее"
+                : "Скрыть";
+          }
 
-            const text =
-              moreButton.querySelector(
-                ".post-card-more-text"
-              );
-
-            const icon =
-              moreButton.querySelector(
-                ".post-card-more-icon"
-              );
-
-            if (text) {
-              text.textContent =
-                "Подробнее";
-            }
-
-            if (icon) {
-              icon.textContent =
-                "↓";
-            }
-
-          } else {
-
-            fullContentElement.classList.remove(
-              "hidden"
-            );
-
-            fullContentElement.setAttribute(
-              "aria-hidden",
-              "false"
-            );
-
-            moreButton.setAttribute(
-              "aria-expanded",
-              "true"
-            );
-
-            const text =
-              moreButton.querySelector(
-                ".post-card-more-text"
-              );
-
-            const icon =
-              moreButton.querySelector(
-                ".post-card-more-icon"
-              );
-
-            if (text) {
-              text.textContent =
-                "Скрыть";
-            }
-
-            if (icon) {
-              icon.textContent =
-                "↑";
-            }
+          if (icon) {
+            icon.textContent =
+              open
+                ? "↓"
+                : "↑";
           }
         }
       );
     }
 
+    const reactionButton =
+      article.querySelector(
+        '[data-action="reaction"]'
+      );
+
+    if (reactionButton) {
+      reactionButton.addEventListener(
+        "click",
+        async () => {
+          const id =
+            reactionButton.getAttribute(
+              "data-publication-id"
+            );
+
+          if (
+            !id ||
+            !window.TajikOpportunities
+          ) {
+            return;
+          }
+
+          reactionButton.disabled =
+            true;
+
+          try {
+            await window.TajikOpportunities.react(
+              id,
+              "like"
+            );
+
+            reactionButton.classList.add(
+              "active"
+            );
+          } finally {
+            reactionButton.disabled =
+              false;
+          }
+        }
+      );
+    }
+
+    const saveButton =
+      article.querySelector(
+        '[data-action="save"]'
+      );
+
+    if (saveButton) {
+      saveButton.addEventListener(
+        "click",
+        async () => {
+          const id =
+            saveButton.getAttribute(
+              "data-publication-id"
+            );
+
+          if (
+            !id ||
+            !window.TajikOpportunities
+          ) {
+            return;
+          }
+
+          saveButton.disabled =
+            true;
+
+          try {
+            const result =
+              await window.TajikOpportunities.toggleSave(
+                id
+              );
+
+            if (
+              result?.saved !==
+              undefined
+            ) {
+              saveButton.classList.toggle(
+                "active",
+                Boolean(
+                  result.saved
+                )
+              );
+            }
+          } finally {
+            saveButton.disabled =
+              false;
+          }
+        }
+      );
+    }
+
+    const shareButton =
+      article.querySelector(
+        '[data-action="share"]'
+      );
+
+    if (shareButton) {
+      shareButton.addEventListener(
+        "click",
+        async () => {
+          if (
+            window.TajikOpportunities
+              ?.share
+          ) {
+            await window.TajikOpportunities.share(
+              shareButton.dataset.url,
+              post.title,
+              ""
+            );
+          }
+        }
+      );
+    }
+
+    if (post.id) {
+      window.TajikOpportunities
+        ?.addView?.(post.id);
+    }
+
     return article;
   }
 
-  /* ==========================================================
-     RESULTS INFO
-     ========================================================== */
-
   function updateResultsInfo() {
-    if (!resultsInfo) {
-      return;
-    }
+    if (!resultsInfo) return;
 
     const count =
       filteredPosts.length;
 
     if (count === 0) {
-
       resultsInfo.textContent =
         "Публикаций не найдено.";
-
     } else if (count === 1) {
-
       resultsInfo.textContent =
         "Найдена 1 публикация.";
-
     } else if (
       count >= 2 &&
       count <= 4
     ) {
-
       resultsInfo.textContent =
         `Найдено ${count} публикации.`;
-
     } else {
-
       resultsInfo.textContent =
         `Найдено ${count} публикаций.`;
     }
 
     const filtersActive =
-      currentCategory !== "all" ||
+      Boolean(currentCategory) ||
       currentSearch.trim() !== "" ||
       currentSort !== "newest";
 
-    if (resetFilters) {
-
-      resetFilters.classList.toggle(
-        "hidden",
-        !filtersActive
-      );
-    }
+    resetFilters?.classList.toggle(
+      "hidden",
+      !filtersActive
+    );
   }
 
-  /* ==========================================================
-     CATEGORY BUTTONS
-     ========================================================== */
-
   function updateFilterButtons() {
-
     categoryButtons.forEach(
-      (button) => {
-
+      button => {
         const category =
           button.getAttribute(
             "data-category"
@@ -835,63 +1197,42 @@
         button.classList.toggle(
           "active",
           category ===
-            currentCategory
+            (currentCategory || "all")
         );
       }
     );
   }
 
-  /* ==========================================================
-     SEARCH
-     ========================================================== */
-
   function handleSearch() {
-
     currentSearch =
-      searchInput
-        ? searchInput.value
-        : "";
+      searchInput?.value || "";
 
-    if (clearSearch) {
-
-      clearSearch.classList.toggle(
-        "hidden",
-        currentSearch.length === 0
-      );
-    }
+    clearSearch?.classList.toggle(
+      "hidden",
+      !currentSearch
+    );
 
     applyFilters();
   }
 
   function clearSearchInput() {
-
     if (searchInput) {
       searchInput.value = "";
     }
 
     currentSearch = "";
 
-    if (clearSearch) {
-
-      clearSearch.classList.add(
-        "hidden"
-      );
-    }
+    clearSearch?.classList.add(
+      "hidden"
+    );
 
     applyFilters();
 
-    if (searchInput) {
-      searchInput.focus();
-    }
+    searchInput?.focus();
   }
 
-  /* ==========================================================
-     RESET FILTERS
-     ========================================================== */
-
   function resetAllFilters() {
-
-    currentCategory = "all";
+    currentCategory = "";
     currentSearch = "";
     currentSort = "newest";
 
@@ -900,52 +1241,44 @@
     }
 
     if (sortSelect) {
-      sortSelect.value = "newest";
+      sortSelect.value =
+        "newest";
     }
 
-    if (clearSearch) {
-
-      clearSearch.classList.add(
-        "hidden"
-      );
-    }
+    clearSearch?.classList.add(
+      "hidden"
+    );
 
     applyFilters();
   }
 
-  /* ==========================================================
-     EVENTS
-     ========================================================== */
-
   function initEvents() {
+    searchInput?.addEventListener(
+      "input",
+      handleSearch
+    );
 
-    if (searchInput) {
-
-      searchInput.addEventListener(
-        "input",
-        handleSearch
-      );
-    }
-
-    if (clearSearch) {
-
-      clearSearch.addEventListener(
-        "click",
-        clearSearchInput
-      );
-    }
+    clearSearch?.addEventListener(
+      "click",
+      clearSearchInput
+    );
 
     categoryButtons.forEach(
-      (button) => {
-
+      button => {
         button.addEventListener(
           "click",
           () => {
-
             currentCategory =
               button.getAttribute(
                 "data-category"
-              ) || "all";
+              ) || "";
+
+            if (
+              currentCategory ===
+              "all"
+            ) {
+              currentCategory = "";
+            }
 
             applyFilters();
           }
@@ -953,52 +1286,75 @@
       }
     );
 
-    if (sortSelect) {
+    sortSelect?.addEventListener(
+      "change",
+      () => {
+        currentSort =
+          sortSelect.value ||
+          "newest";
 
-      sortSelect.addEventListener(
-        "change",
-        () => {
+        applyFilters();
+      }
+    );
 
-          currentSort =
-            sortSelect.value ||
-            "newest";
+    resetFilters?.addEventListener(
+      "click",
+      resetAllFilters
+    );
 
-          applyFilters();
+    emptyReset?.addEventListener(
+      "click",
+      resetAllFilters
+    );
+
+    retryButton?.addEventListener(
+      "click",
+      loadPosts
+    );
+
+    window.addEventListener(
+      "to:search",
+      event => {
+        currentSearch =
+          event.detail?.query ||
+          "";
+
+        if (searchInput) {
+          searchInput.value =
+            currentSearch;
         }
-      );
-    }
 
-    if (resetFilters) {
+        applyFilters();
+      }
+    );
 
-      resetFilters.addEventListener(
-        "click",
-        resetAllFilters
-      );
-    }
+    window.addEventListener(
+      "to:category-change",
+      event => {
+        currentCategory =
+          event.detail?.category ||
+          "";
 
-    if (emptyReset) {
+        if (
+          currentCategory ===
+          "all"
+        ) {
+          currentCategory = "";
+        }
 
-      emptyReset.addEventListener(
-        "click",
-        resetAllFilters
-      );
-    }
+        applyFilters();
+      }
+    );
 
-    if (retryButton) {
-
-      retryButton.addEventListener(
-        "click",
-        loadPosts
-      );
-    }
+    window.addEventListener(
+      "to:filters-change",
+      () => {
+        applyFilters();
+      }
+    );
   }
 
-  /* ==========================================================
-     URL FILTER
-     ========================================================== */
-
   function readUrlFilters() {
-
     const params =
       new URLSearchParams(
         window.location.search
@@ -1007,25 +1363,17 @@
     const category =
       params.get("category");
 
-    if (
-      category &&
-      [...categoryButtons].some(
-        (button) =>
-          button.getAttribute(
-            "data-category"
-          ) === category
-      )
-    ) {
-
+    if (category) {
       currentCategory =
-        category;
+        category === "all"
+          ? ""
+          : category;
     }
 
     const search =
       params.get("search");
 
     if (search) {
-
       currentSearch =
         search;
 
@@ -1034,27 +1382,30 @@
           search;
       }
 
-      if (clearSearch) {
+      clearSearch?.classList.remove(
+        "hidden"
+      );
+    }
 
-        clearSearch.classList.remove(
-          "hidden"
-        );
+    const sort =
+      params.get("sort");
+
+    if (sort) {
+      currentSort =
+        sort;
+
+      if (sortSelect) {
+        sortSelect.value =
+          sort;
       }
     }
 
     updateFilterButtons();
   }
 
-  /* ==========================================================
-     INIT
-     ========================================================== */
-
   function init() {
-
     initEvents();
-
     readUrlFilters();
-
     loadPosts();
   }
 
@@ -1062,15 +1413,14 @@
     document.readyState ===
     "loading"
   ) {
-
     document.addEventListener(
       "DOMContentLoaded",
-      init
+      init,
+      {
+        once: true
+      }
     );
-
   } else {
-
     init();
   }
-
 })();
