@@ -1,2200 +1,1426 @@
-/* ============================================================
-   TAJIK OPPORTUNITIES
-   Закрытая панель администратора
-   ============================================================ */
+const state = {
+  authenticated: false,
+  loading: false,
+  submissions: [],
+  posts: [],
+  filter: "pending",
+  postFilter: "all",
+  selectedSubmission: null,
+  selectedPost: null,
+};
 
-(() => {
-  "use strict";
+const $ = (id) => document.getElementById(id);
 
-  // ==========================================================
-  // СОСТОЯНИЕ
-  // ==========================================================
+async function api(url, options = {}) {
+  const response = await fetch(url, {
+    credentials: "same-origin",
+    ...options,
+    headers: {
+      "content-type": "application/json",
+      ...(options.headers || {}),
+    },
+  });
 
-  const state = {
-    authenticated: false,
-    loading: false,
-    submissions: [],
-    filter: "pending",
-    selectedSubmission: null,
-  };
+  let data = {};
 
-  // ==========================================================
-  // DOM
-  // ==========================================================
-
-  const elements = {
-    loginSection: document.getElementById("adminLogin"),
-    dashboardSection: document.getElementById("adminDashboard"),
-
-    loginForm: document.getElementById("adminLoginForm"),
-    passwordInput: document.getElementById("adminPassword"),
-    loginButton: document.getElementById("adminLoginButton"),
-    loginMessage: document.getElementById("adminLoginMessage"),
-
-    logoutButton: document.getElementById("adminLogout"),
-    refreshButton: document.getElementById("adminRefresh"),
-
-    filterButtons: Array.from(
-      document.querySelectorAll("[data-admin-filter]")
-    ),
-
-    submissionsList:
-      document.getElementById("submissionsList"),
-
-    loadingState:
-      document.getElementById("adminLoading"),
-
-    emptyState:
-      document.getElementById("adminEmpty"),
-
-    errorState:
-      document.getElementById("adminError"),
-
-    errorMessage:
-      document.getElementById("adminErrorMessage"),
-
-    retryButton:
-      document.getElementById("adminRetry"),
-
-    pendingCount:
-      document.getElementById("pendingCount"),
-
-    approvedCount:
-      document.getElementById("approvedCount"),
-
-    rejectedCount:
-      document.getElementById("rejectedCount"),
-
-    totalCount:
-      document.getElementById("totalCount"),
-
-    modal:
-      document.getElementById("submissionModal"),
-
-    modalClose:
-      document.getElementById("submissionModalClose"),
-
-    modalBody:
-      document.getElementById("submissionModalBody"),
-
-    modalApprove:
-      document.getElementById("submissionApprove"),
-
-    modalReject:
-      document.getElementById("submissionReject"),
-
-    rejectModal:
-      document.getElementById("rejectModal"),
-
-    rejectForm:
-      document.getElementById("rejectForm"),
-
-    rejectReason:
-      document.getElementById("rejectReason"),
-
-    rejectCancel:
-      document.getElementById("rejectCancel"),
-
-    rejectSubmit:
-      document.getElementById("rejectSubmit"),
-  };
-
-  // ==========================================================
-  // API
-  // ==========================================================
-
-  async function apiRequest(
-    url,
-    options = {}
-  ) {
-    const requestOptions = {
-      credentials: "same-origin",
-      ...options,
-      headers: {
-        "Accept": "application/json",
-        ...(options.body
-          ? {
-              "Content-Type":
-                "application/json",
-            }
-          : {}),
-        ...(options.headers || {}),
-      },
-    };
-
-    const response =
-      await fetch(
-        url,
-        requestOptions
-      );
-
-    let data = null;
-
-    try {
-      data = await response.json();
-    } catch {
-      data = null;
-    }
-
-    if (!response.ok) {
-      const error =
-        new Error(
-          data?.error ||
-          data?.message ||
-          `Ошибка сервера: ${response.status}`
-        );
-
-      error.status =
-        response.status;
-
-      error.data = data;
-
-      throw error;
-    }
-
-    return data;
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
   }
 
-  async function getJson(url) {
-    return apiRequest(url);
-  }
-
-  async function postJson(
-    url,
-    body = {}
-  ) {
-    return apiRequest(url, {
-      method: "POST",
-      body: JSON.stringify(body),
-    });
-  }
-
-  // ==========================================================
-  // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
-  // ==========================================================
-
-  function escapeHtml(value) {
-    return String(value ?? "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#039;");
-  }
-
-  function safeExternalUrl(value) {
-    const raw =
-      String(value || "").trim();
-
-    if (!raw) {
-      return "";
-    }
-
-    try {
-      const url =
-        new URL(raw);
-
-      if (
-        url.protocol !== "http:" &&
-        url.protocol !== "https:"
-      ) {
-        return "";
-      }
-
-      return url.href;
-    } catch {
-      return "";
-    }
-  }
-
-  function truncateText(
-    text,
-    maxLength = 220
-  ) {
-    const value =
-      String(text || "").trim();
-
-    if (value.length <= maxLength) {
-      return value;
-    }
-
-    return (
-      value.slice(
-        0,
-        maxLength
-      ).trim() + "…"
+  if (!response.ok) {
+    const error = new Error(
+      data.error || `Ошибка ${response.status}`
     );
+
+    error.status = response.status;
+    throw error;
   }
 
-  function formatDateTime(value) {
-    if (!value) {
-      return "Не указано";
-    }
+  return data;
+}
 
-    const date =
-      new Date(value);
+function showLogin() {
+  const loginSection = $("adminLogin");
+  const dashboard = $("adminDashboard");
 
-    if (
-      Number.isNaN(
-        date.getTime()
-      )
-    ) {
-      return "Не указано";
-    }
-
-    return new Intl.DateTimeFormat(
-      "ru-RU",
-      {
-        dateStyle: "medium",
-        timeStyle: "short",
-      }
-    ).format(date);
+  if (loginSection) {
+    loginSection.hidden = false;
   }
 
-  function formatRelativeDate(value) {
-    if (!value) {
-      return "";
-    }
-
-    const date =
-      new Date(value);
-
-    if (
-      Number.isNaN(
-        date.getTime()
-      )
-    ) {
-      return "";
-    }
-
-    const now =
-      Date.now();
-
-    const diff =
-      now - date.getTime();
-
-    const minute =
-      60 * 1000;
-
-    const hour =
-      60 * minute;
-
-    const day =
-      24 * hour;
-
-    if (diff < minute) {
-      return "только что";
-    }
-
-    if (diff < hour) {
-      const minutes =
-        Math.floor(
-          diff / minute
-        );
-
-      return `${minutes} мин. назад`;
-    }
-
-    if (diff < day) {
-      const hours =
-        Math.floor(
-          diff / hour
-        );
-
-      return `${hours} ч. назад`;
-    }
-
-    if (diff < 7 * day) {
-      const days =
-        Math.floor(
-          diff / day
-        );
-
-      return `${days} дн. назад`;
-    }
-
-    return formatDateTime(value);
+  if (dashboard) {
+    dashboard.hidden = true;
   }
 
-  function getCategoryLabel(
-    category
-  ) {
-    const labels = {
-      education: "Образование",
-      jobs: "Работа",
-      competitions: "Конкурсы",
-      grants: "Гранты",
-      scholarships: "Стипендии",
-      programs: "Программы",
-      internships: "Стажировки",
-      events: "Мероприятия",
-      business: "Бизнес",
-      volunteering: "Волонтёрство",
-      other: "Другое",
-    };
+  state.authenticated = false;
+}
 
-    return (
-      labels[
-        String(category || "")
-          .toLowerCase()
-      ] ||
-      category ||
-      "Другое"
+function showDashboard() {
+  const loginSection = $("adminLogin");
+  const dashboard = $("adminDashboard");
+
+  if (loginSection) {
+    loginSection.hidden = true;
+  }
+
+  if (dashboard) {
+    dashboard.hidden = false;
+  }
+
+  state.authenticated = true;
+}
+
+function showMessage(element, message, type = "") {
+  if (!element) return;
+
+  element.textContent = message;
+  element.className = type
+    ? `admin-message ${type}`
+    : "admin-message";
+}
+
+async function checkAuthentication() {
+  try {
+    await api("/api/admin/me");
+
+    showDashboard();
+
+    await Promise.all([
+      loadSubmissions(),
+      loadPosts(),
+      loadStats(),
+    ]);
+  } catch {
+    showLogin();
+  }
+}
+
+async function handleLogin() {
+  const passwordInput = $("adminPassword");
+  const button = $("adminLoginButton");
+  const message = $("adminLoginMessage");
+
+  const password =
+    passwordInput?.value || "";
+
+  if (!password) {
+    showMessage(
+      message,
+      "Введите пароль администратора.",
+      "error"
     );
+
+    return;
   }
 
-  function getCategoryIcon(
-    category
-  ) {
-    const icons = {
-      education: "🎓",
-      jobs: "💼",
-      competitions: "🏆",
-      grants: "💰",
-      scholarships: "🎓",
-      programs: "🚀",
-      internships: "🧑‍💻",
-      events: "📅",
-      business: "🏢",
-      volunteering: "🤝",
-      other: "📌",
-    };
-
-    return (
-      icons[
-        String(category || "")
-          .toLowerCase()
-      ] || "📌"
-    );
+  if (button) {
+    button.disabled = true;
   }
 
-  function getStatusLabel(
-    status
-  ) {
-    const labels = {
-      pending: "На модерации",
-      approved: "Одобрено",
-      rejected: "Отклонено",
-    };
-
-    return (
-      labels[
-        String(status || "")
-          .toLowerCase()
-      ] ||
-      "Неизвестно"
-    );
-  }
-
-  function getStatusIcon(
-    status
-  ) {
-    const icons = {
-      pending: "🕐",
-      approved: "✅",
-      rejected: "❌",
-    };
-
-    return (
-      icons[
-        String(status || "")
-          .toLowerCase()
-      ] || "📄"
-    );
-  }
-
-  function getErrorMessage(
-    error,
-    fallback
-  ) {
-    if (
-      error &&
-      error.message
-    ) {
-      return error.message;
-    }
-
-    return fallback;
-  }
-
-  function setButtonLoading(
-    button,
-    loading,
-    loadingText = "Загрузка..."
-  ) {
-    if (!button) {
-      return;
-    }
-
-    if (loading) {
-      if (!button.dataset.originalText) {
-        button.dataset.originalText =
-          button.textContent.trim();
-      }
-
-      button.disabled = true;
-      button.textContent =
-        loadingText;
-    } else {
-      button.disabled = false;
-
-      if (
-        button.dataset.originalText
-      ) {
-        button.textContent =
-          button.dataset.originalText;
-
-        delete button.dataset
-          .originalText;
-      }
-    }
-  }
-
-  function showToast(
+  showMessage(
     message,
-    type = "info"
-  ) {
-    const toast =
-      document.getElementById(
-        "toast"
-      );
-
-    if (!toast) {
-      console.log(message);
-      return;
-    }
-
-    const messageElement =
-      toast.querySelector(
-        ".toast-message"
-      );
-
-    if (messageElement) {
-      messageElement.textContent =
-        message;
-    } else {
-      toast.textContent =
-        message;
-    }
-
-    toast.hidden = false;
-
-    toast.classList.remove(
-      "success",
-      "error",
-      "warning",
-      "info"
-    );
-
-    toast.classList.add(
-      type
-    );
-
-    clearTimeout(
-      showToast.timer
-    );
-
-    showToast.timer =
-      setTimeout(() => {
-        toast.hidden = true;
-      }, 4000);
-  }
-
-  // ==========================================================
-  // ИНИЦИАЛИЗАЦИЯ
-  // ==========================================================
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    init
+    "Проверяем пароль..."
   );
 
-  async function init() {
-    bindEvents();
+  try {
+    await api("/api/admin/login", {
+      method: "POST",
+      body: JSON.stringify({
+        password,
+      }),
+    });
 
-    await checkAuthentication();
-  }
-
-  // ==========================================================
-  // СОБЫТИЯ
-  // ==========================================================
-
-  function bindEvents() {
-    if (elements.loginForm) {
-      elements.loginForm.addEventListener(
-        "submit",
-        handleLogin
-      );
+    if (passwordInput) {
+      passwordInput.value = "";
     }
 
-    if (elements.logoutButton) {
-      elements.logoutButton.addEventListener(
-        "click",
-        handleLogout
-      );
-    }
-
-    if (elements.refreshButton) {
-      elements.refreshButton.addEventListener(
-        "click",
-        () => {
-          loadSubmissions();
-        }
-      );
-    }
-
-    elements.filterButtons.forEach(
-      (button) => {
-        button.addEventListener(
-          "click",
-          () => {
-            state.filter =
-              button.dataset.adminFilter ||
-              "pending";
-
-            updateFilterButtons();
-            renderSubmissions();
-          }
-        );
-      }
-    );
-
-    if (elements.retryButton) {
-      elements.retryButton.addEventListener(
-        "click",
-        loadSubmissions
-      );
-    }
-
-    if (elements.modalClose) {
-      elements.modalClose.addEventListener(
-        "click",
-        closeSubmissionModal
-      );
-    }
-
-    if (elements.modalApprove) {
-      elements.modalApprove.addEventListener(
-        "click",
-        handleApprove
-      );
-    }
-
-    if (elements.modalReject) {
-      elements.modalReject.addEventListener(
-        "click",
-        openRejectModal
-      );
-    }
-
-    if (elements.rejectForm) {
-      elements.rejectForm.addEventListener(
-        "submit",
-        handleReject
-      );
-    }
-
-    if (elements.rejectCancel) {
-      elements.rejectCancel.addEventListener(
-        "click",
-        closeRejectModal
-      );
-    }
-
-    document.addEventListener(
-      "keydown",
-      handleKeyboard
-    );
-
-    if (elements.modal) {
-      elements.modal.addEventListener(
-        "click",
-        (event) => {
-          if (
-            event.target ===
-            elements.modal
-          ) {
-            closeSubmissionModal();
-          }
-        }
-      );
-    }
-
-    if (elements.rejectModal) {
-      elements.rejectModal.addEventListener(
-        "click",
-        (event) => {
-          if (
-            event.target ===
-            elements.rejectModal
-          ) {
-            closeRejectModal();
-          }
-        }
-      );
-    }
-  }
-
-  function handleKeyboard(event) {
-    if (
-      event.key !== "Escape"
-    ) {
-      return;
-    }
-
-    closeSubmissionModal();
-    closeRejectModal();
-  }
-
-  // ==========================================================
-  // АВТОРИЗАЦИЯ
-  // ==========================================================
-
-  async function checkAuthentication() {
-    try {
-      const response =
-        await getJson(
-          "/api/admin/me"
-        );
-
-      if (
-        response &&
-        (
-          response.authenticated === true ||
-          response.ok === true
-        )
-      ) {
-        state.authenticated =
-          true;
-
-        showDashboard();
-
-        await loadSubmissions();
-
-        return;
-      }
-
-      showLogin();
-    } catch (error) {
-      showLogin();
-    }
-  }
-
-  // ==========================================================
-  // ВХОД
-  // ==========================================================
-
-  async function handleLogin(
-    event
-  ) {
-    event.preventDefault();
-
-    if (!elements.passwordInput) {
-      return;
-    }
-
-    const password =
-      elements.passwordInput.value;
-
-    if (!password) {
-      showLoginMessage(
-        "Введите пароль администратора.",
-        "error"
-      );
-
-      return;
-    }
-
-    setButtonLoading(
-      elements.loginButton,
-      true,
-      "Входим..."
-    );
-
-    clearLoginMessage();
-
-    try {
-      const response =
-        await postJson(
-          "/api/admin/login",
-          {
-            password,
-          }
-        );
-
-      if (
-        !response ||
-        (
-          response.authenticated !== true &&
-          response.ok !== true
-        )
-      ) {
-        throw new Error(
-          "Не удалось выполнить вход."
-        );
-      }
-
-      state.authenticated =
-        true;
-
-      elements.passwordInput.value =
-        "";
-
-      showDashboard();
-
-      await loadSubmissions();
-
-      showToast(
-        "Вы успешно вошли в панель администратора.",
-        "success"
-      );
-    } catch (error) {
-      console.error(
-        "Tajik Opportunities: ошибка входа",
-        error
-      );
-
-      showLoginMessage(
-        getErrorMessage(
-          error,
-          "Неверный пароль или ошибка сервера."
-        ),
-        "error"
-      );
-    } finally {
-      setButtonLoading(
-        elements.loginButton,
-        false
-      );
-    }
-  }
-
-  // ==========================================================
-  // ВЫХОД
-  // ==========================================================
-
-  async function handleLogout() {
-    try {
-      await postJson(
-        "/api/admin/logout",
-        {}
-      );
-    } catch (error) {
-      console.warn(
-        "Tajik Opportunities: ошибка выхода",
-        error
-      );
-    }
-
-    state.authenticated =
-      false;
-
-    state.submissions = [];
-
-    state.selectedSubmission =
-      null;
-
-    closeSubmissionModal();
-    closeRejectModal();
-
-    showLogin();
-
-    showToast(
-      "Вы вышли из панели.",
+    showMessage(
+      message,
+      "Вход выполнен.",
       "success"
     );
+
+    showDashboard();
+
+    await Promise.all([
+      loadSubmissions(),
+      loadPosts(),
+      loadStats(),
+    ]);
+  } catch (error) {
+    showMessage(
+      message,
+      error.message || "Не удалось войти.",
+      "error"
+    );
+  } finally {
+    if (button) {
+      button.disabled = false;
+    }
+  }
+}
+
+async function handleLogout() {
+  try {
+    await api("/api/admin/logout", {
+      method: "POST",
+    });
+  } catch {
+    // Даже если запрос завершился ошибкой,
+    // всё равно показываем форму входа.
   }
 
-  // ==========================================================
-  // ЗАГРУЗКА ЗАЯВОК
-  // ==========================================================
+  state.authenticated = false;
+  state.submissions = [];
+  state.posts = [];
 
-  async function loadSubmissions() {
-    if (
-      !state.authenticated ||
-      state.loading
-    ) {
+  showLogin();
+}
+
+async function loadStats() {
+  try {
+    const data =
+      await api("/api/admin/stats");
+
+    const stats = data.stats || {};
+
+    if ($("pendingCount")) {
+      $("pendingCount").textContent =
+        stats.pending ?? 0;
+    }
+
+    if ($("approvedCount")) {
+      $("approvedCount").textContent =
+        stats.approved ?? 0;
+    }
+
+    if ($("rejectedCount")) {
+      $("rejectedCount").textContent =
+        stats.rejected ?? 0;
+    }
+
+    if ($("totalCount")) {
+      $("totalCount").textContent =
+        stats.total_posts ??
+        stats.total_submissions ??
+        0;
+    }
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin();
+    }
+  }
+}
+
+async function loadSubmissions() {
+  const list = $("submissionsList");
+  const loading = $("submissionsLoading");
+  const errorBox = $("submissionsError");
+  const empty = $("submissionsEmpty");
+
+  if (loading) {
+    loading.hidden = false;
+  }
+
+  if (errorBox) {
+    errorBox.hidden = true;
+  }
+
+  try {
+    const data =
+      await api(
+        `/api/admin/submissions?status=${encodeURIComponent(
+          state.filter
+        )}`
+      );
+
+    state.submissions =
+      data.submissions || [];
+
+    renderSubmissions();
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin();
       return;
     }
 
-    state.loading = true;
+    if (errorBox) {
+      errorBox.textContent =
+        error.message ||
+        "Не удалось загрузить заявки.";
 
-    showAdminLoading();
-    hideAdminError();
-
-    try {
-      /*
-       * Worker возвращает заявки через:
-       * GET /api/admin/submissions
-       */
-      const response =
-        await getJson(
-          "/api/admin/submissions"
-        );
-
-      const submissions =
-        extractSubmissions(
-          response
-        );
-
-      state.submissions =
-        Array.isArray(
-          submissions
-        )
-          ? submissions
-          : [];
-
-      updateCounters();
-      renderSubmissions();
-
-      hideAdminLoading();
-      hideAdminError();
-    } catch (error) {
-      console.error(
-        "Tajik Opportunities: ошибка загрузки заявок",
-        error
-      );
-
-      hideAdminLoading();
-
-      if (
-        error &&
-        (
-          error.status === 401 ||
-          error.status === 403
-        )
-      ) {
-        state.authenticated =
-          false;
-
-        showLogin();
-
-        showLoginMessage(
-          "Сессия закончилась. Войдите снова.",
-          "error"
-        );
-
-        return;
-      }
-
-      showAdminError(
-        getErrorMessage(
-          error,
-          "Не удалось загрузить заявки."
-        )
-      );
-    } finally {
-      state.loading = false;
+      errorBox.hidden = false;
+    }
+  } finally {
+    if (loading) {
+      loading.hidden = true;
     }
   }
+}
 
-  function extractSubmissions(
-    response
-  ) {
-    if (
-      Array.isArray(response)
-    ) {
-      return response;
+function renderSubmissions() {
+  const list = $("submissionsList");
+  const empty = $("submissionsEmpty");
+
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  if (!state.submissions.length) {
+    if (empty) {
+      empty.hidden = false;
     }
 
-    if (
-      response &&
-      Array.isArray(
-        response.submissions
-      )
-    ) {
-      return response.submissions;
-    }
-
-    if (
-      response &&
-      response.data &&
-      Array.isArray(
-        response.data.submissions
-      )
-    ) {
-      return response.data
-        .submissions;
-    }
-
-    return [];
+    return;
   }
 
-  // ==========================================================
-  // СЧЁТЧИКИ
-  // ==========================================================
-
-  function updateCounters() {
-    const submissions =
-      state.submissions;
-
-    const pending =
-      submissions.filter(
-        (item) =>
-          String(
-            item.status || ""
-          ).toLowerCase() ===
-          "pending"
-      ).length;
-
-    const approved =
-      submissions.filter(
-        (item) =>
-          String(
-            item.status || ""
-          ).toLowerCase() ===
-          "approved"
-      ).length;
-
-    const rejected =
-      submissions.filter(
-        (item) =>
-          String(
-            item.status || ""
-          ).toLowerCase() ===
-          "rejected"
-      ).length;
-
-    if (elements.pendingCount) {
-      elements.pendingCount.textContent =
-        pending;
-    }
-
-    if (elements.approvedCount) {
-      elements.approvedCount.textContent =
-        approved;
-    }
-
-    if (elements.rejectedCount) {
-      elements.rejectedCount.textContent =
-        rejected;
-    }
-
-    if (elements.totalCount) {
-      elements.totalCount.textContent =
-        submissions.length;
-    }
+  if (empty) {
+    empty.hidden = true;
   }
 
-  // ==========================================================
-  // ФИЛЬТРЫ
-  // ==========================================================
+  for (const submission of state.submissions) {
+    const card =
+      document.createElement("article");
 
-  function updateFilterButtons() {
-    elements.filterButtons.forEach(
-      (button) => {
-        const active =
-          button.dataset.adminFilter ===
-          state.filter;
-
-        button.classList.toggle(
-          "active",
-          active
-        );
-
-        button.setAttribute(
-          "aria-pressed",
-          active
-            ? "true"
-            : "false"
-        );
-      }
-    );
-  }
-
-  function getFilteredSubmissions() {
-    if (
-      state.filter ===
-      "all"
-    ) {
-      return [
-        ...state.submissions,
-      ];
-    }
-
-    return state.submissions.filter(
-      (submission) =>
-        String(
-          submission.status ||
-          ""
-        ).toLowerCase() ===
-        state.filter
-    );
-  }
-
-  // ==========================================================
-  // ОТРИСОВКА СПИСКА
-  // ==========================================================
-
-  function renderSubmissions() {
-    if (
-      !elements.submissionsList
-    ) {
-      return;
-    }
-
-    const submissions =
-      getFilteredSubmissions();
-
-    if (!submissions.length) {
-      elements.submissionsList.innerHTML =
-        "";
-
-      showAdminEmpty();
-
-      return;
-    }
-
-    hideAdminEmpty();
-
-    submissions.sort(
-      (a, b) => {
-        const dateA =
-          new Date(
-            a.created_at ||
-            a.createdAt ||
-            0
-          ).getTime();
-
-        const dateB =
-          new Date(
-            b.created_at ||
-            b.createdAt ||
-            0
-          ).getTime();
-
-        return (
-          dateB - dateA
-        );
-      }
-    );
-
-    elements.submissionsList.innerHTML =
-      submissions
-        .map(
-          renderSubmissionCard
-        )
-        .join("");
-
-    bindSubmissionCards();
-  }
-
-  function renderSubmissionCard(
-    submission
-  ) {
-    const id =
-      String(
-        submission.id || ""
-      );
+    card.className =
+      "admin-submission-card";
 
     const title =
       escapeHtml(
-        submission.title ||
-        "Без названия"
+        submission.title || "Без названия"
       );
 
     const category =
-      submission.category ||
-      "other";
-
-    const categoryLabel =
       escapeHtml(
-        getCategoryLabel(
-          category
-        )
-      );
-
-    const categoryIcon =
-      getCategoryIcon(
-        category
-      );
-
-    const status =
-      String(
-        submission.status ||
-        "pending"
-      ).toLowerCase();
-
-    const statusLabel =
-      escapeHtml(
-        getStatusLabel(
-          status
-        )
-      );
-
-    const statusIcon =
-      getStatusIcon(
-        status
-      );
-
-    const dateValue =
-      submission.created_at ||
-      submission.createdAt ||
-      "";
-
-    const date =
-      dateValue
-        ? formatRelativeDate(
-            dateValue
-          )
-        : "";
-
-    const author =
-      submission.author_name ||
-      submission.authorName ||
-      "Автор не указан";
-
-    const safeAuthor =
-      escapeHtml(
-        author
-      );
-
-    const trackingCode =
-      submission.tracking_code ||
-      submission.trackingCode ||
-      "";
-
-    const safeTrackingCode =
-      escapeHtml(
-        trackingCode
-      );
-
-    const excerpt =
-      escapeHtml(
-        truncateText(
-          submission.content ||
-          "",
-          220
-        )
-      );
-
-    return `
-      <article
-        class="admin-submission-card"
-        data-submission-id="${escapeHtml(id)}"
-      >
-
-        <div class="admin-submission-header">
-
-          <div class="admin-submission-category">
-            <span aria-hidden="true">
-              ${categoryIcon}
-            </span>
-
-            <span>
-              ${categoryLabel}
-            </span>
-          </div>
-
-          <div
-            class="admin-submission-status status-${escapeHtml(status)}"
-          >
-            <span aria-hidden="true">
-              ${statusIcon}
-            </span>
-
-            <span>
-              ${statusLabel}
-            </span>
-          </div>
-
-        </div>
-
-        <h3 class="admin-submission-title">
-          ${title}
-        </h3>
-
-        <p class="admin-submission-excerpt">
-          ${excerpt}
-        </p>
-
-        <div class="admin-submission-info">
-
-          <span>
-            👤 ${safeAuthor}
-          </span>
-
-          ${
-            date
-              ? `
-                <span>
-                  🕐 ${escapeHtml(date)}
-                </span>
-              `
-              : ""
-          }
-
-          ${
-            safeTrackingCode
-              ? `
-                <span>
-                  🔑 ${safeTrackingCode}
-                </span>
-              `
-              : ""
-          }
-
-        </div>
-
-        <div class="admin-submission-actions">
-
-          <button
-            type="button"
-            class="btn btn-secondary admin-view-button"
-            data-id="${escapeHtml(id)}"
-          >
-            👁 Подробнее
-          </button>
-
-          ${
-            status === "pending"
-              ? `
-                <button
-                  type="button"
-                  class="btn btn-primary admin-approve-button"
-                  data-id="${escapeHtml(id)}"
-                >
-                  ✓ Одобрить
-                </button>
-
-                <button
-                  type="button"
-                  class="btn btn-danger admin-reject-button"
-                  data-id="${escapeHtml(id)}"
-                >
-                  ✕ Отклонить
-                </button>
-              `
-              : ""
-          }
-
-        </div>
-
-      </article>
-    `;
-  }
-
-  // ==========================================================
-  // СОБЫТИЯ КАРТОЧЕК
-  // ==========================================================
-
-  function bindSubmissionCards() {
-    document
-      .querySelectorAll(
-        ".admin-view-button"
-      )
-      .forEach(
-        (button) => {
-          button.addEventListener(
-            "click",
-            () => {
-              openSubmissionModal(
-                button.dataset.id
-              );
-            }
-          );
-        }
-      );
-
-    document
-      .querySelectorAll(
-        ".admin-approve-button"
-      )
-      .forEach(
-        (button) => {
-          button.addEventListener(
-            "click",
-            () => {
-              const submission =
-                findSubmission(
-                  button.dataset.id
-                );
-
-              if (submission) {
-                state.selectedSubmission =
-                  submission;
-
-                handleApprove();
-              }
-            }
-          );
-        }
-      );
-
-    document
-      .querySelectorAll(
-        ".admin-reject-button"
-      )
-      .forEach(
-        (button) => {
-          button.addEventListener(
-            "click",
-            () => {
-              const submission =
-                findSubmission(
-                  button.dataset.id
-                );
-
-              if (submission) {
-                state.selectedSubmission =
-                  submission;
-
-                openRejectModal();
-              }
-            }
-          );
-        }
-      );
-  }
-
-  // ==========================================================
-  // ПОИСК
-  // ==========================================================
-
-  function findSubmission(
-    id
-  ) {
-    return state.submissions.find(
-      (submission) =>
-        String(
-          submission.id
-        ) ===
-        String(id)
-    );
-  }
-
-  // ==========================================================
-  // ПРОСМОТР
-  // ==========================================================
-
-  function openSubmissionModal(
-    id
-  ) {
-    const submission =
-      findSubmission(id);
-
-    if (!submission) {
-      return;
-    }
-
-    state.selectedSubmission =
-      submission;
-
-    renderSubmissionModal(
-      submission
-    );
-
-    if (elements.modal) {
-      elements.modal.hidden =
-        false;
-
-      document.body.classList.add(
-        "modal-open"
-      );
-    }
-  }
-
-  function closeSubmissionModal() {
-    if (elements.modal) {
-      elements.modal.hidden =
-        true;
-    }
-
-    document.body.classList.remove(
-      "modal-open"
-    );
-  }
-
-  function renderSubmissionModal(
-    submission
-  ) {
-    if (
-      !elements.modalBody
-    ) {
-      return;
-    }
-
-    const title =
-      escapeHtml(
-        submission.title ||
-        "Без названия"
-      );
-
-    const content =
-      escapeHtml(
-        submission.content ||
-        ""
-      );
-
-    const category =
-      submission.category ||
-      "other";
-
-    const categoryLabel =
-      escapeHtml(
-        getCategoryLabel(
-          category
-        )
-      );
-
-    const categoryIcon =
-      getCategoryIcon(
-        category
+        submission.category || "Без категории"
       );
 
     const author =
       escapeHtml(
         submission.author_name ||
-        submission.authorName ||
-        "Не указан"
-      );
-
-    const contact =
-      escapeHtml(
-        submission.contact ||
-        "Не указан"
-      );
-
-    const trackingCode =
-      escapeHtml(
-        submission.tracking_code ||
-        submission.trackingCode ||
-        "Не указан"
-      );
-
-    const createdAt =
-      submission.created_at ||
-      submission.createdAt ||
-      "";
-
-    const formattedDate =
-      escapeHtml(
-        createdAt
-          ? formatDateTime(
-              createdAt
-            )
-          : "Не указано"
-      );
-
-    const linkUrl =
-      safeExternalUrl(
-        submission.link_url ||
-        submission.linkUrl ||
-        ""
-      );
-
-    const imageUrl =
-      safeExternalUrl(
-        submission.image_url ||
-        submission.imageUrl ||
-        ""
+          "Не указан"
       );
 
     const status =
-      String(
-        submission.status ||
-        "pending"
-      ).toLowerCase();
+      escapeHtml(
+        submission.status || ""
+      );
 
-    const rejectionReason =
-      submission.rejection_reason ||
-      submission.rejectionReason ||
-      "";
+    const date =
+      formatDate(
+        submission.created_at
+      );
 
-    elements.modalBody.innerHTML = `
-      <div class="admin-detail">
+    card.innerHTML = `
+      <div class="admin-card-content">
+        <h3>${title}</h3>
 
-        <div class="admin-detail-top">
-
-          <span class="admin-detail-category">
-            ${categoryIcon}
-            ${categoryLabel}
-          </span>
-
-          <span
-            class="admin-detail-status status-${escapeHtml(status)}"
-          >
-            ${getStatusIcon(status)}
-            ${escapeHtml(
-              getStatusLabel(
-                status
-              )
-            )}
-          </span>
-
+        <div class="admin-card-meta">
+          <span>${category}</span>
+          <span>${date}</span>
+          <span>${author}</span>
         </div>
 
-        <h2 class="admin-detail-title">
-          ${title}
-        </h2>
+        <div class="admin-status">
+          ${status}
+        </div>
+      </div>
+
+      <div class="admin-card-actions">
+        <button
+          type="button"
+          class="admin-view-button"
+          data-id="${escapeAttr(
+            submission.id
+          )}"
+        >
+          Открыть
+        </button>
+      </div>
+    `;
+
+    const button =
+      card.querySelector(
+        ".admin-view-button"
+      );
+
+    button?.addEventListener(
+      "click",
+      () => {
+        openSubmission(submission.id);
+      }
+    );
+
+    list.appendChild(card);
+  }
+}
+
+function openSubmission(id) {
+  const submission =
+    state.submissions.find(
+      (item) => item.id === id
+    );
+
+  if (!submission) return;
+
+  state.selectedSubmission =
+    submission;
+
+  const modal =
+    $("submissionModal");
+
+  const body =
+    $("submissionModalBody");
+
+  if (!modal || !body) return;
+
+  body.innerHTML = `
+    <div class="submission-details">
+
+      <h2>
+        ${escapeHtml(
+          submission.title || "Без названия"
+        )}
+      </h2>
+
+      <p>
+        <strong>Категория:</strong>
+        ${escapeHtml(
+          submission.category || "—"
+        )}
+      </p>
+
+      <p>
+        <strong>Автор:</strong>
+        ${escapeHtml(
+          submission.author_name || "—"
+        )}
+      </p>
+
+      <p>
+        <strong>Контакт:</strong>
+        ${escapeHtml(
+          submission.contact || "—"
+        )}
+      </p>
+
+      <p>
+        <strong>Дата:</strong>
+        ${formatDate(
+          submission.created_at
+        )}
+      </p>
+
+      <p>
+        <strong>Код:</strong>
+        ${escapeHtml(
+          submission.tracking_code || "—"
+        )}
+      </p>
+
+      <hr>
+
+      <div class="submission-text">
+        ${escapeHtml(
+          submission.content || ""
+        ).replace(/\n/g, "<br>")}
+      </div>
+
+      ${
+        submission.image_url
+          ? `
+            <p>
+              <strong>Изображение:</strong>
+              <a
+                href="${escapeAttr(
+                  submission.image_url
+                )}"
+                target="_blank"
+                rel="noopener"
+              >
+                Открыть
+              </a>
+            </p>
+          `
+          : ""
+      }
+
+      ${
+        submission.link_url
+          ? `
+            <p>
+              <strong>Ссылка:</strong>
+              <a
+                href="${escapeAttr(
+                  submission.link_url
+                )}"
+                target="_blank"
+                rel="noopener"
+              >
+                Открыть
+              </a>
+            </p>
+          `
+          : ""
+      }
+
+    </div>
+  `;
+
+  const approveButton =
+    $("submissionApprove");
+
+  const rejectButton =
+    $("submissionReject");
+
+  if (approveButton) {
+    approveButton.hidden =
+      submission.status !== "pending";
+  }
+
+  if (rejectButton) {
+    rejectButton.hidden =
+      submission.status !== "pending";
+  }
+
+  modal.hidden = false;
+}
+
+function closeSubmissionModal() {
+  const modal =
+    $("submissionModal");
+
+  if (modal) {
+    modal.hidden = true;
+  }
+
+  state.selectedSubmission =
+    null;
+}
+
+async function approveSelectedSubmission() {
+  const submission =
+    state.selectedSubmission;
+
+  if (!submission) return;
+
+  const confirmed =
+    confirm(
+      "Опубликовать эту заявку?"
+    );
+
+  if (!confirmed) return;
+
+  try {
+    await api(
+      `/api/admin/submissions/${encodeURIComponent(
+        submission.id
+      )}/approve`,
+      {
+        method: "POST",
+      }
+    );
+
+    closeSubmissionModal();
+
+    await Promise.all([
+      loadSubmissions(),
+      loadPosts(),
+      loadStats(),
+    ]);
+
+    alert(
+      "Заявка опубликована."
+    );
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin();
+      closeSubmissionModal();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось опубликовать заявку."
+    );
+  }
+}
+
+async function rejectSelectedSubmission() {
+  const submission =
+    state.selectedSubmission;
+
+  if (!submission) return;
+
+  const reason =
+    prompt(
+      "Причина отклонения:",
+      "Материал не соответствует требованиям платформы."
+    );
+
+  if (reason === null) return;
+
+  try {
+    await api(
+      `/api/admin/submissions/${encodeURIComponent(
+        submission.id
+      )}/reject`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          reason,
+        }),
+      }
+    );
+
+    closeSubmissionModal();
+
+    await Promise.all([
+      loadSubmissions(),
+      loadStats(),
+    ]);
+
+    alert(
+      "Заявка отклонена."
+    );
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin();
+      closeSubmissionModal();
+      return;
+    }
+
+    alert(
+      error.message ||
+        "Не удалось отклонить заявку."
+    );
+  }
+}
+
+/* ============================================================
+   ВСЕ ОПУБЛИКОВАННЫЕ ПОСТЫ
+   ============================================================ */
+
+async function loadPosts() {
+  const list =
+    $("adminPostsList");
+
+  const loading =
+    $("adminPostsLoading");
+
+  const errorBox =
+    $("adminPostsError");
+
+  const empty =
+    $("adminPostsEmpty");
+
+  if (loading) {
+    loading.hidden = false;
+  }
+
+  if (errorBox) {
+    errorBox.hidden = true;
+  }
+
+  try {
+    const data =
+      await api(
+        "/api/admin/posts"
+      );
+
+    state.posts =
+      data.posts || [];
+
+    renderPosts();
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin();
+      return;
+    }
+
+    if (errorBox) {
+      errorBox.textContent =
+        error.message ||
+        "Не удалось загрузить посты.";
+
+      errorBox.hidden = false;
+    }
+  } finally {
+    if (loading) {
+      loading.hidden = true;
+    }
+  }
+}
+
+function renderPosts() {
+  const list =
+    $("adminPostsList");
+
+  const empty =
+    $("adminPostsEmpty");
+
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  let posts =
+    [...state.posts];
+
+  if (
+    state.postFilter !== "all"
+  ) {
+    posts =
+      posts.filter(
+        (post) =>
+          post.category ===
+          state.postFilter
+      );
+  }
+
+  if (!posts.length) {
+    if (empty) {
+      empty.hidden = false;
+    }
+
+    return;
+  }
+
+  if (empty) {
+    empty.hidden = true;
+  }
+
+  for (const post of posts) {
+    const card =
+      document.createElement("article");
+
+    card.className =
+      "admin-post-card";
+
+    const title =
+      escapeHtml(
+        post.title ||
+          "Без названия"
+      );
+
+    const category =
+      escapeHtml(
+        post.category ||
+          "Без категории"
+      );
+
+    const author =
+      escapeHtml(
+        post.author_name ||
+          "Не указан"
+      );
+
+    const date =
+      formatDate(
+        post.published_at
+      );
+
+    card.innerHTML = `
+      <div class="admin-post-main">
 
         ${
-          imageUrl
+          post.image_url
             ? `
-              <div class="admin-detail-image">
-                <img
-                  src="${escapeHtml(imageUrl)}"
-                  alt="${title}"
-                  loading="lazy"
-                  referrerpolicy="no-referrer"
-                >
-              </div>
+              <img
+                class="admin-post-image"
+                src="${escapeAttr(
+                  post.image_url
+                )}"
+                alt=""
+                loading="lazy"
+              >
             `
             : ""
         }
 
-        <div class="admin-detail-content">
-          ${formatAdminContent(
-            content
-          )}
-        </div>
+        <div class="admin-post-info">
 
-        <div class="admin-detail-data">
+          <h3>${title}</h3>
 
-          <div class="admin-detail-row">
-            <strong>Автор:</strong>
+          <div class="admin-post-meta">
+            <span>${category}</span>
+            <span>${date}</span>
             <span>${author}</span>
           </div>
 
-          <div class="admin-detail-row">
-            <strong>Контакт:</strong>
-            <span>${contact}</span>
-          </div>
-
-          <div class="admin-detail-row">
-            <strong>Код:</strong>
-            <span>${trackingCode}</span>
-          </div>
-
-          <div class="admin-detail-row">
-            <strong>Отправлено:</strong>
-            <span>${formattedDate}</span>
-          </div>
-
-          ${
-            linkUrl
-              ? `
-                <div class="admin-detail-row">
-                  <strong>Ссылка:</strong>
-
-                  <a
-                    href="${escapeHtml(linkUrl)}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    Открыть источник
-                  </a>
-                </div>
-              `
-              : ""
-          }
-
-          ${
-            rejectionReason
-              ? `
-                <div class="admin-detail-row admin-rejection-reason">
-
-                  <strong>
-                    Причина отклонения:
-                  </strong>
-
-                  <span>
-                    ${escapeHtml(
-                      rejectionReason
-                    )}
-                  </span>
-
-                </div>
-              `
-              : ""
-          }
+          <p>
+            ${escapeHtml(
+              (post.content || "")
+                .slice(0, 220)
+            )}${post.content?.length > 220 ? "…" : ""}
+          </p>
 
         </div>
 
       </div>
+
+      <div class="admin-post-actions">
+
+        <button
+          type="button"
+          class="admin-post-open"
+          data-id="${escapeAttr(
+            post.id
+          )}"
+        >
+          Открыть
+        </button>
+
+        <button
+          type="button"
+          class="admin-post-edit"
+          data-id="${escapeAttr(
+            post.id
+          )}"
+        >
+          Редактировать
+        </button>
+
+        <button
+          type="button"
+          class="admin-post-delete"
+          data-id="${escapeAttr(
+            post.id
+          )}"
+        >
+          Удалить
+        </button>
+
+      </div>
     `;
 
-    updateModalActions(
-      status
-    );
-  }
-
-  function formatAdminContent(
-    content
-  ) {
-    return String(
-      content || ""
-    )
-      .split(/\n{2,}/)
-      .map(
-        (paragraph) => {
-          const value =
-            paragraph.trim();
-
-          if (!value) {
-            return "";
-          }
-
-          return `<p>${value.replace(
-            /\n/g,
-            "<br>"
-          )}</p>`;
-        }
+    card
+      .querySelector(
+        ".admin-post-open"
       )
-      .join("");
-  }
-
-  function updateModalActions(
-    status
-  ) {
-    const pending =
-      status === "pending";
-
-    if (elements.modalApprove) {
-      elements.modalApprove.hidden =
-        !pending;
-    }
-
-    if (elements.modalReject) {
-      elements.modalReject.hidden =
-        !pending;
-    }
-  }
-
-  // ==========================================================
-  // ОДОБРЕНИЕ
-  // ==========================================================
-
-  async function handleApprove() {
-    const submission =
-      state.selectedSubmission;
-
-    if (!submission) {
-      return;
-    }
-
-    if (
-      String(
-        submission.status ||
-        ""
-      ).toLowerCase() !==
-      "pending"
-    ) {
-      return;
-    }
-
-    const confirmed =
-      window.confirm(
-        `Одобрить публикацию «${submission.title || "Без названия"}»?\n\nПосле одобрения она появится на сайте.`
+      ?.addEventListener(
+        "click",
+        () =>
+          openPost(post.id)
       );
 
-    if (!confirmed) {
-      return;
-    }
+    card
+      .querySelector(
+        ".admin-post-edit"
+      )
+      ?.addEventListener(
+        "click",
+        () =>
+          editPost(post.id)
+      );
 
-    setButtonLoading(
-      elements.modalApprove,
-      true,
-      "Одобряем..."
+    card
+      .querySelector(
+        ".admin-post-delete"
+      )
+      ?.addEventListener(
+        "click",
+        () =>
+          deletePost(post.id)
+      );
+
+    list.appendChild(card);
+  }
+}
+
+function openPost(id) {
+  const post =
+    state.posts.find(
+      (item) => item.id === id
     );
 
-    try {
-      const response =
-        await postJson(
-          `/api/admin/submissions/${encodeURIComponent(
-            submission.id
-          )}/approve`,
-          {}
-        );
+  if (!post) return;
 
-      const updated =
-        response?.submission ||
-        response?.data?.submission;
+  state.selectedPost =
+    post;
 
-      if (updated) {
-        replaceSubmission(
-          updated
-        );
-      } else {
-        updateLocalSubmission(
-          submission.id,
-          {
-            status:
-              "approved",
-          }
-        );
+  const modal =
+    $("postModal");
+
+  const body =
+    $("postModalBody");
+
+  if (!modal || !body) {
+    editPost(id);
+    return;
+  }
+
+  body.innerHTML = `
+    <div class="post-details">
+
+      ${
+        post.image_url
+          ? `
+            <img
+              src="${escapeAttr(
+                post.image_url
+              )}"
+              alt=""
+              style="max-width:100%;border-radius:12px;"
+            >
+          `
+          : ""
       }
 
-      closeSubmissionModal();
+      <h2>
+        ${escapeHtml(
+          post.title || ""
+        )}
+      </h2>
 
-      updateCounters();
-      renderSubmissions();
+      <p>
+        <strong>Категория:</strong>
+        ${escapeHtml(
+          post.category || "—"
+        )}
+      </p>
 
-      showToast(
-        "Публикация одобрена и опубликована.",
-        "success"
-      );
-    } catch (error) {
-      console.error(
-        "Tajik Opportunities: ошибка одобрения",
-        error
-      );
+      <p>
+        <strong>Автор:</strong>
+        ${escapeHtml(
+          post.author_name || "—"
+        )}
+      </p>
 
-      if (
-        error?.status === 401 ||
-        error?.status === 403
-      ) {
-        state.authenticated =
-          false;
+      <p>
+        <strong>Контакт:</strong>
+        ${escapeHtml(
+          post.contact || "—"
+        )}
+      </p>
 
-        closeSubmissionModal();
-        showLogin();
+      <p>
+        <strong>Дата публикации:</strong>
+        ${formatDate(
+          post.published_at
+        )}
+      </p>
 
-        showLoginMessage(
-          "Сессия закончилась. Войдите снова.",
-          "error"
-        );
+      <hr>
 
-        return;
+      <div>
+        ${escapeHtml(
+          post.content || ""
+        ).replace(
+          /\n/g,
+          "<br>"
+        )}
+      </div>
+
+      ${
+        post.link_url
+          ? `
+            <p>
+              <a
+                href="${escapeAttr(
+                  post.link_url
+                )}"
+                target="_blank"
+                rel="noopener"
+              >
+                Открыть ссылку поста
+              </a>
+            </p>
+          `
+          : ""
       }
 
-      showToast(
-        getErrorMessage(
-          error,
-          "Не удалось одобрить публикацию."
-        ),
-        "error"
-      );
-    } finally {
-      setButtonLoading(
-        elements.modalApprove,
-        false
-      );
-    }
+    </div>
+  `;
+
+  modal.hidden = false;
+}
+
+function closePostModal() {
+  const modal =
+    $("postModal");
+
+  if (modal) {
+    modal.hidden = true;
   }
 
-  // ==========================================================
-  // ОТКЛОНЕНИЕ
-  // ==========================================================
+  state.selectedPost = null;
+}
 
-  function openRejectModal() {
-    if (
-      !state.selectedSubmission
-    ) {
-      return;
-    }
-
-    if (elements.rejectReason) {
-      elements.rejectReason.value =
-        "";
-    }
-
-    if (elements.rejectModal) {
-      elements.rejectModal.hidden =
-        false;
-
-      document.body.classList.add(
-        "modal-open"
-      );
-    }
-
-    setTimeout(
-      () => {
-        if (
-          elements.rejectReason
-        ) {
-          elements.rejectReason.focus();
-        }
-      },
-      50
-    );
-  }
-
-  function closeRejectModal() {
-    if (
-      elements.rejectModal
-    ) {
-      elements.rejectModal.hidden =
-        true;
-    }
-
-    document.body.classList.remove(
-      "modal-open"
-    );
-  }
-
-  async function handleReject(
-    event
-  ) {
-    event.preventDefault();
-
-    const submission =
-      state.selectedSubmission;
-
-    if (!submission) {
-      return;
-    }
-
-    const reason =
-      elements.rejectReason
-        ? elements.rejectReason.value.trim()
-        : "";
-
-    if (!reason) {
-      showToast(
-        "Укажите причину отклонения.",
-        "error"
-      );
-
-      return;
-    }
-
-    if (
-      reason.length < 5
-    ) {
-      showToast(
-        "Причина должна содержать минимум 5 символов.",
-        "error"
-      );
-
-      return;
-    }
-
-    if (
-      reason.length > 2000
-    ) {
-      showToast(
-        "Причина слишком длинная.",
-        "error"
-      );
-
-      return;
-    }
-
-    setButtonLoading(
-      elements.rejectSubmit,
-      true,
-      "Отклоняем..."
+function editPost(id) {
+  const post =
+    state.posts.find(
+      (item) => item.id === id
     );
 
-    try {
-      const response =
-        await postJson(
-          `/api/admin/submissions/${encodeURIComponent(
-            submission.id
-          )}/reject`,
-          {
-            reason,
-          }
-        );
+  if (!post) return;
 
-      const updated =
-        response?.submission ||
-        response?.data?.submission;
+  state.selectedPost =
+    post;
 
-      if (updated) {
-        replaceSubmission(
-          updated
-        );
-      } else {
-        updateLocalSubmission(
-          submission.id,
-          {
-            status:
-              "rejected",
-            rejection_reason:
-              reason,
-          }
-        );
-      }
+  const modal =
+    $("postEditModal");
 
-      closeRejectModal();
-      closeSubmissionModal();
+  const form =
+    $("postEditForm");
 
-      updateCounters();
-      renderSubmissions();
+  if (!modal || !form) {
+    alert(
+      "В admin.html ещё нет формы редактирования поста."
+    );
 
-      showToast(
-        "Публикация отклонена.",
-        "success"
-      );
-    } catch (error) {
-      console.error(
-        "Tajik Opportunities: ошибка отклонения",
-        error
-      );
-
-      if (
-        error?.status === 401 ||
-        error?.status === 403
-      ) {
-        state.authenticated =
-          false;
-
-        closeRejectModal();
-        closeSubmissionModal();
-
-        showLogin();
-
-        showLoginMessage(
-          "Сессия закончилась. Войдите снова.",
-          "error"
-        );
-
-        return;
-      }
-
-      showToast(
-        getErrorMessage(
-          error,
-          "Не удалось отклонить публикацию."
-        ),
-        "error"
-      );
-    } finally {
-      setButtonLoading(
-        elements.rejectSubmit,
-        false
-      );
-    }
+    return;
   }
 
-  // ==========================================================
-  // ЛОКАЛЬНЫЕ ДАННЫЕ
-  // ==========================================================
+  setValue(
+    "editPostTitle",
+    post.title
+  );
 
-  function replaceSubmission(
-    updated
-  ) {
-    if (
-      !updated ||
-      !updated.id
-    ) {
-      return;
-    }
+  setValue(
+    "editPostContent",
+    post.content
+  );
 
-    const index =
-      state.submissions.findIndex(
-        (submission) =>
-          String(
-            submission.id
-          ) ===
-          String(
-            updated.id
-          )
-      );
+  setValue(
+    "editPostCategory",
+    post.category
+  );
 
-    if (index === -1) {
-      state.submissions.push(
-        updated
-      );
+  setValue(
+    "editPostImage",
+    post.image_url
+  );
 
-      return;
-    }
+  setValue(
+    "editPostLink",
+    post.link_url
+  );
 
-    state.submissions[index] =
+  setValue(
+    "editPostContact",
+    post.contact
+  );
+
+  setValue(
+    "editPostAuthor",
+    post.author_name
+  );
+
+  modal.hidden = false;
+}
+
+async function savePost() {
+  const post =
+    state.selectedPost;
+
+  if (!post) return;
+
+  const title =
+    getValue(
+      "editPostTitle"
+    );
+
+  const content =
+    getValue(
+      "editPostContent"
+    );
+
+  const category =
+    getValue(
+      "editPostCategory"
+    );
+
+  const image_url =
+    getValue(
+      "editPostImage"
+    );
+
+  const link_url =
+    getValue(
+      "editPostLink"
+    );
+
+  const contact =
+    getValue(
+      "editPostContact"
+    );
+
+  const author_name =
+    getValue(
+      "editPostAuthor"
+    );
+
+  if (title.length < 5) {
+    alert(
+      "Заголовок должен содержать минимум 5 символов."
+    );
+
+    return;
+  }
+
+  if (content.length < 20) {
+    alert(
+      "Описание должно содержать минимум 20 символов."
+    );
+
+    return;
+  }
+
+  if (!category) {
+    alert(
+      "Укажите категорию."
+    );
+
+    return;
+  }
+
+  const confirmed =
+    confirm(
+      "Сохранить изменения этого поста?"
+    );
+
+  if (!confirmed) return;
+
+  const button =
+    $("postEditSave");
+
+  if (button) {
+    button.disabled = true;
+    button.textContent =
+      "Сохраняем...";
+  }
+
+  try {
+    await api(
+      `/api/admin/posts/${encodeURIComponent(
+        post.id
+      )}`,
       {
-        ...state.submissions[
-          index
-        ],
-        ...updated,
-      };
-  }
+        method: "PUT",
+        body: JSON.stringify({
+          title,
+          content,
+          category,
+          image_url,
+          link_url,
+          contact,
+          author_name,
+        }),
+      }
+    );
 
-  function updateLocalSubmission(
-    id,
-    changes
-  ) {
-    const submission =
-      findSubmission(id);
+    closePostEditModal();
 
-    if (!submission) {
+    await Promise.all([
+      loadPosts(),
+      loadStats(),
+    ]);
+
+    alert(
+      "Пост успешно изменён."
+    );
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin();
+      closePostEditModal();
       return;
     }
 
-    Object.assign(
-      submission,
-      changes
+    alert(
+      error.message ||
+        "Не удалось изменить пост."
     );
-  }
-
-  // ==========================================================
-  // LOGIN UI
-  // ==========================================================
-
-  function showLogin() {
-    if (
-      elements.loginSection
-    ) {
-      elements.loginSection.hidden =
-        false;
-    }
-
-    if (
-      elements.dashboardSection
-    ) {
-      elements.dashboardSection.hidden =
-        true;
+  } finally {
+    if (button) {
+      button.disabled = false;
+      button.textContent =
+        "Сохранить изменения";
     }
   }
+}
 
-  function showDashboard() {
-    if (
-      elements.loginSection
-    ) {
-      elements.loginSection.hidden =
-        true;
-    }
+function closePostEditModal() {
+  const modal =
+    $("postEditModal");
 
-    if (
-      elements.dashboardSection
-    ) {
-      elements.dashboardSection.hidden =
-        false;
-    }
-
-    updateFilterButtons();
+  if (modal) {
+    modal.hidden = true;
   }
 
-  function showLoginMessage(
-    message,
-    type = "error"
-  ) {
-    if (
-      !elements.loginMessage
-    ) {
+  state.selectedPost = null;
+}
+
+async function deletePost(id) {
+  const post =
+    state.posts.find(
+      (item) => item.id === id
+    );
+
+  if (!post) return;
+
+  const confirmed =
+    confirm(
+      `Удалить пост «${post.title}»?\n\nЭто действие нельзя отменить.`
+    );
+
+  if (!confirmed) return;
+
+  const secondConfirm =
+    confirm(
+      "Вы действительно хотите окончательно удалить этот пост?"
+    );
+
+  if (!secondConfirm) return;
+
+  try {
+    await api(
+      `/api/admin/posts/${encodeURIComponent(
+        id
+      )}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    await Promise.all([
+      loadPosts(),
+      loadStats(),
+    ]);
+
+    alert(
+      "Пост удалён."
+    );
+  } catch (error) {
+    if (error.status === 401) {
+      showLogin();
       return;
     }
 
-    elements.loginMessage.hidden =
-      false;
-
-    elements.loginMessage.textContent =
-      message;
-
-    elements.loginMessage.classList.remove(
-      "success",
-      "error",
-      "warning"
-    );
-
-    elements.loginMessage.classList.add(
-      type
+    alert(
+      error.message ||
+        "Не удалось удалить пост."
     );
   }
+}
 
-  function clearLoginMessage() {
-    if (
-      !elements.loginMessage
-    ) {
-      return;
-    }
+function setupFilters() {
+  document
+    .querySelectorAll(
+      "[data-admin-filter]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        async () => {
+          const filter =
+            button.dataset.adminFilter;
 
-    elements.loginMessage.hidden =
-      true;
+          if (!filter) return;
 
-    elements.loginMessage.textContent =
-      "";
+          state.filter =
+            filter;
 
-    elements.loginMessage.classList.remove(
-      "success",
-      "error",
-      "warning"
+          document
+            .querySelectorAll(
+              "[data-admin-filter]"
+            )
+            .forEach((item) => {
+              item.classList.toggle(
+                "active",
+                item === button
+              );
+            });
+
+          await loadSubmissions();
+        }
+      );
+    });
+
+  document
+    .querySelectorAll(
+      "[data-post-filter]"
+    )
+    .forEach((button) => {
+      button.addEventListener(
+        "click",
+        () => {
+          state.postFilter =
+            button.dataset.postFilter ||
+            "all";
+
+          document
+            .querySelectorAll(
+              "[data-post-filter]"
+            )
+            .forEach((item) => {
+              item.classList.toggle(
+                "active",
+                item === button
+              );
+            });
+
+          renderPosts();
+        }
+      );
+    });
+}
+
+function setupEvents() {
+  $("adminLoginButton")
+    ?.addEventListener(
+      "click",
+      handleLogin
     );
+
+  $("adminPassword")
+    ?.addEventListener(
+      "keydown",
+      (event) => {
+        if (
+          event.key === "Enter"
+        ) {
+          handleLogin();
+        }
+      }
+    );
+
+  $("adminLogout")
+    ?.addEventListener(
+      "click",
+      handleLogout
+    );
+
+  $("adminRefresh")
+    ?.addEventListener(
+      "click",
+      async () => {
+        await Promise.all([
+          loadSubmissions(),
+          loadPosts(),
+          loadStats(),
+        ]);
+      }
+    );
+
+  $("submissionClose")
+    ?.addEventListener(
+      "click",
+      closeSubmissionModal
+    );
+
+  $("submissionCancel")
+    ?.addEventListener(
+      "click",
+      closeSubmissionModal
+    );
+
+  $("submissionApprove")
+    ?.addEventListener(
+      "click",
+      approveSelectedSubmission
+    );
+
+  $("submissionReject")
+    ?.addEventListener(
+      "click",
+      rejectSelectedSubmission
+    );
+
+  $("postModalClose")
+    ?.addEventListener(
+      "click",
+      closePostModal
+    );
+
+  $("postModalCancel")
+    ?.addEventListener(
+      "click",
+      closePostModal
+    );
+
+  $("postEditClose")
+    ?.addEventListener(
+      "click",
+      closePostEditModal
+    );
+
+  $("postEditCancel")
+    ?.addEventListener(
+      "click",
+      closePostEditModal
+    );
+
+  $("postEditForm")
+    ?.addEventListener(
+      "submit",
+      (event) => {
+        event.preventDefault();
+        savePost();
+      }
+    );
+
+  setupFilters();
+}
+
+function setValue(id, value) {
+  const element = $(id);
+
+  if (element) {
+    element.value =
+      value ?? "";
   }
+}
 
-  // ==========================================================
-  // ADMIN UI
-  // ==========================================================
+function getValue(id) {
+  return String(
+    $(id)?.value || ""
+  ).trim();
+}
 
-  function showAdminLoading() {
-    if (
-      elements.loadingState
-    ) {
-      elements.loadingState.hidden =
-        false;
-    }
+function formatDate(value) {
+  if (!value) return "—";
 
-    if (
-      elements.submissionsList
-    ) {
-      elements.submissionsList.hidden =
-        true;
-    }
+  const date =
+    new Date(value);
 
-    if (
-      elements.emptyState
-    ) {
-      elements.emptyState.hidden =
-        true;
-    }
-  }
-
-  function hideAdminLoading() {
-    if (
-      elements.loadingState
-    ) {
-      elements.loadingState.hidden =
-        true;
-    }
-
-    if (
-      elements.submissionsList
-    ) {
-      elements.submissionsList.hidden =
-        false;
-    }
-  }
-
-  function showAdminEmpty() {
-    if (
-      elements.emptyState
-    ) {
-      elements.emptyState.hidden =
-        false;
-    }
-  }
-
-  function hideAdminEmpty() {
-    if (
-      elements.emptyState
-    ) {
-      elements.emptyState.hidden =
-        true;
-    }
-  }
-
-  function showAdminError(
-    message
+  if (
+    Number.isNaN(
+      date.getTime()
+    )
   ) {
-    if (
-      elements.errorState
-    ) {
-      elements.errorState.hidden =
-        false;
-    }
-
-    if (
-      elements.errorMessage
-    ) {
-      elements.errorMessage.textContent =
-        message;
-    }
-
-    if (
-      elements.submissionsList
-    ) {
-      elements.submissionsList.hidden =
-        true;
-    }
+    return "—";
   }
 
-  function hideAdminError() {
-    if (
-      elements.errorState
-    ) {
-      elements.errorState.hidden =
-        true;
+  return date.toLocaleString(
+    "ru-RU",
+    {
+      dateStyle: "medium",
+      timeStyle: "short",
     }
+  );
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll(
+      "'",
+      "&#039;"
+    );
+}
+
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+document.addEventListener(
+  "DOMContentLoaded",
+  () => {
+    setupEvents();
+    checkAuthentication();
   }
-})();
+);
