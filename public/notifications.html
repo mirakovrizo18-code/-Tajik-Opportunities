@@ -5,435 +5,251 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Уведомления — Tajik Opportunities</title>
+  <meta name="description" content="Уведомления Tajik Opportunities">
 
-  <meta
-    name="description"
-    content="Уведомления Tajik Opportunities — новые сообщения, ответы администрации и обновления."
-  >
-
-  <link
-    rel="icon"
-    href="/images/Image_2026_09_05_19_01_30.jpg"
-  >
-
+  <link rel="icon" type="image/jpeg" href="/images/Image_2026_09_05_19_01_30.jpg">
   <link rel="stylesheet" href="/css/style.css">
 
   <style>
-    /* =========================================================
-       TAJIK OPPORTUNITIES — NOTIFICATIONS
-       ========================================================= */
-
     .notifications-page {
-      max-width: 1050px;
+      max-width: 1000px;
       margin: 0 auto;
-      padding: 30px 20px 70px;
+      padding: 24px 16px 100px;
     }
 
-    .notifications-header {
+    .notifications-head {
       display: flex;
-      align-items: flex-start;
+      align-items: center;
       justify-content: space-between;
-      gap: 20px;
-      margin-bottom: 25px;
+      gap: 16px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
     }
 
-    .notifications-title-wrap h1 {
-      margin: 0 0 8px;
-      font-size: clamp(29px, 4vw, 43px);
-      line-height: 1.15;
-    }
-
-    .notifications-title-wrap p {
+    .notifications-title {
       margin: 0;
-      max-width: 700px;
-      opacity: .68;
-      line-height: 1.6;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .notifications-subtitle {
+      margin: 6px 0 0;
+      opacity: .7;
+      font-size: 14px;
     }
 
     .notifications-actions {
       display: flex;
-      gap: 9px;
+      gap: 8px;
       flex-wrap: wrap;
-      justify-content: flex-end;
     }
 
-    .notification-action {
-      min-height: 43px;
-      padding: 0 15px;
-      border-radius: 13px;
-      border: 1px solid rgba(127,127,127,.2);
-      background: transparent;
-      color: inherit;
-      font: inherit;
-      font-weight: 800;
+    .notifications-actions button {
+      border: 0;
       cursor: pointer;
-      transition:
-        transform .18s ease,
-        opacity .18s ease,
-        background .18s ease;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-weight: 700;
     }
 
-    .notification-action:hover {
-      transform: translateY(-1px);
-      background: rgba(127,127,127,.06);
-    }
-
-    .notification-action:disabled {
-      opacity: .5;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .notification-action.primary {
-      background: #111;
-      color: #fff;
-      border-color: #111;
-    }
-
-    /* =========================================================
-       LOGIN
-       ========================================================= */
-
-    .notifications-login {
-      max-width: 650px;
-      margin: 45px auto;
-      padding: 38px 25px;
-      border: 1px solid rgba(127,127,127,.18);
-      border-radius: 25px;
-      text-align: center;
-      background: var(--card-bg, #fff);
-      box-shadow: 0 15px 50px rgba(0,0,0,.06);
-    }
-
-    .notifications-login-icon {
-      font-size: 58px;
-      margin-bottom: 12px;
-    }
-
-    .notifications-login h2 {
-      margin: 0 0 10px;
-    }
-
-    .notifications-login p {
-      margin: 0 0 20px;
-      opacity: .66;
-      line-height: 1.65;
-    }
-
-    .login-button {
+    .notifications-count {
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 45px;
-      padding: 0 18px;
-      border-radius: 13px;
-      background: #111;
+      min-width: 24px;
+      height: 24px;
+      padding: 0 7px;
+      border-radius: 999px;
+      font-size: 12px;
+      background: #e53935;
       color: #fff;
-      text-decoration: none;
-      font-weight: 800;
+      vertical-align: middle;
+      margin-left: 6px;
     }
 
-    /* =========================================================
-       NOTIFICATION BOX
-       ========================================================= */
-
-    .notifications-box {
-      border: 1px solid rgba(127,127,127,.18);
-      border-radius: 23px;
-      overflow: hidden;
-      background: var(--card-bg, #fff);
-      box-shadow: 0 15px 50px rgba(0,0,0,.06);
+    .notifications-login {
+      padding: 22px;
+      border-radius: 16px;
+      text-align: center;
+      background: rgba(127,127,127,.08);
+      margin-bottom: 16px;
     }
 
     .notifications-list {
       display: flex;
       flex-direction: column;
+      gap: 10px;
     }
 
     .notification-item {
       position: relative;
       display: flex;
       align-items: flex-start;
-      gap: 15px;
-      width: 100%;
-      padding: 18px 20px;
-      box-sizing: border-box;
-      border: 0;
-      border-bottom: 1px solid rgba(127,127,127,.11);
-      background: transparent;
-      color: inherit;
-      text-align: left;
+      gap: 14px;
+      padding: 16px;
+      border-radius: 16px;
+      background: var(--card-bg, #fff);
+      border: 1px solid rgba(127,127,127,.15);
       cursor: pointer;
-      transition:
-        background .18s ease,
-        transform .18s ease;
-    }
-
-    .notification-item:last-child {
-      border-bottom: 0;
+      transition: transform .15s ease, background .15s ease;
     }
 
     .notification-item:hover {
+      transform: translateY(-1px);
       background: rgba(127,127,127,.06);
     }
 
     .notification-item.unread {
-      background: rgba(127,127,127,.075);
+      border-left: 4px solid #1976d2;
+      background: rgba(25,118,210,.07);
     }
-
-    .notification-item.unread:hover {
-      background: rgba(127,127,127,.11);
-    }
-
-    .notification-item.unread::before {
-      content: "";
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      width: 4px;
-      background: #111;
-    }
-
-    /* =========================================================
-       ICON
-       ========================================================= */
 
     .notification-icon {
-      width: 50px;
-      height: 50px;
-      flex: 0 0 50px;
+      width: 46px;
+      height: 46px;
+      min-width: 46px;
+      border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 16px;
-      background: rgba(127,127,127,.11);
-      font-size: 23px;
+      font-size: 21px;
+      background: rgba(127,127,127,.12);
     }
 
-    .notification-icon.admin {
-      background: linear-gradient(
-        135deg,
-        rgba(0,0,0,.92),
-        rgba(90,90,90,.78)
-      );
-      color: #fff;
-    }
-
-    /* =========================================================
-       CONTENT
-       ========================================================= */
-
-    .notification-content {
-      min-width: 0;
+    .notification-body {
       flex: 1;
-    }
-
-    .notification-top {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 12px;
+      min-width: 0;
     }
 
     .notification-title {
-      font-weight: 850;
       font-size: 15px;
-      line-height: 1.4;
-    }
-
-    .notification-time {
-      flex: 0 0 auto;
-      font-size: 11px;
-      opacity: .52;
-      white-space: nowrap;
+      font-weight: 800;
+      margin-bottom: 5px;
     }
 
     .notification-text {
-      margin-top: 5px;
-      font-size: 13px;
-      line-height: 1.55;
-      opacity: .7;
-      word-break: break-word;
+      font-size: 14px;
+      line-height: 1.5;
+      opacity: .85;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
     }
 
-    .notification-badge {
-      display: inline-flex;
+    .notification-meta {
+      display: flex;
       align-items: center;
-      justify-content: center;
+      gap: 8px;
       margin-top: 8px;
-      padding: 4px 8px;
-      border-radius: 999px;
-      background: rgba(127,127,127,.11);
-      font-size: 10px;
+      font-size: 12px;
+      opacity: .6;
+      flex-wrap: wrap;
+    }
+
+    .notification-official {
       font-weight: 800;
+      opacity: 1;
     }
 
-    /* =========================================================
-       EMPTY / LOADING / ERROR
-       ========================================================= */
+    .notification-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: #1976d2;
+      margin-top: 8px;
+      flex-shrink: 0;
+    }
 
-    .notifications-empty,
-    .notifications-loading,
-    .notifications-error {
-      padding: 65px 25px;
+    .notifications-empty {
       text-align: center;
+      padding: 60px 20px;
+      border-radius: 18px;
+      background: rgba(127,127,127,.06);
     }
 
-    .notifications-empty-icon,
-    .notifications-error-icon {
-      font-size: 60px;
-      margin-bottom: 13px;
+    .notifications-empty-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
     }
 
-    .notifications-empty h2,
-    .notifications-error h2 {
-      margin: 0 0 10px;
+    .notifications-empty-title {
+      font-size: 20px;
+      font-weight: 800;
+      margin-bottom: 6px;
     }
 
-    .notifications-empty p,
-    .notifications-error p {
-      margin: 0 auto;
-      max-width: 500px;
-      opacity: .62;
-      line-height: 1.6;
+    .notifications-empty-text {
+      opacity: .65;
+      font-size: 14px;
     }
 
     .notifications-loading {
-      opacity: .65;
+      text-align: center;
+      padding: 40px 20px;
+      opacity: .7;
     }
 
-    .loading-spinner {
-      width: 30px;
-      height: 30px;
-      margin: 0 auto 14px;
-      border: 3px solid rgba(127,127,127,.2);
-      border-top-color: currentColor;
-      border-radius: 50%;
-      animation: notificationSpin .8s linear infinite;
+    .notifications-error {
+      padding: 16px;
+      border-radius: 14px;
+      background: rgba(229,57,53,.1);
+      color: #c62828;
+      margin-bottom: 15px;
     }
 
-    @keyframes notificationSpin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .retry-button {
-      margin-top: 15px;
-      min-height: 43px;
-      padding: 0 17px;
-      border: 0;
-      border-radius: 13px;
-      background: #111;
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 25px;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 9999;
+      padding: 12px 18px;
+      border-radius: 12px;
+      background: #222;
       color: #fff;
-      font-weight: 800;
-      cursor: pointer;
+      font-size: 14px;
+      transition: .25s ease;
+      max-width: calc(100vw - 30px);
+      text-align: center;
     }
 
-    /* =========================================================
-       COUNT
-       ========================================================= */
-
-    .page-count {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-width: 22px;
-      height: 22px;
-      padding: 0 7px;
-      margin-left: 7px;
-      box-sizing: border-box;
-      border-radius: 999px;
-      background: #111;
-      color: #fff;
-      font-size: 11px;
-      font-weight: 800;
-      vertical-align: middle;
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
     }
-
-    .hidden {
-      display: none !important;
-    }
-
-    /* =========================================================
-       DARK MODE
-       ========================================================= */
-
-    body.dark .notifications-box,
-    body.dark .notifications-login,
-    .dark .notifications-box,
-    .dark .notifications-login {
-      background: #151515;
-    }
-
-    /* =========================================================
-       MOBILE
-       ========================================================= */
 
     @media (max-width: 700px) {
-
       .notifications-page {
-        padding: 21px 12px 55px;
+        padding: 18px 12px 90px;
       }
 
-      .notifications-header {
-        display: block;
+      .notifications-title {
+        font-size: 24px;
       }
 
-      .notifications-actions {
-        margin-top: 17px;
-        justify-content: flex-start;
-      }
-
-      .notification-action {
-        flex: 1;
-      }
-
-      .notifications-box {
-        border-radius: 19px;
-      }
-
-      .notification-item {
-        padding: 15px 14px;
-        gap: 11px;
-      }
-
-      .notification-icon {
-        width: 44px;
-        height: 44px;
-        flex-basis: 44px;
-        border-radius: 14px;
-        font-size: 20px;
-      }
-
-      .notification-top {
-        display: block;
-      }
-
-      .notification-time {
-        display: block;
-        margin-top: 3px;
-      }
-    }
-
-    @media (max-width: 430px) {
-
-      .notifications-title-wrap h1 {
-        font-size: 29px;
+      .notifications-head {
+        align-items: flex-start;
       }
 
       .notifications-actions {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-      }
-
-      .notification-action {
         width: 100%;
       }
 
-      .notifications-login {
-        padding: 30px 18px;
+      .notifications-actions button {
+        flex: 1;
+      }
+
+      .notification-item {
+        padding: 13px;
+        gap: 10px;
+      }
+
+      .notification-icon {
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
+        font-size: 18px;
       }
     }
   </style>
@@ -441,88 +257,55 @@
 
 <body>
 
-  <!-- =======================================================
-       HEADER
-       ======================================================= -->
-
+  <!-- HEADER -->
   <header class="site-header">
+    <div class="header-inner">
 
-    <div class="container">
-
-      <a
-        href="/"
-        class="brand"
-        aria-label="Tajik Opportunities"
-      >
+      <a href="/" class="brand">
         <img
           src="/images/Image_2026_09_05_19_01_30.jpg"
           alt="Tajik Opportunities"
+          class="brand-logo"
         >
+        <span class="brand-name">Tajik Opportunities</span>
       </a>
 
       <nav class="desktop-nav">
         <a href="/">Главная</a>
-        <a href="/#search">Найти</a>
+        <a href="/#search">Поиск</a>
         <a href="/#categories">Категории</a>
         <a href="/add.html">Создать</a>
+
+        <a href="/notifications.html" class="active">
+          🔔
+          <span id="headerUnreadCount" class="notifications-count" style="display:none;">0</span>
+        </a>
+
+        <a href="/profile.html">👤</a>
       </nav>
 
-      <div class="header-actions">
-
-        <a
-          href="/notifications.html"
-          class="header-icon"
-          aria-label="Уведомления"
-          title="Уведомления"
-        >
-          🔔
-
-          <span
-            id="headerUnreadCount"
-            class="notification-count hidden"
-          >0</span>
-        </a>
-
-        <a
-          href="/profile.html"
-          class="header-profile"
-          aria-label="Профиль"
-          title="Профиль"
-        >
-          👤
-        </a>
-
-      </div>
-
     </div>
-
   </header>
 
-  <!-- =======================================================
-       MAIN
-       ======================================================= -->
 
+  <!-- MAIN -->
   <main class="notifications-page">
 
-    <section class="notifications-header">
+    <div class="notifications-head">
 
-      <div class="notifications-title-wrap">
-
-        <h1>
+      <div>
+        <h1 class="notifications-title">
           🔔 Уведомления
-
           <span
             id="pageUnreadCount"
-            class="page-count hidden"
+            class="notifications-count"
+            style="display:none;"
           >0</span>
         </h1>
 
-        <p>
-          Здесь будут появляться новые сообщения,
-          ответы администрации, обновления публикаций
-          и другие важные события Tajik Opportunities.
+        <p class="notifications-subtitle">
+          Новости, сообщения и события вашего аккаунта
         </p>
-
       </div>
 
       <div class="notifications-actions">
@@ -530,7 +313,6 @@
         <button
           type="button"
           id="markAllButton"
-          class="notification-action primary"
         >
           ✓ Прочитать все
         </button>
@@ -538,80 +320,61 @@
         <button
           type="button"
           id="refreshButton"
-          class="notification-action"
         >
           ↻ Обновить
         </button>
 
       </div>
 
-    </section>
+    </div>
 
-    <!-- =====================================================
-         LOGIN
-         ===================================================== -->
 
-    <section
+    <!-- LOGIN STATE -->
+    <div
       id="loginState"
-      class="notifications-login hidden"
+      class="notifications-login"
+      style="display:none;"
     >
+      <div style="font-size:32px;margin-bottom:10px;">🔐</div>
 
-      <div class="notifications-login-icon">
-        🔐
-      </div>
+      <strong>Войдите в аккаунт</strong>
 
-      <h2>
-        Войдите, чтобы видеть уведомления
-      </h2>
-
-      <p>
-        После входа здесь будут отображаться новые сообщения,
-        ответы администрации, обновления публикаций и другие
-        важные события.
+      <p style="opacity:.7;margin:8px 0 15px;">
+        После входа здесь будут отображаться ваши уведомления.
       </p>
 
-      <a
-        href="/profile.html"
-        class="login-button"
-      >
-        👤 Войти или зарегистрироваться
+      <a href="/profile.html" class="button">
+        Войти / зарегистрироваться
       </a>
+    </div>
 
-    </section>
 
-    <!-- =====================================================
-         APP
-         ===================================================== -->
+    <!-- ERROR -->
+    <div
+      id="notificationsError"
+      class="notifications-error"
+      style="display:none;"
+    ></div>
 
+
+    <!-- APPLICATION -->
     <section
       id="notificationsApp"
-      class="notifications-box hidden"
+      style="display:none;"
     >
 
       <div
         id="notificationsList"
         class="notifications-list"
-      >
-
-        <div class="notifications-loading">
-
-          <div class="loading-spinner"></div>
-
-          Загрузка уведомлений...
-
-        </div>
-
-      </div>
+      ></div>
 
     </section>
 
   </main>
 
-  <!-- =======================================================
-       MOBILE NAV
-       ======================================================= -->
 
-  <nav class="mobile-nav">
+  <!-- MOBILE NAV -->
+  <nav class="mobile-bottom-nav">
 
     <a href="/">
       <span>🏠</span>
@@ -620,7 +383,7 @@
 
     <a href="/saved.html">
       <span>🔖</span>
-      <small>Сохранённое</small>
+      <small>Сохранённые</small>
     </a>
 
     <a href="/add.html">
@@ -640,31 +403,15 @@
 
   </nav>
 
-  <!-- =======================================================
-       TOAST
-       ======================================================= -->
 
-  <div
-    id="toast"
-    class="toast"
-    role="status"
-    aria-live="polite"
-  ></div>
+  <!-- TOAST -->
+  <div id="toast" class="toast"></div>
 
-  <!-- =======================================================
-       APPLICATION
-       ======================================================= -->
-
-  <script src="/js/app.js"></script>
 
   <script>
     (() => {
 
       "use strict";
-
-      /* ======================================================
-         API — ТОЛЬКО СУЩЕСТВУЮЩИЕ ROUTES WORKER
-         ====================================================== */
 
       const API = {
         me: "/api/auth/me",
@@ -672,37 +419,245 @@
         read: "/api/notifications/read"
       };
 
-      /* ======================================================
-         STATE
-         ====================================================== */
-
-      const state = {
-        user: null,
-        notifications: [],
-        loading: false,
-        pollingTimer: null
-      };
-
-      /* ======================================================
-         ELEMENTS
-         ====================================================== */
-
-      const $ = (selector) =>
-        document.querySelector(selector);
 
       const elements = {
-        loginState: $("#loginState"),
-        notificationsApp: $("#notificationsApp"),
-        notificationsList: $("#notificationsList"),
-        markAllButton: $("#markAllButton"),
-        refreshButton: $("#refreshButton"),
-        headerUnreadCount: $("#headerUnreadCount"),
-        pageUnreadCount: $("#pageUnreadCount")
+        app: document.getElementById("notificationsApp"),
+        list: document.getElementById("notificationsList"),
+        loginState: document.getElementById("loginState"),
+        error: document.getElementById("notificationsError"),
+        headerUnread: document.getElementById("headerUnreadCount"),
+        pageUnread: document.getElementById("pageUnreadCount"),
+        markAll: document.getElementById("markAllButton"),
+        refresh: document.getElementById("refreshButton"),
+        toast: document.getElementById("toast")
       };
 
-      /* ======================================================
-         HELPERS
-         ====================================================== */
+
+      let currentUser = null;
+      let notifications = [];
+      let loading = false;
+      let toastTimer = null;
+
+
+      function showToast(message) {
+
+        if (!elements.toast) return;
+
+        elements.toast.textContent = message;
+        elements.toast.classList.add("show");
+
+        clearTimeout(toastTimer);
+
+        toastTimer = setTimeout(() => {
+          elements.toast.classList.remove("show");
+        }, 2500);
+      }
+
+
+      function showError(message) {
+
+        if (!elements.error) return;
+
+        elements.error.textContent = message || "Произошла ошибка.";
+        elements.error.style.display = "block";
+      }
+
+
+      function hideError() {
+
+        if (!elements.error) return;
+
+        elements.error.style.display = "none";
+      }
+
+
+      async function request(url, options = {}) {
+
+        const response = await fetch(url, {
+          credentials: "same-origin",
+          ...options,
+          headers: {
+            "Accept": "application/json",
+            ...(options.body ? {
+              "Content-Type": "application/json"
+            } : {}),
+            ...(options.headers || {})
+          }
+        });
+
+        let data = null;
+
+        try {
+          data = await response.json();
+        } catch (_) {
+          data = null;
+        }
+
+        if (!response.ok) {
+
+          const error = new Error(
+            data?.error ||
+            data?.message ||
+            `Ошибка ${response.status}`
+          );
+
+          error.status = response.status;
+
+          throw error;
+        }
+
+        return data || {};
+      }
+
+
+      async function loadCurrentUser() {
+
+        try {
+
+          const data = await request(API.me);
+
+          currentUser =
+            data?.user ||
+            data?.profile ||
+            data ||
+            null;
+
+          return currentUser;
+
+        } catch (error) {
+
+          currentUser = null;
+
+          if (error.status === 401 || error.status === 403) {
+            return null;
+          }
+
+          throw error;
+        }
+      }
+
+
+      function getNotificationId(item) {
+
+        return (
+          item?.id ??
+          item?.notification_id ??
+          item?.notificationId ??
+          null
+        );
+      }
+
+
+      function isUnread(item) {
+
+        return !(
+          item?.read === true ||
+          item?.is_read === true ||
+          item?.read_at
+        );
+      }
+
+
+      function getUnreadCount() {
+
+        const serverCount =
+          notifications?.unread_count ??
+          notifications?.unreadCount;
+
+        if (typeof serverCount === "number") {
+          return serverCount;
+        }
+
+        return notifications.filter(isUnread).length;
+      }
+
+
+      function updateCounters() {
+
+        const count = getUnreadCount();
+
+        if (elements.headerUnread) {
+
+          elements.headerUnread.textContent = count;
+
+          elements.headerUnread.style.display =
+            count > 0 ? "inline-flex" : "none";
+        }
+
+
+        if (elements.pageUnread) {
+
+          elements.pageUnread.textContent = count;
+
+          elements.pageUnread.style.display =
+            count > 0 ? "inline-flex" : "none";
+        }
+
+      }
+
+
+      function notificationIcon(item) {
+
+        const type = String(
+          item?.type ||
+          item?.notification_type ||
+          item?.kind ||
+          ""
+        ).toLowerCase();
+
+
+        if (
+          type.includes("message") ||
+          type.includes("chat")
+        ) {
+          return "💬";
+        }
+
+
+        if (
+          type.includes("comment") ||
+          type.includes("reply")
+        ) {
+          return "💭";
+        }
+
+
+        if (
+          type.includes("like") ||
+          type.includes("reaction")
+        ) {
+          return "❤️";
+        }
+
+
+        if (
+          type.includes("follow") ||
+          type.includes("subscriber")
+        ) {
+          return "👤";
+        }
+
+
+        if (
+          type.includes("publication") ||
+          type.includes("post")
+        ) {
+          return "📢";
+        }
+
+
+        if (
+          type.includes("admin") ||
+          type.includes("system") ||
+          type.includes("official")
+        ) {
+          return "🇹🇯";
+        }
+
+
+        return "🔔";
+      }
+
 
       function escapeHTML(value) {
 
@@ -712,1555 +667,579 @@
           .replaceAll(">", "&gt;")
           .replaceAll('"', "&quot;")
           .replaceAll("'", "&#039;");
-
       }
 
-      function safeSameOriginUrl(value) {
 
-        if (!value) {
-          return null;
+      function formatDate(value) {
+
+        if (!value) return "";
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+          return String(value);
         }
+
+        return new Intl.DateTimeFormat(
+          "ru-RU",
+          {
+            dateStyle: "medium",
+            timeStyle: "short"
+          }
+        ).format(date);
+      }
+
+
+      function getSender(item) {
+
+        const sender =
+          item?.sender_name ||
+          item?.author_name ||
+          item?.from_name ||
+          item?.actor_name ||
+          item?.sender?.name ||
+          item?.author?.name ||
+          "";
+
+
+        const official =
+          item?.is_official === true ||
+          item?.official === true ||
+          item?.sender_type === "admin" ||
+          item?.sender_type === "official" ||
+          String(item?.type || "").toLowerCase().includes("admin");
+
+
+        if (official) {
+          return "🇹🇯 Tajik Opportunities✅";
+        }
+
+
+        return sender;
+      }
+
+
+      function getTitle(item) {
+
+        return (
+          item?.title ||
+          item?.subject ||
+          item?.notification_title ||
+          item?.message_title ||
+          "Новое уведомление"
+        );
+      }
+
+
+      function getText(item) {
+
+        return (
+          item?.message ||
+          item?.text ||
+          item?.body ||
+          item?.content ||
+          item?.description ||
+          ""
+        );
+      }
+
+
+      function getTarget(item) {
+
+        const direct =
+          item?.url ||
+          item?.link ||
+          item?.href ||
+          item?.target_url ||
+          item?.targetUrl;
+
+
+        if (direct) {
+          return direct;
+        }
+
+
+        const publicationId =
+          item?.publication_id ||
+          item?.publicationId ||
+          item?.post_id ||
+          item?.postId;
+
+
+        if (publicationId) {
+          return `/post.html?id=${encodeURIComponent(publicationId)}`;
+        }
+
+
+        const conversationId =
+          item?.conversation_id ||
+          item?.conversationId ||
+          item?.chat_id ||
+          item?.chatId;
+
+
+        if (conversationId) {
+          return `/messages.html?conversation_id=${encodeURIComponent(conversationId)}`;
+        }
+
+
+        const type = String(
+          item?.type ||
+          item?.notification_type ||
+          ""
+        ).toLowerCase();
+
+
+        if (
+          type.includes("message") ||
+          type.includes("chat")
+        ) {
+          return "/messages.html";
+        }
+
+
+        return "";
+      }
+
+
+      function renderEmpty() {
+
+        elements.list.innerHTML = `
+          <div class="notifications-empty">
+            <div class="notifications-empty-icon">🔔</div>
+            <div class="notifications-empty-title">
+              Уведомлений пока нет
+            </div>
+            <div class="notifications-empty-text">
+              Здесь появятся новые сообщения, события и обновления.
+            </div>
+          </div>
+        `;
+      }
+
+
+      function renderNotifications() {
+
+        if (!elements.list) return;
+
+
+        if (!notifications.length) {
+
+          renderEmpty();
+          updateCounters();
+
+          return;
+        }
+
+
+        elements.list.innerHTML = notifications.map((item) => {
+
+          const id = getNotificationId(item);
+          const unread = isUnread(item);
+
+          const sender = getSender(item);
+          const title = getTitle(item);
+          const text = getText(item);
+          const date = formatDate(
+            item?.created_at ||
+            item?.createdAt ||
+            item?.date ||
+            item?.timestamp
+          );
+
+
+          return `
+            <article
+              class="notification-item ${unread ? "unread" : ""}"
+              data-id="${escapeHTML(id ?? "")}"
+              data-url="${escapeHTML(getTarget(item))}"
+            >
+
+              <div class="notification-icon">
+                ${notificationIcon(item)}
+              </div>
+
+              <div class="notification-body">
+
+                <div class="notification-title">
+                  ${escapeHTML(title)}
+                </div>
+
+                ${
+                  text
+                    ? `<div class="notification-text">${escapeHTML(text)}</div>`
+                    : ""
+                }
+
+                <div class="notification-meta">
+
+                  ${
+                    sender
+                      ? `<span class="notification-official">${escapeHTML(sender)}</span>`
+                      : ""
+                  }
+
+                  ${
+                    sender && date
+                      ? `<span>•</span>`
+                      : ""
+                  }
+
+                  ${
+                    date
+                      ? `<span>${escapeHTML(date)}</span>`
+                      : ""
+                  }
+
+                </div>
+
+              </div>
+
+              ${
+                unread
+                  ? `<span class="notification-dot" title="Новое"></span>`
+                  : ""
+              }
+
+            </article>
+          `;
+
+        }).join("");
+
+
+        updateCounters();
+      }
+
+
+      async function loadNotifications(options = {}) {
+
+        if (loading) return;
+
+        loading = true;
+
+        hideError();
+
+
+        if (!options.silent) {
+
+          elements.list.innerHTML = `
+            <div class="notifications-loading">
+              ⏳ Загрузка уведомлений...
+            </div>
+          `;
+        }
+
+
+        try {
+
+          const data = await request(API.notifications);
+
+
+          notifications =
+            Array.isArray(data)
+              ? data
+              : (
+                  data?.notifications ||
+                  data?.items ||
+                  data?.data ||
+                  []
+                );
+
+
+          renderNotifications();
+
+
+        } catch (error) {
+
+          console.error(error);
+
+          if (error.status === 401 || error.status === 403) {
+
+            currentUser = null;
+
+            elements.app.style.display = "none";
+            elements.loginState.style.display = "block";
+
+            return;
+          }
+
+
+          showError(
+            error.message ||
+            "Не удалось загрузить уведомления."
+          );
+
+
+          elements.list.innerHTML = `
+            <div class="notifications-empty">
+              <div class="notifications-empty-icon">⚠️</div>
+
+              <div class="notifications-empty-title">
+                Не удалось загрузить уведомления
+              </div>
+
+              <div class="notifications-empty-text">
+                Попробуйте обновить страницу.
+              </div>
+            </div>
+          `;
+
+        } finally {
+
+          loading = false;
+        }
+      }
+
+
+      async function markAsRead(id, item) {
+
+        if (!id) return;
+
+
+        try {
+
+          await request(API.read, {
+            method: "POST",
+            body: JSON.stringify({
+              notification_id: id
+            })
+          });
+
+
+          if (item) {
+
+            item.read = true;
+            item.is_read = true;
+            item.read_at = new Date().toISOString();
+          }
+
+
+        } catch (error) {
+
+          console.error(
+            "Не удалось отметить уведомление:",
+            error
+          );
+        }
+      }
+
+
+      async function markAllAsRead() {
+
+        const unreadItems =
+          notifications.filter(isUnread);
+
+
+        if (!unreadItems.length) {
+
+          showToast("Все уведомления уже прочитаны.");
+
+          return;
+        }
+
+
+        elements.markAll.disabled = true;
+
+
+        try {
+
+          /*
+           * Новый Worker не имеет /api/notifications/read-all.
+           * Поэтому отмечаем каждое уведомление отдельным запросом.
+           */
+
+          await Promise.all(
+            unreadItems.map((item) =>
+              markAsRead(
+                getNotificationId(item),
+                item
+              )
+            )
+          );
+
+
+          notifications.forEach((item) => {
+
+            item.read = true;
+            item.is_read = true;
+            item.read_at =
+              item.read_at ||
+              new Date().toISOString();
+
+          });
+
+
+          renderNotifications();
+
+          showToast("Все уведомления прочитаны.");
+
+        } finally {
+
+          elements.markAll.disabled = false;
+        }
+      }
+
+
+      async function handleNotificationClick(event) {
+
+        const itemElement =
+          event.target.closest(".notification-item");
+
+
+        if (!itemElement) return;
+
+
+        const id =
+          itemElement.dataset.id;
+
+
+        const item =
+          notifications.find(
+            notification =>
+              String(getNotificationId(notification)) ===
+              String(id)
+          );
+
+
+        if (item && isUnread(item)) {
+          await markAsRead(id, item);
+          renderNotifications();
+        }
+
+
+        const target =
+          itemElement.dataset.url;
+
+
+        if (!target) return;
+
+
+        if (
+          target.startsWith("/") &&
+          !target.startsWith("//")
+        ) {
+          window.location.href = target;
+          return;
+        }
+
 
         try {
 
           const url = new URL(
-            String(value),
+            target,
             window.location.origin
           );
 
-          if (
-            url.origin !==
-            window.location.origin
-          ) {
-            return null;
-          }
 
-          return url.href;
-
-        } catch {
-
-          return null;
-
-        }
-
-      }
-
-      function showToast(message) {
-
-        if (
-          typeof window.showToast ===
-          "function"
-        ) {
-
-          window.showToast(message);
-          return;
-
-        }
-
-        const toast = $("#toast");
-
-        if (!toast) {
-          return;
-        }
-
-        toast.textContent = message;
-
-        toast.classList.add("show");
-
-        clearTimeout(
-          showToast.timer
-        );
-
-        showToast.timer =
-          setTimeout(() => {
-
-            toast.classList.remove(
-              "show"
-            );
-
-          }, 3000);
-
-      }
-
-      async function request(
-        url,
-        options = {}
-      ) {
-
-        const requestOptions = {
-          credentials: "include",
-          ...options,
-          headers: {
-            ...(options.body
-              ? {
-                  "Content-Type":
-                    "application/json"
-                }
-              : {}),
-            ...(options.headers || {})
-          }
-        };
-
-        const response =
-          await fetch(
-            url,
-            requestOptions
-          );
-
-        let data = null;
-
-        try {
-
-          data =
-            await response.json();
-
-        } catch {
-
-          data = null;
-
-        }
-
-        if (!response.ok) {
-
-          const error =
-            new Error(
-              data?.message ||
-              data?.error ||
-              `Ошибка ${response.status}`
-            );
-
-          error.status =
-            response.status;
-
-          error.data =
-            data;
-
-          throw error;
-
-        }
-
-        return data;
-
-      }
-
-      function extractUser(data) {
-
-        if (!data) {
-          return null;
-        }
-
-        if (data.user) {
-          return data.user;
-        }
-
-        if (data.profile) {
-          return data.profile;
-        }
-
-        if (data.account) {
-          return data.account;
-        }
-
-        if (data.data?.user) {
-          return data.data.user;
-        }
-
-        return data;
-
-      }
-
-      function extractNotifications(data) {
-
-        if (Array.isArray(data)) {
-          return data;
-        }
-
-        if (
-          Array.isArray(
-            data?.notifications
-          )
-        ) {
-          return data.notifications;
-        }
-
-        if (
-          Array.isArray(
-            data?.items
-          )
-        ) {
-          return data.items;
-        }
-
-        if (
-          Array.isArray(
-            data?.data
-          )
-        ) {
-          return data.data;
-        }
-
-        if (
-          Array.isArray(
-            data?.data?.notifications
-          )
-        ) {
-          return data.data.notifications;
-        }
-
-        if (
-          Array.isArray(
-            data?.data?.items
-          )
-        ) {
-          return data.data.items;
-        }
-
-        return [];
-
-      }
-
-      /* ======================================================
-         TIME
-         ====================================================== */
-
-      function formatTime(value) {
-
-        if (!value) {
-          return "";
-        }
-
-        const date =
-          new Date(value);
-
-        if (
-          Number.isNaN(
-            date.getTime()
-          )
-        ) {
-          return "";
-        }
-
-        const now =
-          new Date();
-
-        const diff =
-          now.getTime() -
-          date.getTime();
-
-        const minute =
-          60 * 1000;
-
-        const hour =
-          60 * minute;
-
-        const day =
-          24 * hour;
-
-        if (diff < minute) {
-          return "только что";
-        }
-
-        if (diff < hour) {
-
-          return (
-            Math.floor(
-              diff / minute
-            ) +
-            " мин. назад"
-          );
-
-        }
-
-        if (diff < day) {
-
-          return (
-            Math.floor(
-              diff / hour
-            ) +
-            " ч. назад"
-          );
-
-        }
-
-        if (
-          diff <
-          7 * day
-        ) {
-
-          return (
-            Math.floor(
-              diff / day
-            ) +
-            " дн. назад"
-          );
-
-        }
-
-        const sameYear =
-          date.getFullYear() ===
-          now.getFullYear();
-
-        if (sameYear) {
-
-          return date.toLocaleDateString(
-            "ru-RU",
-            {
-              day: "2-digit",
-              month: "2-digit"
-            }
-          );
-
-        }
-
-        return date.toLocaleDateString(
-          "ru-RU",
-          {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric"
-          }
-        );
-
-      }
-
-      /* ======================================================
-         TYPE
-         ====================================================== */
-
-      function normalizeType(
-        notification
-      ) {
-
-        return String(
-
-          notification?.type ||
-
-          notification?.kind ||
-
-          notification?.category ||
-
-          notification?.event_type ||
-
-          ""
-
-        )
-          .toLowerCase()
-          .trim();
-
-      }
-
-      function getNotificationIcon(
-        notification
-      ) {
-
-        const type =
-          normalizeType(
-            notification
-          );
-
-        if (
-          type.includes("message") ||
-          type.includes("chat")
-        ) {
-          return "💬";
-        }
-
-        if (
-          type.includes("admin") ||
-          type.includes("support")
-        ) {
-          return "🛡️";
-        }
-
-        if (
-          type.includes("publication") ||
-          type.includes("post")
-        ) {
-          return "📄";
-        }
-
-        if (
-          type.includes("like") ||
-          type.includes("favorite") ||
-          type.includes("reaction")
-        ) {
-          return "❤️";
-        }
-
-        if (
-          type.includes("comment") ||
-          type.includes("reply")
-        ) {
-          return "💬";
-        }
-
-        if (
-          type.includes("approved") ||
-          type.includes("success")
-        ) {
-          return "✅";
-        }
-
-        if (
-          type.includes("rejected") ||
-          type.includes("declined")
-        ) {
-          return "❌";
-        }
-
-        if (
-          type.includes("warning")
-        ) {
-          return "⚠️";
-        }
-
-        return "🔔";
-
-      }
-
-      function isAdminNotification(
-        notification
-      ) {
-
-        const type =
-          normalizeType(
-            notification
-          );
-
-        return (
-
-          type.includes("admin") ||
-
-          type.includes("support") ||
-
-          notification?.is_admin === true ||
-
-          notification?.from_admin === true ||
-
-          notification?.sender_type ===
-            "admin"
-
-        );
-
-      }
-
-      /* ======================================================
-         TITLE
-         ====================================================== */
-
-      function getTitle(
-        notification
-      ) {
-
-        if (
-          notification?.title
-        ) {
-          return notification.title;
-        }
-
-        if (
-          isAdminNotification(
-            notification
-          )
-        ) {
-          return "🇹🇯 Tajik Opportunities✅";
-        }
-
-        const type =
-          normalizeType(
-            notification
-          );
-
-        if (
-          type.includes("message") ||
-          type.includes("chat")
-        ) {
-          return "Новое сообщение";
-        }
-
-        if (
-          type.includes("like") ||
-          type.includes("favorite") ||
-          type.includes("reaction")
-        ) {
-          return "Новая реакция";
-        }
-
-        if (
-          type.includes("comment") ||
-          type.includes("reply")
-        ) {
-          return "Новый комментарий";
-        }
-
-        if (
-          type.includes("publication") ||
-          type.includes("post")
-        ) {
-          return "Обновление публикации";
-        }
-
-        if (
-          type.includes("approved")
-        ) {
-          return "Публикация одобрена";
-        }
-
-        if (
-          type.includes("rejected") ||
-          type.includes("declined")
-        ) {
-          return "Публикация отклонена";
-        }
-
-        return "Новое уведомление";
-
-      }
-
-      /* ======================================================
-         TEXT
-         ====================================================== */
-
-      function getText(
-        notification
-      ) {
-
-        return (
-
-          notification?.message ||
-
-          notification?.text ||
-
-          notification?.content ||
-
-          notification?.body ||
-
-          notification?.description ||
-
-          ""
-
-        );
-
-      }
-
-      /* ======================================================
-         READ STATE
-         ====================================================== */
-
-      function isUnread(
-        notification
-      ) {
-
-        if (
-          notification?.read === true
-        ) {
-          return false;
-        }
-
-        if (
-          notification?.is_read === true
-        ) {
-          return false;
-        }
-
-        if (
-          notification?.read_at
-        ) {
-          return false;
-        }
-
-        if (
-          notification?.unread === false
-        ) {
-          return false;
-        }
-
-        return true;
-
-      }
-
-      /* ======================================================
-         SHOW STATES
-         ====================================================== */
-
-      function showLogin() {
-
-        elements.loginState
-          ?.classList
-          .remove("hidden");
-
-        elements.notificationsApp
-          ?.classList
-          .add("hidden");
-
-      }
-
-      function showAuthenticated() {
-
-        elements.loginState
-          ?.classList
-          .add("hidden");
-
-        elements.notificationsApp
-          ?.classList
-          .remove("hidden");
-
-      }
-
-      /* ======================================================
-         AUTH
-         ====================================================== */
-
-      async function loadCurrentUser() {
-
-        try {
-
-          const data =
-            await request(
-              API.me
-            );
-
-          state.user =
-            extractUser(data);
-
-          if (
-            !state.user
-          ) {
-
-            showLogin();
-            return false;
-
-          }
-
-          showAuthenticated();
-
-          return true;
-
-        } catch (error) {
-
-          if (
-            error.status === 401 ||
-            error.status === 403
-          ) {
-
-            showLogin();
-
-            return false;
-
-          }
-
-          console.error(
-            "Auth error:",
-            error
-          );
-
-          showLogin();
-
-          return false;
-
-        }
-
-      }
-
-      /* ======================================================
-         LOAD NOTIFICATIONS
-         ====================================================== */
-
-      async function loadNotifications(
-        options = {}
-      ) {
-
-        if (
-          state.loading &&
-          !options.force
-        ) {
-          return;
-        }
-
-        state.loading = true;
-
-        if (
-          !state.notifications.length
-        ) {
-
-          elements.notificationsList.innerHTML = `
-
-            <div class="notifications-loading">
-
-              <div class="loading-spinner"></div>
-
-              Загрузка уведомлений...
-
-            </div>
-
-          `;
-
-        }
-
-        try {
-
-          const data =
-            await request(
-              API.notifications
-            );
-
-          state.notifications =
-            extractNotifications(
-              data
-            );
-
-          renderNotifications();
-
-        } catch (error) {
-
-          console.error(
-            "Notifications error:",
-            error
-          );
-
-          if (
-            error.status === 401 ||
-            error.status === 403
-          ) {
-
-            showLogin();
-
-            return;
-
-          }
-
-          elements.notificationsList.innerHTML = `
-
-            <div class="notifications-error">
-
-              <div class="notifications-error-icon">
-                ⚠️
-              </div>
-
-              <h2>
-                Не удалось загрузить уведомления
-              </h2>
-
-              <p>
-                ${
-                  escapeHTML(
-                    error.message ||
-                    "Попробуйте обновить страницу."
-                  )
-                }
-              </p>
-
-              <button
-                type="button"
-                id="retryButton"
-                class="retry-button"
-              >
-                ↻ Повторить
-              </button>
-
-            </div>
-
-          `;
-
-          const retryButton =
-            $("#retryButton");
-
-          retryButton
-            ?.addEventListener(
-              "click",
-              () =>
-                loadNotifications({
-                  force: true
-                })
-            );
-
-        } finally {
-
-          state.loading = false;
-
-        }
-
-      }
-
-      /* ======================================================
-         RENDER
-         ====================================================== */
-
-      function renderNotifications() {
-
-        if (
-          !state.notifications.length
-        ) {
-
-          elements.notificationsList.innerHTML = `
-
-            <div class="notifications-empty">
-
-              <div class="notifications-empty-icon">
-                🔔
-              </div>
-
-              <h2>
-                Пока нет уведомлений
-              </h2>
-
-              <p>
-                Когда появятся новые сообщения,
-                ответы администрации или другие события,
-                они появятся здесь.
-              </p>
-
-            </div>
-
-          `;
-
-          updateUnreadCounters();
-
-          return;
-
-        }
-
-        elements.notificationsList.innerHTML =
-
-          state.notifications
-            .map(
-              (
-                notification,
-                index
-              ) => {
-
-                const unread =
-                  isUnread(
-                    notification
-                  );
-
-                const icon =
-                  getNotificationIcon(
-                    notification
-                  );
-
-                const admin =
-                  isAdminNotification(
-                    notification
-                  );
-
-                const title =
-                  getTitle(
-                    notification
-                  );
-
-                const text =
-                  getText(
-                    notification
-                  );
-
-                const createdAt =
-
-                  notification?.created_at ||
-
-                  notification?.createdAt ||
-
-                  notification?.timestamp ||
-
-                  notification?.date ||
-
-                  notification?.time ||
-
-                  "";
-
-                const id =
-
-                  notification?.id ||
-
-                  notification?.notification_id ||
-
-                  `notification-${index}`;
-
-                return `
-
-                  <button
-                    type="button"
-                    class="
-                      notification-item
-                      ${unread ? "unread" : ""}
-                    "
-                    data-notification-id="${escapeHTML(
-                      id
-                    )}"
-                  >
-
-                    <div
-                      class="
-                        notification-icon
-                        ${admin ? "admin" : ""}
-                      "
-                    >
-                      ${icon}
-                    </div>
-
-                    <div class="notification-content">
-
-                      <div class="notification-top">
-
-                        <div class="notification-title">
-                          ${escapeHTML(title)}
-                        </div>
-
-                        <div class="notification-time">
-                          ${escapeHTML(
-                            formatTime(
-                              createdAt
-                            )
-                          )}
-                        </div>
-
-                      </div>
-
-                      ${
-                        text
-                          ? `
-                            <div class="notification-text">
-                              ${escapeHTML(text)}
-                            </div>
-                          `
-                          : ""
-                      }
-
-                      ${
-                        unread
-                          ? `
-                            <span class="notification-badge">
-                              Новое
-                            </span>
-                          `
-                          : ""
-                      }
-
-                    </div>
-
-                  </button>
-
-                `;
-
-              }
-            )
-            .join("");
-
-        elements.notificationsList
-          .querySelectorAll(
-            ".notification-item"
-          )
-          .forEach(
-            (item) => {
-
-              item.addEventListener(
-                "click",
-                () => {
-
-                  const id =
-                    item.dataset
-                      .notificationId;
-
-                  const notification =
-                    state.notifications.find(
-                      (itemNotification) => {
-
-                        const itemId =
-
-                          itemNotification?.id ||
-
-                          itemNotification?.notification_id;
-
-                        return (
-                          String(
-                            itemId
-                          ) ===
-                          String(id)
-                        );
-
-                      }
-                    );
-
-                  if (
-                    notification
-                  ) {
-
-                    openNotification(
-                      notification
-                    );
-
-                  }
-
-                }
-              );
-
-            }
-          );
-
-        updateUnreadCounters();
-
-      }
-
-      /* ======================================================
-         COUNTERS
-         ====================================================== */
-
-      function updateUnreadCounters() {
-
-        const unread =
-          state.notifications.filter(
-            isUnread
-          ).length;
-
-        const text =
-          unread > 99
-            ? "99+"
-            : String(unread);
-
-        if (
-          elements.headerUnreadCount
-        ) {
-
-          if (unread > 0) {
-
-            elements.headerUnreadCount
-              .textContent =
-              text;
-
-            elements.headerUnreadCount
-              .classList
-              .remove("hidden");
-
-          } else {
-
-            elements.headerUnreadCount
-              .classList
-              .add("hidden");
-
-          }
-
-        }
-
-        if (
-          elements.pageUnreadCount
-        ) {
-
-          if (unread > 0) {
-
-            elements.pageUnreadCount
-              .textContent =
-              text;
-
-            elements.pageUnreadCount
-              .classList
-              .remove("hidden");
-
-          } else {
-
-            elements.pageUnreadCount
-              .classList
-              .add("hidden");
-
-          }
-
-        }
-
-      }
-
-      /* ======================================================
-         MARK ONE READ
-         ====================================================== */
-
-      async function markAsRead(
-        notification
-      ) {
-
-        if (
-          !isUnread(notification)
-        ) {
-          return true;
-        }
-
-        const id =
-
-          notification?.id ||
-
-          notification?.notification_id;
-
-        if (!id) {
-          return false;
-        }
-
-        try {
-
-          await request(
-            API.read,
-            {
-              method: "POST",
-
-              body:
-                JSON.stringify({
-                  notification_id:
-                    id
-                })
-            }
-          );
-
-          notification.read =
-            true;
-
-          notification.is_read =
-            true;
-
-          notification.unread =
-            false;
-
-          notification.read_at =
-            new Date().toISOString();
-
-          return true;
-
-        } catch (error) {
-
-          console.debug(
-            "Mark notification read:",
-            error
-          );
-
-          return false;
-
-        }
-
-      }
-
-      /* ======================================================
-         MARK ALL READ
-         ======================================================
-
-         В текущем Worker нет отдельного
-         /api/notifications/read-all.
-
-         Поэтому «Прочитать все» отправляет
-         POST /api/notifications/read
-         отдельно для каждого непрочитанного
-         уведомления.
-
-         Это полностью совместимо с текущим Worker.
-         ====================================================== */
-
-      async function markAllAsRead() {
-
-        const unread =
-          state.notifications.filter(
-            isUnread
-          );
-
-        if (
-          !unread.length
-        ) {
-
-          showToast(
-            "Все уведомления уже прочитаны."
-          );
-
-          return;
-
-        }
-
-        const button =
-          elements.markAllButton;
-
-        if (button) {
-
-          button.disabled =
-            true;
-
-          button.textContent =
-            "⏳ Обработка...";
-
-        }
-
-        try {
-
-          let successCount = 0;
-
-          for (
-            const notification of unread
-          ) {
-
-            const success =
-              await markAsRead(
-                notification
-              );
-
-            if (success) {
-              successCount++;
-            }
-
-          }
-
-          renderNotifications();
-
-          if (
-            successCount ===
-            unread.length
-          ) {
-
-            showToast(
-              "Все уведомления прочитаны."
-            );
-
-          } else if (
-            successCount > 0
-          ) {
-
-            showToast(
-              `Прочитано: ${successCount} из ${unread.length}.`
-            );
-
-          } else {
-
-            showToast(
-              "Не удалось отметить уведомления."
-            );
-
-          }
-
-        } catch (error) {
-
-          console.error(
-            "Read all error:",
-            error
-          );
-
-          showToast(
-            error.message ||
-            "Не удалось отметить уведомления."
-          );
-
-        } finally {
-
-          if (button) {
-
-            button.disabled =
-              false;
-
-            button.textContent =
-              "✓ Прочитать все";
-
-          }
-
-        }
-
-      }
-
-      /* ======================================================
-         OPEN NOTIFICATION
-         ====================================================== */
-
-      async function openNotification(
-        notification
-      ) {
-
-        await markAsRead(
-          notification
-        );
-
-        renderNotifications();
-
-        const conversationId =
-
-          notification?.conversation_id ||
-
-          notification?.chat_id ||
-
-          notification?.conversationId;
-
-        const publicationId =
-
-          notification?.publication_id ||
-
-          notification?.post_id ||
-
-          notification?.publicationId;
-
-        const url =
-
-          notification?.url ||
-
-          notification?.link ||
-
-          notification?.href;
-
-        const type =
-          normalizeType(
-            notification
-          );
-
-        /* --------------------------------------------------
-           CHAT
-           -------------------------------------------------- */
-
-        if (
-          conversationId ||
-          type.includes("message") ||
-          type.includes("chat")
-        ) {
-
-          if (
-            conversationId
-          ) {
-
+          if (url.origin === window.location.origin) {
             window.location.href =
-              `/messages.html?conversation_id=${encodeURIComponent(
-                conversationId
-              )}`;
+              url.pathname +
+              url.search +
+              url.hash;
+          }
+
+        } catch (_) {
+          // Некорректная ссылка — ничего не делаем.
+        }
+      }
+
+
+      async function init() {
+
+        try {
+
+          const user =
+            await loadCurrentUser();
+
+
+          if (!user) {
+
+            elements.app.style.display = "none";
+            elements.loginState.style.display = "block";
 
             return;
-
           }
 
-          window.location.href =
-            "/messages.html";
 
-          return;
+          elements.loginState.style.display = "none";
+          elements.app.style.display = "block";
 
-        }
 
-        /* --------------------------------------------------
-           PUBLICATION
-           -------------------------------------------------- */
+          await loadNotifications();
 
-        if (
-          publicationId
-        ) {
+        } catch (error) {
 
-          window.location.href =
-            `/?publication=${encodeURIComponent(
-              publicationId
-            )}`;
+          console.error(error);
 
-          return;
-
-        }
-
-        /* --------------------------------------------------
-           ADMIN / SUPPORT
-           -------------------------------------------------- */
-
-        if (
-          isAdminNotification(
-            notification
-          )
-        ) {
-
-          window.location.href =
-            "/messages.html";
-
-          return;
-
-        }
-
-        /* --------------------------------------------------
-           SAME-ORIGIN URL
-           -------------------------------------------------- */
-
-        const safeUrl =
-          safeSameOriginUrl(
-            url
+          showError(
+            error.message ||
+            "Не удалось загрузить страницу."
           );
 
-        if (safeUrl) {
-
-          window.location.href =
-            safeUrl;
-
         }
-
       }
 
-      /* ======================================================
-         POLLING
-         ====================================================== */
 
-      function startPolling() {
+      elements.markAll?.addEventListener(
+        "click",
+        markAllAsRead
+      );
 
-        stopPolling();
 
-        state.pollingTimer =
-          setInterval(
-            async () => {
+      elements.refresh?.addEventListener(
+        "click",
+        () => loadNotifications()
+      );
 
-              if (
-                document.hidden
-              ) {
-                return;
-              }
 
-              try {
+      elements.list?.addEventListener(
+        "click",
+        handleNotificationClick
+      );
 
-                const data =
-                  await request(
-                    API.notifications
-                  );
 
-                state.notifications =
-                  extractNotifications(
-                    data
-                  );
+      init();
 
-                renderNotifications();
 
-              } catch (error) {
+      /*
+       * Автоматически проверяем новые уведомления
+       * примерно каждые 10 секунд.
+       */
 
-                if (
-                  error.status === 401 ||
-                  error.status === 403
-                ) {
-
-                  stopPolling();
-
-                  showLogin();
-
-                  return;
-
-                }
-
-                console.debug(
-                  "Notification polling:",
-                  error
-                );
-
-              }
-
-            },
-            10000
-          );
-
-      }
-
-      function stopPolling() {
+      setInterval(() => {
 
         if (
-          state.pollingTimer
+          currentUser &&
+          document.visibilityState === "visible"
         ) {
-
-          clearInterval(
-            state.pollingTimer
-          );
-
-          state.pollingTimer =
-            null;
-
+          loadNotifications({
+            silent: true
+          });
         }
 
-      }
+      }, 10000);
 
-      /* ======================================================
-         EVENTS
-         ====================================================== */
 
-      elements.refreshButton
-        ?.addEventListener(
-          "click",
-          async () => {
-
-            if (
-              state.loading
-            ) {
-              return;
-            }
-
-            elements.refreshButton
-              .disabled =
-              true;
-
-            const oldText =
-              elements.refreshButton
-                .textContent;
-
-            elements.refreshButton
-              .textContent =
-              "⏳ Загрузка...";
-
-            try {
-
-              await loadNotifications({
-                force: true
-              });
-
-            } finally {
-
-              elements.refreshButton
-                .disabled =
-                false;
-
-              elements.refreshButton
-                .textContent =
-                oldText ||
-                "↻ Обновить";
-
-            }
-
-          }
-        );
-
-      elements.markAllButton
-        ?.addEventListener(
-          "click",
-          markAllAsRead
-        );
+      /*
+       * При возвращении пользователя на вкладку
+       * сразу обновляем уведомления.
+       */
 
       document.addEventListener(
         "visibilitychange",
         () => {
 
           if (
-            document.hidden
+            document.visibilityState === "visible" &&
+            currentUser
           ) {
-            return;
-          }
-
-          if (
-            state.user
-          ) {
-
             loadNotifications({
-              force: true
+              silent: true
             });
-
           }
 
         }
       );
-
-      window.addEventListener(
-        "beforeunload",
-        stopPolling
-      );
-
-      /* ======================================================
-         INIT
-         ====================================================== */
-
-      async function init() {
-
-        const authenticated =
-          await loadCurrentUser();
-
-        if (
-          !authenticated
-        ) {
-          return;
-        }
-
-        await loadNotifications();
-
-        startPolling();
-
-      }
-
-      init();
 
     })();
   </script>
