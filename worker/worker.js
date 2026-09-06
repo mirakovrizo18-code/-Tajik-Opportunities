@@ -1,46 +1,44 @@
+/* ============================================================
+   🇹🇯 TAJIK OPPORTUNITIES
+   works.js
+   Professional universal platform controller
+   ============================================================ */
+
 (() => {
   "use strict";
 
   /* ============================================================
-     TAJIK OPPORTUNITIES
-     Universal client engine
-     File: public/js/works.js
+     1. GLOBAL CONFIG
      ============================================================ */
 
-  const TO = {};
+  const TO = window.TO = window.TO || {};
 
-  window.TO = TO;
-  window.TajikOpportunities = TO;
+  TO.version = "4.0.0";
+  TO.name = "Tajik Opportunities";
+  TO.username = "@tajikopportunities";
 
-  /* ============================================================
-     CONSTANTS
-     ============================================================ */
+  TO.config = {
+    apiPrefix: "/api",
+    siteName: "Tajik Opportunities",
+    officialName: "🇹🇯 Tajik Opportunities✅",
+    officialUsername: "@tajikopportunities",
 
-  const SITE_NAME = "Tajik Opportunities";
-  const SITE_USERNAME = "@tajikopportunities";
+    sessionCookie: "to_session",
+    adminCookie: "to_admin",
 
-  const SESSION_COOKIE = "to_session";
-  const ADMIN_COOKIE = "to_admin";
-  const SESSION_DAYS = 30;
+    requestTimeout: 20000,
+    pollingInterval: 15000,
+    notificationInterval: 20000,
+    viewDelay: 2500,
 
-  const STORAGE = {
-    USER: "to_user",
-    ADMIN: "to_admin_user",
-    ACTOR: "to_test_actor",
-    TEST_MODE: "to_test_mode",
-    STATS: "to_manual_stats",
-    THEME: "to_theme",
-    LANGUAGE: "to_language",
-    PROFILE_CACHE: "to_profile_cache",
-    CATEGORIES: "to_categories_cache",
-    SAVED: "to_saved",
-    FOLLOWING: "to_following",
-    VIEWED: "to_viewed",
-    REACTIONS: "to_reactions",
-    LAST_CHAT: "to_last_chat"
+    debug: false
   };
 
-  const CATEGORIES = [
+  /* ============================================================
+     2. CONSTANTS
+     ============================================================ */
+
+  TO.categories = [
     ["jobs", "💼 Работа"],
     ["job_seekers", "🔎 Ищу работу"],
     ["employees", "👔 Ищу сотрудника"],
@@ -69,7 +67,7 @@
     ["other", "➕ Другое"]
   ];
 
-  const REACTIONS = [
+  TO.reactions = [
     "like",
     "love",
     "support",
@@ -79,117 +77,169 @@
     "angry"
   ];
 
-  const REACTION_ICONS = {
-    like: "👍",
-    love: "❤️",
-    support: "🤝",
-    funny: "😂",
-    wow: "😮",
-    sad: "😢",
-    angry: "😡"
+  TO.statuses = {
+    pending: "На проверке",
+    waiting_payment: "Ожидает оплаты",
+    paid: "Оплачено",
+    published: "Опубликовано",
+    rejected: "Отклонено",
+    hidden: "Скрыто",
+    deleted: "Удалено"
   };
 
-  const PUBLICATION_STATUSES = [
-    "pending",
-    "waiting_payment",
-    "paid",
-    "published",
-    "rejected",
-    "hidden",
-    "deleted"
-  ];
-
-  /* ============================================================
-     API
-     ============================================================ */
-
-  const API = {
-    authRegister: "/api/auth/register",
-    authLogin: "/api/auth/login",
-    authLogout: "/api/auth/logout",
-    authMe: "/api/auth/me",
-    usernameCheck: "/api/username/check",
-
-    profile: "/api/profile",
-    profilePublic: "/api/profile/public",
-
-    categories: "/api/categories",
-
-    publications: "/api/publications",
-    posts: "/api/posts",
-
-    publicationView: "/api/publications/view",
-    publicationReact: "/api/publications/react",
-    publicationSave: "/api/publications/save",
-    publicationShare: "/api/publications/share",
-
-    comments: "/api/comments",
-    reactions: "/api/reactions",
-    saves: "/api/saves",
-    shares: "/api/shares",
-    views: "/api/views",
-    follows: "/api/follows",
-
-    chat: "/api/chat",
-    chatMessages: "/api/chat/messages",
-    chatRead: "/api/chat/read",
-
-    notifications: "/api/notifications",
-    notificationsRead: "/api/notifications/read",
-
-    reports: "/api/reports",
-
-    admin: "/api/admin",
-    adminLogin: "/api/admin/login",
-    adminLogout: "/api/admin/logout",
-    adminMe: "/api/admin/me",
-
-    adminDashboard: "/api/admin/dashboard",
-    adminNotifications: "/api/admin/notifications",
-
-    adminUsers: "/api/admin/users",
-    adminUser: "/api/admin/user",
-    adminUserEdit: "/api/admin/user/edit",
-    adminUserAction: "/api/admin/user/action",
-
-    adminPublications: "/api/admin/publications",
-    adminPublicationEdit: "/api/admin/publication/edit",
-    adminPublicationAction: "/api/admin/publication/action",
-    adminPublicationCounters: "/api/admin/publication/counters",
-
-    adminChats: "/api/admin/chats",
-    adminChatMessages: "/api/admin/chat/messages",
-    adminChatSend: "/api/admin/chat/send",
-
-    adminComments: "/api/admin/comments",
-    adminCommentEdit: "/api/admin/comment/edit",
-    adminCommentAction: "/api/admin/comment/action",
-
-    adminPayment: "/api/admin/payment",
-
-    adminReports: "/api/admin/reports",
-    adminTrash: "/api/admin/trash",
-    adminStats: "/api/admin/stats",
-    adminTesting: "/api/admin/testing",
-    adminAudit: "/api/admin/audit"
+  TO.storage = {
+    actor: "to_actor",
+    testMode: "to_test_mode",
+    stats: "to_manual_stats",
+    theme: "to_theme",
+    language: "to_language",
+    translationCache: "to_translation_cache",
+    viewed: "to_viewed_publications",
+    saved: "to_saved_publications",
+    drafts: "to_publication_drafts",
+    lastNotificationCheck: "to_last_notification_check"
   };
 
-  TO.API = API;
-  TO.SITE_NAME = SITE_NAME;
-  TO.SITE_USERNAME = SITE_USERNAME;
-  TO.CATEGORIES = CATEGORIES;
-  TO.REACTIONS = REACTIONS;
-  TO.PUBLICATION_STATUSES = PUBLICATION_STATUSES;
-
   /* ============================================================
-     STORAGE
+     3. BASIC HELPERS
      ============================================================ */
 
-  const storage = {
+  TO.isBrowser = typeof window !== "undefined";
+
+  TO.log = function (...args) {
+    if (TO.config.debug && console && console.log) {
+      console.log("[TO]", ...args);
+    }
+  };
+
+  TO.warn = function (...args) {
+    if (console && console.warn) {
+      console.warn("[Tajik Opportunities]", ...args);
+    }
+  };
+
+  TO.error = function (...args) {
+    if (console && console.error) {
+      console.error("[Tajik Opportunities]", ...args);
+    }
+  };
+
+  TO.q = function (selector, root = document) {
+    try {
+      return root.querySelector(selector);
+    } catch {
+      return null;
+    }
+  };
+
+  TO.qa = function (selector, root = document) {
+    try {
+      return Array.from(root.querySelectorAll(selector));
+    } catch {
+      return [];
+    }
+  };
+
+  TO.byId = function (id) {
+    return document.getElementById(id);
+  };
+
+  TO.exists = function (selector) {
+    return !!TO.q(selector);
+  };
+
+  TO.escape = function (value) {
+    if (value === null || value === undefined) return "";
+
+    return String(value)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  };
+
+  TO.text = function (value, fallback = "") {
+    if (value === null || value === undefined || value === "") {
+      return fallback;
+    }
+
+    return String(value);
+  };
+
+  TO.number = function (value, fallback = 0) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : fallback;
+  };
+
+  TO.bool = function (value) {
+    if (typeof value === "boolean") return value;
+
+    if (
+      value === "true" ||
+      value === "1" ||
+      value === 1 ||
+      value === "yes"
+    ) {
+      return true;
+    }
+
+    return false;
+  };
+
+  TO.now = function () {
+    return new Date();
+  };
+
+  TO.isoNow = function () {
+    return new Date().toISOString();
+  };
+
+  TO.sleep = function (ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  };
+
+  TO.debounce = function (fn, delay = 300) {
+    let timer;
+
+    return function (...args) {
+      clearTimeout(timer);
+
+      timer = setTimeout(() => {
+        fn.apply(this, args);
+      }, delay);
+    };
+  };
+
+  TO.throttle = function (fn, delay = 300) {
+    let waiting = false;
+
+    return function (...args) {
+      if (waiting) return;
+
+      waiting = true;
+
+      fn.apply(this, args);
+
+      setTimeout(() => {
+        waiting = false;
+      }, delay);
+    };
+  };
+
+  /* ============================================================
+     4. LOCAL STORAGE
+     ============================================================ */
+
+  TO.store = {
     get(key, fallback = null) {
       try {
         const value = localStorage.getItem(key);
-        if (value === null) return fallback;
+
+        if (value === null) {
+          return fallback;
+        }
+
         return JSON.parse(value);
       } catch {
         return fallback;
@@ -212,883 +262,664 @@
     }
   };
 
-  TO.storage = storage;
-
   /* ============================================================
-     HELPERS
+     5. TOAST / NOTIFICATIONS
      ============================================================ */
 
-  const helpers = {
-    id(value) {
-      return String(
-        value ??
-        ""
-      ).trim();
-    },
+  TO.toast = function (message, type = "info", duration = 3500) {
+    if (!document.body) return;
 
-    first(...values) {
-      for (const value of values) {
-        if (
-          value !== undefined &&
-          value !== null &&
-          value !== ""
-        ) {
-          return value;
-        }
-      }
-      return "";
-    },
+    let container = TO.byId("toToastContainer");
 
-    number(value, fallback = 0) {
-      const n = Number(value);
-      return Number.isFinite(n) ? n : fallback;
-    },
+    if (!container) {
+      container = document.createElement("div");
+      container.id = "toToastContainer";
 
-    bool(value) {
-      if (typeof value === "boolean") return value;
-      if (value === 1 || value === "1") return true;
-      if (String(value).toLowerCase() === "true") return true;
-      return false;
-    },
+      container.style.cssText = `
+        position:fixed;
+        right:18px;
+        bottom:18px;
+        z-index:999999;
+        display:flex;
+        flex-direction:column;
+        gap:10px;
+        max-width:min(420px,calc(100vw - 36px));
+        pointer-events:none;
+      `;
 
-    escape(value) {
-      return String(value ?? "")
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    },
-
-    unescape(value) {
-      const div = document.createElement("div");
-      div.innerHTML = String(value ?? "");
-      return div.textContent || "";
-    },
-
-    text(value, max = 5000) {
-      return helpers.escape(String(value ?? "").slice(0, max));
-    },
-
-    formatNumber(value) {
-      return new Intl.NumberFormat(
-        document.documentElement.lang || "ru-RU"
-      ).format(helpers.number(value));
-    },
-
-    formatDate(value, options = {}) {
-      if (!value) return "";
-
-      const date = new Date(value);
-
-      if (Number.isNaN(date.getTime())) {
-        return String(value);
-      }
-
-      return new Intl.DateTimeFormat(
-        document.documentElement.lang || "ru-RU",
-        {
-          dateStyle: options.dateStyle || "medium",
-          timeStyle: options.timeStyle || undefined
-        }
-      ).format(date);
-    },
-
-    relativeDate(value) {
-      if (!value) return "";
-
-      const date = new Date(value);
-
-      if (Number.isNaN(date.getTime())) {
-        return "";
-      }
-
-      const seconds = Math.floor(
-        (Date.now() - date.getTime()) / 1000
-      );
-
-      if (seconds < 10) return "только что";
-      if (seconds < 60) return `${seconds} сек. назад`;
-
-      const minutes = Math.floor(seconds / 60);
-      if (minutes < 60) return `${minutes} мин. назад`;
-
-      const hours = Math.floor(minutes / 60);
-      if (hours < 24) return `${hours} ч. назад`;
-
-      const days = Math.floor(hours / 24);
-      if (days < 7) return `${days} дн. назад`;
-
-      return helpers.formatDate(value);
-    },
-
-    username(user) {
-      const value = helpers.first(
-        user?.username,
-        user?.user_name,
-        user?.handle
-      );
-
-      if (!value) return "";
-
-      return String(value).startsWith("@")
-        ? String(value)
-        : `@${value}`;
-    },
-
-    userId(user) {
-      return helpers.first(
-        user?.id,
-        user?.user_id,
-        user?.userId,
-        user?.uid
-      );
-    },
-
-    publicationId(publication) {
-      return helpers.first(
-        publication?.id,
-        publication?.publication_id,
-        publication?.publicationId,
-        publication?.post_id,
-        publication?.postId
-      );
-    },
-
-    commentId(comment) {
-      return helpers.first(
-        comment?.id,
-        comment?.comment_id,
-        comment?.commentId
-      );
-    },
-
-    media(publication) {
-      const media = helpers.first(
-        publication?.media,
-        publication?.attachments,
-        publication?.files,
-        []
-      );
-
-      return Array.isArray(media) ? media : [];
-    },
-
-    categoryLabel(category) {
-      const key = String(category || "").toLowerCase();
-
-      const found = CATEGORIES.find(
-        item => item[0] === key
-      );
-
-      return found ? found[1] : category || "";
-    },
-
-    normalizePublication(item) {
-      if (!item) return null;
-
-      const id = helpers.publicationId(item);
-
-      return {
-        ...item,
-        id,
-        publication_id: id,
-
-        title: helpers.first(
-          item.title,
-          item.name,
-          "Без названия"
-        ),
-
-        text: helpers.first(
-          item.text,
-          item.description,
-          item.content,
-          item.body,
-          ""
-        ),
-
-        category: helpers.first(
-          item.category,
-          item.category_id,
-          "other"
-        ),
-
-        status: helpers.first(
-          item.status,
-          "published"
-        ),
-
-        author: item.author || item.user || {
-          id: item.author_id || item.user_id,
-          name: item.author_name || item.name || "",
-          username: item.author_username || item.username || ""
-        },
-
-        views: helpers.number(
-          helpers.first(
-            item.views,
-            item.view_count,
-            item.views_count
-          )
-        ),
-
-        likes: helpers.number(
-          helpers.first(
-            item.likes,
-            item.like_count,
-            item.likes_count
-          )
-        ),
-
-        comments_count: helpers.number(
-          helpers.first(
-            item.comments_count,
-            item.comment_count
-          )
-        ),
-
-        saves: helpers.number(
-          helpers.first(
-            item.saves,
-            item.save_count,
-            item.saves_count
-          )
-        ),
-
-        shares: helpers.number(
-          helpers.first(
-            item.shares,
-            item.share_count,
-            item.shares_count
-          )
-        ),
-
-        created_at: helpers.first(
-          item.created_at,
-          item.createdAt,
-          item.published_at,
-          item.date
-        )
-      };
-    },
-
-    list(data) {
-      if (Array.isArray(data)) return data;
-
-      if (!data || typeof data !== "object") {
-        return [];
-      }
-
-      return (
-        data.items ||
-        data.publications ||
-        data.posts ||
-        data.results ||
-        data.users ||
-        data.notifications ||
-        data.comments ||
-        data.messages ||
-        data.chats ||
-        data.reports ||
-        data.data ||
-        []
-      );
+      document.body.appendChild(container);
     }
+
+    const toast = document.createElement("div");
+
+    toast.style.cssText = `
+      pointer-events:auto;
+      padding:13px 16px;
+      border-radius:14px;
+      background:#111827;
+      color:white;
+      box-shadow:0 10px 35px rgba(0,0,0,.25);
+      font-size:14px;
+      line-height:1.45;
+      animation:toToastIn .2s ease;
+    `;
+
+    if (type === "success") {
+      toast.style.background = "#166534";
+    }
+
+    if (type === "error") {
+      toast.style.background = "#991b1b";
+    }
+
+    if (type === "warning") {
+      toast.style.background = "#92400e";
+    }
+
+    toast.textContent = message;
+
+    container.appendChild(toast);
+
+    setTimeout(() => {
+      toast.style.opacity = "0";
+      toast.style.transform = "translateY(10px)";
+      toast.style.transition = ".2s";
+
+      setTimeout(() => toast.remove(), 250);
+    }, duration);
   };
 
-  TO.helpers = helpers;
+  if (!document.getElementById("toToastStyle")) {
+    const style = document.createElement("style");
 
-  /* ============================================================
-     TOAST
-     ============================================================ */
+    style.id = "toToastStyle";
 
-  const toast = (() => {
-    let root = null;
-
-    function ensure() {
-      if (root && document.body.contains(root)) {
-        return root;
+    style.textContent = `
+      @keyframes toToastIn {
+        from {
+          opacity:0;
+          transform:translateY(10px);
+        }
+        to {
+          opacity:1;
+          transform:translateY(0);
+        }
       }
+    `;
 
-      root = document.createElement("div");
-
-      root.id = "to-toast-root";
-
-      Object.assign(root.style, {
-        position: "fixed",
-        top: "20px",
-        right: "20px",
-        zIndex: "999999",
-        display: "flex",
-        flexDirection: "column",
-        gap: "10px",
-        maxWidth: "calc(100vw - 40px)",
-        pointerEvents: "none"
-      });
-
-      document.body.appendChild(root);
-
-      return root;
-    }
-
-    function show(message, type = "info", timeout = 3500) {
-      if (!document.body) return;
-
-      const item = document.createElement("div");
-
-      item.textContent = String(message || "");
-
-      Object.assign(item.style, {
-        padding: "12px 16px",
-        borderRadius: "12px",
-        background:
-          type === "error"
-            ? "#dc2626"
-            : type === "success"
-              ? "#16a34a"
-              : type === "warning"
-                ? "#d97706"
-                : "#1f2937",
-        color: "#fff",
-        boxShadow: "0 8px 30px rgba(0,0,0,.18)",
-        fontSize: "14px",
-        lineHeight: "1.4",
-        pointerEvents: "auto",
-        opacity: "0",
-        transform: "translateY(-8px)",
-        transition: "all .2s ease"
-      });
-
-      ensure().appendChild(item);
-
-      requestAnimationFrame(() => {
-        item.style.opacity = "1";
-        item.style.transform = "translateY(0)";
-      });
-
-      setTimeout(() => {
-        item.style.opacity = "0";
-        item.style.transform = "translateY(-8px)";
-
-        setTimeout(() => item.remove(), 250);
-      }, timeout);
-    }
-
-    return {
-      show,
-      success(message) {
-        show(message, "success");
-      },
-      error(message) {
-        show(message, "error");
-      },
-      warning(message) {
-        show(message, "warning");
-      },
-      info(message) {
-        show(message, "info");
-      }
-    };
-  })();
-
-  TO.toast = toast;
-
-  /* ============================================================
-     CONFIRM
-     ============================================================ */
-
-  function confirmAction(message, title = "Подтверждение") {
-    return new Promise(resolve => {
-      if (typeof window.confirm === "function") {
-        resolve(window.confirm(`${title}\n\n${message}`));
-      } else {
-        resolve(false);
-      }
-    });
+    document.head.appendChild(style);
   }
 
-  TO.confirm = confirmAction;
+  TO.confirm = async function (message) {
+    return window.confirm(message);
+  };
 
   /* ============================================================
-     REQUEST
+     6. API CORE
      ============================================================ */
 
-  async function request(
-    url,
-    options = {},
-    config = {}
+  TO.api = async function (
+    endpoint,
+    options = {}
   ) {
-    const {
-      method = "GET",
-      body,
-      headers = {},
-      timeout = 15000,
-      silent = false,
-      parse = true
-    } = {
-      ...options,
-      ...config
-    };
-
     const controller = new AbortController();
 
-    const timer = setTimeout(
-      () => controller.abort(),
-      timeout
-    );
+    const timeout = setTimeout(() => {
+      controller.abort();
+    }, options.timeout || TO.config.requestTimeout);
 
-    const finalHeaders = {
+    const method = options.method || "GET";
+
+    const headers = {
       Accept: "application/json",
-      ...headers
+      ...(options.headers || {})
     };
 
-    const fetchOptions = {
-      method,
-      credentials: "include",
-      headers: finalHeaders,
-      signal: controller.signal
-    };
+    let body = options.body;
 
     if (
-      body !== undefined &&
-      body !== null &&
-      method !== "GET" &&
-      method !== "HEAD"
+      body &&
+      typeof body === "object" &&
+      !(body instanceof FormData) &&
+      !(body instanceof Blob)
     ) {
-      if (
-        body instanceof FormData ||
-        body instanceof Blob ||
-        typeof body === "string"
-      ) {
-        fetchOptions.body = body;
-      } else {
-        finalHeaders["Content-Type"] =
-          "application/json";
-
-        fetchOptions.body = JSON.stringify(body);
-      }
+      headers["Content-Type"] = "application/json";
+      body = JSON.stringify(body);
     }
 
     try {
       const response = await fetch(
-        url,
-        fetchOptions
+        endpoint.startsWith("/")
+          ? endpoint
+          : TO.config.apiPrefix + endpoint,
+        {
+          method,
+          headers,
+          body,
+          credentials: "include",
+          signal: controller.signal
+        }
       );
 
-      const contentType =
-        response.headers.get("content-type") || "";
+      const text = await response.text();
 
       let data = null;
 
-      if (parse) {
-        if (contentType.includes("application/json")) {
-          try {
-            data = await response.json();
-          } catch {
-            data = null;
-          }
-        } else {
-          try {
-            const text = await response.text();
-            data = text ? { text } : null;
-          } catch {
-            data = null;
-          }
-        }
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        data = {
+          raw: text
+        };
       }
 
       if (!response.ok) {
         const error = new Error(
-          data?.message ||
           data?.error ||
+          data?.message ||
           `HTTP ${response.status}`
         );
 
         error.status = response.status;
         error.data = data;
-        error.url = url;
 
         throw error;
       }
 
-      return {
-        ok: true,
-        status: response.status,
-        data,
-        headers: response.headers
-      };
-    } catch (error) {
-      if (!silent) {
-        if (error.name === "AbortError") {
-          toast.error("Запрос выполнялся слишком долго.");
-        } else if (
-          error.status === 401
-        ) {
-          toast.warning(
-            "Требуется авторизация."
-          );
-        } else if (
-          error.status === 403
-        ) {
-          toast.error(
-            "Недостаточно прав для этого действия."
-          );
-        }
-      }
-
-      return {
-        ok: false,
-        status: error.status || 0,
-        error,
-        data: error.data || null
-      };
+      return data;
     } finally {
-      clearTimeout(timer);
+      clearTimeout(timeout);
     }
-  }
+  };
 
-  TO.request = request;
+  TO.tryApi = async function (endpoint, options = {}, fallback = null) {
+    try {
+      return await TO.api(endpoint, options);
+    } catch (error) {
+      TO.log("API unavailable:", endpoint, error);
 
-  async function tryRequests(
-    requests,
-    options = {}
-  ) {
-    let last = null;
-
-    for (const item of requests) {
-      const result = await request(
-        item.url,
-        item.options || {},
-        {
-          silent: true,
-          ...options
-        }
-      );
-
-      last = result;
-
-      if (result.ok) {
-        return result;
-      }
-
-      if (
-        result.status &&
-        ![404, 405, 501].includes(result.status)
-      ) {
-        return result;
-      }
+      return fallback;
     }
-
-    return last || {
-      ok: false,
-      status: 0,
-      data: null
-    };
-  }
-
-  TO.tryRequests = tryRequests;
+  };
 
   /* ============================================================
-     AUTH
+     7. NORMALIZE API DATA
      ============================================================ */
 
-  const auth = {
+  TO.pick = function (object, keys, fallback = null) {
+    if (!object) return fallback;
+
+    for (const key of keys) {
+      if (
+        object[key] !== undefined &&
+        object[key] !== null &&
+        object[key] !== ""
+      ) {
+        return object[key];
+      }
+    }
+
+    return fallback;
+  };
+
+  TO.normalizeUser = function (user = {}) {
+    return {
+      id: TO.pick(user, ["id", "user_id", "uid"]),
+      name: TO.pick(
+        user,
+        ["name", "full_name", "display_name"],
+        ""
+      ),
+      surname: TO.pick(user, ["surname", "last_name"], ""),
+      username: TO.pick(
+        user,
+        ["username", "user_name", "handle"],
+        ""
+      ),
+      avatar: TO.pick(
+        user,
+        ["avatar", "avatar_url", "photo", "photo_url"],
+        ""
+      ),
+      bio: TO.pick(user, ["bio", "description"], ""),
+      country: TO.pick(user, ["country"], ""),
+      city: TO.pick(user, ["city"], ""),
+      verified: TO.bool(
+        TO.pick(user, ["verified", "is_verified"], false)
+      ),
+      online: TO.bool(
+        TO.pick(user, ["online", "is_online"], false)
+      ),
+      createdAt: TO.pick(
+        user,
+        ["created_at", "registration_date", "registered_at"],
+        null
+      )
+    };
+  };
+
+  TO.normalizePublication = function (post = {}) {
+    return {
+      id: TO.pick(post, [
+        "id",
+        "publication_id",
+        "post_id"
+      ]),
+
+      title: TO.pick(
+        post,
+        ["title", "name", "headline"],
+        ""
+      ),
+
+      text: TO.pick(
+        post,
+        ["text", "content", "description", "body"],
+        ""
+      ),
+
+      category: TO.pick(
+        post,
+        ["category", "category_id", "type"],
+        "other"
+      ),
+
+      status: TO.pick(
+        post,
+        ["status", "publication_status"],
+        "published"
+      ),
+
+      authorId: TO.pick(
+        post,
+        ["author_id", "user_id", "owner_id"],
+        null
+      ),
+
+      authorName: TO.pick(
+        post,
+        ["author_name", "name", "author"],
+        ""
+      ),
+
+      authorUsername: TO.pick(
+        post,
+        [
+          "author_username",
+          "username",
+          "author_handle"
+        ],
+        ""
+      ),
+
+      authorAvatar: TO.pick(
+        post,
+        [
+          "author_avatar",
+          "avatar",
+          "avatar_url"
+        ],
+        ""
+      ),
+
+      country: TO.pick(post, ["country"], ""),
+      city: TO.pick(post, ["city"], ""),
+
+      price: TO.pick(
+        post,
+        ["price", "amount", "salary"],
+        null
+      ),
+
+      currency: TO.pick(
+        post,
+        ["currency", "currency_code"],
+        ""
+      ),
+
+      views: TO.number(
+        TO.pick(
+          post,
+          ["views", "views_count", "view_count"],
+          0
+        )
+      ),
+
+      likes: TO.number(
+        TO.pick(
+          post,
+          ["likes", "likes_count"],
+          0
+        )
+      ),
+
+      comments: TO.number(
+        TO.pick(
+          post,
+          ["comments", "comments_count"],
+          0
+        )
+      ),
+
+      shares: TO.number(
+        TO.pick(
+          post,
+          ["shares", "shares_count"],
+          0
+        )
+      ),
+
+      saves: TO.number(
+        TO.pick(
+          post,
+          ["saves", "saves_count"],
+          0
+        )
+      ),
+
+      reactions: TO.number(
+        TO.pick(
+          post,
+          ["reactions", "reactions_count"],
+          0
+        )
+      ),
+
+      createdAt: TO.pick(
+        post,
+        [
+          "created_at",
+          "published_at",
+          "date",
+          "created"
+        ],
+        null
+      ),
+
+      updatedAt: TO.pick(
+        post,
+        ["updated_at", "edited_at"],
+        null
+      ),
+
+      media: Array.isArray(post.media)
+        ? post.media
+        : [],
+
+      url: TO.pick(
+        post,
+        ["url", "link", "external_url"],
+        ""
+      ),
+
+      raw: post
+    };
+  };
+
+  /* ============================================================
+     8. AUTH
+     ============================================================ */
+
+  TO.auth = {
     user: null,
+    admin: null,
+    initialized: false,
 
     async me() {
-      const result = await request(
-        API.authMe,
+      const data = await TO.tryApi(
+        "/api/auth/me",
         {},
-        { silent: true }
+        null
       );
 
-      if (result.ok) {
-        const user =
-          result.data?.user ||
-          result.data?.data ||
-          result.data;
-
-        if (
-          user &&
-          typeof user === "object"
-        ) {
-          this.user = user;
-          storage.set(
-            STORAGE.USER,
-            user
-          );
-          return user;
-        }
-
+      if (!data) {
         this.user = null;
         return null;
       }
 
-      this.user = storage.get(
-        STORAGE.USER,
-        null
-      );
+      this.user =
+        data.user ||
+        data.profile ||
+        data.me ||
+        data;
 
       return this.user;
     },
 
-    async register(payload) {
-      const result = await request(
-        API.authRegister,
-        {
-          method: "POST",
-          body: payload
-        }
+    async adminMe() {
+      const data = await TO.tryApi(
+        "/api/admin/me",
+        {},
+        null
       );
 
-      if (result.ok) {
-        const user =
-          result.data?.user ||
-          result.data?.data?.user ||
-          null;
-
-        if (user) {
-          this.user = user;
-          storage.set(
-            STORAGE.USER,
-            user
-          );
-        }
-
-        toast.success(
-          "Регистрация выполнена."
-        );
+      if (!data) {
+        this.admin = null;
+        return null;
       }
 
-      return result;
-    },
+      this.admin =
+        data.admin ||
+        data.user ||
+        data.me ||
+        data;
 
-    async login(payload) {
-      const result = await request(
-        API.authLogin,
-        {
-          method: "POST",
-          body: payload
-        }
-      );
-
-      if (result.ok) {
-        const user =
-          result.data?.user ||
-          result.data?.data?.user ||
-          result.data?.data ||
-          null;
-
-        if (user) {
-          this.user = user;
-          storage.set(
-            STORAGE.USER,
-            user
-          );
-        }
-
-        toast.success(
-          "Вы успешно вошли."
-        );
-      }
-
-      return result;
+      return this.admin;
     },
 
     async logout() {
-      await request(
-        API.authLogout,
+      await TO.tryApi(
+        "/api/auth/logout",
         {
-          method: "POST",
-          body: {}
-        },
-        { silent: true }
+          method: "POST"
+        }
       );
 
       this.user = null;
 
-      storage.remove(
-        STORAGE.USER
+      TO.toast(
+        "Вы вышли из аккаунта",
+        "success"
       );
 
-      toast.success(
-        "Вы вышли из аккаунта."
-      );
-
-      return true;
+      setTimeout(() => {
+        if (
+          location.pathname !== "/index.html" &&
+          location.pathname !== "/"
+        ) {
+          location.href = "/";
+        }
+      }, 500);
     },
 
     isLoggedIn() {
-      return !!(
-        this.user ||
-        storage.get(STORAGE.USER)
-      );
+      return !!this.user;
+    },
+
+    isAdmin() {
+      return !!this.admin;
     },
 
     getUser() {
-      return (
-        this.user ||
-        storage.get(STORAGE.USER, null)
-      );
+      return TO.normalizeUser(this.user || {});
     }
   };
 
-  TO.auth = auth;
-
   /* ============================================================
-     ACTOR / TESTING
+     9. ACTOR / TEST MODE
      ============================================================ */
 
-  const actor = {
-    isTestMode() {
-      return storage.get(
-        STORAGE.TEST_MODE,
-        false
-      ) === true;
-    },
+  TO.actor = {
+    selected: null,
 
-    enable(user) {
-      if (!user) {
-        toast.error(
-          "Сначала выберите участника."
-        );
-        return false;
-      }
-
-      storage.set(
-        STORAGE.ACTOR,
-        user
+    load() {
+      this.selected = TO.store.get(
+        TO.storage.actor,
+        null
       );
 
-      storage.set(
-        STORAGE.TEST_MODE,
+      return this.selected;
+    },
+
+    select(user) {
+      if (!user) {
+        this.clear();
+        return;
+      }
+
+      this.selected = TO.normalizeUser(user);
+
+      TO.store.set(
+        TO.storage.actor,
+        this.selected
+      );
+
+      TO.toast(
+        `Выбран участник: ${
+          this.selected.name ||
+          this.selected.username ||
+          this.selected.id
+        }`,
+        "success"
+      );
+
+      this.renderIndicator();
+    },
+
+    clear() {
+      this.selected = null;
+
+      TO.store.remove(
+        TO.storage.actor
+      );
+
+      this.renderIndicator();
+    },
+
+    enableTestMode() {
+      TO.store.set(
+        TO.storage.testMode,
         true
       );
 
-      toast.success(
-        `Тестовый режим: ${
-          helpers.first(
-            user.name,
-            user.full_name,
-            user.username,
-            "участник"
-          )
-        }`
-      );
-
       this.renderIndicator();
 
-      return true;
+      TO.toast(
+        "Тестовый режим администратора включён",
+        "warning"
+      );
     },
 
-    disable() {
-      storage.set(
-        STORAGE.TEST_MODE,
+    disableTestMode() {
+      TO.store.set(
+        TO.storage.testMode,
         false
       );
 
-      storage.remove(
-        STORAGE.ACTOR
-      );
-
-      toast.info(
-        "Тестовый режим выключен."
-      );
-
       this.renderIndicator();
     },
 
-    selected() {
-      return storage.get(
-        STORAGE.ACTOR,
-        null
+    testMode() {
+      return !!TO.store.get(
+        TO.storage.testMode,
+        false
       );
     },
 
-    current() {
-      if (
-        this.isTestMode() &&
-        this.selected()
-      ) {
-        return this.selected();
-      }
-
-      return auth.getUser();
+    get() {
+      return this.selected;
     },
 
-    id() {
-      return helpers.userId(
-        this.current()
+    active() {
+      return (
+        this.testMode() &&
+        !!this.selected
       );
     },
 
     renderIndicator() {
-      let el =
-        document.getElementById(
-          "to-test-indicator"
+      const old = TO.byId(
+        "toActorIndicator"
+      );
+
+      if (old) old.remove();
+
+      if (!this.active()) return;
+
+      const el = document.createElement("div");
+
+      el.id = "toActorIndicator";
+
+      el.style.cssText = `
+        position:fixed;
+        left:50%;
+        top:10px;
+        transform:translateX(-50%);
+        z-index:999998;
+        padding:9px 14px;
+        border-radius:999px;
+        background:#7c2d12;
+        color:white;
+        font:600 13px Arial,sans-serif;
+        box-shadow:0 6px 20px rgba(0,0,0,.25);
+      `;
+
+      el.textContent =
+        "🧪 ТЕСТОВЫЙ РЕЖИМ · " +
+        (
+          this.selected.name ||
+          this.selected.username ||
+          this.selected.id
         );
 
-      if (!this.isTestMode()) {
-        if (el) el.remove();
-        return;
-      }
-
-      if (!el) {
-        el = document.createElement("div");
-        el.id = "to-test-indicator";
-
-        Object.assign(el.style, {
-          position: "fixed",
-          bottom: "15px",
-          left: "15px",
-          zIndex: "999998",
-          padding: "10px 14px",
-          borderRadius: "12px",
-          background: "#7c3aed",
-          color: "#fff",
-          fontSize: "13px",
-          boxShadow:
-            "0 8px 30px rgba(0,0,0,.25)"
-        });
-
-        document.body.appendChild(el);
-      }
-
-      const user = this.selected();
-
-      el.innerHTML = `
-        <strong>🧪 ТЕСТОВЫЙ РЕЖИМ</strong><br>
-        ${helpers.escape(
-          helpers.first(
-            user?.name,
-            user?.full_name,
-            user?.username,
-            "Участник"
-          )
-        )}
-        <button
-          type="button"
-          data-to-action="disable-test-mode"
-          style="
-            margin-left:8px;
-            border:0;
-            border-radius:7px;
-            padding:4px 8px;
-            cursor:pointer;
-          "
-        >Выйти</button>
-      `;
+      document.body.appendChild(el);
     }
   };
 
-  TO.actor = actor;
-
   /* ============================================================
-     PUBLICATIONS
+     10. CATEGORIES
      ============================================================ */
 
-  const publications = {
+  TO.category = {
+    label(id) {
+      const found = TO.categories.find(
+        item => item[0] === id
+      );
+
+      return found
+        ? found[1]
+        : id || "➕ Другое";
+    },
+
+    async load() {
+      const data = await TO.tryApi(
+        "/api/categories",
+        {},
+        null
+      );
+
+      if (!data) {
+        return TO.categories;
+      }
+
+      const list =
+        data.categories ||
+        data.items ||
+        data;
+
+      if (Array.isArray(list)) {
+        return list;
+      }
+
+      return TO.categories;
+    }
+  };
+
+  /* ============================================================
+     11. PUBLICATIONS
+     ============================================================ */
+
+  TO.publications = {
     async list(params = {}) {
       const query = new URLSearchParams();
 
@@ -1104,1491 +935,786 @@
         }
       );
 
-      const suffix =
-        query.toString()
-          ? `?${query.toString()}`
-          : "";
+      const endpoint =
+        "/api/publications" +
+        (query.toString()
+          ? "?" + query.toString()
+          : "");
 
-      const result =
-        await tryRequests([
-          {
-            url:
-              API.publications +
-              suffix
-          },
-          {
-            url:
-              API.posts +
-              suffix
-          }
-        ]);
+      const data = await TO.api(endpoint);
 
-      if (!result?.ok) {
-        return [];
-      }
+      const list =
+        data.publications ||
+        data.posts ||
+        data.items ||
+        data.data ||
+        data;
 
-      return helpers
-        .list(result.data)
-        .map(
-          helpers.normalizePublication
-        )
-        .filter(Boolean);
+      return Array.isArray(list)
+        ? list.map(TO.normalizePublication)
+        : [];
     },
 
     async get(id) {
-      const safeId =
-        encodeURIComponent(id);
+      if (!id) return null;
 
-      const result =
-        await tryRequests([
-          {
-            url:
-              `${API.publications}/${safeId}`
-          },
-          {
-            url:
-              `${API.posts}/${safeId}`
-          }
-        ]);
+      const data = await TO.api(
+        `/api/publications/${encodeURIComponent(id)}`
+      );
 
-      if (!result?.ok) {
-        return null;
-      }
-
-      return helpers.normalizePublication(
-        result.data?.publication ||
-        result.data?.post ||
-        result.data?.data ||
-        result.data
+      return TO.normalizePublication(
+        data.publication ||
+        data.post ||
+        data
       );
     },
 
     async create(payload) {
-      const actorUser =
-        actor.current();
-
-      const body = {
-        ...payload
-      };
-
-      if (
-        actor.isTestMode() &&
-        actorUser
-      ) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actorUser);
-      }
-
-      const result = await request(
-        API.publications,
+      const data = await TO.api(
+        "/api/publications",
         {
           method: "POST",
-          body
+          body: payload
         }
       );
 
-      if (result.ok) {
-        toast.success(
-          "Публикация отправлена на проверку."
-        );
-      }
-
-      return result;
-    },
-
-    async edit(id, payload) {
-      const body = {
-        id,
-        publication_id: id,
-        ...payload
-      };
-
-      const result =
-        await tryRequests([
-          {
-            url:
-              API.adminPublicationEdit,
-            options: {
-              method: "POST",
-              body
-            }
-          },
-          {
-            url:
-              `${API.publications}/${encodeURIComponent(id)}`,
-            options: {
-              method: "PUT",
-              body: payload
-            }
-          }
-        ]);
-
-      if (result.ok) {
-        toast.success(
-          "Публикация изменена."
-        );
-      }
-
-      return result;
-    },
-
-    async remove(id) {
-      const result =
-        await tryRequests([
-          {
-            url:
-              API.adminPublicationAction,
-            options: {
-              method: "POST",
-              body: {
-                id,
-                publication_id: id,
-                action: "delete"
-              }
-            }
-          },
-          {
-            url:
-              `${API.publications}/${encodeURIComponent(id)}`,
-            options: {
-              method: "DELETE"
-            }
-          }
-        ]);
-
-      if (result.ok) {
-        toast.success(
-          "Публикация удалена."
-        );
-      }
-
-      return result;
-    },
-
-    async restore(id) {
-      return admin.publicationAction(
-        id,
-        "restore"
+      TO.toast(
+        "Публикация отправлена на проверку",
+        "success"
       );
+
+      return data;
     },
 
-    async moderate(id, action, extra = {}) {
-      return admin.publicationAction(
-        id,
-        action,
-        extra
-      );
-    }
-  };
-
-  TO.publications = publications;
-
-  /* ============================================================
-     VIEWS
-     ============================================================ */
-
-  const views = {
-    async add(publicationId) {
-      const id =
-        helpers.id(publicationId);
-
-      if (!id) return null;
+    async view(id) {
+      if (!id) return;
 
       const viewed =
-        storage.get(
-          STORAGE.VIEWED,
-          {}
+        TO.store.get(
+          TO.storage.viewed,
+          []
         );
 
-      const key =
-        `${location.pathname}:${id}`;
-
-      if (viewed[key]) {
-        return {
-          ok: true,
-          duplicate: true
-        };
-      }
-
-      viewed[key] = Date.now();
-
-      storage.set(
-        STORAGE.VIEWED,
-        viewed
-      );
-
-      const actorUser =
-        actor.current();
-
-      const body = {
-        publication_id: id,
-        id
-      };
-
-      if (
-        actor.isTestMode() &&
-        actorUser
-      ) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actorUser);
-      }
-
-      return await tryRequests([
-        {
-          url: API.publicationView,
-          options: {
-            method: "POST",
-            body
-          }
-        },
-        {
-          url: API.views,
-          options: {
-            method: "POST",
-            body
-          }
-        }
-      ], {
-        silent: true
-      });
-    },
-
-    observe(root = document) {
-      if (
-        !("IntersectionObserver" in window)
-      ) {
+      if (viewed.includes(String(id))) {
         return;
       }
 
-      const elements =
-        root.querySelectorAll(
-          "[data-publication-id], [data-post-id]"
-        );
-
-      if (!elements.length) return;
-
-      const observer =
-        new IntersectionObserver(
-          entries => {
-            entries.forEach(entry => {
-              if (
-                !entry.isIntersecting ||
-                entry.intersectionRatio < 0.5
-              ) {
-                return;
-              }
-
-              const el =
-                entry.target;
-
-              const id =
-                el.dataset.publicationId ||
-                el.dataset.postId;
-
-              if (id) {
-                views.add(id);
-                observer.unobserve(el);
-              }
-            });
-          },
-          {
-            threshold: 0.5
-          }
-        );
-
-      elements.forEach(
-        element =>
-          observer.observe(element)
-      );
-    }
-  };
-
-  TO.views = views;
-
-  /* ============================================================
-     REACTIONS
-     ============================================================ */
-
-  const reactions = {
-    async toggle(
-      publicationId,
-      reaction = "like"
-    ) {
-      if (
-        !REACTIONS.includes(reaction)
-      ) {
-        reaction = "like";
-      }
-
-      const body = {
-        publication_id:
-          publicationId,
-        id: publicationId,
-        reaction
-      };
-
-      const current =
-        actor.current();
-
-      if (
-        actor.isTestMode() &&
-        current
-      ) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(current);
-      }
-
-      const result =
-        await tryRequests([
-          {
-            url:
-              API.publicationReact,
-            options: {
-              method: "POST",
-              body
-            }
-          },
-          {
-            url:
-              API.reactions,
-            options: {
-              method: "POST",
-              body
-            }
-          }
-        ]);
-
-      if (result.ok) {
-        toast.success(
-          `${REACTION_ICONS[reaction]} Реакция обновлена.`
-        );
-      }
-
-      return result;
-    },
-
-    async comment(
-      commentId,
-      reaction = "like"
-    ) {
-      const body = {
-        comment_id: commentId,
-        id: commentId,
-        reaction
-      };
-
-      if (actor.isTestMode()) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actor.current());
-      }
-
-      return await request(
-        API.reactions,
-        {
-          method: "POST",
-          body
-        },
-        { silent: false }
-      );
-    }
-  };
-
-  TO.reactions = reactions;
-
-  /* ============================================================
-     COMMENTS
-     ============================================================ */
-
-  const comments = {
-    async list(publicationId) {
-      const query =
-        new URLSearchParams({
-          publication_id:
-            publicationId
-        });
-
-      const result =
-        await request(
-          `${API.comments}?${query}`,
-          {},
-          { silent: true }
-        );
-
-      if (!result.ok) {
-        return [];
-      }
-
-      return helpers.list(
-        result.data
-      );
-    },
-
-    async create(
-      publicationId,
-      text,
-      parentId = null
-    ) {
-      if (!String(text || "").trim()) {
-        toast.warning(
-          "Введите комментарий."
-        );
-        return {
-          ok: false
-        };
-      }
-
-      const body = {
-        publication_id:
-          publicationId,
-        text: String(text).trim()
-      };
-
-      if (parentId) {
-        body.parent_id = parentId;
-        body.parentId = parentId;
-      }
-
-      if (actor.isTestMode()) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actor.current());
-      }
-
-      const result =
-        await request(
-          API.comments,
-          {
-            method: "POST",
-            body
-          }
-        );
-
-      if (result.ok) {
-        toast.success(
-          "Комментарий добавлен."
-        );
-      }
-
-      return result;
-    },
-
-    async edit(commentId, text) {
-      const result =
-        await tryRequests([
-          {
-            url:
-              API.adminCommentEdit,
-            options: {
-              method: "POST",
-              body: {
-                id: commentId,
-                comment_id: commentId,
-                text
-              }
-            }
-          },
-          {
-            url:
-              `${API.comments}/${encodeURIComponent(commentId)}`,
-            options: {
-              method: "PUT",
-              body: { text }
-            }
-          }
-        ]);
-
-      return result;
-    },
-
-    async remove(commentId) {
-      const result =
-        await tryRequests([
-          {
-            url:
-              API.adminCommentAction,
-            options: {
-              method: "POST",
-              body: {
-                id: commentId,
-                comment_id: commentId,
-                action: "delete"
-              }
-            }
-          },
-          {
-            url:
-              `${API.comments}/${encodeURIComponent(commentId)}`,
-            options: {
-              method: "DELETE"
-            }
-          }
-        ]);
-
-      if (result.ok) {
-        toast.success(
-          "Комментарий удалён."
-        );
-      }
-
-      return result;
-    }
-  };
-
-  TO.comments = comments;
-
-  /* ============================================================
-     SAVES
-     ============================================================ */
-
-  const saves = {
-    async toggle(publicationId) {
-      const body = {
-        publication_id:
-          publicationId,
-        id: publicationId
-      };
-
-      if (actor.isTestMode()) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actor.current());
-      }
-
-      const result =
-        await request(
-          API.publicationSave,
-          {
-            method: "POST",
-            body
-          },
-          { silent: true }
-        );
-
-      if (
-        !result.ok &&
-        [404, 405].includes(result.status)
-      ) {
-        return request(
-          API.saves,
-          {
-            method: "POST",
-            body
-          }
-        );
-      }
-
-      if (result.ok) {
-        toast.success(
-          "Сохранения обновлены."
-        );
-      }
-
-      return result;
-    }
-  };
-
-  TO.saves = saves;
-
-  /* ============================================================
-     SHARES
-     ============================================================ */
-
-  const shares = {
-    async track(publicationId, platform = "copy") {
-      const body = {
-        publication_id:
-          publicationId,
-        id: publicationId,
-        platform
-      };
-
-      if (actor.isTestMode()) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actor.current());
-      }
-
-      return await tryRequests([
-        {
-          url:
-            API.publicationShare,
-          options: {
-            method: "POST",
-            body
-          }
-        },
-        {
-          url:
-            API.shares,
-          options: {
-            method: "POST",
-            body
-          }
-        }
-      ], {
-        silent: true
-      });
-    },
-
-    async copy(publicationId) {
-      const url =
-        new URL(
-          `/publication.html?id=${encodeURIComponent(
-            publicationId
-          )}`,
-          location.origin
-        ).href;
-
       try {
-        await navigator.clipboard.writeText(
-          url
-        );
-
-        await this.track(
-          publicationId,
-          "copy"
-        );
-
-        toast.success(
-          "Ссылка скопирована."
-        );
-
-        return true;
-      } catch {
-        toast.error(
-          "Не удалось скопировать ссылку."
-        );
-
-        return false;
-      }
-    },
-
-    async telegram(publicationId, title = "") {
-      const url =
-        new URL(
-          `/publication.html?id=${encodeURIComponent(
-            publicationId
-          )}`,
-          location.origin
-        ).href;
-
-      await this.track(
-        publicationId,
-        "telegram"
-      );
-
-      const text =
-        `${title || SITE_NAME}\n${url}`;
-
-      window.open(
-        `https://t.me/share/url?url=${encodeURIComponent(
-          url
-        )}&text=${encodeURIComponent(
-          text
-        )}`,
-        "_blank",
-        "noopener,noreferrer"
-      );
-    },
-
-    async native(publicationId, title = "") {
-      const url =
-        new URL(
-          `/publication.html?id=${encodeURIComponent(
-            publicationId
-          )}`,
-          location.origin
-        ).href;
-
-      await this.track(
-        publicationId,
-        "native"
-      );
-
-      if (
-        navigator.share
-      ) {
-        try {
-          await navigator.share({
-            title,
-            text: title,
-            url
-          });
-
-          return true;
-        } catch {
-          return false;
-        }
-      }
-
-      return this.copy(publicationId);
-    }
-  };
-
-  TO.shares = shares;
-
-  /* ============================================================
-     FOLLOW
-     ============================================================ */
-
-  const follow = {
-    async toggle(userId, target = {}) {
-      const body = {
-        user_id: userId,
-        target_user_id: userId,
-        username:
-          target.username ||
-          target.user_username ||
-          ""
-      };
-
-      if (actor.isTestMode()) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actor.current());
-      }
-
-      const result =
-        await request(
-          API.follows,
+        await TO.api(
+          "/api/publications/view",
           {
             method: "POST",
-            body
-          },
-          { silent: true }
-        );
-
-      if (result.ok) {
-        toast.success(
-          "Подписка обновлена."
-        );
-      }
-
-      return result;
-    }
-  };
-
-  TO.follow = follow;
-
-  /* ============================================================
-     MESSAGES
-     ============================================================ */
-
-  const messages = {
-    async chats() {
-      const result =
-        await request(
-          API.chat,
-          {},
-          { silent: true }
-        );
-
-      if (!result.ok) {
-        return [];
-      }
-
-      return helpers.list(
-        result.data
-      );
-    },
-
-    async list(userId = null) {
-      const query =
-        new URLSearchParams();
-
-      if (userId) {
-        query.set(
-          "user_id",
-          userId
-        );
-
-        query.set(
-          "participant_id",
-          userId
-        );
-      }
-
-      const result =
-        await request(
-          `${API.chatMessages}?${query}`,
-          {},
-          { silent: true }
-        );
-
-      if (!result.ok) {
-        return [];
-      }
-
-      return helpers.list(
-        result.data
-      );
-    },
-
-    async send(
-      text,
-      userId = null,
-      extra = {}
-    ) {
-      if (!String(text || "").trim()) {
-        return {
-          ok: false
-        };
-      }
-
-      const body = {
-        text: String(text).trim(),
-        ...extra
-      };
-
-      if (userId) {
-        body.user_id = userId;
-        body.recipient_id = userId;
-      }
-
-      if (actor.isTestMode()) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actor.current());
-      }
-
-      const result =
-        await request(
-          API.chatMessages,
-          {
-            method: "POST",
-            body
+            body: {
+              publication_id: id,
+              id
+            }
           }
         );
 
-      if (result.ok) {
-        toast.success(
-          "Сообщение отправлено."
+        viewed.push(String(id));
+
+        TO.store.set(
+          TO.storage.viewed,
+          viewed.slice(-1000)
         );
-      }
-
-      return result;
+      } catch {}
     },
 
-    async read(userId = null) {
-      const body = {};
+    async react(id, reaction = "like") {
+      if (!id) return null;
 
-      if (userId) {
-        body.user_id = userId;
-        body.chat_id = userId;
-      }
-
-      return request(
-        API.chatRead,
-        {
-          method: "POST",
-          body
-        },
-        { silent: true }
-      );
-    },
-
-    openAdmin() {
-      const params =
-        new URLSearchParams({
-          admin: "1"
-        });
-
-      window.location.href =
-        `/messages.html?${params}`;
-    },
-
-    official() {
-      return {
-        id: "official",
-        name: SITE_NAME,
-        username: SITE_USERNAME,
-        displayName:
-          `🇹🇯 ${SITE_NAME}✅`,
-        official: true
-      };
-    }
-  };
-
-  TO.messages = messages;
-
-  /* ============================================================
-     ADMIN CHAT
-     ============================================================ */
-
-  const adminChat = {
-    async chats() {
-      const result =
-        await request(
-          API.adminChats,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
-    },
-
-    async messages(userId) {
-      const query =
-        new URLSearchParams({
-          user_id: userId
-        });
-
-      const result =
-        await request(
-          `${API.adminChatMessages}?${query}`,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
-    },
-
-    async send(userId, text, extra = {}) {
-      const body = {
-        user_id: userId,
-        recipient_id: userId,
-        text,
-        ...extra
-      };
-
-      return request(
-        API.adminChatSend,
-        {
-          method: "POST",
-          body
-        }
-      );
-    }
-  };
-
-  TO.adminChat = adminChat;
-
-  /* ============================================================
-     NOTIFICATIONS
-     ============================================================ */
-
-  const notifications = {
-    async list() {
-      const result =
-        await request(
-          API.notifications,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
-    },
-
-    async read(id) {
-      const body = {
-        id,
-        notification_id: id
-      };
-
-      return request(
-        API.notificationsRead,
-        {
-          method: "POST",
-          body
-        },
-        { silent: true }
-      );
-    },
-
-    async readAll() {
-      return request(
-        API.notificationsRead,
+      const data = await TO.api(
+        "/api/publications/react",
         {
           method: "POST",
           body: {
-            all: true,
-            read_all: true
+            publication_id: id,
+            id,
+            reaction,
+            type: reaction
           }
-        },
-        { silent: true }
+        }
       );
+
+      TO.toast(
+        "Реакция сохранена",
+        "success"
+      );
+
+      return data;
+    },
+
+    async save(id) {
+      if (!id) return null;
+
+      const data = await TO.api(
+        "/api/publications/save",
+        {
+          method: "POST",
+          body: {
+            publication_id: id,
+            id
+          }
+        }
+      );
+
+      const saved =
+        TO.store.get(
+          TO.storage.saved,
+          []
+        );
+
+      if (!saved.includes(String(id))) {
+        saved.push(String(id));
+      }
+
+      TO.store.set(
+        TO.storage.saved,
+        saved
+      );
+
+      TO.toast(
+        "Публикация сохранена",
+        "success"
+      );
+
+      return data;
+    },
+
+    async share(id) {
+      if (!id) return null;
+
+      const data = await TO.api(
+        "/api/publications/share",
+        {
+          method: "POST",
+          body: {
+            publication_id: id,
+            id
+          }
+        }
+      );
+
+      const url =
+        `${location.origin}/publication.html?id=${encodeURIComponent(id)}`;
+
+      try {
+        if (navigator.share) {
+          await navigator.share({
+            title: TO.config.siteName,
+            url
+          });
+        } else if (navigator.clipboard) {
+          await navigator.clipboard.writeText(url);
+
+          TO.toast(
+            "Ссылка скопирована",
+            "success"
+          );
+        }
+      } catch {}
+
+      return data;
     }
   };
 
-  TO.notifications = notifications;
-
   /* ============================================================
-     REPORTS
+     12. COMMENTS
      ============================================================ */
 
-  const reports = {
-    async create(payload) {
-      const body = {
-        ...payload
+  TO.comments = {
+    async list(publicationId) {
+      if (!publicationId) return [];
+
+      const data = await TO.api(
+        `/api/comments?publication_id=${encodeURIComponent(
+          publicationId
+        )}`
+      );
+
+      const list =
+        data.comments ||
+        data.items ||
+        data;
+
+      return Array.isArray(list)
+        ? list
+        : [];
+    },
+
+    async create(publicationId, text, parentId = null) {
+      if (!publicationId || !text?.trim()) {
+        throw new Error(
+          "Введите текст комментария"
+        );
+      }
+
+      const payload = {
+        publication_id: publicationId,
+        text: text.trim(),
+        content: text.trim()
       };
 
-      if (actor.isTestMode()) {
-        body.test_mode = true;
-        body.test_actor_id =
-          helpers.userId(actor.current());
+      if (parentId) {
+        payload.parent_id = parentId;
+        payload.reply_to = parentId;
       }
 
-      const result =
-        await request(
-          API.reports,
-          {
-            method: "POST",
-            body
-          }
-        );
-
-      if (result.ok) {
-        toast.success(
-          "Жалоба отправлена."
-        );
-      }
-
-      return result;
-    },
-
-    async list() {
-      const result =
-        await tryRequests([
-          {
-            url:
-              API.adminReports
-          },
-          {
-            url:
-              API.reports
-          }
-        ]);
-
-      return result?.ok
-        ? helpers.list(result.data)
-        : [];
-    }
-  };
-
-  TO.reports = reports;
-
-  /* ============================================================
-     PROFILE
-     ============================================================ */
-
-  const profile = {
-    async me() {
-      const result =
-        await request(
-          API.profile,
-          {},
-          { silent: true }
-        );
-
-      if (result.ok) {
-        const data =
-          result.data?.profile ||
-          result.data?.user ||
-          result.data?.data ||
-          result.data;
-
-        if (data) {
-          const cache =
-            storage.get(
-              STORAGE.PROFILE_CACHE,
-              {}
-            );
-
-          cache.me = data;
-
-          storage.set(
-            STORAGE.PROFILE_CACHE,
-            cache
-          );
-
-          return data;
+      const data = await TO.api(
+        "/api/comments",
+        {
+          method: "POST",
+          body: payload
         }
-      }
-
-      const cache =
-        storage.get(
-          STORAGE.PROFILE_CACHE,
-          {}
-        );
-
-      return (
-        cache.me ||
-        auth.getUser()
       );
-    },
 
-    async update(payload) {
-      const result =
-        await request(
-          API.profile,
-          {
-            method: "PUT",
-            body: payload
-          }
-        );
-
-      if (result.ok) {
-        const data =
-          result.data?.profile ||
-          result.data?.user ||
-          result.data?.data ||
-          payload;
-
-        const cache =
-          storage.get(
-            STORAGE.PROFILE_CACHE,
-            {}
-          );
-
-        cache.me = data;
-
-        storage.set(
-          STORAGE.PROFILE_CACHE,
-          cache
-        );
-
-        auth.user = {
-          ...auth.getUser(),
-          ...data
-        };
-
-        storage.set(
-          STORAGE.USER,
-          auth.user
-        );
-
-        toast.success(
-          "Профиль обновлён."
-        );
-      }
-
-      return result;
-    },
-
-    async public(username) {
-      const clean =
-        String(username || "")
-          .replace(/^@/, "");
-
-      const query =
-        new URLSearchParams({
-          username: `@${clean}`
-        });
-
-      const result =
-        await request(
-          `${API.profilePublic}?${query}`,
-          {},
-          { silent: true }
-        );
-
-      if (!result.ok) {
-        return null;
-      }
-
-      const data =
-        result.data?.profile ||
-        result.data?.user ||
-        result.data?.data ||
-        result.data;
-
-      const cache =
-        storage.get(
-          STORAGE.PROFILE_CACHE,
-          {}
-        );
-
-      cache[`@${clean}`] = data;
-
-      storage.set(
-        STORAGE.PROFILE_CACHE,
-        cache
+      TO.toast(
+        "Комментарий опубликован",
+        "success"
       );
 
       return data;
     }
   };
 
-  TO.profile = profile;
-
   /* ============================================================
-     CATEGORIES
+     13. SAVED
      ============================================================ */
 
-  const categories = {
-    async list() {
-      const result =
-        await request(
-          API.categories,
-          {},
-          { silent: true }
+  TO.saved = {
+    has(id) {
+      const saved =
+        TO.store.get(
+          TO.storage.saved,
+          []
         );
 
-      if (result.ok) {
-        const list =
-          helpers.list(result.data);
+      return saved.includes(String(id));
+    },
 
-        if (list.length) {
-          storage.set(
-            STORAGE.CATEGORIES,
-            list
-          );
+    all() {
+      return TO.store.get(
+        TO.storage.saved,
+        []
+      );
+    },
 
-          return list;
-        }
-      }
-
-      return storage.get(
-        STORAGE.CATEGORIES,
-        CATEGORIES.map(
-          ([id, label]) => ({
-            id,
-            name: label,
-            label
-          })
-        )
+    clear() {
+      TO.store.remove(
+        TO.storage.saved
       );
     }
   };
 
-  TO.categories = categories;
-
   /* ============================================================
-     ADMIN
+     14. CHAT
      ============================================================ */
 
-  const admin = {
-    user: null,
+  TO.chat = {
+    async list() {
+      const data = await TO.api(
+        "/api/chat"
+      );
 
-    async login(payload) {
-      const result =
-        await request(
-          API.adminLogin,
-          {
-            method: "POST",
-            body: payload
-          }
-        );
+      return (
+        data.chats ||
+        data.dialogs ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    },
 
-      if (result.ok) {
-        const adminUser =
-          result.data?.admin ||
-          result.data?.user ||
-          result.data?.data ||
-          null;
+    async messages(userId) {
+      if (!userId) return [];
 
-        this.user = adminUser;
+      const data = await TO.api(
+        `/api/chat/messages?user_id=${encodeURIComponent(
+          userId
+        )}`
+      );
 
-        if (adminUser) {
-          storage.set(
-            STORAGE.ADMIN,
-            adminUser
-          );
-        }
+      return (
+        data.messages ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    },
 
-        toast.success(
-          "Вход администратора выполнен."
+    async send(userId, text, extra = {}) {
+      if (!text?.trim()) {
+        throw new Error(
+          "Сообщение пустое"
         );
       }
 
-      return result;
-    },
+      if (!userId) {
+        throw new Error(
+          "Не выбран получатель"
+        );
+      }
 
-    async logout() {
-      await request(
-        API.adminLogout,
+      const payload = {
+        user_id: userId,
+        recipient_id: userId,
+        text: text.trim(),
+        content: text.trim(),
+        ...extra
+      };
+
+      return TO.api(
+        "/api/chat/messages",
         {
           method: "POST",
-          body: {}
-        },
-        { silent: true }
-      );
-
-      this.user = null;
-
-      storage.remove(
-        STORAGE.ADMIN
+          body: payload
+        }
       );
     },
 
-    async me() {
-      const result =
-        await request(
-          API.adminMe,
-          {},
-          { silent: true }
-        );
+    async read(userId) {
+      if (!userId) return null;
 
-      if (result.ok) {
-        const data =
-          result.data?.admin ||
-          result.data?.user ||
-          result.data?.data ||
-          result.data;
-
-        this.user = data || null;
-
-        if (data) {
-          storage.set(
-            STORAGE.ADMIN,
-            data
-          );
-        }
-
-        return data;
-      }
-
-      return storage.get(
-        STORAGE.ADMIN,
+      return TO.tryApi(
+        "/api/chat/read",
+        {
+          method: "POST",
+          body: {
+            user_id: userId,
+            recipient_id: userId
+          }
+        },
         null
       );
+    }
+  };
+
+  /* ============================================================
+     15. ADMIN CHAT
+     ============================================================ */
+
+  TO.adminChat = {
+    async list() {
+      const data = await TO.api(
+        "/api/admin/chats"
+      );
+
+      return (
+        data.chats ||
+        data.dialogs ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
     },
 
-    async dashboard() {
-      const result =
-        await request(
-          API.adminDashboard,
-          {},
-          { silent: true }
+    async messages(userId) {
+      const data = await TO.api(
+        `/api/admin/chat/messages?user_id=${encodeURIComponent(
+          userId
+        )}`
+      );
+
+      return (
+        data.messages ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    },
+
+    async send(userId, text, extra = {}) {
+      if (!userId) {
+        throw new Error(
+          "Не выбран участник"
         );
+      }
 
-      return result.ok
-        ? result.data
-        : null;
-    },
+      if (!text?.trim()) {
+        throw new Error(
+          "Введите сообщение"
+        );
+      }
 
-    async users(params = {}) {
-      const query =
-        new URLSearchParams();
+      return TO.api(
+        "/api/admin/chat/send",
+        {
+          method: "POST",
+          body: {
+            user_id: userId,
+            recipient_id: userId,
 
-      Object.entries(params)
-        .forEach(([key, value]) => {
-          if (
-            value !== undefined &&
-            value !== null &&
-            value !== ""
-          ) {
-            query.set(
-              key,
-              value
-            );
+            sender_name:
+              TO.config.officialName,
+
+            sender_username:
+              TO.config.officialUsername,
+
+            text: text.trim(),
+            content: text.trim(),
+
+            ...extra
           }
-        });
+        }
+      );
+    }
+  };
 
-      const result =
-        await request(
-          `${API.adminUsers}?${query}`,
-          {},
-          { silent: true }
-        );
+  /* ============================================================
+     16. OFFICIAL ADMIN IDENTITY
+     ============================================================ */
 
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
+  TO.official = {
+    name: TO.config.officialName,
+    username: TO.config.officialUsername,
+
+    normalize(message = {}) {
+      const copy = {
+        ...message
+      };
+
+      if (
+        copy.is_admin ||
+        copy.sender_type === "admin" ||
+        copy.author_type === "admin"
+      ) {
+        copy.sender_name =
+          TO.config.officialName;
+
+        copy.sender_username =
+          TO.config.officialUsername;
+
+        copy.author_name =
+          TO.config.officialName;
+
+        copy.author_username =
+          TO.config.officialUsername;
+      }
+
+      return copy;
+    }
+  };
+
+  /* ============================================================
+     17. NOTIFICATIONS
+     ============================================================ */
+
+  TO.notifications = {
+    async list() {
+      const data = await TO.api(
+        "/api/notifications"
+      );
+
+      return (
+        data.notifications ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
     },
 
-    async user(id) {
-      const query =
-        new URLSearchParams({
-          id
-        });
+    async read(id) {
+      if (!id) return;
 
-      const result =
-        await request(
-          `${API.adminUser}?${query}`,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? (
-          result.data?.user ||
-          result.data?.data ||
-          result.data
-        )
-        : null;
-    },
-
-    async editUser(id, data) {
-      return request(
-        API.adminUserEdit,
+      return TO.api(
+        "/api/notifications/read",
         {
           method: "POST",
           body: {
             id,
-            user_id: id,
-            ...data
+            notification_id: id
           }
+        }
+      );
+    },
+
+    async readAll() {
+      const list =
+        await this.list();
+
+      for (const item of list) {
+        const id =
+          TO.pick(
+            item,
+            ["id", "notification_id"],
+            null
+          );
+
+        if (id) {
+          await this.read(id);
+        }
+      }
+
+      TO.toast(
+        "Уведомления отмечены как прочитанные",
+        "success"
+      );
+    }
+  };
+
+  /* ============================================================
+     18. REPORTS
+     ============================================================ */
+
+  TO.reports = {
+    async create(payload) {
+      const possibleEndpoints = [
+        "/api/reports",
+        "/api/report"
+      ];
+
+      for (const endpoint of possibleEndpoints) {
+        try {
+          const result = await TO.api(
+            endpoint,
+            {
+              method: "POST",
+              body: payload
+            }
+          );
+
+          TO.toast(
+            "Жалоба отправлена",
+            "success"
+          );
+
+          return result;
+        } catch {}
+      }
+
+      throw new Error(
+        "API жалоб пока недоступно"
+      );
+    },
+
+    async listAdmin() {
+      const data = await TO.tryApi(
+        "/api/admin/reports",
+        {},
+        null
+      );
+
+      if (!data) return [];
+
+      return (
+        data.reports ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    }
+  };
+
+  /* ============================================================
+     19. FOLLOW
+     ============================================================ */
+
+  TO.follow = {
+    async toggle(userId) {
+      if (!userId) {
+        throw new Error(
+          "Не указан пользователь"
+        );
+      }
+
+      const endpoints = [
+        "/api/follow",
+        "/api/followers/toggle",
+        "/api/profile/follow"
+      ];
+
+      let lastError = null;
+
+      for (const endpoint of endpoints) {
+        try {
+          return await TO.api(
+            endpoint,
+            {
+              method: "POST",
+              body: {
+                user_id: userId,
+                target_user_id: userId
+              }
+            }
+          );
+        } catch (error) {
+          lastError = error;
+        }
+      }
+
+      throw lastError ||
+        new Error(
+          "Функция подписки пока недоступна"
+        );
+    }
+  };
+
+  /* ============================================================
+     20. PROFILE
+     ============================================================ */
+
+  TO.profile = {
+    async get() {
+      const data = await TO.api(
+        "/api/profile"
+      );
+
+      return (
+        data.profile ||
+        data.user ||
+        data
+      );
+    },
+
+    async update(payload) {
+      return TO.api(
+        "/api/profile",
+        {
+          method: "PUT",
+          body: payload
+        }
+      );
+    },
+
+    async public(username) {
+      if (!username) return null;
+
+      const data = await TO.api(
+        `/api/profile/public?username=${encodeURIComponent(
+          username
+        )}`
+      );
+
+      return (
+        data.profile ||
+        data.user ||
+        data
+      );
+    }
+  };
+
+  /* ============================================================
+     21. ADMIN DASHBOARD
+     ============================================================ */
+
+  TO.admin = {
+    async dashboard() {
+      const data = await TO.api(
+        "/api/admin/dashboard"
+      );
+
+      return (
+        data.dashboard ||
+        data.stats ||
+        data
+      );
+    },
+
+    async notifications() {
+      const data = await TO.api(
+        "/api/admin/notifications"
+      );
+
+      return (
+        data.notifications ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    },
+
+    async users(params = {}) {
+      const query =
+        new URLSearchParams(params);
+
+      const data = await TO.api(
+        "/api/admin/users" +
+        (
+          query.toString()
+            ? "?" + query.toString()
+            : ""
+        )
+      );
+
+      return (
+        data.users ||
+        data.participants ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    },
+
+    async user(id) {
+      return TO.api(
+        `/api/admin/user?id=${encodeURIComponent(id)}`
+      );
+    },
+
+    async editUser(payload) {
+      return TO.api(
+        "/api/admin/user/edit",
+        {
+          method: "POST",
+          body: payload
         }
       );
     },
 
     async userAction(id, action, extra = {}) {
-      const result =
-        await request(
-          API.adminUserAction,
-          {
-            method: "POST",
-            body: {
-              id,
-              user_id: id,
-              action,
-              ...extra
-            }
+      return TO.api(
+        "/api/admin/user/action",
+        {
+          method: "POST",
+          body: {
+            id,
+            user_id: id,
+            action,
+            ...extra
           }
-        );
-
-      if (result.ok) {
-        toast.success(
-          `Действие "${action}" выполнено.`
-        );
-      }
-
-      return result;
+        }
+      );
     },
 
     async publications(params = {}) {
       const query =
-        new URLSearchParams();
+        new URLSearchParams(params);
 
-      Object.entries(params)
-        .forEach(([key, value]) => {
-          if (
-            value !== undefined &&
-            value !== null &&
-            value !== ""
-          ) {
-            query.set(
-              key,
-              value
-            );
-          }
-        });
+      const data = await TO.api(
+        "/api/admin/publications" +
+        (
+          query.toString()
+            ? "?" + query.toString()
+            : ""
+        )
+      );
 
-      const result =
-        await request(
-          `${API.adminPublications}?${query}`,
-          {},
-          { silent: true }
-        );
+      return (
+        data.publications ||
+        data.posts ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    },
 
-      return result.ok
-        ? helpers
-            .list(result.data)
-            .map(
-              helpers.normalizePublication
-            )
-        : [];
+    async editPublication(payload) {
+      return TO.api(
+        "/api/admin/publication/edit",
+        {
+          method: "POST",
+          body: payload
+        }
+      );
     },
 
     async publicationAction(
@@ -2596,77 +1722,56 @@
       action,
       extra = {}
     ) {
-      const result =
-        await request(
-          API.adminPublicationAction,
-          {
-            method: "POST",
-            body: {
-              id,
-              publication_id: id,
-              action,
-              ...extra
-            }
-          }
-        );
-
-      if (result.ok) {
-        toast.success(
-          `Публикация: ${action}`
-        );
-      }
-
-      return result;
-    },
-
-    async publicationCounters(
-      id,
-      counters
-    ) {
-      return request(
-        API.adminPublicationCounters,
+      return TO.api(
+        "/api/admin/publication/action",
         {
           method: "POST",
           body: {
             id,
             publication_id: id,
-            ...counters
+            action,
+            ...extra
           }
         }
       );
     },
 
-    async editPublication(
-      id,
-      data
-    ) {
-      return request(
-        API.adminPublicationEdit,
+    async counters(payload) {
+      return TO.api(
+        "/api/admin/publication/counters",
         {
           method: "POST",
-          body: {
-            id,
-            publication_id: id,
-            ...data
-          }
+          body: payload
         }
       );
     },
 
-    async comments(params = {}) {
-      const query =
-        new URLSearchParams(params);
+    async comments() {
+      const data = await TO.tryApi(
+        "/api/admin/comments",
+        {},
+        null
+      );
 
-      const result =
-        await request(
-          `${API.adminComments}?${query}`,
-          {},
-          { silent: true }
-        );
+      if (!data) return [];
 
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
+      return (
+        data.comments ||
+        data.items ||
+        data.data ||
+        data ||
+        []
+      );
+    },
+
+    async editComment(payload) {
+      return TO.api(
+        "/api/admin/comment/edit",
+        {
+          method: "POST",
+          body: payload
+        }
+      );
     },
 
     async commentAction(
@@ -2674,8 +1779,8 @@
       action,
       extra = {}
     ) {
-      return request(
-        API.adminCommentAction,
+      return TO.api(
+        "/api/admin/comment/action",
         {
           method: "POST",
           body: {
@@ -2688,345 +1793,95 @@
       );
     },
 
-    async payment(
-      publicationId,
-      action,
-      amount = null,
-      extra = {}
-    ) {
-      return request(
-        API.adminPayment,
+    async payment(payload) {
+      return TO.api(
+        "/api/admin/payment",
         {
           method: "POST",
-          body: {
-            publication_id:
-              publicationId,
-            id: publicationId,
-            action,
-            amount,
-            ...extra
-          }
+          body: payload
         }
-      );
-    },
-
-    async notifications() {
-      const result =
-        await request(
-          API.adminNotifications,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
-    },
-
-    async reports() {
-      const result =
-        await request(
-          API.adminReports,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
-    },
-
-    async trash(params = {}) {
-      const query =
-        new URLSearchParams(params);
-
-      const result =
-        await request(
-          `${API.adminTrash}?${query}`,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
-    },
-
-    async stats() {
-      const result =
-        await request(
-          API.adminStats,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? result.data
-        : null;
-    },
-
-    async audit(params = {}) {
-      const query =
-        new URLSearchParams(params);
-
-      const result =
-        await request(
-          `${API.adminAudit}?${query}`,
-          {},
-          { silent: true }
-        );
-
-      return result.ok
-        ? helpers.list(result.data)
-        : [];
-    }
-  };
-
-  TO.admin = admin;
-
-  /* ============================================================
-     TESTING CENTER
-     ============================================================ */
-
-  const testing = {
-    selected() {
-      return actor.selected();
-    },
-
-    select(user) {
-      return actor.enable(user);
-    },
-
-    clear() {
-      actor.disable();
-    },
-
-    async serverAction(
-      action,
-      payload = {}
-    ) {
-      const selected =
-        actor.selected();
-
-      if (!selected) {
-        toast.error(
-          "Не выбран участник для тестирования."
-        );
-
-        return {
-          ok: false
-        };
-      }
-
-      const body = {
-        action,
-        test_mode: true,
-        test_actor_id:
-          helpers.userId(selected),
-        actor_id:
-          helpers.userId(selected),
-        ...payload
-      };
-
-      const result =
-        await request(
-          API.adminTesting,
-          {
-            method: "POST",
-            body
-          },
-          { silent: true }
-        );
-
-      if (!result.ok) {
-        toast.warning(
-          "Серверный тестовый API пока недоступен."
-        );
-      }
-
-      return result;
-    },
-
-    async like(publicationId, reaction = "like") {
-      const result =
-        await this.serverAction(
-          "reaction",
-          {
-            publication_id:
-              publicationId,
-            reaction
-          }
-        );
-
-      if (result.ok) return result;
-
-      return reactions.toggle(
-        publicationId,
-        reaction
-      );
-    },
-
-    async comment(
-      publicationId,
-      text,
-      parentId = null
-    ) {
-      const result =
-        await this.serverAction(
-          "comment",
-          {
-            publication_id:
-              publicationId,
-            text,
-            parent_id: parentId
-          }
-        );
-
-      if (result.ok) return result;
-
-      return comments.create(
-        publicationId,
-        text,
-        parentId
-      );
-    },
-
-    async save(publicationId) {
-      const result =
-        await this.serverAction(
-          "save",
-          {
-            publication_id:
-              publicationId
-          }
-        );
-
-      if (result.ok) return result;
-
-      return saves.toggle(
-        publicationId
-      );
-    },
-
-    async share(publicationId) {
-      const result =
-        await this.serverAction(
-          "share",
-          {
-            publication_id:
-              publicationId
-          }
-        );
-
-      if (result.ok) return result;
-
-      return shares.track(
-        publicationId,
-        "test"
-      );
-    },
-
-    async view(publicationId) {
-      const result =
-        await this.serverAction(
-          "view",
-          {
-            publication_id:
-              publicationId
-          }
-        );
-
-      if (result.ok) return result;
-
-      return views.add(
-        publicationId
-      );
-    },
-
-    async follow(userId) {
-      const result =
-        await this.serverAction(
-          "follow",
-          {
-            target_user_id:
-              userId
-          }
-        );
-
-      if (result.ok) return result;
-
-      return follow.toggle(
-        userId
-      );
-    },
-
-    async message(text, recipientId = null) {
-      const result =
-        await this.serverAction(
-          "message",
-          {
-            text,
-            recipient_id:
-              recipientId
-          }
-        );
-
-      if (result.ok) return result;
-
-      return messages.send(
-        text,
-        recipientId
-      );
-    },
-
-    async publication(payload) {
-      return this.serverAction(
-        "publication",
-        {
-          publication: payload,
-          ...payload
-        }
-      );
-    },
-
-    async report(payload) {
-      const result =
-        await this.serverAction(
-          "report",
-          payload
-        );
-
-      if (result.ok) return result;
-
-      return reports.create(
-        payload
-      );
-    },
-
-    async deleteReport(id) {
-      return this.serverAction(
-        "delete_report",
-        {
-          report_id: id
-        }
-      );
-    },
-
-    async notification(payload) {
-      return this.serverAction(
-        "notification",
-        payload
       );
     }
   };
 
-  TO.testing = testing;
-
   /* ============================================================
-     MANUAL STATISTICS
+     22. ADMIN PUBLICATION QUICK ACTIONS
      ============================================================ */
 
-  const stats = {
+  TO.adminPublicationActions = {
+    approve(id) {
+      return TO.admin.publicationAction(
+        id,
+        "approve_free"
+      );
+    },
+
+    publish(id) {
+      return TO.admin.publicationAction(
+        id,
+        "publish"
+      );
+    },
+
+    reject(id, reason = "") {
+      return TO.admin.publicationAction(
+        id,
+        "reject",
+        { reason }
+      );
+    },
+
+    hide(id) {
+      return TO.admin.publicationAction(
+        id,
+        "hide"
+      );
+    },
+
+    delete(id) {
+      return TO.admin.publicationAction(
+        id,
+        "delete"
+      );
+    },
+
+    restore(id) {
+      return TO.admin.publicationAction(
+        id,
+        "restore"
+      );
+    },
+
+    pin(id) {
+      return TO.admin.publicationAction(
+        id,
+        "pin"
+      );
+    },
+
+    feature(id) {
+      return TO.admin.publicationAction(
+        id,
+        "feature"
+      );
+    },
+
+    payment(id, amount) {
+      return TO.admin.publicationAction(
+        id,
+        "request_payment",
+        {
+          amount
+        }
+      );
+    }
+  };
+
+  /* ============================================================
+     23. MANUAL STATISTICS
+     ============================================================ */
+
+  TO.stats = {
     defaults: {
       participants: 0,
       publications: 0,
@@ -3035,291 +1890,364 @@
       shares: 0,
       saves: 0,
       followers: 0,
+      subscribers: 0,
       comments: 0,
       notifications: 0,
       messages: 0,
-      reports: 0
+      reports: 0,
+      payments: 0,
+      jobs: 0,
+      projects: 0,
+      services: 0,
+      usersOnline: 0
     },
 
-    get() {
+    load() {
       return {
         ...this.defaults,
-        ...storage.get(
-          STORAGE.STATS,
+        ...TO.store.get(
+          TO.storage.stats,
           {}
         )
       };
     },
 
+    save(stats) {
+      TO.store.set(
+        TO.storage.stats,
+        stats
+      );
+
+      return stats;
+    },
+
+    get(name) {
+      const stats = this.load();
+
+      return TO.number(
+        stats[name],
+        0
+      );
+    },
+
     set(name, value) {
-      const data =
-        this.get();
+      const stats = this.load();
 
-      data[name] =
+      stats[name] =
         Math.max(
           0,
-          helpers.number(value)
+          TO.number(value, 0)
         );
 
-      storage.set(
-        STORAGE.STATS,
-        data
-      );
-
-      return data;
+      return this.save(stats);
     },
 
-    increment(
-      name,
-      amount = 1
-    ) {
-      const data =
-        this.get();
+    increment(name, amount = 1) {
+      const stats = this.load();
 
-      data[name] =
-        Math.max(
-          0,
-          helpers.number(
-            data[name]
-          ) +
-          helpers.number(
-            amount
-          )
+      stats[name] =
+        TO.number(
+          stats[name],
+          0
+        ) +
+        TO.number(
+          amount,
+          1
         );
 
-      storage.set(
-        STORAGE.STATS,
-        data
-      );
-
-      return data[name];
+      return this.save(stats);
     },
 
-    async sync() {
-      const server =
-        await admin.stats();
+    render() {
+      const stats =
+        this.load();
 
-      if (
-        server &&
-        typeof server === "object"
-      ) {
-        const local =
-          this.get();
-
-        const merged = {
-          ...local,
-          ...server
-        };
-
-        storage.set(
-          STORAGE.STATS,
-          merged
+      Object.entries(stats)
+        .forEach(
+          ([name, value]) => {
+            TO.qa(
+              `[data-to-stat="${name}"]`
+            ).forEach(
+              el => {
+                el.textContent =
+                  Number(value).toLocaleString(
+                    "ru-RU"
+                  );
+              }
+            );
+          }
         );
-
-        return merged;
-      }
-
-      return this.get();
     }
   };
 
-  TO.stats = stats;
-
   /* ============================================================
-     TRANSLATION
+     24. DATE / TIME
      ============================================================ */
 
-  const translation = {
-    languages: [
-      ["tg", "Тоҷикӣ"],
-      ["ru", "Русский"],
-      ["en", "English"],
-      ["fa", "فارسی"],
-      ["uz", "O'zbek"],
-      ["kk", "Қазақша"],
-      ["ky", "Кыргызча"],
-      ["tr", "Türkçe"],
-      ["de", "Deutsch"],
-      ["fr", "Français"],
-      ["es", "Español"],
-      ["ar", "العربية"],
-      ["zh", "中文"],
-      ["hi", "हिन्दी"]
-    ],
+  TO.date = {
+    format(value, options = {}) {
+      if (!value) return "";
 
-    getLanguage() {
-      return (
-        storage.get(
-          STORAGE.LANGUAGE,
-          null
-        ) ||
-        document.documentElement.lang ||
-        "ru"
-      );
+      const date =
+        new Date(value);
+
+      if (Number.isNaN(
+        date.getTime()
+      )) {
+        return String(value);
+      }
+
+      return new Intl.DateTimeFormat(
+        options.locale || "ru-RU",
+        {
+          dateStyle:
+            options.dateStyle ||
+            "medium",
+          timeStyle:
+            options.timeStyle ||
+            undefined
+        }
+      ).format(date);
     },
 
-    setLanguage(lang) {
-      const exists =
-        this.languages.some(
-          item => item[0] === lang
+    relative(value) {
+      if (!value) return "";
+
+      const date =
+        new Date(value);
+
+      if (Number.isNaN(
+        date.getTime()
+      )) {
+        return "";
+      }
+
+      const diff =
+        Date.now() -
+        date.getTime();
+
+      const minute = 60000;
+      const hour = minute * 60;
+      const day = hour * 24;
+
+      if (diff < minute) {
+        return "только что";
+      }
+
+      if (diff < hour) {
+        return (
+          Math.floor(diff / minute) +
+          " мин назад"
         );
+      }
 
-      if (!exists) return false;
+      if (diff < day) {
+        return (
+          Math.floor(diff / hour) +
+          " ч назад"
+        );
+      }
 
-      storage.set(
-        STORAGE.LANGUAGE,
-        lang
-      );
+      if (diff < day * 7) {
+        return (
+          Math.floor(diff / day) +
+          " дн назад"
+        );
+      }
 
-      document.documentElement.lang =
-        lang;
+      return this.format(value);
+    }
+  };
 
-      this.apply();
+  /* ============================================================
+     25. SEARCH
+     ============================================================ */
 
-      return true;
+  TO.search = {
+    async publications(query, options = {}) {
+      return TO.publications.list({
+        search: query,
+        q: query,
+        ...options
+      });
     },
 
-    async text(
+    async users(query) {
+      return TO.admin.users({
+        search: query,
+        q: query,
+        username: query
+      });
+    },
+
+    async all(query) {
+      const [
+        publications,
+        users
+      ] = await Promise.allSettled([
+        this.publications(query),
+        this.users(query)
+      ]);
+
+      return {
+        publications:
+          publications.status === "fulfilled"
+            ? publications.value
+            : [],
+
+        users:
+          users.status === "fulfilled"
+            ? users.value
+            : []
+      };
+    }
+  };
+
+  /* ============================================================
+     26. TRANSLATION
+     ============================================================ */
+
+  TO.translation = {
+    cache: TO.store.get(
+      TO.storage.translationCache,
+      {}
+    ),
+
+    detect(text) {
+      if (!text) return "unknown";
+
+      if (
+        /[\u0400-\u04FF]/.test(text)
+      ) {
+        return "ru";
+      }
+
+      if (
+        /[اآأإء-ي]/.test(text)
+      ) {
+        return "fa";
+      }
+
+      return "en";
+    },
+
+    async translate(
       text,
-      from = "auto",
-      to = this.getLanguage()
+      target = "ru",
+      source = "auto"
     ) {
       if (!text) return "";
 
-      if (
-        from &&
-        from !== "auto" &&
-        from === to
-      ) {
-        return text;
+      const key =
+        `${source}:${target}:${text}`;
+
+      if (this.cache[key]) {
+        return this.cache[key];
       }
 
-      const result =
-        await request(
-          API.translations,
-          {
-            method: "POST",
-            body: {
-              text,
-              source_language: from,
-              target_language: to
+      /*
+       * Translation API is intentionally optional.
+       * If backend later provides /api/translate,
+       * it will automatically be used.
+       */
+
+      try {
+        const data =
+          await TO.api(
+            "/api/translate",
+            {
+              method: "POST",
+              body: {
+                text,
+                source,
+                target
+              }
             }
-          },
-          { silent: true }
-        );
+          );
 
-      if (result.ok) {
-        return (
-          result.data?.translation ||
-          result.data?.translated_text ||
-          result.data?.text ||
-          text
-        );
-      }
+        const result =
+          data.translation ||
+          data.translated_text ||
+          data.text;
+
+        if (result) {
+          this.cache[key] = result;
+
+          TO.store.set(
+            TO.storage.translationCache,
+            this.cache
+          );
+
+          return result;
+        }
+      } catch {}
 
       return text;
     },
 
-    apply() {
-      const lang =
-        this.getLanguage();
+    async translateElement(
+      element,
+      target
+    ) {
+      if (!element) return;
 
-      document
-        .querySelectorAll(
-          "[data-i18n]"
-        )
-        .forEach(el => {
-          const key =
-            el.dataset.i18n;
+      const original =
+        element.dataset.toOriginal ||
+        element.textContent;
 
-          const dictionary =
-            window.TO_TRANSLATIONS?.[
-              lang
-            ];
+      element.dataset.toOriginal =
+        original;
 
-          if (
-            dictionary &&
-            dictionary[key]
-          ) {
-            el.textContent =
-              dictionary[key];
-          }
-        });
+      const translated =
+        await this.translate(
+          original,
+          target
+        );
 
-      document
-        .querySelectorAll(
-          "[data-i18n-placeholder]"
-        )
-        .forEach(el => {
-          const key =
-            el.dataset.i18nPlaceholder;
-
-          const dictionary =
-            window.TO_TRANSLATIONS?.[
-              lang
-            ];
-
-          if (
-            dictionary &&
-            dictionary[key]
-          ) {
-            el.placeholder =
-              dictionary[key];
-          }
-        });
-
-      if (
-        ["fa", "ar"].includes(lang)
-      ) {
-        document.documentElement.dir =
-          "rtl";
-      } else {
-        document.documentElement.dir =
-          "ltr";
-      }
+      element.textContent =
+        translated;
     }
   };
 
-  TO.translation = translation;
-
   /* ============================================================
-     THEME
+     27. THEME
      ============================================================ */
 
-  const theme = {
+  TO.theme = {
     get() {
-      return storage.get(
-        STORAGE.THEME,
+      return TO.store.get(
+        TO.storage.theme,
         "system"
       );
     },
 
-    set(value) {
+    set(theme) {
       if (
-        !["light", "dark", "system"]
-          .includes(value)
+        ![
+          "light",
+          "dark",
+          "system"
+        ].includes(theme)
       ) {
-        value = "system";
+        theme = "system";
       }
 
-      storage.set(
-        STORAGE.THEME,
-        value
+      TO.store.set(
+        TO.storage.theme,
+        theme
       );
 
       this.apply();
-
-      return value;
     },
 
     apply() {
-      const value =
+      const theme =
         this.get();
 
-      let effective = value;
+      let actual = theme;
 
-      if (value === "system") {
-        effective =
+      if (theme === "system") {
+        actual =
           window.matchMedia &&
           window.matchMedia(
             "(prefers-color-scheme: dark)"
@@ -3331,1657 +2259,2882 @@
       document.documentElement
         .setAttribute(
           "data-theme",
-          effective
+          actual
         );
+    },
 
-      document.documentElement
-        .classList.toggle(
-          "dark",
-          effective === "dark"
-        );
+    toggle() {
+      const current =
+        this.get();
 
-      document.documentElement
-        .classList.toggle(
-          "light",
-          effective === "light"
-        );
+      this.set(
+        current === "dark"
+          ? "light"
+          : "dark"
+      );
     }
   };
 
-  TO.theme = theme;
-
   /* ============================================================
-     SEARCH
+     28. URL / NAVIGATION
      ============================================================ */
 
-  const search = {
-    async all(query, options = {}) {
-      const q =
-        String(query || "").trim();
+  TO.nav = {
+    go(url) {
+      if (!url) return;
 
-      if (!q) {
-        return {
-          users: [],
-          publications: [],
-          categories: []
-        };
-      }
+      location.href = url;
+    },
 
-      const params = {
-        ...options,
-        search: q,
-        q
-      };
+    publication(id) {
+      if (!id) return;
 
-      const publications =
-        await publicationsSearch(
-          params
-        );
+      const urls = [
+        `/publication.html?id=${encodeURIComponent(id)}`,
+        `/post.html?id=${encodeURIComponent(id)}`,
+        `/?publication=${encodeURIComponent(id)}`
+      ];
 
-      let users = [];
+      location.href = urls[0];
+    },
 
-      try {
-        users =
-          await admin.users({
-            search: q
-          });
-      } catch {}
+    profile(username) {
+      if (!username) return;
 
-      const categoryMatches =
-        CATEGORIES
-          .filter(
-            ([id, label]) =>
-              id
-                .toLowerCase()
-                .includes(q.toLowerCase()) ||
-              label
-                .toLowerCase()
-                .includes(q.toLowerCase())
-          )
-          .map(
-            ([id, label]) => ({
-              id,
-              label
-            })
-          );
+      location.href =
+        `/profile.html?user=${encodeURIComponent(
+          username
+        )}`;
+    },
 
-      return {
-        users,
-        publications,
-        categories:
-          categoryMatches
-      };
+    chat(userId) {
+      if (!userId) return;
+
+      location.href =
+        `/messages.html?user=${encodeURIComponent(
+          userId
+        )}`;
     }
   };
 
-  async function publicationsSearch(params) {
-    return publications.list(
-      params
-    );
-  }
-
-  TO.search = search;
-
   /* ============================================================
-     UI PUBLICATION CARD
+     29. PUBLICATION CARD GENERATOR
      ============================================================ */
 
-  const ui = {
-    publicationCard(publication) {
+  TO.ui = {
+    publicationCard(post) {
       const p =
-        helpers.normalizePublication(
-          publication
-        );
-
-      if (!p) return "";
-
-      const id =
-        helpers.escape(
-          p.id
-        );
+        TO.normalizePublication(post);
 
       const media =
-        helpers.media(p);
-
-      const firstMedia =
-        media[0];
+        p.media?.[0];
 
       let mediaHTML = "";
 
-      if (firstMedia?.url) {
+      if (
+        media &&
+        media.url
+      ) {
         const type =
-          String(
-            firstMedia.type ||
-            ""
-          ).toLowerCase();
+          media.type || "";
 
         if (
-          type.includes("video") ||
-          /\.(mp4|webm|mov)(\?|$)/i.test(
-            firstMedia.url
+          type.startsWith("image") ||
+          /\.(jpg|jpeg|png|webp|gif)$/i.test(
+            media.url
           )
         ) {
           mediaHTML = `
-            <video
-              src="${helpers.escape(
-                firstMedia.url
-              )}"
-              controls
-              preload="metadata"
-              style="
-                width:100%;
-                max-height:520px;
-                object-fit:cover;
-                border-radius:12px;
-              "
-            ></video>
+            <div class="to-publication-media">
+              <img
+                src="${TO.escape(media.url)}"
+                alt="${TO.escape(p.title)}"
+                loading="lazy"
+              >
+            </div>
           `;
-        } else {
+        } else if (
+          type.startsWith("video")
+        ) {
           mediaHTML = `
-            <img
-              src="${helpers.escape(
-                firstMedia.url
-              )}"
-              alt="${helpers.escape(
-                p.title
-              )}"
-              loading="lazy"
-              style="
-                width:100%;
-                max-height:520px;
-                object-fit:cover;
-                border-radius:12px;
-              "
-            >
+            <div class="to-publication-media">
+              <video
+                src="${TO.escape(media.url)}"
+                controls
+                preload="metadata"
+              ></video>
+            </div>
           `;
         }
       }
 
       const author =
-        p.author || {};
-
-      const authorName =
-        helpers.first(
-          author.name,
-          author.full_name,
-          author.username,
-          "Пользователь"
-        );
-
-      const username =
-        helpers.username(
-          author
-        );
+        p.authorName ||
+        p.authorUsername ||
+        "Пользователь";
 
       return `
         <article
           class="to-publication-card"
-          data-publication-id="${id}"
-          data-post-id="${id}"
-          data-id="${id}"
+          data-publication-id="${TO.escape(p.id)}"
         >
-          <div class="to-publication-author">
-            <strong>
-              ${helpers.escape(authorName)}
-            </strong>
+
+          ${mediaHTML}
+
+          <div class="to-publication-content">
+
+            <div class="to-publication-meta">
+
+              <span>
+                ${TO.escape(
+                  TO.category.label(
+                    p.category
+                  )
+                )}
+              </span>
+
+              ${
+                p.status &&
+                p.status !== "published"
+                  ? `
+                    <span>
+                      ${TO.escape(
+                        TO.statuses[
+                          p.status
+                        ] ||
+                        p.status
+                      )}
+                    </span>
+                  `
+                  : ""
+              }
+
+            </div>
+
+            <h3>
+              ${TO.escape(p.title)}
+            </h3>
 
             ${
-              username
-                ? `<span>${helpers.escape(
-                    username
-                  )}</span>`
+              p.text
+                ? `
+                  <p>
+                    ${TO.escape(
+                      p.text.slice(
+                        0,
+                        400
+                      )
+                    )}
+                  </p>
+                `
                 : ""
             }
+
+            <div class="to-publication-author">
+              ${TO.escape(author)}
+
+              ${
+                p.authorUsername
+                  ? `
+                    <span>
+                      ${TO.escape(
+                        p.authorUsername
+                      )}
+                    </span>
+                  `
+                  : ""
+              }
+            </div>
+
+            <div class="to-publication-stats">
+
+              <span>
+                👁️ ${p.views}
+              </span>
+
+              <span>
+                ❤️ ${
+                  p.reactions ||
+                  p.likes
+                }
+              </span>
+
+              <span>
+                💬 ${p.comments}
+              </span>
+
+              <span>
+                🔖 ${p.saves}
+              </span>
+
+            </div>
+
+            <div class="to-publication-actions">
+
+              <button
+                type="button"
+                data-to-action="open-publication"
+                data-id="${TO.escape(p.id)}"
+              >
+                Смотреть
+              </button>
+
+              <button
+                type="button"
+                data-to-action="react"
+                data-id="${TO.escape(p.id)}"
+              >
+                ❤️
+              </button>
+
+              <button
+                type="button"
+                data-to-action="save"
+                data-id="${TO.escape(p.id)}"
+              >
+                🔖
+              </button>
+
+              <button
+                type="button"
+                data-to-action="share"
+                data-id="${TO.escape(p.id)}"
+              >
+                ↗️
+              </button>
+
+            </div>
+
           </div>
 
-          <div class="to-publication-date">
-            ${helpers.escape(
-              helpers.relativeDate(
-                p.created_at
-              )
-            )}
-          </div>
-
-          <div class="to-publication-category">
-            ${helpers.escape(
-              helpers.categoryLabel(
-                p.category
-              )
-            )}
-          </div>
-
-          <h2 class="to-publication-title">
-            ${helpers.escape(p.title)}
-          </h2>
-
-          ${
-            p.text
-              ? `
-                <div class="to-publication-text">
-                  ${helpers.escape(
-                    p.text
-                  )}
-                </div>
-              `
-              : ""
-          }
-
-          ${
-            mediaHTML
-              ? `
-                <div class="to-publication-media">
-                  ${mediaHTML}
-                </div>
-              `
-              : ""
-          }
-
-          <div class="to-publication-stats">
-            <span>👁 ${helpers.formatNumber(
-              p.views
-            )}</span>
-
-            <span>👍 ${helpers.formatNumber(
-              p.likes
-            )}</span>
-
-            <span>💬 ${helpers.formatNumber(
-              p.comments_count
-            )}</span>
-
-            <span>🔖 ${helpers.formatNumber(
-              p.saves
-            )}</span>
-
-            <span>↗️ ${helpers.formatNumber(
-              p.shares
-            )}</span>
-          </div>
-
-          <div
-            class="to-publication-actions"
-            style="
-              display:flex;
-              flex-wrap:wrap;
-              gap:8px;
-            "
-          >
-            <button
-              type="button"
-              data-to-action="react"
-              data-publication-id="${id}"
-              data-reaction="like"
-            >👍</button>
-
-            <button
-              type="button"
-              data-to-action="react"
-              data-publication-id="${id}"
-              data-reaction="love"
-            >❤️</button>
-
-            <button
-              type="button"
-              data-to-action="save"
-              data-publication-id="${id}"
-            >🔖</button>
-
-            <button
-              type="button"
-              data-to-action="share-copy"
-              data-publication-id="${id}"
-            >🔗</button>
-
-            <button
-              type="button"
-              data-to-action="share-telegram"
-              data-publication-id="${id}"
-              data-title="${helpers.escape(
-                p.title
-              )}"
-            >Telegram</button>
-
-            <button
-              type="button"
-              data-to-action="report"
-              data-publication-id="${id}"
-            >⚠️</button>
-          </div>
         </article>
       `;
     },
 
     renderPublications(
       container,
-      items
+      publications
     ) {
       if (!container) return;
 
+      if (!Array.isArray(
+        publications
+      ) ||
+      !publications.length
+      ) {
+        container.innerHTML = `
+          <div class="to-empty">
+            Пока ничего нет.
+          </div>
+        `;
+
+        return;
+      }
+
       container.innerHTML =
-        items
+        publications
           .map(
-            item =>
-              this.publicationCard(item)
+            p =>
+              this.publicationCard(p)
           )
           .join("");
-
-      views.observe(
-        container
-      );
     }
   };
 
-  TO.ui = ui;
-
   /* ============================================================
-     AUTO ACTIONS
+     30. DELEGATED ACTION SYSTEM
      ============================================================ */
 
-  async function handleAction(
-    element,
-    action
-  ) {
-    const id =
-      element.dataset.publicationId ||
-      element.dataset.postId ||
-      element.dataset.id;
+  TO.actions = {};
 
-    switch (action) {
-      case "react": {
-        const reaction =
-          element.dataset.reaction ||
-          "like";
+  TO.actions.openPublication =
+    async function (button) {
+      const id =
+        button.dataset.id ||
+        button.dataset.publicationId;
 
-        if (
-          actor.isTestMode()
-        ) {
-          return testing.like(
-            id,
-            reaction
-          );
-        }
+      if (!id) return;
 
-        return reactions.toggle(
+      TO.nav.publication(id);
+    };
+
+  TO.actions.react =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      const reaction =
+        button.dataset.reaction ||
+        "like";
+
+      if (!id) return;
+
+      try {
+        await TO.publications.react(
           id,
           reaction
         );
-      }
-
-      case "save": {
-        if (
-          actor.isTestMode()
-        ) {
-          return testing.save(id);
-        }
-
-        return saves.toggle(id);
-      }
-
-      case "share-copy":
-        return shares.copy(id);
-
-      case "share-telegram":
-        return shares.telegram(
-          id,
-          element.dataset.title ||
-          ""
-        );
-
-      case "share":
-        return shares.native(
-          id,
-          element.dataset.title ||
-          ""
-        );
-
-      case "view":
-        return views.add(id);
-
-      case "follow":
-        return follow.toggle(
-          element.dataset.userId ||
-          element.dataset.id
-        );
-
-      case "message":
-        return messages.send(
-          element.dataset.text ||
-          "",
-          element.dataset.userId
-        );
-
-      case "report": {
-        const reason =
-          window.prompt(
-            "Укажите причину жалобы:"
-          );
-
-        if (!reason) {
-          return null;
-        }
-
-        return reports.create({
-          type: "publication",
-          target_type: "publication",
-          target_id: id,
-          publication_id: id,
-          reason
-        });
-      }
-
-      case "disable-test-mode":
-        return actor.disable();
-
-      case "enable-test-mode": {
-        const user =
-          storage.get(
-            STORAGE.ACTOR,
-            null
-          );
-
-        return actor.enable(
-          user
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось поставить реакцию",
+          "error"
         );
       }
+    };
 
-      case "admin-approve":
-        return admin.publicationAction(
-          id,
-          "approve_free"
+  TO.actions.save =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      if (!id) return;
+
+      try {
+        await TO.publications.save(
+          id
+        );
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось сохранить",
+          "error"
+        );
+      }
+    };
+
+  TO.actions.share =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      if (!id) return;
+
+      try {
+        await TO.publications.share(
+          id
+        );
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось поделиться",
+          "error"
+        );
+      }
+    };
+
+  TO.actions.follow =
+    async function (button) {
+      const id =
+        button.dataset.userId ||
+        button.dataset.id;
+
+      if (!id) return;
+
+      try {
+        await TO.follow.toggle(id);
+
+        TO.toast(
+          "Подписка обновлена",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось изменить подписку",
+          "error"
+        );
+      }
+    };
+
+  TO.actions.openProfile =
+    function (button) {
+      const username =
+        button.dataset.username ||
+        button.dataset.user;
+
+      if (username) {
+        TO.nav.profile(
+          username
+        );
+      }
+    };
+
+  TO.actions.openChat =
+    function (button) {
+      const id =
+        button.dataset.userId ||
+        button.dataset.id;
+
+      if (id) {
+        TO.nav.chat(id);
+      }
+    };
+
+  TO.actions.markNotification =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.notifications.read(
+          id
         );
 
-      case "admin-publish":
-        return admin.publicationAction(
-          id,
-          "publish"
+        button.disabled = true;
+
+        TO.toast(
+          "Уведомление прочитано",
+          "success"
+        );
+      } catch {}
+    };
+
+  TO.actions.adminApprove =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.adminPublicationActions
+          .approve(id);
+
+        TO.toast(
+          "Публикация одобрена",
+          "success"
         );
 
-      case "admin-reject":
-        return admin.publicationAction(
-          id,
-          "reject"
+        button.disabled = true;
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось одобрить",
+          "error"
+        );
+      }
+    };
+
+  TO.actions.adminReject =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      const reason =
+        prompt(
+          "Причина отклонения:"
         );
 
-      case "admin-hide":
-        return admin.publicationAction(
-          id,
-          "hide"
-        );
+      if (reason === null) return;
 
-      case "admin-delete":
-        if (
-          await confirmAction(
-            "Удалить публикацию?"
-          )
-        ) {
-          return admin.publicationAction(
+      try {
+        await TO.adminPublicationActions
+          .reject(
             id,
-            "delete"
+            reason
           );
-        }
 
-        return null;
-
-      case "admin-restore":
-        return admin.publicationAction(
-          id,
-          "restore"
+        TO.toast(
+          "Публикация отклонена",
+          "success"
         );
-
-      case "admin-pin":
-        return admin.publicationAction(
-          id,
-          "pin"
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось отклонить",
+          "error"
         );
+      }
+    };
 
-      case "admin-feature":
-        return admin.publicationAction(
-          id,
-          "feature"
+  TO.actions.adminDelete =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      if (
+        !await TO.confirm(
+          "Удалить публикацию?"
+        )
+      ) {
+        return;
+      }
+
+      try {
+        await TO.adminPublicationActions
+          .delete(id);
+
+        TO.toast(
+          "Публикация удалена",
+          "success"
         );
-
-      case "admin-request-payment":
-        return admin.publicationAction(
-          id,
-          "request_payment"
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось удалить",
+          "error"
         );
+      }
+    };
 
-      case "admin-payment-received":
-        return admin.payment(
-          id,
-          "payment_received"
+  TO.actions.adminRestore =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.adminPublicationActions
+          .restore(id);
+
+        TO.toast(
+          "Публикация восстановлена",
+          "success"
         );
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось восстановить",
+          "error"
+        );
+      }
+    };
 
-      case "admin-user-block":
-        return admin.userAction(
-          element.dataset.userId,
+  TO.actions.adminPin =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.adminPublicationActions
+          .pin(id);
+
+        TO.toast(
+          "Публикация закреплена",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось закрепить",
+          "error"
+        );
+      }
+    };
+
+  TO.actions.adminFeature =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.adminPublicationActions
+          .feature(id);
+
+        TO.toast(
+          "Публикация добавлена в избранное",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось выполнить действие",
+          "error"
+        );
+      }
+    };
+
+  TO.actions.adminBlockUser =
+    async function (button) {
+      const id =
+        button.dataset.userId ||
+        button.dataset.id;
+
+      try {
+        await TO.admin.userAction(
+          id,
           "block"
         );
 
-      case "admin-user-unblock":
-        return admin.userAction(
-          element.dataset.userId,
+        TO.toast(
+          "Пользователь заблокирован",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось заблокировать",
+          "error"
+        );
+      }
+    };
+
+  TO.actions.adminUnblockUser =
+    async function (button) {
+      const id =
+        button.dataset.userId ||
+        button.dataset.id;
+
+      try {
+        await TO.admin.userAction(
+          id,
           "unblock"
         );
 
-      case "admin-user-verify":
-        return admin.userAction(
-          element.dataset.userId,
-          "verify"
+        TO.toast(
+          "Пользователь разблокирован",
+          "success"
         );
-
-      default:
-        return null;
-    }
-  }
-
-  TO.handleAction =
-    handleAction;
-
-  function bindActions(root = document) {
-    root
-      .querySelectorAll(
-        "[data-to-action]"
-      )
-      .forEach(element => {
-        if (
-          element.dataset.toBound === "1"
-        ) {
-          return;
-        }
-
-        element.dataset.toBound = "1";
-
-        element.addEventListener(
-          "click",
-          async event => {
-            event.preventDefault();
-
-            const action =
-              element.dataset.toAction;
-
-            try {
-              await handleAction(
-                element,
-                action
-              );
-            } catch (error) {
-              console.error(
-                "[TO action]",
-                error
-              );
-
-              toast.error(
-                "Не удалось выполнить действие."
-              );
-            }
-          }
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось разблокировать",
+          "error"
         );
-      });
-  }
-
-  TO.bindActions =
-    bindActions;
-
-  /* ============================================================
-     MUTATION OBSERVER
-     ============================================================ */
-
-  function observeDOM() {
-    if (
-      !("MutationObserver" in window) ||
-      !document.body
-    ) {
-      return;
-    }
-
-    const observer =
-      new MutationObserver(
-        mutations => {
-          let changed = false;
-
-          for (const mutation of mutations) {
-            if (
-              mutation.addedNodes.length
-            ) {
-              changed = true;
-              break;
-            }
-          }
-
-          if (changed) {
-            bindActions(
-              document
-            );
-
-            views.observe(
-              document
-            );
-
-            actor.renderIndicator();
-          }
-        }
-      );
-
-    observer.observe(
-      document.body,
-      {
-        childList: true,
-        subtree: true
       }
-    );
-
-    TO.domObserver =
-      observer;
-  }
-
-  /* ============================================================
-     AUTOMATIC VIEW TRACKING
-     ============================================================ */
-
-  function autoViews() {
-    views.observe(
-      document
-    );
-  }
-
-  /* ============================================================
-     AUTO PROFILE / AUTH UI
-     ============================================================ */
-
-  function updateAuthUI() {
-    const user =
-      auth.getUser();
-
-    document
-      .querySelectorAll(
-        "[data-to-user-name]"
-      )
-      .forEach(el => {
-        el.textContent =
-          helpers.first(
-            user?.name,
-            user?.full_name,
-            user?.username,
-            "Пользователь"
-          );
-      });
-
-    document
-      .querySelectorAll(
-        "[data-to-username]"
-      )
-      .forEach(el => {
-        el.textContent =
-          helpers.username(
-            user
-          );
-      });
-
-    document
-      .querySelectorAll(
-        "[data-to-user-id]"
-      )
-      .forEach(el => {
-        el.textContent =
-          helpers.userId(
-            user
-          ) || "";
-      });
-
-    document
-      .querySelectorAll(
-        "[data-to-auth]"
-      )
-      .forEach(el => {
-        const mode =
-          el.dataset.toAuth;
-
-        const logged =
-          auth.isLoggedIn();
-
-        if (
-          mode === "logged-in"
-        ) {
-          el.hidden = !logged;
-        }
-
-        if (
-          mode === "logged-out"
-        ) {
-          el.hidden = logged;
-        }
-      });
-  }
-
-  /* ============================================================
-     ADMIN QUICK ACTIONS
-     ============================================================ */
-
-  async function adminQuickRefresh() {
-    const [
-      dashboard,
-      users,
-      publicationsList,
-      reportList,
-      notificationList,
-      trash
-    ] = await Promise.all([
-      admin.dashboard(),
-      admin.users(),
-      admin.publications(),
-      admin.reports(),
-      admin.notifications(),
-      admin.trash()
-    ]);
-
-    return {
-      dashboard,
-      users,
-      publications:
-        publicationsList,
-      reports: reportList,
-      notifications:
-        notificationList,
-      trash
-    };
-  }
-
-  TO.adminQuickRefresh =
-    adminQuickRefresh;
-
-  /* ============================================================
-     ADMIN STAT CARD
-     ============================================================ */
-
-  function renderStats(
-    container,
-    data
-  ) {
-    if (!container) return;
-
-    const source = {
-      ...stats.get(),
-      ...(data || {})
     };
 
-    const labels = {
-      participants:
-        "Участники",
-      publications:
-        "Публикации",
-      reactions:
-        "Реакции",
-      views:
-        "Просмотры",
-      shares:
-        "Репосты",
-      saves:
-        "Сохранения",
-      followers:
-        "Подписчики",
-      comments:
-        "Комментарии",
-      notifications:
-        "Уведомления",
-      messages:
-        "Сообщения",
-      reports:
-        "Жалобы"
-    };
-
-    container.innerHTML =
-      Object.entries(
-        labels
-      )
-        .map(
-          ([key, label]) => `
-            <div
-              class="to-stat"
-              data-stat="${key}"
-            >
-              <div>
-                ${helpers.escape(label)}
-              </div>
-              <strong>
-                ${helpers.formatNumber(
-                  source[key] || 0
-                )}
-              </strong>
-            </div>
-          `
-        )
-        .join("");
-  }
-
-  TO.renderStats =
-    renderStats;
-
   /* ============================================================
-     ADMIN PARTICIPANT CARD
-     ============================================================ */
-
-  function renderParticipantCard(
-    user
-  ) {
-    const id =
-      helpers.userId(user);
-
-    const username =
-      helpers.username(user);
-
-    const name =
-      helpers.first(
-        user.name,
-        user.full_name,
-        user.username,
-        "Без имени"
-      );
-
-    return `
-      <article
-        class="to-participant-card"
-        data-user-id="${helpers.escape(id)}"
-      >
-        <strong>
-          ${helpers.escape(name)}
-        </strong>
-
-        ${
-          username
-            ? `<span>${helpers.escape(
-                username
-              )}</span>`
-            : ""
-        }
-
-        ${
-          user.email
-            ? `<div>${helpers.escape(
-                user.email
-              )}</div>`
-            : ""
-        }
-
-        ${
-          user.phone
-            ? `<div>${helpers.escape(
-                user.phone
-              )}</div>`
-            : ""
-        }
-
-        ${
-          user.created_at
-            ? `<div>Регистрация: ${helpers.escape(
-                helpers.formatDate(
-                  user.created_at
-                )
-              )}</div>`
-            : ""
-        }
-
-        <div
-          style="
-            display:flex;
-            flex-wrap:wrap;
-            gap:6px;
-            margin-top:10px;
-          "
-        >
-          <button
-            type="button"
-            data-to-action="select-test-user"
-            data-user-id="${helpers.escape(id)}"
-          >
-            🧪 Тестировать
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-user-block"
-            data-user-id="${helpers.escape(id)}"
-          >
-            🚫 Заблокировать
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-user-verify"
-            data-user-id="${helpers.escape(id)}"
-          >
-            ✅ Верифицировать
-          </button>
-        </div>
-      </article>
-    `;
-  }
-
-  TO.renderParticipantCard =
-    renderParticipantCard;
-
-  /* ============================================================
-     ADMIN PUBLICATION CARD
-     ============================================================ */
-
-  function renderAdminPublicationCard(
-    publication
-  ) {
-    const p =
-      helpers.normalizePublication(
-        publication
-      );
-
-    if (!p) return "";
-
-    const id =
-      helpers.escape(p.id);
-
-    return `
-      <article
-        class="to-admin-publication-card"
-        data-publication-id="${id}"
-      >
-        <div>
-          <strong>
-            ${helpers.escape(p.title)}
-          </strong>
-        </div>
-
-        <div>
-          ${helpers.escape(
-            helpers.first(
-              p.author?.name,
-              p.author?.username,
-              "Автор"
-            )
-          )}
-        </div>
-
-        <div>
-          ${helpers.escape(
-            p.status
-          )}
-        </div>
-
-        <div>
-          👁 ${helpers.formatNumber(p.views)}
-          · 👍 ${helpers.formatNumber(p.likes)}
-          · 💬 ${helpers.formatNumber(p.comments_count)}
-        </div>
-
-        <div
-          style="
-            display:flex;
-            flex-wrap:wrap;
-            gap:6px;
-            margin-top:10px;
-          "
-        >
-          <button
-            type="button"
-            data-to-action="admin-approve"
-            data-publication-id="${id}"
-          >
-            ✅ Одобрить
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-request-payment"
-            data-publication-id="${id}"
-          >
-            💰 Оплата
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-publish"
-            data-publication-id="${id}"
-          >
-            📢 Опубликовать
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-reject"
-            data-publication-id="${id}"
-          >
-            ❌ Отклонить
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-hide"
-            data-publication-id="${id}"
-          >
-            👁 Скрыть
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-pin"
-            data-publication-id="${id}"
-          >
-            📌 Закрепить
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-feature"
-            data-publication-id="${id}"
-          >
-            ⭐ Выделить
-          </button>
-
-          <button
-            type="button"
-            data-to-action="admin-delete"
-            data-publication-id="${id}"
-          >
-            🗑 Удалить
-          </button>
-        </div>
-      </article>
-    `;
-  }
-
-  TO.renderAdminPublicationCard =
-    renderAdminPublicationCard;
-
-  /* ============================================================
-     TEST USER SELECTION
-     ============================================================ */
-
-  async function selectTestUserById(
-    userId
-  ) {
-    const user =
-      await admin.user(
-        userId
-      );
-
-    if (!user) {
-      toast.error(
-        "Участник не найден."
-      );
-
-      return false;
-    }
-
-    return testing.select(
-      user
-    );
-  }
-
-  TO.selectTestUserById =
-    selectTestUserById;
-
-  /* ============================================================
-     TEST CENTER UI
-     ============================================================ */
-
-  function renderTestCenter(
-    container,
-    users = []
-  ) {
-    if (!container) return;
-
-    const selected =
-      actor.selected();
-
-    container.innerHTML = `
-      <section
-        class="to-test-center"
-        style="
-          padding:16px;
-          border:1px solid rgba(127,127,127,.25);
-          border-radius:16px;
-        "
-      >
-        <h2>🧪 Тестовый центр</h2>
-
-        <p>
-          Здесь администратор может безопасно
-          тестировать реальные пользовательские
-          сценарии через специальный тестовый режим.
-        </p>
-
-        <div>
-          <strong>Выбранный участник:</strong>
-          ${
-            selected
-              ? helpers.escape(
-                  helpers.first(
-                    selected.name,
-                    selected.full_name,
-                    selected.username,
-                    "Участник"
-                  )
-                )
-              : "не выбран"
-          }
-        </div>
-
-        ${
-          selected
-            ? `
-              <button
-                type="button"
-                data-to-action="disable-test-mode"
-              >
-                Выключить тестовый режим
-              </button>
-            `
-            : ""
-        }
-
-        <div
-          class="to-test-users"
-          style="
-            display:grid;
-            gap:8px;
-            margin-top:15px;
-          "
-        >
-          ${users
-            .map(
-              user =>
-                renderParticipantCard(
-                  user
-                )
-            )
-            .join("")}
-        </div>
-      </section>
-    `;
-
-    bindTestSelection(
-      container
-    );
-  }
-
-  function bindTestSelection(
-    root
-  ) {
-    root
-      .querySelectorAll(
-        '[data-to-action="select-test-user"]'
-      )
-      .forEach(button => {
-        if (
-          button.dataset.toBound === "1"
-        ) {
-          return;
-        }
-
-        button.dataset.toBound = "1";
-
-        button.addEventListener(
-          "click",
-          async () => {
-            const id =
-              button.dataset.userId;
-
-            await selectTestUserById(
-              id
-            );
-          }
-        );
-      });
-  }
-
-  TO.renderTestCenter =
-    renderTestCenter;
-
-  /* ============================================================
-     API ALIASES
-     ============================================================ */
-
-  TO.getPublications =
-    publications.list.bind(
-      publications
-    );
-
-  TO.getPublication =
-    publications.get.bind(
-      publications
-    );
-
-  TO.createPublication =
-    publications.create.bind(
-      publications
-    );
-
-  TO.updatePublication =
-    publications.edit.bind(
-      publications
-    );
-
-  TO.deletePublication =
-    publications.remove.bind(
-      publications
-    );
-
-  TO.restorePublication =
-    publications.restore.bind(
-      publications
-    );
-
-  TO.react =
-    reactions.toggle.bind(
-      reactions
-    );
-
-  TO.comment =
-    comments.create.bind(
-      comments
-    );
-
-  TO.save =
-    saves.toggle.bind(
-      saves
-    );
-
-  TO.share =
-    shares.native.bind(
-      shares
-    );
-
-  TO.followUser =
-    follow.toggle.bind(
-      follow
-    );
-
-  TO.sendMessage =
-    messages.send.bind(
-      messages
-    );
-
-  TO.getNotifications =
-    notifications.list.bind(
-      notifications
-    );
-
-  TO.report =
-    reports.create.bind(
-      reports
-    );
-
-  /* ============================================================
-     PUBLICATION STATUS HELPERS
-     ============================================================ */
-
-  TO.status = {
-    isPending(status) {
-      return status === "pending";
-    },
-
-    isWaitingPayment(status) {
-      return status ===
-        "waiting_payment";
-    },
-
-    isPaid(status) {
-      return status === "paid";
-    },
-
-    isPublished(status) {
-      return status === "published";
-    },
-
-    isRejected(status) {
-      return status === "rejected";
-    },
-
-    isHidden(status) {
-      return status === "hidden";
-    },
-
-    isDeleted(status) {
-      return status === "deleted";
-    }
-  };
-
-  /* ============================================================
-     URL HELPERS
-     ============================================================ */
-
-  TO.urls = {
-    publication(id) {
-      return new URL(
-        `/publication.html?id=${encodeURIComponent(
-          id
-        )}`,
-        location.origin
-      ).href;
-    },
-
-    profile(username) {
-      return new URL(
-        `/profile.html?user=${encodeURIComponent(
-          username
-        )}`,
-        location.origin
-      ).href;
-    },
-
-    messages(userId = "") {
-      return new URL(
-        `/messages.html${
-          userId
-            ? `?user=${encodeURIComponent(
-                userId
-              )}`
-            : ""
-        }`,
-        location.origin
-      ).href;
-    },
-
-    notifications() {
-      return "/notifications.html";
-    }
-  };
-
-  /* ============================================================
-     LOGIN / LOGOUT GLOBAL BUTTONS
+     31. GLOBAL CLICK HANDLER
      ============================================================ */
 
   document.addEventListener(
     "click",
     async event => {
-      const target =
+      const button =
         event.target.closest(
           "[data-to-action]"
         );
 
-      if (!target) return;
+      if (!button) return;
 
       const action =
-        target.dataset.toAction;
+        button.dataset.toAction;
+
+      const handler =
+        TO.actions[action];
 
       if (
-        action === "logout"
+        typeof handler !==
+        "function"
       ) {
-        event.preventDefault();
-        await auth.logout();
-        updateAuthUI();
+        TO.log(
+          "Unknown action:",
+          action
+        );
+
         return;
       }
 
+      try {
+        button.dataset.toBusy = "1";
+
+        await handler(button);
+      } catch (error) {
+        TO.error(error);
+
+        TO.toast(
+          error.message ||
+          "Произошла ошибка",
+          "error"
+        );
+      } finally {
+        delete button.dataset.toBusy;
+      }
+    }
+  );
+
+  /* ============================================================
+     32. VIEW TRACKING
+     ============================================================ */
+
+  TO.viewTracking = {
+    observer: null,
+
+    init() {
       if (
-        action === "admin-logout"
+        !("IntersectionObserver" in window)
       ) {
-        event.preventDefault();
-        await admin.logout();
-        location.reload();
         return;
       }
 
-      if (
-        action === "admin-refresh"
-      ) {
-        event.preventDefault();
+      this.observer =
+        new IntersectionObserver(
+          entries => {
+            entries.forEach(entry => {
+              if (
+                !entry.isIntersecting
+              ) {
+                return;
+              }
 
-        const data =
-          await adminQuickRefresh();
+              const id =
+                entry.target.dataset
+                  .publicationId;
 
-        const container =
-          document.querySelector(
-            "[data-to-stats]"
-          );
+              if (!id) return;
 
-        if (container) {
-          renderStats(
-            container,
-            data.dashboard
+              clearTimeout(
+                entry.target.__toViewTimer
+              );
+
+              entry.target.__toViewTimer =
+                setTimeout(
+                  () => {
+                    TO.publications.view(
+                      id
+                    );
+                  },
+                  TO.config.viewDelay
+                );
+
+              this.observer.unobserve(
+                entry.target
+              );
+            });
+          },
+          {
+            threshold: 0.35
+          }
+        );
+
+      this.observe();
+    },
+
+    observe() {
+      if (!this.observer) return;
+
+      TO.qa(
+        "[data-publication-id]"
+      ).forEach(
+        el =>
+          this.observer.observe(el)
+      );
+    }
+  };
+
+  /* ============================================================
+     33. SEARCH UI
+     ============================================================ */
+
+  TO.searchUI = {
+    init() {
+      const inputs =
+        TO.qa(
+          '[data-to-search]'
+        );
+
+      inputs.forEach(input => {
+        input.addEventListener(
+          "input",
+          TO.debounce(
+            async () => {
+              const query =
+                input.value.trim();
+
+              if (!query) return;
+
+              const targetSelector =
+                input.dataset.toSearchTarget;
+
+              const target =
+                targetSelector
+                  ? TO.q(
+                      targetSelector
+                    )
+                  : null;
+
+              if (!target) return;
+
+              try {
+                const posts =
+                  await TO.search
+                    .publications(
+                      query
+                    );
+
+                TO.ui
+                  .renderPublications(
+                    target,
+                    posts
+                  );
+              } catch (error) {
+                TO.toast(
+                  "Поиск временно недоступен",
+                  "error"
+                );
+              }
+            },
+            500
+          )
+        );
+      });
+    }
+  };
+
+  /* ============================================================
+     34. NOTIFICATION BADGE
+     ============================================================ */
+
+  TO.notificationBadge = {
+    async refresh() {
+      try {
+        const list =
+          await TO.notifications
+            .list();
+
+        const unread =
+          Array.isArray(list)
+            ? list.filter(
+                item =>
+                  !TO.bool(
+                    TO.pick(
+                      item,
+                      [
+                        "read",
+                        "is_read",
+                        "seen"
+                      ],
+                      false
+                    )
+                  )
+              ).length
+            : 0;
+
+        TO.qa(
+          "[data-to-notifications-count]"
+        ).forEach(
+          el => {
+            el.textContent =
+              unread;
+
+            el.hidden =
+              unread <= 0;
+          }
+        );
+      } catch {}
+    }
+  };
+
+  /* ============================================================
+     35. ADMIN STATS AUTO RENDER
+     ============================================================ */
+
+  TO.adminStatsUI = {
+    async refresh() {
+      try {
+        const server =
+          await TO.admin
+            .dashboard();
+
+        const local =
+          TO.stats.load();
+
+        const merged = {
+          ...local,
+          ...server
+        };
+
+        Object.entries(
+          merged
+        ).forEach(
+          ([key, value]) => {
+            TO.qa(
+              `[data-to-stat="${key}"]`
+            ).forEach(
+              el => {
+                el.textContent =
+                  TO.number(
+                    value,
+                    0
+                  ).toLocaleString(
+                    "ru-RU"
+                  );
+              }
+            );
+          }
+        );
+
+        return merged;
+      } catch {
+        TO.stats.render();
+
+        return TO.stats.load();
+      }
+    }
+  };
+
+  /* ============================================================
+     36. ADMIN MANUAL COUNTERS UI
+     ============================================================ */
+
+  TO.manualStatsUI = {
+    init() {
+      TO.qa(
+        "[data-to-stat-edit]"
+      ).forEach(
+        input => {
+          const name =
+            input.dataset.toStatEdit;
+
+          input.value =
+            TO.stats.get(name);
+
+          input.addEventListener(
+            "change",
+            () => {
+              TO.stats.set(
+                name,
+                input.value
+              );
+
+              TO.stats.render();
+
+              TO.toast(
+                "Статистика сохранена",
+                "success"
+              );
+            }
           );
         }
+      );
+    }
+  };
+
+  /* ============================================================
+     37. DRAFT SYSTEM
+     ============================================================ */
+
+  TO.drafts = {
+    all() {
+      return TO.store.get(
+        TO.storage.drafts,
+        []
+      );
+    },
+
+    save(draft) {
+      const drafts =
+        this.all();
+
+      const id =
+        draft.id ||
+        `draft_${Date.now()}`;
+
+      const item = {
+        ...draft,
+        id,
+        updated_at:
+          TO.isoNow()
+      };
+
+      const index =
+        drafts.findIndex(
+          x => x.id === id
+        );
+
+      if (index >= 0) {
+        drafts[index] = item;
+      } else {
+        drafts.push(item);
+      }
+
+      TO.store.set(
+        TO.storage.drafts,
+        drafts
+      );
+
+      return item;
+    },
+
+    remove(id) {
+      const drafts =
+        this.all()
+          .filter(
+            x => x.id !== id
+          );
+
+      TO.store.set(
+        TO.storage.drafts,
+        drafts
+      );
+    },
+
+    get(id) {
+      return this.all()
+        .find(
+          x => x.id === id
+        ) || null;
+    }
+  };
+
+  /* ============================================================
+     38. PUBLICATION FORM AUTOSAVE
+     ============================================================ */
+
+  TO.formAutosave = {
+    init() {
+      TO.qa(
+        "form[data-to-publication-form]"
+      ).forEach(form => {
+        const handler =
+          TO.debounce(
+            () => {
+              const data =
+                Object.fromEntries(
+                  new FormData(form)
+                    .entries()
+                );
+
+              TO.drafts.save({
+                form: data
+              });
+            },
+            800
+          );
+
+        form.addEventListener(
+          "input",
+          handler
+        );
+      });
+    }
+  };
+
+  /* ============================================================
+     39. PUBLICATION FORM SUBMISSION
+     ============================================================ */
+
+  TO.forms = {
+    async publication(form) {
+      if (!form) return;
+
+      const data =
+        Object.fromEntries(
+          new FormData(form)
+            .entries()
+        );
+
+      if (!data.title) {
+        TO.toast(
+          "Введите заголовок",
+          "warning"
+        );
 
         return;
       }
 
       if (
-        action === "select-test-user"
+        !data.text &&
+        !data.content &&
+        !data.description
+      ) {
+        TO.toast(
+          "Введите описание",
+          "warning"
+        );
+
+        return;
+      }
+
+      try {
+        const result =
+          await TO.publications
+            .create(data);
+
+        TO.toast(
+          "Готово! Публикация отправлена администрации.",
+          "success"
+        );
+
+        return result;
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось создать публикацию",
+          "error"
+        );
+      }
+    }
+  };
+
+  /* ============================================================
+     40. ADMIN TEST CENTER
+     ============================================================ */
+
+  TO.testing = {
+    participant: null,
+
+    selectParticipant(user) {
+      this.participant =
+        TO.normalizeUser(user);
+
+      TO.actor.select(
+        this.participant
+      );
+
+      TO.actor.enableTestMode();
+
+      return this.participant;
+    },
+
+    clearParticipant() {
+      this.participant = null;
+
+      TO.actor.clear();
+      TO.actor.disableTestMode();
+    },
+
+    requireParticipant() {
+      if (
+        !TO.actor.active()
+      ) {
+        throw new Error(
+          "Сначала выберите участника и включите тестовый режим"
+        );
+      }
+
+      return TO.actor.get();
+    },
+
+    async like(publicationId) {
+      const actor =
+        this.requireParticipant();
+
+      return TO.publications.react(
+        publicationId,
+        "like"
+      );
+    },
+
+    async react(
+      publicationId,
+      reaction
+    ) {
+      this.requireParticipant();
+
+      return TO.publications.react(
+        publicationId,
+        reaction
+      );
+    },
+
+    async save(publicationId) {
+      this.requireParticipant();
+
+      return TO.publications.save(
+        publicationId
+      );
+    },
+
+    async share(publicationId) {
+      this.requireParticipant();
+
+      return TO.publications.share(
+        publicationId
+      );
+    },
+
+    async view(publicationId) {
+      this.requireParticipant();
+
+      /*
+       * Remove local viewed marker temporarily
+       * so testing can trigger a view request.
+       */
+
+      const old =
+        TO.store.get(
+          TO.storage.viewed,
+          []
+        );
+
+      TO.store.set(
+        TO.storage.viewed,
+        old.filter(
+          x =>
+            String(x) !==
+            String(publicationId)
+        )
+      );
+
+      return TO.publications.view(
+        publicationId
+      );
+    },
+
+    async comment(
+      publicationId,
+      text,
+      parentId = null
+    ) {
+      this.requireParticipant();
+
+      return TO.comments.create(
+        publicationId,
+        text,
+        parentId
+      );
+    },
+
+    async message(
+      userId,
+      text
+    ) {
+      this.requireParticipant();
+
+      return TO.chat.send(
+        userId,
+        text,
+        {
+          test_mode: true,
+          actor_user_id:
+            TO.actor.get()?.id
+        }
+      );
+    },
+
+    async follow(userId) {
+      this.requireParticipant();
+
+      return TO.follow.toggle(
+        userId
+      );
+    },
+
+    async createPublication(
+      payload
+    ) {
+      this.requireParticipant();
+
+      return TO.publications.create({
+        ...payload,
+
+        test_mode: true,
+
+        actor_user_id:
+          TO.actor.get()?.id
+      });
+    }
+  };
+
+  /* ============================================================
+     41. ADMIN USER ACTIONS
+     ============================================================ */
+
+  TO.userManagement = {
+    async block(id) {
+      return TO.admin.userAction(
+        id,
+        "block"
+      );
+    },
+
+    async unblock(id) {
+      return TO.admin.userAction(
+        id,
+        "unblock"
+      );
+    },
+
+    async verify(id) {
+      return TO.admin.userAction(
+        id,
+        "verify"
+      );
+    },
+
+    async delete(id) {
+      return TO.admin.userAction(
+        id,
+        "delete"
+      );
+    },
+
+    async restore(id) {
+      return TO.admin.userAction(
+        id,
+        "restore"
+      );
+    },
+
+    async moderator(id) {
+      return TO.admin.userAction(
+        id,
+        "make_moderator"
+      );
+    },
+
+    async removeModerator(id) {
+      return TO.admin.userAction(
+        id,
+        "remove_moderator"
+      );
+    }
+  };
+
+  /* ============================================================
+     42. KEYBOARD SHORTCUTS
+     ============================================================ */
+
+  document.addEventListener(
+    "keydown",
+    event => {
+      if (
+        (event.ctrlKey ||
+          event.metaKey) &&
+        event.key.toLowerCase() ===
+          "k"
       ) {
         event.preventDefault();
 
-        await selectTestUserById(
-          target.dataset.userId
-        );
+        const search =
+          TO.q(
+            '[data-to-search]'
+          );
 
-        actor.renderIndicator();
-
-        return;
+        if (search) {
+          search.focus();
+        }
       }
-    }
-  );
-
-  /* ============================================================
-     SEARCH FORM AUTO SUPPORT
-     ============================================================ */
-
-  document.addEventListener(
-    "submit",
-    async event => {
-      const form =
-        event.target.closest(
-          "[data-to-search]"
-        );
-
-      if (!form) return;
-
-      event.preventDefault();
-
-      const input =
-        form.querySelector(
-          'input[name="q"], input[name="search"], input[type="search"]'
-        );
-
-      const query =
-        input?.value?.trim() ||
-        "";
-
-      if (!query) return;
-
-      const results =
-        await search.all(
-          query
-        );
-
-      const container =
-        document.querySelector(
-          "[data-to-search-results]"
-        );
-
-      if (!container) return;
-
-      container.innerHTML = `
-        <div>
-          <h3>Публикации</h3>
-
-          ${
-            results.publications
-              .map(
-                p =>
-                  ui.publicationCard(
-                    p
-                  )
-              )
-              .join("") ||
-            "<p>Ничего не найдено.</p>"
-          }
-        </div>
-
-        <div>
-          <h3>Участники</h3>
-
-          ${
-            results.users
-              .map(
-                user =>
-                  renderParticipantCard(
-                    user
-                  )
-              )
-              .join("") ||
-            "<p>Участники не найдены.</p>"
-          }
-        </div>
-
-        <div>
-          <h3>Категории</h3>
-
-          ${
-            results.categories
-              .map(
-                category =>
-                  `<div>
-                    ${helpers.escape(
-                      category.label
-                    )}
-                  </div>`
-              )
-              .join("") ||
-            "<p>Категории не найдены.</p>"
-          }
-        </div>
-      `;
-
-      bindActions(
-        container
-      );
-
-      views.observe(
-        container
-      );
-    }
-  );
-
-  /* ============================================================
-     COMMENT FORM AUTO SUPPORT
-     ============================================================ */
-
-  document.addEventListener(
-    "submit",
-    async event => {
-      const form =
-        event.target.closest(
-          "[data-to-comment-form]"
-        );
-
-      if (!form) return;
-
-      event.preventDefault();
-
-      const input =
-        form.querySelector(
-          "textarea, input[name='text']"
-        );
-
-      const publicationId =
-        form.dataset.publicationId ||
-        form.dataset.postId;
-
-      const parentId =
-        form.dataset.parentId ||
-        null;
-
-      if (!publicationId) {
-        toast.error(
-          "Не указана публикация."
-        );
-        return;
-      }
-
-      const text =
-        input?.value?.trim() ||
-        "";
-
-      if (!text) {
-        toast.warning(
-          "Введите комментарий."
-        );
-        return;
-      }
-
-      let result;
 
       if (
-        actor.isTestMode()
+        event.key === "Escape"
       ) {
-        result =
-          await testing.comment(
-            publicationId,
-            text,
-            parentId
-          );
-      } else {
-        result =
-          await comments.create(
-            publicationId,
-            text,
-            parentId
-          );
-      }
-
-      if (result?.ok) {
-        input.value = "";
+        TO.qa(
+          ".to-modal-open"
+        ).forEach(
+          el =>
+            el.classList.remove(
+              "to-modal-open"
+            )
+        );
       }
     }
   );
 
   /* ============================================================
-     MESSAGE FORM AUTO SUPPORT
+     43. ONLINE STATUS
      ============================================================ */
 
-  document.addEventListener(
-    "submit",
-    async event => {
-      const form =
-        event.target.closest(
-          "[data-to-message-form]"
+  TO.online = {
+    update() {
+      const online =
+        navigator.onLine;
+
+      document.documentElement
+        .classList.toggle(
+          "to-offline",
+          !online
         );
 
-      if (!form) return;
+      TO.qa(
+        "[data-to-online-status]"
+      ).forEach(
+        el => {
+          el.textContent =
+            online
+              ? "Онлайн"
+              : "Нет соединения";
+        }
+      );
+    }
+  };
 
-      event.preventDefault();
+  window.addEventListener(
+    "online",
+    () => {
+      TO.online.update();
 
-      const input =
-        form.querySelector(
-          "textarea, input[name='text']"
+      TO.toast(
+        "Соединение восстановлено",
+        "success"
+      );
+    }
+  );
+
+  window.addEventListener(
+    "offline",
+    () => {
+      TO.online.update();
+
+      TO.toast(
+        "Нет подключения к интернету",
+        "warning"
+      );
+    }
+  );
+
+  /* ============================================================
+     44. ERROR HANDLING
+     ============================================================ */
+
+  window.addEventListener(
+    "unhandledrejection",
+    event => {
+      TO.error(
+        "Unhandled promise:",
+        event.reason
+      );
+    }
+  );
+
+  window.addEventListener(
+    "error",
+    event => {
+      TO.error(
+        "Global error:",
+        event.error ||
+        event.message
+      );
+    }
+  );
+
+  /* ============================================================
+     45. PAGE INITIALIZATION
+     ============================================================ */
+
+  TO.init = async function () {
+    TO.log(
+      `Initializing ${TO.name} v${TO.version}`
+    );
+
+    TO.actor.load();
+
+    TO.theme.apply();
+
+    TO.online.update();
+
+    TO.stats.render();
+
+    TO.manualStatsUI.init();
+
+    TO.searchUI.init();
+
+    TO.formAutosave.init();
+
+    TO.viewTracking.init();
+
+    /*
+     * Auth must never break the page.
+     */
+
+    await TO.auth.me();
+
+    /*
+     * Admin check is also optional.
+     */
+
+    await TO.auth.adminMe();
+
+    TO.actor.renderIndicator();
+
+    /*
+     * Render notification badges only
+     * when authentication is available.
+     */
+
+    if (TO.auth.isLoggedIn()) {
+      TO.notificationBadge
+        .refresh();
+    }
+
+    /*
+     * Admin statistics only on pages
+     * that actually expose admin elements.
+     */
+
+    if (
+      TO.auth.isAdmin() ||
+      TO.exists(
+        "[data-to-stat]"
+      )
+    ) {
+      TO.adminStatsUI.refresh();
+    }
+
+    /*
+     * Automatically initialize buttons
+     * and publication view tracking.
+     */
+
+    setTimeout(() => {
+      TO.viewTracking.observe();
+    }, 500);
+
+    TO.log(
+      "Initialization complete"
+    );
+  };
+
+  /* ============================================================
+     46. POLLING
+     ============================================================ */
+
+  TO.startPolling = function () {
+    if (
+      TO.__pollingStarted
+    ) {
+      return;
+    }
+
+    TO.__pollingStarted = true;
+
+    setInterval(
+      async () => {
+        if (
+          TO.auth.isLoggedIn()
+        ) {
+          await TO.notificationBadge
+            .refresh();
+        }
+      },
+      TO.config.notificationInterval
+    );
+  };
+
+  /* ============================================================
+     47. AUTO-REFRESH ADMIN
+     ============================================================ */
+
+  TO.startAdminPolling =
+    function () {
+      if (
+        TO.__adminPollingStarted
+      ) {
+        return;
+      }
+
+      TO.__adminPollingStarted =
+        true;
+
+      setInterval(
+        async () => {
+          if (
+            TO.auth.isAdmin()
+          ) {
+            await TO.adminStatsUI
+              .refresh();
+          }
+        },
+        TO.config.pollingInterval
+      );
+    };
+
+  /* ============================================================
+     48. HTML HELPERS
+     ============================================================ */
+
+  TO.html = {
+    avatar(user, size = 42) {
+      const u =
+        TO.normalizeUser(user);
+
+      if (u.avatar) {
+        return `
+          <img
+            src="${TO.escape(u.avatar)}"
+            width="${size}"
+            height="${size}"
+            alt="${TO.escape(
+              u.name
+            )}"
+            loading="lazy"
+            style="
+              width:${size}px;
+              height:${size}px;
+              border-radius:50%;
+              object-fit:cover;
+            "
+          >
+        `;
+      }
+
+      const letter =
+        (
+          u.name ||
+          u.username ||
+          "?"
+        )
+          .trim()
+          .charAt(0)
+          .toUpperCase();
+
+      return `
+        <div
+          style="
+            width:${size}px;
+            height:${size}px;
+            border-radius:50%;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-weight:700;
+          "
+        >
+          ${TO.escape(letter)}
+        </div>
+      `;
+    },
+
+    verified() {
+      return "✅";
+    },
+
+    official() {
+      return `
+        <span
+          class="to-official-account"
+          title="Официальный аккаунт"
+        >
+          🇹🇯 Tajik Opportunities✅
+        </span>
+      `;
+    }
+  };
+
+  /* ============================================================
+     49. MESSAGE RENDERING
+     ============================================================ */
+
+  TO.ui.message = function (
+    message
+  ) {
+    const m =
+      TO.official.normalize(
+        message
+      );
+
+    const isAdmin =
+      m.is_admin ||
+      m.sender_type === "admin" ||
+      m.author_type === "admin";
+
+    const sender =
+      isAdmin
+        ? TO.config.officialName
+        : TO.pick(
+            m,
+            [
+              "sender_name",
+              "author_name",
+              "name",
+              "username"
+            ],
+            "Пользователь"
+          );
+
+    const text =
+      TO.pick(
+        m,
+        [
+          "text",
+          "content",
+          "message"
+        ],
+        ""
+      );
+
+    const time =
+      TO.pick(
+        m,
+        [
+          "created_at",
+          "sent_at",
+          "date"
+        ],
+        null
+      );
+
+    return `
+      <div
+        class="
+          to-message
+          ${
+            isAdmin
+              ? "to-message-admin"
+              : "to-message-user"
+          }
+        "
+        data-message-id="${TO.escape(
+          TO.pick(
+            m,
+            ["id", "message_id"],
+            ""
+          )
+        )}"
+      >
+
+        <div
+          class="to-message-author"
+        >
+          ${TO.escape(sender)}
+        </div>
+
+        <div
+          class="to-message-text"
+        >
+          ${TO.escape(text)}
+        </div>
+
+        ${
+          time
+            ? `
+              <time>
+                ${TO.escape(
+                  TO.date.relative(
+                    time
+                  )
+                )}
+              </time>
+            `
+            : ""
+        }
+
+      </div>
+    `;
+  };
+
+  /* ============================================================
+     50. ADMIN PARTICIPANT CARD
+     ============================================================ */
+
+  TO.ui.participantCard =
+    function (user) {
+      const u =
+        TO.normalizeUser(user);
+
+      return `
+        <div
+          class="to-participant-card"
+          data-user-id="${TO.escape(
+            u.id
+          )}"
+        >
+
+          <div class="to-participant-avatar">
+            ${TO.html.avatar(u, 52)}
+          </div>
+
+          <div class="to-participant-info">
+
+            <strong>
+              ${TO.escape(
+                u.name ||
+                "Без имени"
+              )}
+
+              ${
+                u.verified
+                  ? " ✅"
+                  : ""
+              }
+            </strong>
+
+            ${
+              u.username
+                ? `
+                  <div>
+                    ${TO.escape(
+                      u.username
+                    )}
+                  </div>
+                `
+                : ""
+            }
+
+            ${
+              u.city ||
+              u.country
+                ? `
+                  <div>
+                    📍
+                    ${TO.escape(
+                      [
+                        u.city,
+                        u.country
+                      ]
+                        .filter(Boolean)
+                        .join(", ")
+                    )}
+                  </div>
+                `
+                : ""
+            }
+
+          </div>
+
+          <div
+            class="to-participant-actions"
+          >
+
+            <button
+              type="button"
+              data-to-action="open-profile"
+              data-username="${TO.escape(
+                u.username
+              )}"
+            >
+              Профиль
+            </button>
+
+            <button
+              type="button"
+              data-to-action="open-chat"
+              data-user-id="${TO.escape(
+                u.id
+              )}"
+            >
+              Чат
+            </button>
+
+            <button
+              type="button"
+              data-to-action="admin-block-user"
+              data-user-id="${TO.escape(
+                u.id
+              )}"
+            >
+              Заблокировать
+            </button>
+
+          </div>
+
+        </div>
+      `;
+    };
+
+  /* ============================================================
+     51. ADMIN PUBLICATION CARD
+     ============================================================ */
+
+  TO.ui.adminPublicationCard =
+    function (publication) {
+      const p =
+        TO.normalizePublication(
+          publication
         );
 
-      const text =
-        input?.value?.trim() ||
-        "";
+      return `
+        <div
+          class="to-admin-publication-card"
+          data-publication-id="${TO.escape(
+            p.id
+          )}"
+        >
 
-      const userId =
-        form.dataset.userId ||
-        null;
+          <div>
 
-      if (!text) return;
+            <strong>
+              ${TO.escape(
+                p.title ||
+                "Без названия"
+              )}
+            </strong>
 
-      const result =
-        actor.isTestMode()
-          ? await testing.message(
-              text,
-              userId
+            <div>
+              ${TO.escape(
+                p.authorName ||
+                "Неизвестный автор"
+              )}
+
+              ${
+                p.authorUsername
+                  ? `
+                    · ${TO.escape(
+                      p.authorUsername
+                    )}
+                  `
+                  : ""
+              }
+            </div>
+
+            <div>
+              Статус:
+              ${TO.escape(
+                TO.statuses[
+                  p.status
+                ] ||
+                p.status
+              )}
+            </div>
+
+            <div>
+              👁️ ${p.views}
+              · ❤️ ${
+                p.reactions ||
+                p.likes
+              }
+              · 💬 ${p.comments}
+              · 🔖 ${p.saves}
+            </div>
+
+          </div>
+
+          <div
+            class="to-admin-publication-actions"
+          >
+
+            <button
+              type="button"
+              data-to-action="open-publication"
+              data-id="${TO.escape(
+                p.id
+              )}"
+            >
+              Читать
+            </button>
+
+            <button
+              type="button"
+              data-to-action="admin-approve"
+              data-id="${TO.escape(
+                p.id
+              )}"
+            >
+              Одобрить
+            </button>
+
+            <button
+              type="button"
+              data-to-action="admin-reject"
+              data-id="${TO.escape(
+                p.id
+              )}"
+            >
+              Отклонить
+            </button>
+
+            <button
+              type="button"
+              data-to-action="admin-pin"
+              data-id="${TO.escape(
+                p.id
+              )}"
+            >
+              Закрепить
+            </button>
+
+            <button
+              type="button"
+              data-to-action="admin-delete"
+              data-id="${TO.escape(
+                p.id
+              )}"
+            >
+              Удалить
+            </button>
+
+          </div>
+
+        </div>
+      `;
+    };
+
+  /* ============================================================
+     52. ADMIN TEST ACTIONS
+     ============================================================ */
+
+  TO.actions.testLike =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.testing.like(id);
+
+        TO.toast(
+          "Тестовая реакция поставлена",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message,
+          "error"
+        );
+      }
+    };
+
+  TO.actions.testSave =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.testing.save(id);
+
+        TO.toast(
+          "Тестовое сохранение выполнено",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message,
+          "error"
+        );
+      }
+    };
+
+  TO.actions.testView =
+    async function (button) {
+      const id =
+        button.dataset.id;
+
+      try {
+        await TO.testing.view(id);
+
+        TO.toast(
+          "Тестовый просмотр засчитан",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message,
+          "error"
+        );
+      }
+    };
+
+  TO.actions.testFollow =
+    async function (button) {
+      const id =
+        button.dataset.userId ||
+        button.dataset.id;
+
+      try {
+        await TO.testing.follow(id);
+
+        TO.toast(
+          "Тестовая подписка выполнена",
+          "success"
+        );
+      } catch (error) {
+        TO.toast(
+          error.message,
+          "error"
+        );
+      }
+    };
+
+  /* ============================================================
+     53. ADMIN PAYMENT HELPERS
+     ============================================================ */
+
+  TO.payment = {
+    async request(
+      publicationId,
+      amount,
+      currency = "TJS"
+    ) {
+      return TO.admin.payment({
+        publication_id:
+          publicationId,
+
+        id:
+          publicationId,
+
+        amount,
+
+        currency,
+
+        action:
+          "request_payment"
+      });
+    },
+
+    async confirm(
+      publicationId,
+      amount,
+      currency = "TJS"
+    ) {
+      return TO.admin.payment({
+        publication_id:
+          publicationId,
+
+        id:
+          publicationId,
+
+        amount,
+
+        currency,
+
+        action:
+          "confirm_payment"
+      });
+    }
+  };
+
+  /* ============================================================
+     54. ADMIN MODERATION HELPERS
+     ============================================================ */
+
+  TO.moderation = {
+    async approveFree(id) {
+      return TO.adminPublicationActions
+        .approve(id);
+    },
+
+    async requestPayment(
+      id,
+      amount
+    ) {
+      return TO.adminPublicationActions
+        .payment(
+          id,
+          amount
+        );
+    },
+
+    async confirmPayment(
+      id,
+      amount
+    ) {
+      return TO.payment.confirm(
+        id,
+        amount
+      );
+    },
+
+    async publish(id) {
+      return TO.adminPublicationActions
+        .publish(id);
+    },
+
+    async reject(
+      id,
+      reason
+    ) {
+      return TO.adminPublicationActions
+        .reject(
+          id,
+          reason
+        );
+    },
+
+    async hide(id) {
+      return TO.adminPublicationActions
+        .hide(id);
+    },
+
+    async pin(id) {
+      return TO.adminPublicationActions
+        .pin(id);
+    },
+
+    async feature(id) {
+      return TO.adminPublicationActions
+        .feature(id);
+    }
+  };
+
+  /* ============================================================
+     55. SAFE JSON DOWNLOAD / EXPORT
+     ============================================================ */
+
+  TO.export = {
+    json(data, filename = "tajik-opportunities.json") {
+      const blob =
+        new Blob(
+          [
+            JSON.stringify(
+              data,
+              null,
+              2
             )
-          : await messages.send(
-              text,
-              userId
+          ],
+          {
+            type:
+              "application/json"
+          }
+        );
+
+      const url =
+        URL.createObjectURL(blob);
+
+      const a =
+        document.createElement("a");
+
+      a.href = url;
+      a.download = filename;
+
+      document.body.appendChild(a);
+
+      a.click();
+
+      a.remove();
+
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  /* ============================================================
+     56. COPY TO CLIPBOARD
+     ============================================================ */
+
+  TO.copy = async function (
+    text
+  ) {
+    if (!text) return false;
+
+    try {
+      await navigator.clipboard
+        .writeText(text);
+
+      TO.toast(
+        "Скопировано",
+        "success"
+      );
+
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  /* ============================================================
+     57. PUBLICATION URL
+     ============================================================ */
+
+  TO.publicationUrl =
+    function (id) {
+      return (
+        location.origin +
+        `/publication.html?id=${encodeURIComponent(
+          id
+        )}`
+      );
+    };
+
+  /* ============================================================
+     58. SOCIAL SHARING
+     ============================================================ */
+
+  TO.social = {
+    telegram(url, text = "") {
+      return (
+        "https://t.me/share/url?url=" +
+        encodeURIComponent(url) +
+        "&text=" +
+        encodeURIComponent(text)
+      );
+    },
+
+    whatsapp(url, text = "") {
+      return (
+        "https://wa.me/?text=" +
+        encodeURIComponent(
+          `${text} ${url}`
+        )
+      );
+    }
+  };
+
+  /* ============================================================
+     59. PWA / SERVICE WORKER
+     ============================================================ */
+
+  TO.pwa = {
+    async register() {
+      if (
+        !("serviceWorker" in navigator)
+      ) {
+        return;
+      }
+
+      /*
+       * Only register if the project
+       * already contains sw.js.
+       * This avoids generating a 404.
+       */
+
+      try {
+        const response =
+          await fetch(
+            "/sw.js",
+            {
+              method: "HEAD",
+              cache: "no-store"
+            }
+          );
+
+        if (response.ok) {
+          await navigator.serviceWorker
+            .register("/sw.js");
+        }
+      } catch {}
+    }
+  };
+
+  /* ============================================================
+     60. URL PARAMETER HELPERS
+     ============================================================ */
+
+  TO.url = {
+    get(name) {
+      return new URLSearchParams(
+        location.search
+      ).get(name);
+    },
+
+    all() {
+      return Object.fromEntries(
+        new URLSearchParams(
+          location.search
+        ).entries()
+      );
+    },
+
+    set(name, value) {
+      const url =
+        new URL(location.href);
+
+      url.searchParams.set(
+        name,
+        value
+      );
+
+      history.pushState(
+        {},
+        "",
+        url
+      );
+    },
+
+    remove(name) {
+      const url =
+        new URL(location.href);
+
+      url.searchParams.delete(
+        name
+      );
+
+      history.pushState(
+        {},
+        "",
+        url
+      );
+    }
+  };
+
+  /* ============================================================
+     61. PAGE CONTEXT
+     ============================================================ */
+
+  TO.page = {
+    name() {
+      const path =
+        location.pathname
+          .split("/")
+          .pop();
+
+      return path ||
+        "index.html";
+    },
+
+    isAdmin() {
+      return (
+        location.pathname
+          .includes("admin")
+      );
+    },
+
+    isProfile() {
+      return (
+        location.pathname
+          .includes("profile")
+      );
+    },
+
+    isMessages() {
+      return (
+        location.pathname
+          .includes("messages")
+      );
+    },
+
+    isNotifications() {
+      return (
+        location.pathname
+          .includes("notifications")
+      );
+    },
+
+    isAdd() {
+      return (
+        location.pathname
+          .includes("add")
+      );
+    }
+  };
+
+  /* ============================================================
+     62. ADMIN QUICK DATA LOADER
+     ============================================================ */
+
+  TO.adminUI = {
+    async loadParticipants(
+      container
+    ) {
+      if (!container) return;
+
+      try {
+        const users =
+          await TO.admin.users();
+
+        container.innerHTML =
+          users
+            .map(
+              user =>
+                TO.ui.participantCard(
+                  user
+                )
+            )
+            .join("");
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось загрузить участников",
+          "error"
+        );
+      }
+    },
+
+    async loadPublications(
+      container,
+      params = {}
+    ) {
+      if (!container) return;
+
+      try {
+        const posts =
+          await TO.admin
+            .publications(
+              params
             );
 
-      if (result?.ok) {
-        input.value = "";
+        container.innerHTML =
+          posts
+            .map(
+              post =>
+                TO.ui
+                  .adminPublicationCard(
+                    post
+                  )
+            )
+            .join("");
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось загрузить публикации",
+          "error"
+        );
+      }
+    },
+
+    async loadNotifications(
+      container
+    ) {
+      if (!container) return;
+
+      try {
+        const list =
+          await TO.admin
+            .notifications();
+
+        container.innerHTML =
+          list
+            .map(
+              item => `
+                <div
+                  class="to-admin-notification"
+                  data-id="${TO.escape(
+                    TO.pick(
+                      item,
+                      [
+                        "id",
+                        "notification_id"
+                      ],
+                      ""
+                    )
+                  )}"
+                >
+                  <strong>
+                    ${TO.escape(
+                      TO.pick(
+                        item,
+                        [
+                          "title",
+                          "type"
+                        ],
+                        "Уведомление"
+                      )
+                    )}
+                  </strong>
+
+                  <div>
+                    ${TO.escape(
+                      TO.pick(
+                        item,
+                        [
+                          "text",
+                          "message",
+                          "content"
+                        ],
+                        ""
+                      )
+                    )}
+                  </div>
+                </div>
+              `
+            )
+            .join("");
+      } catch (error) {
+        TO.toast(
+          error.message ||
+          "Не удалось загрузить уведомления",
+          "error"
+        );
+      }
+    }
+  };
+
+  /* ============================================================
+     63. GLOBAL DATA ATTRIBUTES
+     ============================================================ */
+
+  /*
+   * The following HTML attributes can be used
+   * anywhere without additional JS.
+   *
+   * data-to-action="react"
+   * data-id="123"
+   *
+   * data-to-action="save"
+   * data-id="123"
+   *
+   * data-to-action="share"
+   * data-id="123"
+   *
+   * data-to-action="open-profile"
+   * data-username="@user"
+   *
+   * data-to-action="open-chat"
+   * data-user-id="123"
+   */
+
+  /* ============================================================
+     64. LOGIN / REGISTER HELPERS
+     ============================================================ */
+
+  TO.login = async function (
+    payload
+  ) {
+    const data =
+      await TO.api(
+        "/api/auth/login",
+        {
+          method: "POST",
+          body: payload
+        }
+      );
+
+    await TO.auth.me();
+
+    return data;
+  };
+
+  TO.register = async function (
+    payload
+  ) {
+    const data =
+      await TO.api(
+        "/api/auth/register",
+        {
+          method: "POST",
+          body: payload
+        }
+      );
+
+    await TO.auth.me();
+
+    return data;
+  };
+
+  TO.checkUsername =
+    async function (
+      username
+    ) {
+      return TO.api(
+        `/api/username/check?username=${encodeURIComponent(
+          username
+        )}`
+      );
+    };
+
+  /* ============================================================
+     65. ADMIN LOGIN
+     ============================================================ */
+
+  TO.adminLogin =
+    async function (
+      payload
+    ) {
+      const data =
+        await TO.api(
+          "/api/admin/login",
+          {
+            method: "POST",
+            body: payload
+          }
+        );
+
+      await TO.auth.adminMe();
+
+      return data;
+    };
+
+  TO.adminLogout =
+    async function () {
+      await TO.tryApi(
+        "/api/admin/logout",
+        {
+          method: "POST"
+        }
+      );
+
+      TO.auth.admin = null;
+
+      location.href =
+        "/admin.html";
+    };
+
+  /* ============================================================
+     66. ADMIN USER SEARCH
+     ============================================================ */
+
+  TO.adminSearchUsers =
+    async function (
+      query
+    ) {
+      return TO.admin.users({
+        search: query,
+        q: query,
+        username: query,
+        id: query
+      });
+    };
+
+  /* ============================================================
+     67. ADMIN PUBLICATION SEARCH
+     ============================================================ */
+
+  TO.adminSearchPublications =
+    async function (
+      query
+    ) {
+      return TO.admin.publications({
+        search: query,
+        q: query,
+        title: query,
+        author: query,
+        id: query
+      });
+    };
+
+  /* ============================================================
+     68. REAL-TIME STYLE REFRESH
+     ============================================================ */
+
+  TO.refreshEverything =
+    async function () {
+      await TO.notificationBadge
+        .refresh();
+
+      await TO.adminStatsUI
+        .refresh();
+
+      TO.viewTracking.observe();
+    };
+
+  /* ============================================================
+     69. ACCESSIBILITY
+     ============================================================ */
+
+  TO.accessibility = {
+    init() {
+      TO.qa(
+        "img:not([alt])"
+      ).forEach(
+        img => {
+          img.alt =
+            TO.config.siteName;
+        }
+      );
+
+      TO.qa(
+        "button"
+      ).forEach(
+        button => {
+          if (
+            !button.getAttribute(
+              "aria-label"
+            ) &&
+            !button.textContent.trim()
+          ) {
+            button.setAttribute(
+              "aria-label",
+              "Кнопка"
+            );
+          }
+        }
+      );
+    }
+  };
+
+  /* ============================================================
+     70. SECURITY HELPERS
+     ============================================================ */
+
+  TO.security = {
+    safeUrl(url) {
+      if (!url) return "";
+
+      try {
+        const parsed =
+          new URL(
+            url,
+            location.origin
+          );
+
+        if (
+          ![
+            "http:",
+            "https:"
+          ].includes(
+            parsed.protocol
+          )
+        ) {
+          return "";
+        }
+
+        return parsed.href;
+      } catch {
+        return "";
+      }
+    },
+
+    sanitizeText(text) {
+      return TO.escape(
+        text
+      );
+    }
+  };
+
+  /* ============================================================
+     71. PERFORMANCE
+     ============================================================ */
+
+  TO.performance = {
+    lazyImages() {
+      if (
+        !("IntersectionObserver" in window)
+      ) {
+        return;
+      }
+
+      const images =
+        TO.qa(
+          "img[data-src]"
+        );
+
+      const observer =
+        new IntersectionObserver(
+          entries => {
+            entries.forEach(
+              entry => {
+                if (
+                  !entry.isIntersecting
+                ) {
+                  return;
+                }
+
+                const img =
+                  entry.target;
+
+                img.src =
+                  img.dataset.src;
+
+                delete img.dataset.src;
+
+                observer.unobserve(
+                  img
+                );
+              }
+            );
+          }
+        );
+
+      images.forEach(
+        img =>
+          observer.observe(img)
+      );
+    }
+  };
+
+  /* ============================================================
+     72. AUTO PAGE FEATURES
+     ============================================================ */
+
+  TO.auto = {
+    init() {
+      TO.performance
+        .lazyImages();
+
+      TO.accessibility
+        .init();
+
+      TO.searchUI
+        .init();
+
+      TO.viewTracking
+        .observe();
+
+      TO.stats
+        .render();
+    }
+  };
+
+  /* ============================================================
+     73. STORAGE EVENT SYNC
+     ============================================================ */
+
+  window.addEventListener(
+    "storage",
+    event => {
+      if (
+        event.key ===
+        TO.storage.theme
+      ) {
+        TO.theme.apply();
+      }
+
+      if (
+        event.key ===
+        TO.storage.stats
+      ) {
+        TO.stats.render();
+      }
+
+      if (
+        event.key ===
+        TO.storage.actor
+      ) {
+        TO.actor.load();
+        TO.actor.renderIndicator();
       }
     }
   );
 
   /* ============================================================
-     THEME CHANGE LISTENER
+     74. SYSTEM THEME CHANGE
      ============================================================ */
 
   if (
@@ -4992,198 +5145,25 @@
         "(prefers-color-scheme: dark)"
       );
 
-    media.addEventListener?.(
-      "change",
-      () => {
-        if (
-          theme.get() === "system"
-        ) {
-          theme.apply();
-        }
-      }
-    );
-  }
-
-  /* ============================================================
-     GLOBAL ERROR PROTECTION
-     ============================================================ */
-
-  window.addEventListener(
-    "unhandledrejection",
-    event => {
-      console.error(
-        "[Tajik Opportunities]",
-        event.reason
-      );
-    }
-  );
-
-  /* ============================================================
-     INIT
-     ============================================================ */
-
-  async function init() {
-    try {
-      theme.apply();
-      translation.apply();
-
-      await auth.me();
-
-      updateAuthUI();
-
-      bindActions(
-        document
-      );
-
-      autoViews();
-
-      observeDOM();
-
-      actor.renderIndicator();
-
-      /*
-       * Обновляем авторизацию немного позже.
-       * Это позволяет существующим app.js/index.js
-       * успеть загрузить свои данные.
-       */
-      setTimeout(
-        async () => {
-          try {
-            await auth.me();
-            updateAuthUI();
-            bindActions(
-              document
-            );
-            actor.renderIndicator();
-          } catch {}
-        },
-        1500
-      );
-
-      /*
-       * Периодическое обновление уведомлений.
-       */
-      if (
-        !window.__TO_NOTIFICATION_TIMER
-      ) {
-        window.__TO_NOTIFICATION_TIMER =
-          setInterval(
-            async () => {
-              try {
-                const list =
-                  await notifications.list();
-
-                const unread =
-                  list.filter(
-                    item =>
-                      !helpers.bool(
-                        item.read ??
-                        item.is_read
-                      )
-                  ).length;
-
-                document
-                  .querySelectorAll(
-                    "[data-to-unread-notifications]"
-                  )
-                  .forEach(el => {
-                    el.textContent =
-                      helpers.formatNumber(
-                        unread
-                      );
-                  });
-              } catch {}
-            },
-            30000
-          );
-      }
-
-      /*
-       * Тестовый режим.
-       */
-      if (
-        actor.isTestMode() &&
-        actor.selected()
-      ) {
-        actor.renderIndicator();
-      }
-
-      /*
-       * Отдельно обновляем stats только
-       * если на странице есть соответствующий
-       * контейнер.
-       */
-      const statsContainer =
-        document.querySelector(
-          "[data-to-stats]"
-        );
-
-      if (statsContainer) {
-        const server =
-          await admin.stats();
-
-        renderStats(
-          statsContainer,
-          server
-        );
-      }
-
-      /*
-       * Автоматически подставляем категории
-       * в элементы select.
-       */
-      document
-        .querySelectorAll(
-          "select[data-to-categories]"
-        )
-        .forEach(select => {
+    if (
+      media.addEventListener
+    ) {
+      media.addEventListener(
+        "change",
+        () => {
           if (
-            select.dataset.toCategoriesReady ===
-            "1"
+            TO.theme.get() ===
+            "system"
           ) {
-            return;
+            TO.theme.apply();
           }
-
-          select.dataset.toCategoriesReady =
-            "1";
-
-          const current =
-            select.value;
-
-          select.innerHTML =
-            `<option value="">Выберите категорию</option>` +
-            CATEGORIES
-              .map(
-                ([id, label]) =>
-                  `<option value="${helpers.escape(
-                    id
-                  )}">
-                    ${helpers.escape(
-                      label
-                    )}
-                  </option>`
-              )
-              .join("");
-
-          select.value =
-            current;
-        });
-
-      console.info(
-        `[${SITE_NAME}] works.js initialized`
-      );
-    } catch (error) {
-      console.error(
-        `[${SITE_NAME}] init error`,
-        error
+        }
       );
     }
   }
 
-  TO.init = init;
-
   /* ============================================================
-     READY
+     75. INIT
      ============================================================ */
 
   if (
@@ -5192,13 +5172,33 @@
   ) {
     document.addEventListener(
       "DOMContentLoaded",
-      init,
+      async () => {
+        await TO.init();
+
+        TO.auto.init();
+
+        TO.startPolling();
+
+        TO.startAdminPolling();
+
+        TO.pwa.register();
+      },
       {
         once: true
       }
     );
   } else {
-    init();
+    (async () => {
+      await TO.init();
+
+      TO.auto.init();
+
+      TO.startPolling();
+
+      TO.startAdminPolling();
+
+      TO.pwa.register();
+    })();
   }
 
 })();
