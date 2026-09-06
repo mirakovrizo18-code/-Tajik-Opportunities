@@ -1,7 +1,8 @@
 /* ============================================================
    TAJIK OPPORTUNITIES
-   ADD PUBLICATION — V6
-   Создание публикации + несколько URL медиа
+   PUBLIC/JS/ADD.JS
+   Создание публикации
+   V7 — синхронизирован с public/add.html
    ============================================================ */
 
 (() => {
@@ -9,42 +10,37 @@
 
   const state = {
     submitting: false,
-    mediaIndex: 1
+    mediaIndex: 1,
+    formChanged: false
   };
 
   const form = document.getElementById("submissionForm");
 
   if (!form) {
+    console.warn("Tajik Opportunities: форма публикации не найдена.");
     return;
   }
 
-
-  /* ==========================================================
-     DOM
-  ========================================================== */
+  /* ============================================================
+     ELEMENTS
+     ============================================================ */
 
   const titleInput = document.getElementById("title");
   const contentInput = document.getElementById("content");
   const categoryInput = document.getElementById("category");
+  const subcategoryInput = document.getElementById("subcategory");
+
   const countryInput = document.getElementById("country");
   const cityInput = document.getElementById("city");
-  const scopeInput = document.getElementById("scope");
   const locationInput = document.getElementById("location");
+  const scopeInput = document.getElementById("scope");
 
-  const eventStartInput =
-    document.getElementById("event_start");
+  const eventStartInput = document.getElementById("event_start");
+  const eventEndInput = document.getElementById("event_end");
+  const deadlineInput = document.getElementById("deadline");
 
-  const eventEndInput =
-    document.getElementById("event_end");
-
-  const deadlineInput =
-    document.getElementById("deadline");
-
-  const priceInput =
-    document.getElementById("price");
-
-  const currencyInput =
-    document.getElementById("currency");
+  const priceInput = document.getElementById("price");
+  const currencyInput = document.getElementById("currency");
 
   const employmentInput =
     document.getElementById("employment_type");
@@ -63,9 +59,6 @@
 
   const tagsInput =
     document.getElementById("tags");
-
-  const subcategoryInput =
-    document.getElementById("subcategory");
 
   const contactNameInput =
     document.getElementById("contact_name");
@@ -109,32 +102,48 @@
   const successState =
     document.getElementById("submissionSuccess");
 
+  const submitCard =
+    document.getElementById("submitCard");
+
   const trackingCodeElement =
     document.getElementById("trackingCode");
 
   const copyTrackingButton =
     document.getElementById("copyTrackingButton");
 
+  const trackingStatusLink =
+    document.getElementById("trackingStatusLink");
 
-  /* ==========================================================
+  const toast =
+    document.getElementById("toast");
+
+  const titleCounter =
+    document.getElementById("titleCounter");
+
+  const contentCounter =
+    document.getElementById("contentCounter");
+
+
+  /* ============================================================
      HELPERS
-  ========================================================== */
+     ============================================================ */
 
-  function value(element) {
-    return element
-      ? element.value.trim()
-      : "";
+  function getValue(element) {
+    if (!element) return "";
+    return String(element.value || "").trim();
+  }
+
+
+  function getChecked(element) {
+    return Boolean(element && element.checked);
   }
 
 
   function safeUrl(url) {
-    if (!url) {
-      return true;
-    }
+    if (!url) return true;
 
     try {
-      const parsed =
-        new URL(url);
+      const parsed = new URL(url);
 
       return (
         parsed.protocol === "http:" ||
@@ -146,146 +155,134 @@
   }
 
 
-  function showToast(
-    message,
-    type = "success"
-  ) {
-    const toast =
-      document.getElementById("toast");
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+  }
 
-    if (!toast) {
-      return;
+
+  function showToast(message, type = "success") {
+    if (!toast) return;
+
+    toast.textContent = message;
+
+    toast.className = "toast";
+
+    toast.classList.add("show");
+
+    if (type) {
+      toast.classList.add(type);
     }
 
-    toast.textContent =
-      message;
+    clearTimeout(toast._timer);
 
-    toast.classList.remove(
-      "success",
-      "error",
-      "warning",
-      "show"
-    );
+    toast._timer = setTimeout(() => {
+      toast.classList.remove("show");
+    }, 3500);
+  }
 
-    toast.classList.add(
-      type,
-      "show"
-    );
 
-    clearTimeout(
-      toast._timer
-    );
+  function showMessage(message, type = "error") {
+    if (!formMessage) return;
 
-    toast._timer =
-      setTimeout(() => {
-        toast.classList.remove(
-          "show"
-        );
-      }, 3500);
+    formMessage.hidden = false;
+
+    formMessage.textContent = message;
+
+    formMessage.className =
+      "form-message " + type;
+
+    try {
+      formMessage.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+      });
+    } catch {
+      /* ignore */
+    }
+  }
+
+
+  function clearMessage() {
+    if (!formMessage) return;
+
+    formMessage.hidden = true;
+
+    formMessage.textContent = "";
+
+    formMessage.className =
+      "form-message";
   }
 
 
   function setLoading(loading) {
-    if (!submitButton) {
-      return;
-    }
+    if (!submitButton) return;
 
     if (loading) {
+      submitButton.disabled = true;
 
-      submitButton.disabled =
-        true;
-
-      submitButton.dataset.oldText =
+      submitButton.dataset.originalText =
         submitButton.innerHTML;
 
       submitButton.innerHTML =
         "⏳ Отправляем публикацию...";
-
     } else {
+      submitButton.disabled = false;
 
-      submitButton.disabled =
-        false;
-
-      if (
-        submitButton.dataset.oldText
-      ) {
+      if (submitButton.dataset.originalText) {
         submitButton.innerHTML =
-          submitButton.dataset.oldText;
+          submitButton.dataset.originalText;
       }
     }
   }
 
 
-  /* ==========================================================
+  /* ============================================================
      COUNTERS
-  ========================================================== */
+     ============================================================ */
 
   function updateCounters() {
-
-    const titleCounter =
-      document.getElementById(
-        "titleCounter"
-      );
-
     if (titleCounter) {
       titleCounter.textContent =
-        `${value(titleInput).length}`;
+        String(getValue(titleInput).length);
     }
-
-
-    const contentCounter =
-      document.getElementById(
-        "contentCounter"
-      );
 
     if (contentCounter) {
       contentCounter.textContent =
-        `${value(contentInput).length}`;
+        String(getValue(contentInput).length);
     }
   }
 
 
-  /* ==========================================================
+  /* ============================================================
      MEDIA
-  ========================================================== */
+     ============================================================ */
 
-  function addMediaItem() {
-
-    if (!mediaList) {
-      return;
-    }
-
-    state.mediaIndex++;
-
+  function createMediaItem(index) {
     const item =
-      document.createElement(
-        "div"
-      );
+      document.createElement("div");
 
-    item.className =
-      "media-item";
+    item.className = "media-item";
 
     item.dataset.mediaIndex =
-      String(
-        state.mediaIndex
-      );
+      String(index);
 
     item.innerHTML = `
       <div class="media-item-header">
-
-        <strong>
-          Медиа #${state.mediaIndex}
-        </strong>
+        <strong>Медиа #${index}</strong>
 
         <button
           type="button"
           class="remove-media"
+          title="Удалить медиа"
         >
           ✕ Удалить
         </button>
-
       </div>
-
 
       <div class="form-grid-2">
 
@@ -336,7 +333,6 @@
 
         </div>
 
-
         <div class="form-group">
 
           <label>
@@ -355,7 +351,6 @@
 
       </div>
 
-
       <div class="form-group">
 
         <label>
@@ -366,69 +361,70 @@
           type="text"
           name="media_caption"
           class="media-caption"
+          maxlength="300"
           placeholder="Описание медиа"
         >
 
       </div>
     `;
 
-    mediaList.appendChild(
-      item
-    );
+    return item;
+  }
 
-    const removeButton =
-      item.querySelector(
-        ".remove-media"
-      );
 
-    if (removeButton) {
-      removeButton.addEventListener(
-        "click",
-        () => {
-          item.remove();
-          renumberMedia();
-        }
-      );
+  function addMediaItem() {
+    if (!mediaList) return;
+
+    state.mediaIndex++;
+
+    const item =
+      createMediaItem(state.mediaIndex);
+
+    mediaList.appendChild(item);
+
+    state.formChanged = true;
+
+    const input =
+      item.querySelector(".media-url");
+
+    if (input) {
+      input.focus();
     }
   }
 
 
   function renumberMedia() {
-
-    if (!mediaList) {
-      return;
-    }
+    if (!mediaList) return;
 
     const items =
       mediaList.querySelectorAll(
         ".media-item"
       );
 
-    items.forEach(
-      (item, index) => {
+    items.forEach((item, index) => {
+      const number = index + 1;
 
-        const title =
-          item.querySelector(
-            ".media-item-header strong"
-          );
+      item.dataset.mediaIndex =
+        String(number);
 
-        if (title) {
-          title.textContent =
-            `Медиа #${index + 1}`;
-        }
+      const title =
+        item.querySelector(
+          ".media-item-header strong"
+        );
+
+      if (title) {
+        title.textContent =
+          `Медиа #${number}`;
       }
-    );
+    });
 
     state.mediaIndex =
-      items.length;
+      items.length || 1;
   }
 
 
   function collectMedia() {
-
-    if (!mediaList) {
-      return [];
-    }
+    if (!mediaList) return [];
 
     const items =
       mediaList.querySelectorAll(
@@ -437,144 +433,146 @@
 
     const result = [];
 
-    items.forEach(
-      item => {
+    items.forEach((item) => {
+      const type =
+        item.querySelector(".media-type");
 
-        const type =
-          item.querySelector(
-            ".media-type"
-          );
+      const url =
+        item.querySelector(".media-url");
 
-        const url =
-          item.querySelector(
-            ".media-url"
-          );
+      const caption =
+        item.querySelector(".media-caption");
 
-        const caption =
-          item.querySelector(
-            ".media-caption"
-          );
+      const mediaUrl =
+        getValue(url);
 
-        const mediaUrl =
-          value(url);
-
-        if (!mediaUrl) {
-          return;
-        }
-
-        result.push({
-          type: value(type) ||
-            "other",
-
-          url: mediaUrl,
-
-          caption:
-            value(caption)
-        });
+      if (!mediaUrl) {
+        return;
       }
-    );
+
+      result.push({
+        type:
+          getValue(type) || "other",
+
+        url:
+          mediaUrl,
+
+        caption:
+          getValue(caption)
+      });
+    });
 
     return result;
   }
 
 
-  /* ==========================================================
+  /* ============================================================
      VALIDATION
-  ========================================================== */
+     ============================================================ */
 
   function validate() {
-
     const title =
-      value(titleInput);
+      getValue(titleInput);
 
     const content =
-      value(contentInput);
+      getValue(contentInput);
 
     const category =
-      value(categoryInput);
-
+      getValue(categoryInput);
 
     if (!title) {
       return "Введите заголовок публикации.";
     }
 
-
     if (title.length < 5) {
       return "Заголовок должен содержать минимум 5 символов.";
     }
-
 
     if (title.length > 180) {
       return "Заголовок не должен превышать 180 символов.";
     }
 
-
     if (!content) {
       return "Введите описание публикации.";
     }
-
 
     if (content.length < 20) {
       return "Описание должно содержать минимум 20 символов.";
     }
 
+    if (content.length > 10000) {
+      return "Описание не должно превышать 10000 символов.";
+    }
 
     if (!category) {
       return "Выберите категорию.";
     }
 
 
+    const externalUrl =
+      getValue(externalUrlInput);
+
     if (
-      value(externalUrlInput) &&
-      !safeUrl(
-        value(externalUrlInput)
-      )
+      externalUrl &&
+      !safeUrl(externalUrl)
     ) {
       return "Укажите корректную официальную ссылку.";
     }
 
 
-    if (
-      value(contactEmailInput)
-    ) {
+    const email =
+      getValue(contactEmailInput);
 
-      const email =
-        value(contactEmailInput);
+    if (
+      email &&
+      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+    ) {
+      return "Укажите корректный email.";
+    }
+
+
+    const price =
+      getValue(priceInput);
+
+    if (price) {
+      const numericPrice =
+        Number(price);
 
       if (
-        !/^[^\s@]+@[^\s@]+\.[^\s@]+$/
-          .test(email)
+        !Number.isFinite(numericPrice) ||
+        numericPrice < 0
       ) {
-        return "Укажите корректный email.";
+        return "Укажите корректную цену или зарплату.";
       }
     }
 
 
+    const eventStart =
+      getValue(eventStartInput);
+
+    const eventEnd =
+      getValue(eventEndInput);
+
     if (
-      value(priceInput) &&
-      Number(value(priceInput)) < 0
+      eventStart &&
+      eventEnd &&
+      new Date(eventEnd) < new Date(eventStart)
     ) {
-      return "Цена или зарплата не может быть отрицательной.";
+      return "Дата окончания не может быть раньше даты начала.";
     }
 
 
     const media =
       collectMedia();
 
-
     for (
-      let i = 0;
-      i < media.length;
-      i++
+      let index = 0;
+      index < media.length;
+      index++
     ) {
-
-      if (
-        !safeUrl(
-          media[i].url
-        )
-      ) {
+      if (!safeUrl(media[index].url)) {
         return (
-          `Некорректная ссылка в медиа #${i + 1}.`
+          `Некорректная ссылка в медиа #${index + 1}.`
         );
       }
     }
@@ -584,123 +582,107 @@
   }
 
 
-  /* ==========================================================
+  /* ============================================================
      COLLECT PUBLICATION
-  ========================================================== */
+     ============================================================ */
 
   function collectPublication() {
-
     const media =
       collectMedia();
-
-
-    const languages =
-      value(languagesInput);
-
-
-    const tags =
-      value(tagsInput);
-
 
     return {
 
       title:
-        value(titleInput),
+        getValue(titleInput),
 
       content:
-        value(contentInput),
+        getValue(contentInput),
 
       category:
-        value(categoryInput),
+        getValue(categoryInput),
 
       subcategory:
-        value(subcategoryInput),
+        getValue(subcategoryInput),
 
       country:
-        value(countryInput),
+        getValue(countryInput),
 
       city:
-        value(cityInput),
+        getValue(cityInput),
 
       location:
-        value(locationInput),
+        getValue(locationInput),
 
       scope:
-        value(scopeInput),
+        getValue(scopeInput),
 
       event_start:
-        value(eventStartInput),
+        getValue(eventStartInput),
 
       event_end:
-        value(eventEndInput),
+        getValue(eventEndInput),
 
       deadline:
-        value(deadlineInput),
+        getValue(deadlineInput),
 
       price:
-        value(priceInput),
+        getValue(priceInput),
 
       currency:
-        value(currencyInput),
+        getValue(currencyInput),
 
       employment_type:
-        value(employmentInput),
+        getValue(employmentInput),
 
       work_format:
-        value(workFormatInput),
+        getValue(workFormatInput),
 
       experience:
-        value(experienceInput),
+        getValue(experienceInput),
 
       education:
-        value(educationInput),
+        getValue(educationInput),
 
       languages:
-        languages,
+        getValue(languagesInput),
 
       tags:
-        tags,
+        getValue(tagsInput),
 
       contact_name:
-        value(contactNameInput),
+        getValue(contactNameInput),
 
       contact_phone:
-        value(contactPhoneInput),
+        getValue(contactPhoneInput),
 
       contact_email:
-        value(contactEmailInput),
+        getValue(contactEmailInput),
 
       contact_telegram:
-        value(contactTelegramInput),
+        getValue(contactTelegramInput),
 
       external_url:
-        value(externalUrlInput),
+        getValue(externalUrlInput),
 
       author_name:
-        value(authorInput),
+        getValue(authorInput),
 
       language:
-        value(languageInput) ||
-        "ru",
+        getValue(languageInput) || "ru",
 
       translate_all:
-        Boolean(
-          translateAllInput &&
-          translateAllInput.checked
-        ),
+        getChecked(translateAllInput),
 
       media
     };
   }
 
 
-  /* ==========================================================
-     SEND
-  ========================================================== */
+  /* ============================================================
+     API
+     ============================================================ */
 
-  async function submitPublication(
-    publication
-  ) {
+  async function submitPublication(publication) {
 
     const response =
       await fetch(
@@ -716,10 +698,11 @@
               "application/json"
           },
 
+          credentials:
+            "include",
+
           body:
-            JSON.stringify(
-              publication
-            )
+            JSON.stringify(publication)
         }
       );
 
@@ -736,6 +719,26 @@
 
     if (!response.ok) {
 
+      if (response.status === 401) {
+        throw new Error(
+          "Чтобы отправить публикацию, сначала войдите в аккаунт."
+        );
+      }
+
+      if (response.status === 403) {
+        throw new Error(
+          result?.error ||
+          result?.message ||
+          "Отправка публикаций сейчас недоступна."
+        );
+      }
+
+      if (response.status === 429) {
+        throw new Error(
+          "Слишком много запросов. Подождите немного и попробуйте снова."
+        );
+      }
+
       throw new Error(
         result?.error ||
         result?.message ||
@@ -748,39 +751,35 @@
   }
 
 
-  /* ==========================================================
+  /* ============================================================
      SUCCESS
-  ========================================================== */
+     ============================================================ */
 
-  function showSuccess(result) {
+  function getTrackingCode(result) {
 
-    form.hidden =
-      true;
-
-
-    if (formMessage) {
-      formMessage.hidden =
-        true;
-    }
-
-
-    if (!successState) {
-      return;
-    }
-
-
-    successState.hidden =
-      false;
-
-
-    const code =
+    return (
       result?.tracking_code ||
       result?.trackingCode ||
       result?.submission_code ||
+      result?.submissionCode ||
       result?.code ||
       result?.data?.tracking_code ||
+      result?.data?.trackingCode ||
+      result?.data?.submission_code ||
+      result?.data?.submissionCode ||
+      result?.data?.code ||
+      result?.publication?.tracking_code ||
+      result?.publication?.id ||
       result?.id ||
-      "";
+      ""
+    );
+  }
+
+
+  function showSuccess(result) {
+
+    const code =
+      getTrackingCode(result);
 
 
     if (trackingCodeElement) {
@@ -790,22 +789,32 @@
     }
 
 
-    const statusLink =
-      document.querySelector(
-        "#trackingStatusLink"
-      );
-
-
     if (
-      statusLink &&
+      trackingStatusLink &&
       code
     ) {
 
-      statusLink.href =
-        `/status.html?code=${encodeURIComponent(
-          code
-        )}`;
+      trackingStatusLink.href =
+        `/status.html?code=${encodeURIComponent(code)}`;
     }
+
+
+    if (submitCard) {
+      submitCard.hidden = true;
+    }
+
+
+    if (successState) {
+      successState.hidden = false;
+    }
+
+
+    if (formMessage) {
+      formMessage.hidden = true;
+    }
+
+
+    state.formChanged = false;
 
 
     window.scrollTo({
@@ -815,9 +824,9 @@
   }
 
 
-  /* ==========================================================
+  /* ============================================================
      COPY TRACKING CODE
-  ========================================================== */
+     ============================================================ */
 
   async function copyTrackingCode() {
 
@@ -825,15 +834,20 @@
       return;
     }
 
-
     const code =
       trackingCodeElement.textContent.trim();
 
 
     if (
       !code ||
-      code === "—"
+      code === "—" ||
+      code === "Отправлено"
     ) {
+      showToast(
+        "Код публикации ещё недоступен.",
+        "warning"
+      );
+
       return;
     }
 
@@ -841,7 +855,8 @@
     try {
 
       if (
-        navigator.clipboard
+        navigator.clipboard &&
+        window.isSecureContext
       ) {
 
         await navigator.clipboard.writeText(
@@ -851,12 +866,9 @@
       } else {
 
         const textarea =
-          document.createElement(
-            "textarea"
-          );
+          document.createElement("textarea");
 
-        textarea.value =
-          code;
+        textarea.value = code;
 
         textarea.style.position =
           "fixed";
@@ -864,9 +876,14 @@
         textarea.style.left =
           "-9999px";
 
+        textarea.style.top =
+          "0";
+
         document.body.appendChild(
           textarea
         );
+
+        textarea.focus();
 
         textarea.select();
 
@@ -879,11 +896,16 @@
 
 
       showToast(
-        "Код скопирован.",
+        "Код публикации скопирован.",
         "success"
       );
 
-    } catch {
+    } catch (error) {
+
+      console.error(
+        "Copy tracking code error:",
+        error
+      );
 
       showToast(
         "Не удалось скопировать код.",
@@ -893,84 +915,16 @@
   }
 
 
-  /* ==========================================================
-     MESSAGE
-  ========================================================== */
+  /* ============================================================
+     SUBMIT
+     ============================================================ */
 
-  function showMessage(
-    message,
-    type = "error"
-  ) {
-
-    if (!formMessage) {
-      return;
-    }
-
-
-    formMessage.hidden =
-      false;
-
-
-    formMessage.textContent =
-      message;
-
-
-    formMessage.classList.remove(
-      "success",
-      "error",
-      "warning"
-    );
-
-
-    formMessage.classList.add(
-      type
-    );
-
-
-    formMessage.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
-    });
-  }
-
-
-  function clearMessage() {
-
-    if (!formMessage) {
-      return;
-    }
-
-
-    formMessage.hidden =
-      true;
-
-
-    formMessage.textContent =
-      "";
-
-
-    formMessage.classList.remove(
-      "success",
-      "error",
-      "warning"
-    );
-  }
-
-
-  /* ==========================================================
-     SUBMIT HANDLER
-  ========================================================== */
-
-  async function handleSubmit(
-    event
-  ) {
+  async function handleSubmit(event) {
 
     event.preventDefault();
 
 
-    if (
-      state.submitting
-    ) {
+    if (state.submitting) {
       return;
     }
 
@@ -979,14 +933,12 @@
 
 
     /*
-      Honeypot.
-      Если бот заполнил скрытое поле —
-      не отправляем публикацию.
-    */
+     * Honeypot.
+     * Если скрытое поле заполнено,
+     * считаем отправку подозрительной.
+     */
 
-    if (
-      value(websiteInput)
-    ) {
+    if (getValue(websiteInput)) {
 
       showMessage(
         "Не удалось обработать форму.",
@@ -1016,9 +968,7 @@
       collectPublication();
 
 
-    state.submitting =
-      true;
-
+    state.submitting = true;
 
     setLoading(true);
 
@@ -1031,9 +981,10 @@
         );
 
 
-      showSuccess(
-        result
-      );
+      state.formChanged = false;
+
+
+      showSuccess(result);
 
 
       showToast(
@@ -1045,14 +996,14 @@
     } catch (error) {
 
       console.error(
-        "Tajik Opportunities:",
+        "Tajik Opportunities publication error:",
         error
       );
 
 
       showMessage(
         error?.message ||
-        "Произошла ошибка при отправке публикации.",
+        "Произошла ошибка при отправке публикации. Попробуйте ещё раз.",
         "error"
       );
 
@@ -1062,19 +1013,100 @@
         "error"
       );
 
+
     } finally {
 
-      state.submitting =
-        false;
+      state.submitting = false;
 
       setLoading(false);
     }
   }
 
 
-  /* ==========================================================
-     CATEGORY SMART HELP
-  ========================================================== */
+  /* ============================================================
+     MEDIA EVENTS
+     ============================================================ */
+
+  function handleMediaClick(event) {
+
+    const removeButton =
+      event.target.closest(
+        ".remove-media"
+      );
+
+    if (!removeButton) {
+      return;
+    }
+
+
+    const item =
+      removeButton.closest(
+        ".media-item"
+      );
+
+    if (!item) {
+      return;
+    }
+
+
+    const items =
+      mediaList
+        ? mediaList.querySelectorAll(
+            ".media-item"
+          )
+        : [];
+
+
+    /*
+     * Оставляем хотя бы один блок.
+     */
+
+    if (items.length <= 1) {
+
+      const url =
+        item.querySelector(
+          ".media-url"
+        );
+
+      const caption =
+        item.querySelector(
+          ".media-caption"
+        );
+
+      if (url) {
+        url.value = "";
+      }
+
+      if (caption) {
+        caption.value = "";
+      }
+
+      state.formChanged = true;
+
+      return;
+    }
+
+
+    item.remove();
+
+    renumberMedia();
+
+    state.formChanged = true;
+  }
+
+
+  /* ============================================================
+     FORM CHANGED
+     ============================================================ */
+
+  function markChanged() {
+    state.formChanged = true;
+  }
+
+
+  /* ============================================================
+     CATEGORY HELP
+     ============================================================ */
 
   function setupCategoryHelp() {
 
@@ -1088,13 +1120,8 @@
       () => {
 
         const category =
-          value(categoryInput);
+          getValue(categoryInput);
 
-
-        /*
-          Автоматически предлагаем
-          полезные поля для некоторых категорий.
-        */
 
         if (
           category === "jobs" ||
@@ -1102,23 +1129,51 @@
           category === "employees"
         ) {
 
-          if (
-            employmentInput
-          ) {
-            employmentInput
-              .closest(".form-group")
-              ?.classList
-              .remove("hidden");
+          if (employmentInput) {
+
+            const wrapper =
+              employmentInput.closest(
+                ".form-group"
+              );
+
+            wrapper?.classList.remove(
+              "hidden"
+            );
           }
         }
+
+
+        markChanged();
       }
     );
   }
 
 
-  /* ==========================================================
-     INIT
-  ========================================================== */
+  /* ============================================================
+     BEFORE UNLOAD
+     ============================================================ */
+
+  function setupBeforeUnload() {
+
+    window.addEventListener(
+      "beforeunload",
+      (event) => {
+
+        if (!state.formChanged) {
+          return;
+        }
+
+        event.preventDefault();
+
+        event.returnValue = "";
+      }
+    );
+  }
+
+
+  /* ============================================================
+     INITIALIZE
+     ============================================================ */
 
   function init() {
 
@@ -1128,7 +1183,20 @@
     );
 
 
+    form.addEventListener(
+      "input",
+      markChanged
+    );
+
+
+    form.addEventListener(
+      "change",
+      markChanged
+    );
+
+
     if (titleInput) {
+
       titleInput.addEventListener(
         "input",
         updateCounters
@@ -1137,6 +1205,7 @@
 
 
     if (contentInput) {
+
       contentInput.addEventListener(
         "input",
         updateCounters
@@ -1153,6 +1222,15 @@
     }
 
 
+    if (mediaList) {
+
+      mediaList.addEventListener(
+        "click",
+        handleMediaClick
+      );
+    }
+
+
     if (copyTrackingButton) {
 
       copyTrackingButton.addEventListener(
@@ -1164,9 +1242,25 @@
 
     setupCategoryHelp();
 
+    setupBeforeUnload();
+
     updateCounters();
+
+    renumberMedia();
+
+
+    /*
+     * Если форма отправлена успешно,
+     * предупреждение beforeunload отключается.
+     */
+
+    state.formChanged = false;
   }
 
+
+  /* ============================================================
+     START
+     ============================================================ */
 
   if (
     document.readyState ===
@@ -1175,12 +1269,53 @@
 
     document.addEventListener(
       "DOMContentLoaded",
-      init
+      init,
+      { once: true }
     );
 
   } else {
 
     init();
   }
+
+
+  /* ============================================================
+     PUBLIC API
+     ============================================================ */
+
+  window.TajikOpportunitiesAdd = {
+
+    submit: handleSubmit,
+
+    validate,
+
+    collectPublication,
+
+    collectMedia,
+
+    addMedia: addMediaItem,
+
+    resetMedia: () => {
+
+      if (!mediaList) return;
+
+      const items =
+        mediaList.querySelectorAll(
+          ".media-item"
+        );
+
+      items.forEach(
+        (item, index) => {
+
+          if (index > 0) {
+            item.remove();
+          }
+        }
+      );
+
+      renumberMedia();
+    }
+
+  };
 
 })();
