@@ -4,15 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Страница не найдена — Tajik Opportunities</title>
+  <title>404 — Страница не найдена | Tajik Opportunities</title>
 
   <meta
     name="description"
-    content="Запрошенная страница не найдена на Tajik Opportunities."
+    content="Страница не найдена. Вернитесь на Tajik Opportunities и найдите вакансии, гранты, конкурсы, стажировки, обучение и другие возможности."
   >
 
   <meta name="robots" content="noindex,nofollow">
-
   <meta name="theme-color" content="#0f6b4f">
 
   <link
@@ -24,14 +23,98 @@
     rel="stylesheet"
     href="/css/style.css"
   >
+
+  <style>
+    .error-page {
+      min-height: 65vh;
+      display: flex;
+      align-items: center;
+    }
+
+    .error-page-card {
+      max-width: 760px;
+      margin: 0 auto;
+      text-align: center;
+      padding: 50px 28px;
+    }
+
+    .error-page-number {
+      font-size: clamp(80px, 18vw, 170px);
+      line-height: .85;
+      font-weight: 900;
+      letter-spacing: -8px;
+      margin-bottom: 18px;
+      opacity: .12;
+    }
+
+    .error-page-icon {
+      width: 72px;
+      height: 72px;
+      margin: 0 auto 22px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(15, 107, 79, .10);
+      font-size: 32px;
+    }
+
+    .error-page-card h1 {
+      margin: 12px auto 16px;
+      max-width: 680px;
+    }
+
+    .error-page-card p {
+      max-width: 620px;
+      margin: 0 auto;
+      line-height: 1.7;
+    }
+
+    .error-actions {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 30px;
+    }
+
+    .error-page-links {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .error-page-links a {
+      font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+      .error-page-card {
+        padding: 36px 18px;
+      }
+
+      .error-page-number {
+        font-size: 100px;
+        letter-spacing: -5px;
+      }
+
+      .error-actions {
+        flex-direction: column;
+      }
+
+      .error-actions .btn {
+        width: 100%;
+      }
+    }
+  </style>
 </head>
 
 <body>
 
-  <!-- ==========================================================
-       HEADER
-       ========================================================== -->
-
+  <!-- HEADER -->
   <header class="site-header">
     <div class="container header-inner">
 
@@ -56,27 +139,16 @@
         class="main-nav"
         aria-label="Основная навигация"
       >
-        <a href="/">
-          Главная
-        </a>
-
-        <a href="/add.html">
-          Предложить публикацию
-        </a>
-
-        <a href="/status.html">
-          Проверить статус
-        </a>
+        <a href="/">Главная</a>
+        <a href="/add.html">Предложить публикацию</a>
+        <a href="/status.html">Проверить статус</a>
       </nav>
 
     </div>
   </header>
 
 
-  <!-- ==========================================================
-       MAIN
-       ========================================================== -->
-
+  <!-- MAIN -->
   <main>
 
     <section class="section error-page">
@@ -85,7 +157,10 @@
 
         <div class="error-page-card">
 
-          <div class="error-page-number">
+          <div
+            class="error-page-number"
+            aria-hidden="true"
+          >
             404
           </div>
 
@@ -106,8 +181,10 @@
 
           <p>
             Возможно, ссылка устарела, адрес был введён неправильно
-            или эта страница больше не существует.
+            или публикация была удалена. Но на Tajik Opportunities
+            всё ещё много полезных возможностей.
           </p>
+
 
           <div class="error-actions">
 
@@ -127,6 +204,7 @@
 
           </div>
 
+
           <div class="error-page-links">
 
             <a href="/">
@@ -139,6 +217,12 @@
               Проверить статус заявки
             </a>
 
+            <span aria-hidden="true">•</span>
+
+            <a href="/saved.html">
+              Сохранённые
+            </a>
+
           </div>
 
         </div>
@@ -148,10 +232,7 @@
     </section>
 
 
-    <!-- ========================================================
-         TELEGRAM
-         ======================================================== -->
-
+    <!-- TELEGRAM -->
     <section class="section section-soft">
 
       <div class="container">
@@ -165,7 +246,7 @@
             </span>
 
             <h2>
-              Tajik Opportunities в Telegram
+              🇹🇯 Tajik Opportunities в Telegram
             </h2>
 
             <p>
@@ -175,6 +256,7 @@
             </p>
 
           </div>
+
 
           <div class="cta-actions">
 
@@ -207,10 +289,7 @@
   </main>
 
 
-  <!-- ==========================================================
-       FOOTER
-       ========================================================== -->
-
+  <!-- FOOTER -->
   <footer class="site-footer">
 
     <div class="container">
@@ -264,6 +343,10 @@
             Проверить статус
           </a>
 
+          <a href="/saved.html">
+            Сохранённые
+          </a>
+
         </div>
 
 
@@ -312,10 +395,7 @@
   </footer>
 
 
-  <!-- ==========================================================
-       TOAST
-       ========================================================== -->
-
+  <!-- TOAST -->
   <div
     id="toast"
     class="toast"
@@ -325,13 +405,13 @@
   ></div>
 
 
-  <!-- ==========================================================
-       SCRIPTS
-       ========================================================== -->
-
+  <!-- SCRIPT -->
   <script>
-    document.getElementById("currentYear").textContent =
-      new Date().getFullYear();
+    const yearElement = document.getElementById("currentYear");
+
+    if (yearElement) {
+      yearElement.textContent = new Date().getFullYear();
+    }
   </script>
 
 </body>
