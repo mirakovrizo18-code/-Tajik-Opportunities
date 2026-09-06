@@ -12,6 +12,13 @@ const NO_STORE = {
   "cache-control": "no-store"
 };
 
+
+/*
+ * ============================================================
+ * JSON RESPONSE
+ * ============================================================
+ */
+
 function json(data, status = 200, extra = {}) {
   return new Response(JSON.stringify(data), {
     status,
@@ -23,16 +30,26 @@ function json(data, status = 200, extra = {}) {
   });
 }
 
+
+/*
+ * ============================================================
+ * HELPERS
+ * ============================================================
+ */
+
 function clean(value, max = 5000) {
   return String(value ?? "")
     .trim()
     .slice(0, max);
 }
 
+
 function safeUrl(value) {
   const valueClean = clean(value, 1000);
 
-  if (!valueClean) return null;
+  if (!valueClean) {
+    return null;
+  }
 
   try {
     const url = new URL(valueClean);
@@ -47,9 +64,11 @@ function safeUrl(value) {
   }
 }
 
+
 function newId() {
   return crypto.randomUUID();
 }
+
 
 function trackingCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -61,6 +80,13 @@ function trackingCode() {
     .map((byte) => chars[byte % chars.length])
     .join("");
 }
+
+
+/*
+ * ============================================================
+ * BASE64
+ * ============================================================
+ */
 
 function base64UrlEncode(bytes) {
   let binary = "";
@@ -74,6 +100,7 @@ function base64UrlEncode(bytes) {
     .replace(/\//g, "_")
     .replace(/=+$/g, "");
 }
+
 
 function base64UrlDecode(value) {
   let normalized = value
@@ -91,6 +118,13 @@ function base64UrlDecode(value) {
     (char) => char.charCodeAt(0)
   );
 }
+
+
+/*
+ * ============================================================
+ * HMAC
+ * ============================================================
+ */
 
 async function hmac(
   value,
@@ -127,12 +161,20 @@ async function hmac(
   );
 }
 
+
+/*
+ * ============================================================
+ * ADMIN SESSION
+ * ============================================================
+ */
+
 async function createAdminSession(secret) {
   const expiresAt =
     Math.floor(Date.now() / 1000) +
     SESSION_SECONDS;
 
   const value = `admin.${expiresAt}`;
+
   const signature = await hmac(
     value,
     secret
@@ -140,6 +182,7 @@ async function createAdminSession(secret) {
 
   return `${value}.${signature}`;
 }
+
 
 async function isAdmin(request, env) {
   if (!env.ADMIN_PASSWORD) {
@@ -195,6 +238,13 @@ async function isAdmin(request, env) {
     return false;
   }
 }
+
+
+/*
+ * ============================================================
+ * VALIDATION
+ * ============================================================
+ */
 
 function validateSubmission(body) {
   const title = clean(body.title, 180);
@@ -253,6 +303,13 @@ function validateSubmission(body) {
   };
 }
 
+
+/*
+ * ============================================================
+ * PUBLIC POSTS
+ * ============================================================
+ */
+
 async function getPosts(env) {
   const result = await env.DB.prepare(
     `
@@ -268,12 +325,19 @@ async function getPosts(env) {
         published_at
       FROM posts
       ORDER BY published_at DESC
-      LIMIT 100
+      LIMIT 500
     `
   ).all();
 
   return result.results || [];
 }
+
+
+/*
+ * ============================================================
+ * CREATE SUBMISSION
+ * ============================================================
+ */
 
 async function createSubmission(
   request,
@@ -396,6 +460,13 @@ async function createSubmission(
   );
 }
 
+
+/*
+ * ============================================================
+ * SUBMISSION STATUS
+ * ============================================================
+ */
+
 async function getSubmissionStatus(
   request,
   env
@@ -456,6 +527,13 @@ async function getSubmissionStatus(
     NO_STORE
   );
 }
+
+
+/*
+ * ============================================================
+ * ADMIN LOGIN
+ * ============================================================
+ */
 
 async function adminLogin(
   request,
@@ -528,6 +606,13 @@ async function adminLogin(
   );
 }
 
+
+/*
+ * ============================================================
+ * ADMIN LOGOUT
+ * ============================================================
+ */
+
 async function adminLogout() {
   return json(
     {
@@ -546,6 +631,13 @@ async function adminLogout() {
     }
   );
 }
+
+
+/*
+ * ============================================================
+ * ADMIN SUBMISSIONS
+ * ============================================================
+ */
 
 async function adminSubmissions(
   request,
@@ -579,7 +671,7 @@ async function adminSubmissions(
         FROM submissions
         WHERE status = ?
         ORDER BY created_at DESC
-        LIMIT 100
+        LIMIT 500
       `
     )
       .bind(status)
@@ -595,6 +687,13 @@ async function adminSubmissions(
     NO_STORE
   );
 }
+
+
+/*
+ * ============================================================
+ * APPROVE SUBMISSION
+ * ============================================================
+ */
 
 async function approveSubmission(
   submissionId,
@@ -712,6 +811,13 @@ async function approveSubmission(
   }
 }
 
+
+/*
+ * ============================================================
+ * REJECT SUBMISSION
+ * ============================================================
+ */
+
 async function rejectSubmission(
   request,
   submissionId,
@@ -773,14 +879,367 @@ async function rejectSubmission(
   );
 }
 
+
+/*
+ * ============================================================
+ * ADMIN — ALL POSTS
+ * ============================================================
+ */
+
+async function adminPosts(
+  request,
+  env
+) {
+  const result =
+    await env.DB.prepare(
+      `
+        SELECT
+          id,
+          submission_id,
+          title,
+          content,
+          category,
+          image_url,
+          link_url,
+          contact,
+          author_name,
+          published_at
+        FROM posts
+        ORDER BY published_at DESC
+        LIMIT 500
+      `
+    )
+      .all();
+
+  return json(
+    {
+      ok: true,
+      posts:
+        result.results || []
+    },
+    200,
+    NO_STORE
+  );
+}
+
+
+/*
+ * ============================================================
+ * ADMIN — GET ONE POST
+ * ============================================================
+ */
+
+async function adminGetPost(
+  postId,
+  env
+) {
+  const post =
+    await env.DB.prepare(
+      `
+        SELECT
+          id,
+          submission_id,
+          title,
+          content,
+          category,
+          image_url,
+          link_url,
+          contact,
+          author_name,
+          published_at
+        FROM posts
+        WHERE id = ?
+      `
+    )
+      .bind(postId)
+      .first();
+
+  if (!post) {
+    return json(
+      {
+        ok: false,
+        error: "Пост не найден."
+      },
+      404,
+      NO_STORE
+    );
+  }
+
+  return json(
+    {
+      ok: true,
+      post
+    },
+    200,
+    NO_STORE
+  );
+}
+
+
+/*
+ * ============================================================
+ * ADMIN — UPDATE POST
+ * ============================================================
+ */
+
+async function adminUpdatePost(
+  request,
+  postId,
+  env
+) {
+  let body = {};
+
+  try {
+    body = await request.json();
+  } catch {
+    return json(
+      {
+        ok: false,
+        error: "Некорректные данные."
+      },
+      400,
+      NO_STORE
+    );
+  }
+
+  const title =
+    clean(body.title, 180);
+
+  const content =
+    clean(body.content, 12000);
+
+  const category =
+    clean(body.category, 80);
+
+  const authorName =
+    clean(body.author_name, 120);
+
+  const contact =
+    clean(body.contact, 300);
+
+  const imageUrl =
+    safeUrl(body.image_url);
+
+  const linkUrl =
+    safeUrl(body.link_url);
+
+  if (title.length < 5) {
+    return json(
+      {
+        ok: false,
+        error:
+          "Заголовок должен содержать минимум 5 символов."
+      },
+      400,
+      NO_STORE
+    );
+  }
+
+  if (content.length < 20) {
+    return json(
+      {
+        ok: false,
+        error:
+          "Описание должно содержать минимум 20 символов."
+      },
+      400,
+      NO_STORE
+    );
+  }
+
+  if (!category) {
+    return json(
+      {
+        ok: false,
+        error: "Укажите категорию."
+      },
+      400,
+      NO_STORE
+    );
+  }
+
+  const result =
+    await env.DB.prepare(
+      `
+        UPDATE posts
+        SET
+          title = ?,
+          content = ?,
+          category = ?,
+          image_url = ?,
+          link_url = ?,
+          contact = ?,
+          author_name = ?
+        WHERE id = ?
+      `
+    )
+      .bind(
+        title,
+        content,
+        category,
+        imageUrl,
+        linkUrl,
+        contact || null,
+        authorName || null,
+        postId
+      )
+      .run();
+
+  if (!result.meta.changes) {
+    return json(
+      {
+        ok: false,
+        error: "Пост не найден."
+      },
+      404,
+      NO_STORE
+    );
+  }
+
+  return json(
+    {
+      ok: true,
+      message:
+        "Пост успешно изменён."
+    },
+    200,
+    NO_STORE
+  );
+}
+
+
+/*
+ * ============================================================
+ * ADMIN — DELETE POST
+ * ============================================================
+ */
+
+async function adminDeletePost(
+  postId,
+  env
+) {
+  const post =
+    await env.DB.prepare(
+      `
+        SELECT id
+        FROM posts
+        WHERE id = ?
+      `
+    )
+      .bind(postId)
+      .first();
+
+  if (!post) {
+    return json(
+      {
+        ok: false,
+        error: "Пост не найден."
+      },
+      404,
+      NO_STORE
+    );
+  }
+
+  try {
+    await env.DB.prepare(
+      `
+        DELETE FROM posts
+        WHERE id = ?
+      `
+    )
+      .bind(postId)
+      .run();
+
+    return json(
+      {
+        ok: true,
+        message:
+          "Пост успешно удалён."
+      },
+      200,
+      NO_STORE
+    );
+  } catch (error) {
+    console.error(
+      "Delete post error:",
+      error
+    );
+
+    return json(
+      {
+        ok: false,
+        error:
+          "Не удалось удалить пост."
+      },
+      500,
+      NO_STORE
+    );
+  }
+}
+
+
+/*
+ * ============================================================
+ * ADMIN — STATISTICS
+ * ============================================================
+ */
+
+async function adminStats(env) {
+  const result =
+    await env.DB.prepare(
+      `
+        SELECT
+          (SELECT COUNT(*) FROM posts) AS total_posts,
+          (SELECT COUNT(*) FROM submissions WHERE status = 'pending') AS pending,
+          (SELECT COUNT(*) FROM submissions WHERE status = 'approved') AS approved,
+          (SELECT COUNT(*) FROM submissions WHERE status = 'rejected') AS rejected,
+          (SELECT COUNT(*) FROM submissions) AS total_submissions
+      `
+    )
+      .first();
+
+  return json(
+    {
+      ok: true,
+      stats: result || {
+        total_posts: 0,
+        pending: 0,
+        approved: 0,
+        rejected: 0,
+        total_submissions: 0
+      }
+    },
+    200,
+    NO_STORE
+  );
+}
+
+
+/*
+ * ============================================================
+ * API ROUTER
+ * ============================================================
+ */
+
 async function handleApi(
   request,
   env
 ) {
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
-  const path = url.pathname;
-  const method = request.method;
+  const path =
+    url.pathname;
+
+  const method =
+    request.method;
+
+
+  /*
+   * ----------------------------------------------------------
+   * PUBLIC POSTS
+   * ----------------------------------------------------------
+   */
 
   if (
     path === "/api/posts" &&
@@ -795,6 +1254,13 @@ async function handleApi(
     });
   }
 
+
+  /*
+   * ----------------------------------------------------------
+   * PUBLIC SUBMISSIONS
+   * ----------------------------------------------------------
+   */
+
   if (
     path === "/api/submissions" &&
     method === "POST"
@@ -804,6 +1270,7 @@ async function handleApi(
       env
     );
   }
+
 
   if (
     path === "/api/submissions/status" &&
@@ -815,7 +1282,22 @@ async function handleApi(
     );
   }
 
-  if (path.startsWith("/api/admin/")) {
+
+  /*
+   * ==========================================================
+   * ADMIN API
+   * ==========================================================
+   */
+
+  if (
+    path.startsWith("/api/admin/")
+  ) {
+
+
+    /*
+     * LOGIN
+     */
+
     if (
       path === "/api/admin/login" &&
       method === "POST"
@@ -826,12 +1308,24 @@ async function handleApi(
       );
     }
 
+
+    /*
+     * LOGOUT
+     */
+
     if (
       path === "/api/admin/logout" &&
       method === "POST"
     ) {
       return adminLogout();
     }
+
+
+    /*
+     * --------------------------------------------------------
+     * EVERYTHING BELOW REQUIRES ADMIN AUTHORIZATION
+     * --------------------------------------------------------
+     */
 
     const authorized =
       await isAdmin(
@@ -851,6 +1345,13 @@ async function handleApi(
       );
     }
 
+
+    /*
+     * --------------------------------------------------------
+     * CHECK AUTH
+     * --------------------------------------------------------
+     */
+
     if (
       path === "/api/admin/me" &&
       method === "GET"
@@ -865,6 +1366,27 @@ async function handleApi(
       );
     }
 
+
+    /*
+     * --------------------------------------------------------
+     * STATISTICS
+     * --------------------------------------------------------
+     */
+
+    if (
+      path === "/api/admin/stats" &&
+      method === "GET"
+    ) {
+      return adminStats(env);
+    }
+
+
+    /*
+     * --------------------------------------------------------
+     * ALL SUBMISSIONS
+     * --------------------------------------------------------
+     */
+
     if (
       path === "/api/admin/submissions" &&
       method === "GET"
@@ -874,6 +1396,13 @@ async function handleApi(
         env
       );
     }
+
+
+    /*
+     * --------------------------------------------------------
+     * APPROVE SUBMISSION
+     * --------------------------------------------------------
+     */
 
     const approveMatch =
       path.match(
@@ -890,6 +1419,13 @@ async function handleApi(
       );
     }
 
+
+    /*
+     * --------------------------------------------------------
+     * REJECT SUBMISSION
+     * --------------------------------------------------------
+     */
+
     const rejectMatch =
       path.match(
         /^\/api\/admin\/submissions\/([^/]+)\/reject$/
@@ -905,7 +1441,92 @@ async function handleApi(
         env
       );
     }
+
+
+    /*
+     * ========================================================
+     * POSTS MANAGEMENT
+     * ========================================================
+     */
+
+
+    /*
+     * ALL POSTS
+     */
+
+    if (
+      path === "/api/admin/posts" &&
+      method === "GET"
+    ) {
+      return adminPosts(
+        request,
+        env
+      );
+    }
+
+
+    /*
+     * SINGLE POST
+     */
+
+    const postMatch =
+      path.match(
+        /^\/api\/admin\/posts\/([^/]+)$/
+      );
+
+
+    /*
+     * GET SINGLE POST
+     */
+
+    if (
+      postMatch &&
+      method === "GET"
+    ) {
+      return adminGetPost(
+        postMatch[1],
+        env
+      );
+    }
+
+
+    /*
+     * UPDATE POST
+     */
+
+    if (
+      postMatch &&
+      method === "PUT"
+    ) {
+      return adminUpdatePost(
+        request,
+        postMatch[1],
+        env
+      );
+    }
+
+
+    /*
+     * DELETE POST
+     */
+
+    if (
+      postMatch &&
+      method === "DELETE"
+    ) {
+      return adminDeletePost(
+        postMatch[1],
+        env
+      );
+    }
   }
+
+
+  /*
+   * ==========================================================
+   * UNKNOWN API
+   * ==========================================================
+   */
 
   return json(
     {
@@ -917,18 +1538,23 @@ async function handleApi(
   );
 }
 
+
 /*
  * ============================================================
- * ОСНОВНОЙ WORKER
+ * MAIN WORKER
  * ============================================================
  */
 
 export default {
   async fetch(request, env) {
-    const url = new URL(request.url);
+    const url =
+      new URL(request.url);
+
 
     /*
+     * ----------------------------------------------------------
      * API
+     * ----------------------------------------------------------
      */
 
     if (
@@ -957,19 +1583,21 @@ export default {
       }
     }
 
+
     /*
-     * Статический сайт
-     *
-     * Сначала пробуем обычный путь.
+     * ----------------------------------------------------------
+     * STATIC WEBSITE
+     * ----------------------------------------------------------
      */
 
     let response =
-      await env.ASSETS.fetch(request);
+      await env.ASSETS.fetch(
+        request
+      );
+
 
     /*
-     * Если пользователь открыл главную
-     * страницу "/" и Assets не нашли её,
-     * явно запрашиваем index.html.
+     * Главная страница
      */
 
     if (
@@ -993,6 +1621,7 @@ export default {
           indexRequest
         );
     }
+
 
     return response;
   }
