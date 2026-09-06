@@ -2,172 +2,308 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <meta
-    name="robots"
-    content="noindex,nofollow"
-  >
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <title>Админ-панель — Tajik Opportunities</title>
 
-  <link
-    rel="stylesheet"
-    href="/css/style.css"
+  <meta
+    name="description"
+    content="Панель администратора Tajik Opportunities"
   >
 
+  <link rel="stylesheet" href="/css/style.css">
+
   <style>
-    [hidden] {
-      display: none !important;
+    :root {
+      --admin-bg: #f5f7fb;
+      --admin-card: #ffffff;
+      --admin-border: #e5e7eb;
+      --admin-text: #111827;
+      --admin-muted: #6b7280;
+      --admin-primary: #2563eb;
+      --admin-primary-hover: #1d4ed8;
+      --admin-success: #16a34a;
+      --admin-danger: #dc2626;
+      --admin-warning: #d97706;
+      --admin-dark: #111827;
+      --admin-radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      background: var(--admin-bg);
+      color: var(--admin-text);
+      font-family: Arial, Helvetica, sans-serif;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
     }
 
     .admin-page {
       min-height: 100vh;
-      padding: 24px 16px 50px;
-    }
-
-    .admin-container {
-      width: 100%;
-      max-width: 1200px;
-      margin: 0 auto;
     }
 
     .admin-header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: rgba(255, 255, 255, 0.96);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--admin-border);
+    }
+
+    .admin-header-inner {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 14px 20px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 25px;
-      flex-wrap: wrap;
     }
 
     .admin-brand {
       display: flex;
       align-items: center;
       gap: 12px;
+      min-width: 0;
     }
 
-    .admin-brand img {
-      width: 48px;
-      height: 48px;
-      object-fit: contain;
+    .admin-logo {
+      width: 46px;
+      height: 46px;
       border-radius: 12px;
+      object-fit: cover;
+      background: #eef2ff;
     }
 
-    .admin-brand h1 {
+    .admin-brand-text {
+      min-width: 0;
+    }
+
+    .admin-brand-title {
       margin: 0;
-      font-size: 24px;
+      font-size: 18px;
+      font-weight: 800;
     }
 
-    .admin-brand p {
+    .admin-brand-subtitle {
       margin: 3px 0 0;
-      opacity: .7;
-      font-size: 14px;
+      color: var(--admin-muted);
+      font-size: 13px;
     }
 
     .admin-header-actions {
       display: flex;
+      align-items: center;
       gap: 8px;
       flex-wrap: wrap;
+    }
+
+    .admin-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 28px 20px 50px;
+    }
+
+    .admin-login {
+      max-width: 460px;
+      margin: 70px auto;
+      background: var(--admin-card);
+      border: 1px solid var(--admin-border);
+      border-radius: 22px;
+      padding: 30px;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.06);
+    }
+
+    .admin-login h1 {
+      margin: 0 0 8px;
+      font-size: 26px;
+    }
+
+    .admin-login p {
+      margin: 0 0 24px;
+      color: var(--admin-muted);
+      line-height: 1.5;
+    }
+
+    .admin-form-group {
+      margin-bottom: 16px;
+    }
+
+    .admin-form-group label {
+      display: block;
+      margin-bottom: 7px;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .admin-input,
+    .admin-textarea,
+    .admin-select {
+      width: 100%;
+      border: 1px solid var(--admin-border);
+      border-radius: 11px;
+      background: #fff;
+      color: var(--admin-text);
+      padding: 12px 13px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .admin-input:focus,
+    .admin-textarea:focus,
+    .admin-select:focus {
+      border-color: var(--admin-primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+    }
+
+    .admin-textarea {
+      min-height: 180px;
+      resize: vertical;
     }
 
     .admin-button {
       border: 0;
       border-radius: 10px;
-      padding: 11px 16px;
-      cursor: pointer;
-      font-weight: 600;
-      background: #111827;
-      color: white;
-    }
-
-    .admin-button:hover {
-      opacity: .9;
-    }
-
-    .admin-button.secondary {
-      background: #e5e7eb;
-      color: #111827;
-    }
-
-    .admin-button.danger {
-      background: #dc2626;
-      color: white;
-    }
-
-    .admin-button.success {
-      background: #16a34a;
-      color: white;
+      padding: 10px 14px;
+      font-weight: 700;
+      transition: 0.15s;
     }
 
     .admin-button:disabled {
-      opacity: .6;
+      opacity: 0.55;
       cursor: not-allowed;
     }
 
-    .admin-login-card {
-      width: 100%;
-      max-width: 450px;
-      margin: 70px auto;
-      padding: 28px;
-      border-radius: 18px;
-      background: white;
-      box-shadow: 0 10px 35px rgba(0,0,0,.10);
+    .admin-button-primary {
+      background: var(--admin-primary);
+      color: #fff;
     }
 
-    .admin-login-card h2 {
-      margin-top: 0;
+    .admin-button-primary:hover:not(:disabled) {
+      background: var(--admin-primary-hover);
     }
 
-    .admin-login-card input {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 13px 14px;
-      border: 1px solid #d1d5db;
-      border-radius: 10px;
-      margin: 10px 0 14px;
-      font-size: 16px;
+    .admin-button-success {
+      background: var(--admin-success);
+      color: #fff;
     }
 
-    .admin-login-card button {
-      width: 100%;
+    .admin-button-danger {
+      background: var(--admin-danger);
+      color: #fff;
+    }
+
+    .admin-button-warning {
+      background: var(--admin-warning);
+      color: #fff;
+    }
+
+    .admin-button-dark {
+      background: var(--admin-dark);
+      color: #fff;
+    }
+
+    .admin-button-light {
+      background: #fff;
+      color: var(--admin-text);
+      border: 1px solid var(--admin-border);
+    }
+
+    .admin-button-light:hover:not(:disabled) {
+      background: #f9fafb;
     }
 
     .admin-message {
       margin-top: 12px;
+      border-radius: 10px;
+      padding: 11px 13px;
+      display: none;
+      line-height: 1.45;
       font-size: 14px;
     }
 
+    .admin-message.show {
+      display: block;
+    }
+
     .admin-message.error {
-      color: #dc2626;
+      color: #991b1b;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
     }
 
     .admin-message.success {
-      color: #16a34a;
+      color: #166534;
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+    }
+
+    .admin-dashboard {
+      display: none;
+    }
+
+    .admin-dashboard.active {
+      display: block;
+    }
+
+    .admin-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 22px;
+      flex-wrap: wrap;
+    }
+
+    .admin-title-row h1 {
+      margin: 0;
+      font-size: 30px;
+    }
+
+    .admin-title-row p {
+      margin: 5px 0 0;
+      color: var(--admin-muted);
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
     }
 
     .admin-stats {
       display: grid;
-      grid-template-columns:
-        repeat(5, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 14px;
       margin-bottom: 25px;
     }
 
     .admin-stat {
-      background: white;
-      border-radius: 14px;
+      background: var(--admin-card);
+      border: 1px solid var(--admin-border);
+      border-radius: var(--admin-radius);
       padding: 18px;
-      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+      min-width: 0;
     }
 
-    .admin-stat-title {
+    .admin-stat-label {
+      color: var(--admin-muted);
       font-size: 13px;
-      opacity: .65;
+      font-weight: 700;
       margin-bottom: 8px;
     }
 
@@ -177,465 +313,559 @@
     }
 
     .admin-section {
-      background: white;
-      border-radius: 18px;
-      padding: 20px;
-      margin-bottom: 22px;
-      box-shadow: 0 5px 20px rgba(0,0,0,.07);
+      background: var(--admin-card);
+      border: 1px solid var(--admin-border);
+      border-radius: var(--admin-radius);
+      margin-bottom: 24px;
+      overflow: hidden;
     }
 
     .admin-section-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--admin-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 12px;
       flex-wrap: wrap;
-      margin-bottom: 18px;
     }
 
     .admin-section-header h2 {
       margin: 0;
-      font-size: 21px;
+      font-size: 20px;
+    }
+
+    .admin-section-header p {
+      margin: 4px 0 0;
+      color: var(--admin-muted);
+      font-size: 13px;
     }
 
     .admin-filters {
       display: flex;
       gap: 7px;
-      flex-wrap: wrap;
-      margin-bottom: 18px;
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--admin-border);
+      overflow-x: auto;
     }
 
     .admin-filter {
-      border: 1px solid #d1d5db;
-      background: white;
-      color: #111827;
-      border-radius: 9px;
+      flex: 0 0 auto;
+      border: 1px solid var(--admin-border);
+      background: #fff;
+      color: var(--admin-text);
+      border-radius: 999px;
       padding: 8px 13px;
-      cursor: pointer;
+      font-size: 13px;
+      font-weight: 700;
     }
 
     .admin-filter.active {
-      background: #111827;
-      color: white;
-      border-color: #111827;
+      background: var(--admin-primary);
+      color: #fff;
+      border-color: var(--admin-primary);
     }
 
-    .admin-submission-card,
-    .admin-post-card {
-      border: 1px solid #e5e7eb;
+    .admin-content {
+      padding: 20px;
+    }
+
+    .admin-list {
+      display: grid;
+      gap: 14px;
+    }
+
+    .admin-card {
+      border: 1px solid var(--admin-border);
       border-radius: 14px;
-      padding: 16px;
-      margin-bottom: 12px;
+      padding: 17px;
+      background: #fff;
     }
 
-    .admin-submission-card {
+    .admin-card-top {
       display: flex;
       justify-content: space-between;
-      gap: 15px;
-      align-items: center;
+      gap: 14px;
+      align-items: flex-start;
     }
 
-    .admin-card-content h3,
-    .admin-post-info h3 {
-      margin: 0 0 8px;
+    .admin-card-title {
+      margin: 0;
       font-size: 18px;
+      line-height: 1.35;
     }
 
-    .admin-card-meta,
-    .admin-post-meta {
+    .admin-card-meta {
       display: flex;
-      gap: 10px;
       flex-wrap: wrap;
-      font-size: 13px;
-      opacity: .65;
-      margin-bottom: 8px;
-    }
-
-    .admin-status {
-      display: inline-block;
-      font-size: 12px;
-      padding: 5px 9px;
-      border-radius: 7px;
-      background: #f3f4f6;
-    }
-
-    .admin-card-actions,
-    .admin-post-actions {
-      display: flex;
       gap: 7px;
+      margin-top: 10px;
+    }
+
+    .admin-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      border-radius: 999px;
+      padding: 5px 9px;
+      background: #f3f4f6;
+      color: #374151;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .admin-badge.pending {
+      background: #fff7ed;
+      color: #9a3412;
+    }
+
+    .admin-badge.approved {
+      background: #f0fdf4;
+      color: #166534;
+    }
+
+    .admin-badge.rejected {
+      background: #fef2f2;
+      color: #991b1b;
+    }
+
+    .admin-badge.trash {
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    .admin-card-preview {
+      margin: 14px 0;
+      color: #4b5563;
+      line-height: 1.55;
+      white-space: pre-line;
+      display: -webkit-box;
+      -webkit-line-clamp: 4;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .admin-card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 13px;
+      border-top: 1px solid #f0f0f0;
+    }
+
+    .admin-empty,
+    .admin-loading,
+    .admin-error {
+      padding: 35px 15px;
+      text-align: center;
+      color: var(--admin-muted);
+    }
+
+    .admin-error {
+      color: #991b1b;
+    }
+
+    .admin-hidden {
+      display: none !important;
+    }
+
+    .admin-trash-tools {
+      display: flex;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
-    .admin-card-actions button,
-    .admin-post-actions button {
-      border: 0;
-      border-radius: 8px;
-      padding: 9px 12px;
-      cursor: pointer;
-      font-weight: 600;
-    }
-
-    .admin-view-button,
-    .admin-post-open {
-      background: #111827;
-      color: white;
-    }
-
-    .admin-post-edit {
-      background: #2563eb;
-      color: white;
-    }
-
-    .admin-post-delete {
-      background: #dc2626;
-      color: white;
-    }
-
-    .admin-post-main {
-      display: flex;
-      gap: 16px;
+    .admin-danger-zone {
       margin-bottom: 15px;
-    }
-
-    .admin-post-image {
-      width: 120px;
-      height: 90px;
-      object-fit: cover;
-      border-radius: 10px;
-      flex-shrink: 0;
-    }
-
-    .admin-post-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .admin-post-info p {
-      margin: 8px 0 0;
-      line-height: 1.5;
-      opacity: .8;
-    }
-
-    .admin-loading,
-    .admin-empty,
-    .admin-error {
-      padding: 25px;
-      text-align: center;
+      padding: 13px;
+      background: #fff7ed;
+      border: 1px solid #fed7aa;
       border-radius: 12px;
-      background: #f9fafb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
-    .admin-error {
-      color: #dc2626;
+    .admin-danger-zone strong {
+      color: #9a3412;
     }
 
     .admin-modal {
       position: fixed;
       inset: 0;
-      z-index: 9999;
-      background: rgba(0,0,0,.55);
-      display: flex;
+      z-index: 100;
+      display: none;
       align-items: center;
       justify-content: center;
-      padding: 15px;
+      padding: 20px;
+      background: rgba(0, 0, 0, 0.58);
     }
 
-    .admin-modal-content {
-      width: 100%;
-      max-width: 700px;
+    .admin-modal.active {
+      display: flex;
+    }
+
+    .admin-modal-box {
+      width: min(850px, 100%);
       max-height: 90vh;
-      overflow-y: auto;
-      background: white;
+      overflow: auto;
+      background: #fff;
       border-radius: 18px;
-      padding: 22px;
-      box-sizing: border-box;
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.25);
     }
 
     .admin-modal-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--admin-border);
       display: flex;
-      justify-content: space-between;
       align-items: center;
+      justify-content: space-between;
       gap: 10px;
-      margin-bottom: 15px;
+      position: sticky;
+      top: 0;
+      background: #fff;
+      z-index: 2;
     }
 
     .admin-modal-header h2 {
       margin: 0;
+      font-size: 20px;
     }
 
-    .admin-close {
+    .admin-modal-close {
+      border: 0;
+      background: #f3f4f6;
       width: 38px;
       height: 38px;
-      border: 0;
-      border-radius: 9px;
-      cursor: pointer;
+      border-radius: 10px;
       font-size: 20px;
-      background: #f3f4f6;
+      cursor: pointer;
     }
 
-    .admin-modal-actions {
+    .admin-modal-body {
+      padding: 20px;
+    }
+
+    .admin-modal-footer {
+      padding: 15px 20px;
+      border-top: 1px solid var(--admin-border);
       display: flex;
       justify-content: flex-end;
       gap: 8px;
       flex-wrap: wrap;
-      margin-top: 20px;
+      position: sticky;
+      bottom: 0;
+      background: #fff;
     }
 
-    .submission-text,
-    .post-details {
-      line-height: 1.65;
-    }
-
-    .post-edit-form {
+    .admin-detail {
       display: grid;
-      gap: 13px;
+      gap: 14px;
     }
 
-    .post-edit-form label {
+    .admin-detail-row {
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f0f0f0;
+    }
+
+    .admin-detail-label {
+      display: block;
+      color: var(--admin-muted);
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 5px;
+      text-transform: uppercase;
+    }
+
+    .admin-detail-value {
+      white-space: pre-wrap;
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
+    .admin-edit-grid {
       display: grid;
-      gap: 6px;
-      font-weight: 600;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
     }
 
-    .post-edit-form input,
-    .post-edit-form textarea,
-    .post-edit-form select {
-      width: 100%;
-      box-sizing: border-box;
-      padding: 11px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 9px;
-      font: inherit;
-    }
-
-    .post-edit-form textarea {
-      min-height: 180px;
-      resize: vertical;
+    .admin-edit-full {
+      grid-column: 1 / -1;
     }
 
     .admin-footer {
-      text-align: center;
-      opacity: .6;
-      padding-top: 15px;
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+      color: var(--admin-muted);
       font-size: 13px;
+      text-align: center;
     }
 
-    @media (max-width: 900px) {
+    @media (max-width: 1100px) {
       .admin-stats {
-        grid-template-columns:
-          repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
       }
     }
 
-    @media (max-width: 600px) {
-      .admin-page {
-        padding: 15px 10px 35px;
+    @media (max-width: 700px) {
+      .admin-header-inner {
+        align-items: flex-start;
       }
 
-      .admin-section {
+      .admin-header-actions {
+        width: 100%;
+      }
+
+      .admin-container {
+        padding: 20px 12px 40px;
+      }
+
+      .admin-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .admin-stat {
         padding: 14px;
       }
 
-      .admin-submission-card {
+      .admin-stat-value {
+        font-size: 23px;
+      }
+
+      .admin-section-header,
+      .admin-content {
+        padding: 15px;
+      }
+
+      .admin-card {
+        padding: 14px;
+      }
+
+      .admin-card-top {
         flex-direction: column;
-        align-items: stretch;
       }
 
-      .admin-post-main {
-        flex-direction: column;
+      .admin-edit-grid {
+        grid-template-columns: 1fr;
       }
 
-      .admin-post-image {
-        width: 100%;
-        height: 180px;
+      .admin-edit-full {
+        grid-column: auto;
       }
 
+      .admin-modal {
+        padding: 10px;
+      }
+
+      .admin-modal-box {
+        max-height: 95vh;
+      }
+    }
+
+    @media (max-width: 430px) {
       .admin-stats {
         grid-template-columns: 1fr 1fr;
+        gap: 8px;
       }
 
-      .admin-modal-content {
-        padding: 16px;
+      .admin-title-row h1 {
+        font-size: 24px;
+      }
+
+      .admin-button {
+        width: 100%;
+      }
+
+      .admin-card-actions .admin-button {
+        width: 100%;
+      }
+
+      .admin-header-actions .admin-button {
+        width: auto;
       }
     }
   </style>
 </head>
 
 <body>
+  <div class="admin-page">
 
-  <main class="admin-page">
-
-    <div class="admin-container">
-
-      <!-- =====================================================
-           HEADER
-      ====================================================== -->
-
-      <header class="admin-header">
+    <!-- =========================
+         HEADER
+    ========================== -->
+    <header class="admin-header">
+      <div class="admin-header-inner">
 
         <div class="admin-brand">
-
           <img
+            class="admin-logo"
             src="/images/logo.png"
             alt="Tajik Opportunities"
             onerror="this.style.display='none'"
           >
 
-          <div>
-            <h1>Панель администратора</h1>
-            <p>Tajik Opportunities</p>
+          <div class="admin-brand-text">
+            <h1 class="admin-brand-title">🇹🇯 Tajik Opportunities</h1>
+            <p class="admin-brand-subtitle">Панель администратора</p>
           </div>
-
         </div>
 
-        <div
-          class="admin-header-actions"
-          id="adminHeaderActions"
-        >
-
+        <div class="admin-header-actions">
           <a
             href="/"
-            class="admin-button secondary"
+            class="admin-button admin-button-light"
+            style="text-decoration:none;"
           >
-            На сайт
+            🌐 На сайт
           </a>
 
           <button
-            type="button"
-            class="admin-button"
-            id="adminRefresh"
-          >
-            🔄 Обновить
-          </button>
-
-          <button
-            type="button"
-            class="admin-button danger"
             id="adminLogout"
+            type="button"
+            class="admin-button admin-button-dark"
           >
-            Выйти
+            🚪 Выйти
           </button>
-
         </div>
 
-      </header>
+      </div>
+    </header>
 
+    <main class="admin-container">
 
-      <!-- =====================================================
+      <!-- =========================
            LOGIN
-      ====================================================== -->
+      ========================== -->
+      <section id="adminLogin" class="admin-login">
 
-      <section
-        id="adminLogin"
-        class="admin-login-card"
-      >
-
-        <h2>🔐 Вход администратора</h2>
+        <h1>🔐 Вход администратора</h1>
 
         <p>
-          Только администратор может управлять
-          публикациями и заявками.
+          Эта страница предназначена только для управления
+          публикациями и заявками Tajik Opportunities.
         </p>
 
-        <input
-          type="password"
-          id="adminPassword"
-          placeholder="Пароль администратора"
-          autocomplete="current-password"
-        >
+        <div class="admin-form-group">
+          <label for="adminPassword">
+            Пароль администратора
+          </label>
+
+          <input
+            id="adminPassword"
+            class="admin-input"
+            type="password"
+            autocomplete="current-password"
+            placeholder="Введите пароль"
+          >
+        </div>
 
         <button
-          type="button"
-          class="admin-button"
           id="adminLoginButton"
+          type="button"
+          class="admin-button admin-button-primary"
+          style="width:100%;"
         >
-          Войти
+          🔑 Войти в панель
         </button>
 
         <div
           id="adminLoginMessage"
           class="admin-message"
-          aria-live="polite"
+          role="alert"
         ></div>
 
       </section>
 
 
-      <!-- =====================================================
+      <!-- =========================
            DASHBOARD
-      ====================================================== -->
+      ========================== -->
+      <section id="adminDashboard" class="admin-dashboard">
 
-      <section
-        id="adminDashboard"
-        hidden
-      >
+        <div class="admin-title-row">
+          <div>
+            <h1>Панель управления</h1>
+            <p>
+              Здесь вы полностью управляете публикациями,
+              заявками и корзиной.
+            </p>
+          </div>
 
-        <!-- ===================================================
-             STATS
-        ==================================================== -->
+          <div class="admin-actions">
+            <button
+              id="adminRefresh"
+              type="button"
+              class="admin-button admin-button-primary"
+            >
+              🔄 Обновить всё
+            </button>
+          </div>
+        </div>
 
+
+        <!-- =========================
+             STATISTICS
+        ========================== -->
         <div class="admin-stats">
 
           <div class="admin-stat">
-            <div class="admin-stat-title">
-              Ожидают проверки
+            <div class="admin-stat-label">
+              ⏳ На модерации
             </div>
-
             <div
-              class="admin-stat-value"
               id="pendingCount"
+              class="admin-stat-value"
             >
               0
             </div>
           </div>
 
           <div class="admin-stat">
-            <div class="admin-stat-title">
-              Одобрено
+            <div class="admin-stat-label">
+              ✅ Опубликовано
             </div>
-
             <div
-              class="admin-stat-value"
               id="approvedCount"
+              class="admin-stat-value"
             >
               0
             </div>
           </div>
 
           <div class="admin-stat">
-            <div class="admin-stat-title">
-              Отклонено
+            <div class="admin-stat-label">
+              ❌ Отклонено
             </div>
-
             <div
-              class="admin-stat-value"
               id="rejectedCount"
+              class="admin-stat-value"
             >
               0
             </div>
           </div>
 
           <div class="admin-stat">
-            <div class="admin-stat-title">
-              Опубликованные посты
+            <div class="admin-stat-label">
+              📝 Всего публикаций
             </div>
-
             <div
-              class="admin-stat-value"
               id="totalCount"
+              class="admin-stat-value"
             >
               0
             </div>
           </div>
 
           <div class="admin-stat">
-            <div class="admin-stat-title">
-              Всего заявок
+            <div class="admin-stat-label">
+              🗑️ В корзине
             </div>
-
             <div
+              id="trashCount"
               class="admin-stat-value"
-              id="totalSubmissionsCount"
             >
               0
             </div>
@@ -644,18 +874,26 @@
         </div>
 
 
-        <!-- ===================================================
-             ЗАЯВКИ
-        ==================================================== -->
-
+        <!-- =========================
+             SUBMISSIONS
+        ========================== -->
         <section class="admin-section">
 
           <div class="admin-section-header">
+            <div>
+              <h2>📥 Заявки и публикации</h2>
+              <p>
+                Проверяйте новые заявки перед публикацией.
+              </p>
+            </div>
 
-            <h2>
-              📥 Заявки пользователей
-            </h2>
-
+            <button
+              id="adminRefresh"
+              type="button"
+              class="admin-button admin-button-light"
+            >
+              🔄 Обновить
+            </button>
           </div>
 
           <div class="admin-filters">
@@ -665,7 +903,7 @@
               class="admin-filter active"
               data-admin-filter="pending"
             >
-              Ожидают
+              ⏳ На модерации
             </button>
 
             <button
@@ -673,7 +911,7 @@
               class="admin-filter"
               data-admin-filter="approved"
             >
-              Одобрены
+              ✅ Одобренные
             </button>
 
             <button
@@ -681,60 +919,83 @@
               class="admin-filter"
               data-admin-filter="rejected"
             >
-              Отклонены
+              ❌ Отклонённые
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-admin-filter="all"
+            >
+              📋 Все
             </button>
 
           </div>
 
-          <div
-            id="submissionsLoading"
-            class="admin-loading"
-            hidden
-          >
-            Загружаем заявки...
+          <div class="admin-content">
+
+            <div
+              id="submissionsLoading"
+              class="admin-loading"
+            >
+              ⏳ Загружаем заявки...
+            </div>
+
+            <div
+              id="submissionsError"
+              class="admin-error admin-hidden"
+            ></div>
+
+            <div
+              id="submissionsEmpty"
+              class="admin-empty admin-hidden"
+            >
+              📭 Здесь пока ничего нет.
+            </div>
+
+            <div
+              id="submissionsList"
+              class="admin-list"
+            ></div>
+
           </div>
-
-          <div
-            id="submissionsError"
-            class="admin-error"
-            hidden
-          ></div>
-
-          <div
-            id="submissionsEmpty"
-            class="admin-empty"
-            hidden
-          >
-            Заявок нет.
-          </div>
-
-          <div
-            id="submissionsList"
-          ></div>
 
         </section>
 
 
-        <!-- ===================================================
-             ВСЕ ПОСТЫ
-        ==================================================== -->
-
+        <!-- =========================
+             PUBLISHED POSTS
+        ========================== -->
         <section class="admin-section">
 
           <div class="admin-section-header">
+            <div>
+              <h2>📰 Опубликованные публикации</h2>
+              <p>
+                Просмотр, редактирование и перемещение публикаций
+                в корзину.
+              </p>
+            </div>
 
-            <h2>
-              📰 Все опубликованные посты
-            </h2>
+            <div class="admin-actions">
 
-            <button
-              type="button"
-              class="admin-button"
-              id="adminPostsRefresh"
-            >
-              🔄 Обновить посты
-            </button>
+              <button
+                id="adminPostsRefresh"
+                type="button"
+                class="admin-button admin-button-light"
+              >
+                🔄 Обновить
+              </button>
 
+              <button
+                id="trashAllPostsButton"
+                type="button"
+                class="admin-button admin-button-warning"
+              >
+                🗑️ Переместить все в корзину
+              </button>
+
+            </div>
           </div>
 
           <div class="admin-filters">
@@ -744,408 +1005,454 @@
               class="admin-filter active"
               data-post-filter="all"
             >
-              Все
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter"
-              data-post-filter="Вакансии"
-            >
-              Вакансии
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter"
-              data-post-filter="События"
-            >
-              События
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter"
-              data-post-filter="Новости"
-            >
-              Новости
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter"
-              data-post-filter="Образование"
-            >
-              Образование
-            </button>
-
-            <button
-              type="button"
-              class="admin-filter"
-              data-post-filter="Другое"
-            >
-              Другое
+              📋 Все
             </button>
 
           </div>
 
-          <div
-            id="adminPostsLoading"
-            class="admin-loading"
-            hidden
-          >
-            Загружаем посты...
+          <div class="admin-content">
+
+            <div
+              id="adminPostsLoading"
+              class="admin-loading"
+            >
+              ⏳ Загружаем публикации...
+            </div>
+
+            <div
+              id="adminPostsError"
+              class="admin-error admin-hidden"
+            ></div>
+
+            <div
+              id="adminPostsEmpty"
+              class="admin-empty admin-hidden"
+            >
+              📭 Опубликованных публикаций пока нет.
+            </div>
+
+            <div
+              id="adminPostsList"
+              class="admin-list"
+            ></div>
+
           </div>
-
-          <div
-            id="adminPostsError"
-            class="admin-error"
-            hidden
-          ></div>
-
-          <div
-            id="adminPostsEmpty"
-            class="admin-empty"
-            hidden
-          >
-            Опубликованных постов пока нет.
-          </div>
-
-          <div
-            id="adminPostsList"
-          ></div>
 
         </section>
 
+
+        <!-- =========================
+             TRASH
+        ========================== -->
+        <section class="admin-section">
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2>🗑️ Корзина</h2>
+              <p>
+                Здесь находятся удалённые публикации
+                и отклонённые заявки.
+              </p>
+            </div>
+
+            <div class="admin-trash-tools">
+
+              <button
+                id="adminTrashRefresh"
+                type="button"
+                class="admin-button admin-button-light"
+              >
+                🔄 Обновить
+              </button>
+
+              <button
+                id="trashEmptyButton"
+                type="button"
+                class="admin-button admin-button-danger"
+              >
+                🧹 Очистить всё из корзины
+              </button>
+
+            </div>
+
+          </div>
+
+          <div class="admin-filters">
+
+            <button
+              type="button"
+              class="admin-filter active"
+              data-trash-filter="all"
+            >
+              📋 Всё
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-trash-filter="posts"
+            >
+              📰 Публикации
+            </button>
+
+            <button
+              type="button"
+              class="admin-filter"
+              data-trash-filter="submissions"
+            >
+              📥 Отклонённые заявки
+            </button>
+
+          </div>
+
+          <div class="admin-content">
+
+            <div class="admin-danger-zone">
+              <div>
+                <strong>⚠️ Внимание:</strong>
+                удаление из корзины является окончательным.
+              </div>
+            </div>
+
+            <div
+              id="trashLoading"
+              class="admin-loading"
+            >
+              ⏳ Загружаем корзину...
+            </div>
+
+            <div
+              id="trashError"
+              class="admin-error admin-hidden"
+            ></div>
+
+            <div
+              id="trashEmpty"
+              class="admin-empty admin-hidden"
+            >
+              🗑️ Корзина пуста.
+            </div>
+
+            <div
+              id="trashList"
+              class="admin-list"
+            ></div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =========================
+             ADDITIONAL STAT
+        ========================== -->
+        <div
+          style="
+            color:#6b7280;
+            font-size:13px;
+            text-align:center;
+            margin-top:10px;
+          "
+        >
+          Всего заявок:
+          <strong id="totalSubmissionsCount">0</strong>
+        </div>
+
       </section>
 
-      <footer class="admin-footer">
-        Tajik Opportunities — Панель администратора
-      </footer>
-
-    </div>
-
-  </main>
+    </main>
 
 
-  <!-- =======================================================
-       MODAL: ЗАЯВКА
-  ======================================================== -->
+    <!-- =========================
+         SUBMISSION MODAL
+    ========================== -->
+    <div
+      id="submissionModal"
+      class="admin-modal"
+      aria-hidden="true"
+    >
 
-  <div
-    id="submissionModal"
-    class="admin-modal"
-    hidden
-  >
+      <div class="admin-modal-box">
 
-    <div class="admin-modal-content">
+        <div class="admin-modal-header">
 
-      <div class="admin-modal-header">
-
-        <h2>
-          Заявка
-        </h2>
-
-        <button
-          type="button"
-          class="admin-close"
-          id="submissionClose"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div
-        id="submissionModalBody"
-      ></div>
-
-      <div class="admin-modal-actions">
-
-        <button
-          type="button"
-          class="admin-button secondary"
-          id="submissionCancel"
-        >
-          Закрыть
-        </button>
-
-        <button
-          type="button"
-          class="admin-button danger"
-          id="submissionReject"
-        >
-          Отклонить
-        </button>
-
-        <button
-          type="button"
-          class="admin-button success"
-          id="submissionApprove"
-        >
-          Опубликовать
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =======================================================
-       MODAL: ПРОСМОТР ПОСТА
-  ======================================================== -->
-
-  <div
-    id="postModal"
-    class="admin-modal"
-    hidden
-  >
-
-    <div class="admin-modal-content">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          Просмотр поста
-        </h2>
-
-        <button
-          type="button"
-          class="admin-close"
-          id="postModalClose"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div
-        id="postModalBody"
-      ></div>
-
-      <div class="admin-modal-actions">
-
-        <button
-          type="button"
-          class="admin-button secondary"
-          id="postModalCancel"
-        >
-          Закрыть
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =======================================================
-       MODAL: РЕДАКТИРОВАНИЕ ПОСТА
-  ======================================================== -->
-
-  <div
-    id="postEditModal"
-    class="admin-modal"
-    hidden
-  >
-
-    <div class="admin-modal-content">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          ✏️ Редактирование поста
-        </h2>
-
-        <button
-          type="button"
-          class="admin-close"
-          id="postEditClose"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <form
-        id="postEditForm"
-        class="post-edit-form"
-      >
-
-        <label>
-          Заголовок
-
-          <input
-            type="text"
-            id="editPostTitle"
-            maxlength="180"
-            required
-          >
-        </label>
-
-        <label>
-          Категория
-
-          <select
-            id="editPostCategory"
-            required
-          >
-            <option value="">
-              Выберите категорию
-            </option>
-
-            <option value="Вакансии">
-              Вакансии
-            </option>
-
-            <option value="События">
-              События
-            </option>
-
-            <option value="Новости">
-              Новости
-            </option>
-
-            <option value="Образование">
-              Образование
-            </option>
-
-            <option value="Другое">
-              Другое
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Описание
-
-          <textarea
-            id="editPostContent"
-            maxlength="12000"
-            required
-          ></textarea>
-        </label>
-
-        <label>
-          Ссылка на изображение
-
-          <input
-            type="url"
-            id="editPostImage"
-            placeholder="https://..."
-          >
-        </label>
-
-        <label>
-          Ссылка поста
-
-          <input
-            type="url"
-            id="editPostLink"
-            placeholder="https://..."
-          >
-        </label>
-
-        <label>
-          Контакт
-
-          <input
-            type="text"
-            id="editPostContact"
-            maxlength="300"
-          >
-        </label>
-
-        <label>
-          Автор
-
-          <input
-            type="text"
-            id="editPostAuthor"
-            maxlength="120"
-          >
-        </label>
-
-        <div class="admin-modal-actions">
+          <h2>📄 Просмотр заявки</h2>
 
           <button
+            id="submissionClose"
             type="button"
-            class="admin-button secondary"
-            id="postEditCancel"
+            class="admin-modal-close"
+            aria-label="Закрыть"
           >
-            Отмена
-          </button>
-
-          <button
-            type="submit"
-            class="admin-button success"
-            id="postEditSave"
-          >
-            💾 Сохранить изменения
+            ×
           </button>
 
         </div>
 
-      </form>
+        <div
+          id="submissionModalBody"
+          class="admin-modal-body"
+        ></div>
+
+        <div class="admin-modal-footer">
+
+          <button
+            id="submissionCancel"
+            type="button"
+            class="admin-button admin-button-light"
+          >
+            Закрыть
+          </button>
+
+          <button
+            id="submissionReject"
+            type="button"
+            class="admin-button admin-button-danger"
+          >
+            ❌ Отклонить
+          </button>
+
+          <button
+            id="submissionApprove"
+            type="button"
+            class="admin-button admin-button-success"
+          >
+            ✅ Одобрить и опубликовать
+          </button>
+
+        </div>
+
+      </div>
 
     </div>
+
+
+    <!-- =========================
+         POST VIEW MODAL
+    ========================== -->
+    <div
+      id="postModal"
+      class="admin-modal"
+      aria-hidden="true"
+    >
+
+      <div class="admin-modal-box">
+
+        <div class="admin-modal-header">
+
+          <h2>📰 Публикация</h2>
+
+          <button
+            id="postModalClose"
+            type="button"
+            class="admin-modal-close"
+            aria-label="Закрыть"
+          >
+            ×
+          </button>
+
+        </div>
+
+        <div
+          id="postModalBody"
+          class="admin-modal-body"
+        ></div>
+
+        <div class="admin-modal-footer">
+
+          <button
+            id="postModalCancel"
+            type="button"
+            class="admin-button admin-button-light"
+          >
+            Закрыть
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+
+
+    <!-- =========================
+         EDIT POST MODAL
+    ========================== -->
+    <div
+      id="postEditModal"
+      class="admin-modal"
+      aria-hidden="true"
+    >
+
+      <div class="admin-modal-box">
+
+        <div class="admin-modal-header">
+
+          <h2>✏️ Редактировать публикацию</h2>
+
+          <button
+            id="postEditClose"
+            type="button"
+            class="admin-modal-close"
+            aria-label="Закрыть"
+          >
+            ×
+          </button>
+
+        </div>
+
+        <form id="postEditForm">
+
+          <div class="admin-modal-body">
+
+            <div class="admin-edit-grid">
+
+              <div class="admin-form-group admin-edit-full">
+                <label for="editPostTitle">
+                  Заголовок
+                </label>
+
+                <input
+                  id="editPostTitle"
+                  class="admin-input"
+                  type="text"
+                  maxlength="200"
+                  required
+                >
+              </div>
+
+
+              <div class="admin-form-group">
+                <label for="editPostCategory">
+                  Категория
+                </label>
+
+                <input
+                  id="editPostCategory"
+                  class="admin-input"
+                  type="text"
+                  maxlength="100"
+                  placeholder="Вакансии, Новости..."
+                >
+              </div>
+
+
+              <div class="admin-form-group">
+                <label for="editPostAuthor">
+                  Автор
+                </label>
+
+                <input
+                  id="editPostAuthor"
+                  class="admin-input"
+                  type="text"
+                  maxlength="100"
+                >
+              </div>
+
+
+              <div class="admin-form-group admin-edit-full">
+                <label for="editPostContent">
+                  Текст публикации
+                </label>
+
+                <textarea
+                  id="editPostContent"
+                  class="admin-textarea"
+                  maxlength="50000"
+                  required
+                ></textarea>
+              </div>
+
+
+              <div class="admin-form-group">
+                <label for="editPostImage">
+                  Ссылка на изображение
+                </label>
+
+                <input
+                  id="editPostImage"
+                  class="admin-input"
+                  type="url"
+                  placeholder="https://..."
+                >
+              </div>
+
+
+              <div class="admin-form-group">
+                <label for="editPostLink">
+                  Ссылка публикации
+                </label>
+
+                <input
+                  id="editPostLink"
+                  class="admin-input"
+                  type="url"
+                  placeholder="https://..."
+                >
+              </div>
+
+
+              <div class="admin-form-group admin-edit-full">
+                <label for="editPostContact">
+                  Контакт
+                </label>
+
+                <input
+                  id="editPostContact"
+                  class="admin-input"
+                  type="text"
+                  maxlength="500"
+                  placeholder="Телефон, Telegram, email..."
+                >
+              </div>
+
+            </div>
+
+          </div>
+
+          <div class="admin-modal-footer">
+
+            <button
+              id="postEditCancel"
+              type="button"
+              class="admin-button admin-button-light"
+            >
+              Отмена
+            </button>
+
+            <button
+              id="postEditSave"
+              type="submit"
+              class="admin-button admin-button-success"
+            >
+              💾 Сохранить изменения
+            </button>
+
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+
+    <footer class="admin-footer">
+      🇹🇯 Tajik Opportunities · Панель администратора
+    </footer>
 
   </div>
 
 
-  <!-- =======================================================
-       SCRIPTS
-  ======================================================== -->
-
+  <!--
+    Основные скрипты сайта.
+    app.js подключается первым,
+    admin.js — после него.
+  -->
   <script src="/js/app.js"></script>
   <script src="/js/admin.js"></script>
 
-  <script>
-    /*
-     * Дополнительные кнопки страницы администратора.
-     * Основная логика находится в /js/admin.js
-     */
-
-    document.addEventListener(
-      "DOMContentLoaded",
-      () => {
-
-        const refreshPosts =
-          document.getElementById(
-            "adminPostsRefresh"
-          );
-
-        if (refreshPosts) {
-
-          refreshPosts.addEventListener(
-            "click",
-            async () => {
-
-              if (
-                typeof loadPosts ===
-                "function"
-              ) {
-                await loadPosts();
-              }
-
-              if (
-                typeof loadStats ===
-                "function"
-              ) {
-                await loadStats();
-              }
-
-            }
-          );
-
-        }
-
-      }
-    );
-  </script>
-
 </body>
-        </html>
+</html>
