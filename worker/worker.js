@@ -11,7 +11,9 @@
    - User only provides a name
 
    ADMIN:
-   - Full moderation
+   - One-time password login
+   - Persistent secure admin session
+   - Full super_admin access
    - Publications
    - Users/submitters
    - Admin chat
@@ -24,6 +26,26 @@ const VERSION = "2026.09.07";
 
 const SITE_NAME = "Tajik Opportunities";
 const COOKIE_NAME = "to_admin";
+
+/*
+ * ADMIN PASSWORD
+ *
+ * Пользователь вводит этот пароль только на странице
+ * входа администратора.
+ *
+ * Пароль НЕ записывается в cookie.
+ * В cookie хранится только подписанная временная сессия.
+ */
+const ADMIN_PASSWORD = "mirakiv_o4";
+
+/*
+ * Срок административной сессии:
+ * 30 дней.
+ *
+ * После успешного входа повторно пароль
+ * в течение этого периода не спрашивается.
+ */
+const ADMIN_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 const ALLOWED_METHODS = [
   "GET",
@@ -199,6 +221,22 @@ async function handleApi(request, env, ctx) {
   }
 
   /* ----------------------------------------------------------
+     ADMIN LOGIN
+  ---------------------------------------------------------- */
+
+  if (path === "/api/admin/login") {
+    return handleAdminLogin(request, env);
+  }
+
+  /* ----------------------------------------------------------
+     ADMIN LOGOUT
+  ---------------------------------------------------------- */
+
+  if (path === "/api/admin/logout") {
+    return handleAdminLogout(request);
+  }
+
+  /* ----------------------------------------------------------
      ADMIN
   ---------------------------------------------------------- */
 
@@ -253,6 +291,323 @@ async function handleApi(request, env, ctx) {
 }
 
 /* ============================================================
+   ADMIN LOGIN
+============================================================ */
+
+async function handleAdminLogin(request, env) {
+  if (request.method !== "POST") {
+    return json(
+      {
+        ok: false,
+        error: "METHOD_NOT_ALLOWED"
+      },
+      405
+    );
+  }
+
+  let body;
+
+  try {
+    body = await request.json();
+  } catch {
+    return json(
+      {
+        ok: false,
+        error: "INVALID_JSON",
+        message: "Неверный формат запроса."
+      },
+      400
+    );
+  }
+
+  const password = String(
+    body?.password ||
+    body?.pass ||
+    body?.admin_password ||
+    ""
+  ).trim();
+
+  if (!password) {
+    return json(
+      {
+        ok: false,
+        error: "PASSWORD_REQUIRED",
+        message: "Введите пароль администратора."
+      },
+      400
+    );
+  }
+
+  if (!constantTimeEqual(password, ADMIN_PASSWORD)) {
+    return json(
+      {
+        ok: false,
+        error: "INVALID_ADMIN_PASSWORD",
+        message: "Неверный пароль администратора."
+      },
+      401
+    );
+  }
+
+  const expiresAt =
+    Date.now() +
+    ADMIN_SESSION_MAX_AGE * 1000;
+
+  const token = await createAdminToken(
+    ADMIN_PASSWORD,
+    expiresAt
+  );
+
+  /*
+   * В cookie НЕ хранится пароль.
+   *
+   * HttpOnly:
+   * JavaScript страницы не может прочитать cookie.
+   *
+   * Secure:
+   * cookie отправляется только по HTTPS.
+
+   * SameSite=Lax:
+   * защищает от большинства нежелательных
+   * cross-site запросов.
+   */
+  const cookie =
+    `${COOKIE_NAME}=${encodeURIComponent(token)}; ` +
+    `Max-Age=${ADMIN_SESSION_MAX_AGE}; ` +
+    `Path=/; ` +
+    `HttpOnly; ` +
+    `Secure; ` +
+    `SameSite=Lax`;
+
+  return json(
+    {
+      ok: true,
+      success: true,
+
+      authenticated: true,
+
+      admin: {
+        id: "key-admin",
+        name: "Главный администратор",
+        username: "admin",
+        role: "super_admin",
+        permissions: ["*"],
+        is_active: true
+      },
+
+      expires_at:
+        new Date(expiresAt).toISOString(),
+
+      message:
+        "Вход администратора выполнен."
+    },
+    200,
+    {
+      "Set-Cookie": cookie
+    }
+  );
+}
+
+/* ============================================================
+   ADMIN LOGOUT
+============================================================ */
+
+async function handleAdminLogout(request) {
+  if (
+    request.method !== "POST" &&
+    request.method !== "GET"
+  ) {
+    return json(
+      {
+        ok: false,
+        error: "METHOD_NOT_ALLOWED"
+      },
+      405
+    );
+  }
+
+  return json(
+    {
+      ok: true,
+      success: true,
+      authenticated: false,
+      message:
+        "Вы вышли из панели администратора."
+    },
+    200,
+    {
+      "Set-Cookie":
+        `${COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`
+    }
+  );
+}
+
+/* ============================================================
+   ADMIN TOKEN
+============================================================ */
+
+async function createAdminToken(
+  password,
+  expiresAt
+) {
+  const payload =
+    `tajik-opportunities-admin.${expiresAt}`;
+
+  const signature =
+    await hmacSign(
+      password,
+      payload
+    );
+
+  return `${expiresAt}.${signature}`;
+}
+
+async function verifyAdminToken(
+  token,
+  password
+) {
+  if (!token) {
+    return false;
+  }
+
+  const parts =
+    String(token).split(".");
+
+  if (parts.length !== 2) {
+    return false;
+  }
+
+  const expiresAt =
+    Number(parts[0]);
+
+  const signature =
+    parts[1];
+
+  if (
+    !Number.isFinite(expiresAt) ||
+    !signature
+  ) {
+    return false;
+  }
+
+  if (
+    Date.now() > expiresAt
+  ) {
+    return false;
+  }
+
+  const payload =
+    `tajik-opportunities-admin.${expiresAt}`;
+
+  const expected =
+    await hmacSign(
+      password,
+      payload
+    );
+
+  return constantTimeEqual(
+    signature,
+    expected
+  );
+}
+
+async function hmacSign(
+  secret,
+  message
+) {
+  const encoder =
+    new TextEncoder();
+
+  const key =
+    await crypto.subtle.importKey(
+      "raw",
+      encoder.encode(secret),
+      {
+        name: "HMAC",
+        hash: "SHA-256"
+      },
+      false,
+      ["sign"]
+    );
+
+  const signature =
+    await crypto.subtle.sign(
+      "HMAC",
+      key,
+      encoder.encode(message)
+    );
+
+  return arrayBufferToHex(
+    signature
+  );
+}
+
+function arrayBufferToHex(
+  buffer
+) {
+  return Array.from(
+    new Uint8Array(buffer)
+  )
+    .map(
+      byte =>
+        byte
+          .toString(16)
+          .padStart(2, "0")
+    )
+    .join("");
+}
+
+function getCookie(
+  request,
+  name
+) {
+  const header =
+    request.headers.get("Cookie");
+
+  if (!header) {
+    return null;
+  }
+
+  const cookies =
+    header.split(";");
+
+  for (
+    const item of cookies
+  ) {
+    const index =
+      item.indexOf("=");
+
+    if (index === -1) {
+      continue;
+    }
+
+    const key =
+      item
+        .slice(0, index)
+        .trim();
+
+    if (key !== name) {
+      continue;
+    }
+
+    const value =
+      item
+        .slice(index + 1)
+        .trim();
+
+    try {
+      return decodeURIComponent(
+        value
+      );
+    } catch {
+      return value;
+    }
+  }
+
+  return null;
+}
+
+/* ============================================================
    PUBLICATIONS
 ============================================================ */
 
@@ -291,86 +646,141 @@ async function handlePublications(request, env) {
 async function listPublications(request, env) {
   const url = new URL(request.url);
 
-  const category = clean(url.searchParams.get("category"));
-  const city = clean(url.searchParams.get("city"));
+  const category = clean(
+    url.searchParams.get("category")
+  );
+
+  const city = clean(
+    url.searchParams.get("city")
+  );
+
   const status =
-    clean(url.searchParams.get("status")) || "published";
+    clean(
+      url.searchParams.get("status")
+    ) || "published";
 
   const search =
-    clean(url.searchParams.get("search")) ||
-    clean(url.searchParams.get("q"));
+    clean(
+      url.searchParams.get("search")
+    ) ||
+    clean(
+      url.searchParams.get("q")
+    );
 
   const author =
-    clean(url.searchParams.get("author")) ||
-    clean(url.searchParams.get("name"));
+    clean(
+      url.searchParams.get("author")
+    ) ||
+    clean(
+      url.searchParams.get("name")
+    );
 
-  const limit = clampNumber(
-    url.searchParams.get("limit"),
-    1,
-    100,
-    30
-  );
+  const limit =
+    clampNumber(
+      url.searchParams.get("limit"),
+      1,
+      100,
+      30
+    );
 
-  const offset = clampNumber(
-    url.searchParams.get("offset"),
-    0,
-    100000,
-    0
-  );
+  const offset =
+    clampNumber(
+      url.searchParams.get("offset"),
+      0,
+      100000,
+      0
+    );
 
-  const schema = await getTableSchema(
-    env.DB,
-    "publications"
-  );
+  const schema =
+    await getTableSchema(
+      env.DB,
+      "publications"
+    );
 
   if (!schema.length) {
     return json(
       {
         ok: false,
-        error: "PUBLICATIONS_TABLE_NOT_FOUND"
+        error:
+          "PUBLICATIONS_TABLE_NOT_FOUND"
       },
       500
     );
   }
 
-  const columns = new Set(
-    schema.map(x => x.name)
-  );
+  const columns =
+    new Set(
+      schema.map(
+        x => x.name
+      )
+    );
 
   const where = [];
   const params = [];
 
-  if (columns.has("status") && status !== "all") {
-    where.push("status = ?");
+  if (
+    columns.has("status") &&
+    status !== "all"
+  ) {
+    where.push(
+      "status = ?"
+    );
+
     params.push(status);
   }
 
-  if (category && columns.has("category")) {
-    where.push("category = ?");
+  if (
+    category &&
+    columns.has("category")
+  ) {
+    where.push(
+      "category = ?"
+    );
+
     params.push(category);
   }
 
-  if (city && columns.has("city")) {
-    where.push("city = ?");
+  if (
+    city &&
+    columns.has("city")
+  ) {
+    where.push(
+      "city = ?"
+    );
+
     params.push(city);
   }
 
   if (author) {
     const authorConditions = [];
 
-    if (columns.has("contact_name")) {
-      authorConditions.push("contact_name = ?");
+    if (
+      columns.has("contact_name")
+    ) {
+      authorConditions.push(
+        "contact_name = ?"
+      );
+
       params.push(author);
     }
 
-    if (columns.has("author_name")) {
-      authorConditions.push("author_name = ?");
+    if (
+      columns.has("author_name")
+    ) {
+      authorConditions.push(
+        "author_name = ?"
+      );
+
       params.push(author);
     }
 
-    if (authorConditions.length) {
+    if (
+      authorConditions.length
+    ) {
       where.push(
-        `(${authorConditions.join(" OR ")})`
+        `(${authorConditions.join(
+          " OR "
+        )})`
       );
     }
   }
@@ -378,34 +788,73 @@ async function listPublications(request, env) {
   if (search) {
     const searchConditions = [];
 
-    if (columns.has("title")) {
-      searchConditions.push("title LIKE ?");
-      params.push(`%${search}%`);
+    if (
+      columns.has("title")
+    ) {
+      searchConditions.push(
+        "title LIKE ?"
+      );
+
+      params.push(
+        `%${search}%`
+      );
     }
 
-    if (columns.has("text")) {
-      searchConditions.push("text LIKE ?");
-      params.push(`%${search}%`);
+    if (
+      columns.has("text")
+    ) {
+      searchConditions.push(
+        "text LIKE ?"
+      );
+
+      params.push(
+        `%${search}%`
+      );
     }
 
-    if (columns.has("category")) {
-      searchConditions.push("category LIKE ?");
-      params.push(`%${search}%`);
+    if (
+      columns.has("category")
+    ) {
+      searchConditions.push(
+        "category LIKE ?"
+      );
+
+      params.push(
+        `%${search}%`
+      );
     }
 
-    if (columns.has("city")) {
-      searchConditions.push("city LIKE ?");
-      params.push(`%${search}%`);
+    if (
+      columns.has("city")
+    ) {
+      searchConditions.push(
+        "city LIKE ?"
+      );
+
+      params.push(
+        `%${search}%`
+      );
     }
 
-    if (columns.has("contact_name")) {
-      searchConditions.push("contact_name LIKE ?");
-      params.push(`%${search}%`);
+    if (
+      columns.has("contact_name")
+    ) {
+      searchConditions.push(
+        "contact_name LIKE ?"
+      );
+
+      params.push(
+        `%${search}%`
+      );
     }
 
-    if (searchConditions.length) {
+    if (
+      searchConditions.length
+    ) {
       where.push(
-        `(${searchConditions.join(" OR ")})`
+        `(${searchConditions.join(
+          " OR "
+        )})`
       );
     }
   }
@@ -437,20 +886,30 @@ async function listPublications(request, env) {
     LIMIT ? OFFSET ?
   `;
 
-  params.push(limit, offset);
+  params.push(
+    limit,
+    offset
+  );
 
-  const result = await env.DB
-    .prepare(sql)
-    .bind(...params)
-    .all();
+  const result =
+    await env.DB
+      .prepare(sql)
+      .bind(...params)
+      .all();
 
-  const rows = result.results || [];
+  const rows =
+    result.results || [];
+
+  const items =
+    rows.map(
+      normalizePublication
+    );
 
   return json({
     ok: true,
-    items: rows.map(normalizePublication),
-    publications: rows.map(normalizePublication),
-    count: rows.length,
+    items,
+    publications: items,
+    count: items.length,
     limit,
     offset
   });
@@ -460,11 +919,15 @@ async function listPublications(request, env) {
    CREATE PUBLICATION
 ============================================================ */
 
-async function createPublication(request, env) {
+async function createPublication(
+  request,
+  env
+) {
   let body;
 
   try {
-    body = await request.json();
+    body =
+      await request.json();
   } catch {
     return json(
       {
@@ -475,39 +938,40 @@ async function createPublication(request, env) {
     );
   }
 
-  const title = clean(
-    body.title ||
-    body.name ||
-    body.heading
-  );
+  const title =
+    clean(
+      body.title ||
+      body.name ||
+      body.heading
+    );
 
-  const text = clean(
-    body.text ||
-    body.content ||
-    body.description
-  );
+  const text =
+    clean(
+      body.text ||
+      body.content ||
+      body.description
+    );
 
-  const category = clean(
-    body.category
-  );
+  const category =
+    clean(
+      body.category
+    );
 
-  /*
-   * Только имя.
-   * Никаких user_id/password/profile.
-   */
-  const contactName = clean(
-    body.contact_name ||
-    body.author_name ||
-    body.name ||
-    "Аноним"
-  );
+  const contactName =
+    clean(
+      body.contact_name ||
+      body.author_name ||
+      body.name ||
+      "Аноним"
+    );
 
   if (!title) {
     return json(
       {
         ok: false,
         error: "TITLE_REQUIRED",
-        message: "Укажите название публикации."
+        message:
+          "Укажите название публикации."
       },
       400
     );
@@ -518,7 +982,8 @@ async function createPublication(request, env) {
       {
         ok: false,
         error: "CONTENT_REQUIRED",
-        message: "Добавьте описание."
+        message:
+          "Добавьте описание."
       },
       400
     );
@@ -529,15 +994,18 @@ async function createPublication(request, env) {
       {
         ok: false,
         error: "CATEGORY_REQUIRED",
-        message: "Выберите категорию."
+        message:
+          "Выберите категорию."
       },
       400
     );
   }
 
-  const now = new Date().toISOString();
+  const now =
+    new Date().toISOString();
 
-  const id = crypto.randomUUID();
+  const id =
+    crypto.randomUUID();
 
   const trackingCode =
     generateTrackingCode();
@@ -557,19 +1025,35 @@ async function createPublication(request, env) {
     title,
     text,
     category,
-    subcategory: clean(body.subcategory),
+    subcategory:
+      clean(body.subcategory),
 
-    country: clean(body.country),
-    city: clean(body.city),
-    location: clean(body.location),
-    scope: clean(body.scope),
+    country:
+      clean(body.country),
 
-    event_start: clean(body.event_start),
-    event_end: clean(body.event_end),
-    deadline: clean(body.deadline),
+    city:
+      clean(body.city),
 
-    price: numberOrZero(body.price),
-    currency: clean(body.currency),
+    location:
+      clean(body.location),
+
+    scope:
+      clean(body.scope),
+
+    event_start:
+      clean(body.event_start),
+
+    event_end:
+      clean(body.event_end),
+
+    deadline:
+      clean(body.deadline),
+
+    price:
+      numberOrZero(body.price),
+
+    currency:
+      clean(body.currency),
 
     employment_type:
       clean(body.employment_type),
@@ -584,12 +1068,17 @@ async function createPublication(request, env) {
       clean(body.education),
 
     languages:
-      stringifyMaybe(body.languages),
+      stringifyMaybe(
+        body.languages
+      ),
 
     hashtags:
-      stringifyMaybe(hashtags),
+      stringifyMaybe(
+        hashtags
+      ),
 
-    contact_name: contactName,
+    contact_name:
+      contactName,
 
     contact_phone:
       clean(body.contact_phone),
@@ -607,17 +1096,21 @@ async function createPublication(request, env) {
       contactName,
 
     language:
-      clean(body.language) || "ru",
+      clean(body.language) ||
+      "ru",
 
     translate_all:
-      body.translate_all ? 1 : 0,
+      body.translate_all
+        ? 1
+        : 0,
 
     media:
       media.length
         ? JSON.stringify(media)
         : null,
 
-    status: "pending",
+    status:
+      "pending",
 
     views: 0,
     likes: 0,
@@ -632,21 +1125,26 @@ async function createPublication(request, env) {
     angry: 0,
 
     price_value:
-      numberOrZero(body.price),
+      numberOrZero(
+        body.price
+      ),
 
     pinned: 0,
     featured: 0,
 
-    created_at: now,
-    updated_at: now,
-    published_at: null,
+    created_at:
+      now,
 
-    tracking_code: trackingCode
+    updated_at:
+      now,
+
+    published_at:
+      null,
+
+    tracking_code:
+      trackingCode
   };
 
-  /*
-   * publication user_id intentionally not required.
-   */
   const inserted =
     await dynamicInsert(
       env.DB,
@@ -658,16 +1156,15 @@ async function createPublication(request, env) {
     return json(
       {
         ok: false,
-        error: "PUBLICATION_CREATE_FAILED",
-        message: inserted.message
+        error:
+          "PUBLICATION_CREATE_FAILED",
+        message:
+          inserted.message
       },
       500
     );
   }
 
-  /*
-   * Save media into publication_media too.
-   */
   if (media.length) {
     await savePublicationMedia(
       env.DB,
@@ -684,13 +1181,17 @@ async function createPublication(request, env) {
 
       id,
 
-      publication_id: id,
+      publication_id:
+        id,
 
-      tracking_code: trackingCode,
+      tracking_code:
+        trackingCode,
 
-      code: trackingCode,
+      code:
+        trackingCode,
 
-      status: "pending",
+      status:
+        "pending",
 
       message:
         "Публикация отправлена на проверку администратора."
@@ -707,26 +1208,31 @@ async function handlePublicationById(
   request,
   env
 ) {
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
   const parts =
     url.pathname
       .split("/")
       .filter(Boolean);
 
-  const id = parts[2];
+  const id =
+    parts[2];
 
   if (!id) {
     return json(
       {
         ok: false,
-        error: "PUBLICATION_ID_REQUIRED"
+        error:
+          "PUBLICATION_ID_REQUIRED"
       },
       400
     );
   }
 
-  if (request.method === "GET") {
+  if (
+    request.method === "GET"
+  ) {
     const publication =
       await getPublicationById(
         env.DB,
@@ -737,15 +1243,13 @@ async function handlePublicationById(
       return json(
         {
           ok: false,
-          error: "PUBLICATION_NOT_FOUND"
+          error:
+            "PUBLICATION_NOT_FOUND"
         },
         404
       );
     }
 
-    /*
-     * Increment views.
-     */
     try {
       await incrementPublicationViews(
         env.DB,
@@ -755,16 +1259,18 @@ async function handlePublicationById(
 
     return json({
       ok: true,
-      publication: normalizePublication(
-        publication
-      )
+      publication:
+        normalizePublication(
+          publication
+        )
     });
   }
 
   return json(
     {
       ok: false,
-      error: "METHOD_NOT_ALLOWED"
+      error:
+        "METHOD_NOT_ALLOWED"
     },
     405
   );
@@ -790,10 +1296,22 @@ async function handleAdminRoot(
 
   return json({
     ok: true,
+    authenticated: true,
+
     admin: {
-      id: admin.admin.id,
-      name: admin.admin.name,
-      role: admin.admin.role,
+      id:
+        admin.admin.id,
+
+      name:
+        admin.admin.name,
+
+      username:
+        admin.admin.username ||
+        "admin",
+
+      role:
+        admin.admin.role,
+
       permissions:
         admin.admin.permissions
     },
@@ -827,8 +1345,11 @@ async function handleAdminApi(
   env,
   ctx
 ) {
-  const url = new URL(request.url);
-  const path = url.pathname;
+  const url =
+    new URL(request.url);
+
+  const path =
+    url.pathname;
 
   const admin =
     await requireAdmin(
@@ -843,12 +1364,17 @@ async function handleAdminApi(
   /*
    * /api/admin/me
    */
-  if (path === "/api/admin/me") {
+  if (
+    path === "/api/admin/me"
+  ) {
     return json({
       ok: true,
-      admin: sanitizeAdmin(
-        admin.admin
-      )
+      authenticated: true,
+
+      admin:
+        sanitizeAdmin(
+          admin.admin
+        )
     });
   }
 
@@ -875,7 +1401,9 @@ async function handleAdminApi(
    */
   if (
     path === "/api/admin/users" ||
-    path.startsWith("/api/admin/users/")
+    path.startsWith(
+      "/api/admin/users/"
+    )
   ) {
     return requirePermission(
       admin,
@@ -894,7 +1422,9 @@ async function handleAdminApi(
    */
   if (
     path === "/api/admin/publications" ||
-    path.startsWith("/api/admin/publications/")
+    path.startsWith(
+      "/api/admin/publications/"
+    )
   ) {
     return requirePermission(
       admin,
@@ -913,7 +1443,9 @@ async function handleAdminApi(
    */
   if (
     path === "/api/admin/chat" ||
-    path.startsWith("/api/admin/chat/")
+    path.startsWith(
+      "/api/admin/chat/"
+    )
   ) {
     return requirePermission(
       admin,
@@ -931,7 +1463,8 @@ async function handleAdminApi(
    * NOTIFICATIONS
    */
   if (
-    path === "/api/admin/notifications"
+    path ===
+    "/api/admin/notifications"
   ) {
     return requirePermission(
       admin,
@@ -949,7 +1482,8 @@ async function handleAdminApi(
    * AUDIT
    */
   if (
-    path === "/api/admin/audit"
+    path ===
+    "/api/admin/audit"
   ) {
     return requirePermission(
       admin,
@@ -965,7 +1499,8 @@ async function handleAdminApi(
   return json(
     {
       ok: false,
-      error: "ADMIN_ROUTE_NOT_FOUND"
+      error:
+        "ADMIN_ROUTE_NOT_FOUND"
     },
     404
   );
@@ -979,7 +1514,8 @@ async function getAdminDashboard(
   request,
   env
 ) {
-  const db = env.DB;
+  const db =
+    env.DB;
 
   const statistics = {
     publications: 0,
@@ -1035,9 +1571,6 @@ async function getAdminDashboard(
       );
   }
 
-  /*
-   * KV chat statistics
-   */
   const conversations =
     await getAdminConversations(
       env
@@ -1045,10 +1578,15 @@ async function getAdminDashboard(
 
   statistics.messages =
     conversations.reduce(
-      (total, item) =>
+      (
+        total,
+        item
+      ) =>
         total +
         (
-          Array.isArray(item.messages)
+          Array.isArray(
+            item.messages
+          )
             ? item.messages.length
             : 0
         ),
@@ -1062,7 +1600,8 @@ async function getAdminDashboard(
     generated_at:
       new Date().toISOString(),
 
-    service: SITE_NAME
+    service:
+      SITE_NAME
   });
 }
 
@@ -1075,20 +1614,20 @@ async function handleAdminPublications(
   env,
   admin
 ) {
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
   const parts =
     url.pathname
       .split("/")
       .filter(Boolean);
 
-  /*
-   * /api/admin/publications
-   */
   if (
     parts.length === 3
   ) {
-    if (request.method === "GET") {
+    if (
+      request.method === "GET"
+    ) {
       return listAdminPublications(
         request,
         env
@@ -1098,28 +1637,29 @@ async function handleAdminPublications(
     return json(
       {
         ok: false,
-        error: "METHOD_NOT_ALLOWED"
+        error:
+          "METHOD_NOT_ALLOWED"
       },
       405
     );
   }
 
-  const id = parts[3];
+  const id =
+    parts[3];
 
   if (!id) {
     return json(
       {
         ok: false,
-        error: "PUBLICATION_ID_REQUIRED"
+        error:
+          "PUBLICATION_ID_REQUIRED"
       },
       400
     );
   }
 
-  /*
-   * ACTION
-   */
-  const action = parts[4];
+  const action =
+    parts[4];
 
   if (action) {
     if (
@@ -1173,16 +1713,16 @@ async function handleAdminPublications(
     return json(
       {
         ok: false,
-        error: "UNKNOWN_PUBLICATION_ACTION"
+        error:
+          "UNKNOWN_PUBLICATION_ACTION"
       },
       404
     );
   }
 
-  /*
-   * /api/admin/publications/:id
-   */
-  if (request.method === "GET") {
+  if (
+    request.method === "GET"
+  ) {
     const publication =
       await getPublicationById(
         env.DB,
@@ -1193,7 +1733,8 @@ async function handleAdminPublications(
       return json(
         {
           ok: false,
-          error: "PUBLICATION_NOT_FOUND"
+          error:
+            "PUBLICATION_NOT_FOUND"
         },
         404
       );
@@ -1220,7 +1761,9 @@ async function handleAdminPublications(
     );
   }
 
-  if (request.method === "DELETE") {
+  if (
+    request.method === "DELETE"
+  ) {
     return deleteAdminPublication(
       request,
       env,
@@ -1232,7 +1775,8 @@ async function handleAdminPublications(
   return json(
     {
       ok: false,
-      error: "METHOD_NOT_ALLOWED"
+      error:
+        "METHOD_NOT_ALLOWED"
     },
     405
   );
@@ -1246,19 +1790,33 @@ async function listAdminPublications(
   request,
   env
 ) {
-  const url = new URL(request.url);
+  const url =
+    new URL(request.url);
 
   const status =
-    clean(url.searchParams.get("status")) ||
-    "all";
+    clean(
+      url.searchParams.get(
+        "status"
+      )
+    ) || "all";
 
   const search =
-    clean(url.searchParams.get("search")) ||
-    clean(url.searchParams.get("q"));
+    clean(
+      url.searchParams.get(
+        "search"
+      )
+    ) ||
+    clean(
+      url.searchParams.get(
+        "q"
+      )
+    );
 
   const limit =
     clampNumber(
-      url.searchParams.get("limit"),
+      url.searchParams.get(
+        "limit"
+      ),
       1,
       200,
       100
@@ -1266,7 +1824,9 @@ async function listAdminPublications(
 
   const offset =
     clampNumber(
-      url.searchParams.get("offset"),
+      url.searchParams.get(
+        "offset"
+      ),
       0,
       100000,
       0
@@ -1295,6 +1855,7 @@ async function listAdminPublications(
     where.push(
       "status = ?"
     );
+
     params.push(status);
   }
 
@@ -1311,7 +1872,9 @@ async function listAdminPublications(
         "tracking_code"
       ]
     ) {
-      if (columns.has(field)) {
+      if (
+        columns.has(field)
+      ) {
         conditions.push(
           `${field} LIKE ?`
         );
@@ -1350,7 +1913,9 @@ async function listAdminPublications(
         }
         ORDER BY
           ${
-            columns.has("created_at")
+            columns.has(
+              "created_at"
+            )
               ? "created_at DESC"
               : "rowid DESC"
           }
@@ -1361,13 +1926,17 @@ async function listAdminPublications(
 
   const items =
     (result.results || [])
-      .map(normalizePublication);
+      .map(
+        normalizePublication
+      );
 
   return json({
     ok: true,
     items,
-    publications: items,
-    count: items.length,
+    publications:
+      items,
+    count:
+      items.length,
     limit,
     offset
   });
@@ -1391,7 +1960,8 @@ async function moderatePublication(
     request.method === "PATCH"
   ) {
     try {
-      body = await request.json();
+      body =
+        await request.json();
     } catch {}
   }
 
@@ -1400,14 +1970,18 @@ async function moderatePublication(
 
   const values = {
     status,
-    updated_at: now
+    updated_at:
+      now
   };
 
   if (
     status === "published"
   ) {
-    values.published_at = now;
-    values.rejection_reason = null;
+    values.published_at =
+      now;
+
+    values.rejection_reason =
+      null;
   }
 
   if (
@@ -1433,7 +2007,8 @@ async function moderatePublication(
     return json(
       {
         ok: false,
-        error: "PUBLICATION_NOT_FOUND"
+        error:
+          "PUBLICATION_NOT_FOUND"
       },
       404
     );
@@ -1485,7 +2060,8 @@ async function togglePublicationFlag(
     return json(
       {
         ok: false,
-        error: "PUBLICATION_NOT_FOUND"
+        error:
+          "PUBLICATION_NOT_FOUND"
       },
       404
     );
@@ -1504,7 +2080,8 @@ async function togglePublicationFlag(
     );
 
   const next =
-    typeof body.enabled === "boolean"
+    typeof body.enabled ===
+    "boolean"
       ? body.enabled
         ? 1
         : 0
@@ -1530,14 +2107,16 @@ async function togglePublicationFlag(
     "publication",
     id,
     {
-      enabled: Boolean(next)
+      enabled:
+        Boolean(next)
     }
   );
 
   return json({
     ok: true,
     id,
-    [field]: Boolean(next)
+    [field]:
+      Boolean(next)
   });
 }
 
@@ -1560,7 +2139,8 @@ async function updateAdminPublication(
     return json(
       {
         ok: false,
-        error: "INVALID_JSON"
+        error:
+          "INVALID_JSON"
       },
       400
     );
@@ -1600,7 +2180,9 @@ async function updateAdminPublication(
 
   const values = {};
 
-  for (const key of allowed) {
+  for (
+    const key of allowed
+  ) {
     if (
       Object.prototype.hasOwnProperty.call(
         body,
@@ -1633,7 +2215,8 @@ async function updateAdminPublication(
     return json(
       {
         ok: false,
-        error: "PUBLICATION_NOT_FOUND"
+        error:
+          "PUBLICATION_NOT_FOUND"
       },
       404
     );
@@ -1683,15 +2266,13 @@ async function deleteAdminPublication(
     return json(
       {
         ok: false,
-        error: "TABLE_NOT_FOUND"
+        error:
+          "TABLE_NOT_FOUND"
       },
       500
     );
   }
 
-  /*
-   * Delete media first.
-   */
   try {
     const mediaSchema =
       await getTableSchema(
@@ -1727,12 +2308,15 @@ async function deleteAdminPublication(
 
   if (
     !result.meta ||
-    Number(result.meta.changes || 0) === 0
+    Number(
+      result.meta.changes || 0
+    ) === 0
   ) {
     return json(
       {
         ok: false,
-        error: "PUBLICATION_NOT_FOUND"
+        error:
+          "PUBLICATION_NOT_FOUND"
       },
       404
     );
@@ -1771,10 +2355,9 @@ async function handleAdminUsers(
       .split("/")
       .filter(Boolean);
 
-  /*
-   * /api/admin/users
-   */
-  if (parts.length === 3) {
+  if (
+    parts.length === 3
+  ) {
     if (
       request.method === "GET"
     ) {
@@ -1787,27 +2370,33 @@ async function handleAdminUsers(
     return json(
       {
         ok: false,
-        error: "METHOD_NOT_ALLOWED"
+        error:
+          "METHOD_NOT_ALLOWED"
       },
       405
     );
   }
 
-  const id = parts[3];
+  const id =
+    parts[3];
 
   if (!id) {
     return json(
       {
         ok: false,
-        error: "USER_ID_REQUIRED"
+        error:
+          "USER_ID_REQUIRED"
       },
       400
     );
   }
 
-  const action = parts[4];
+  const action =
+    parts[4];
 
-  if (action === "ban") {
+  if (
+    action === "ban"
+  ) {
     return changeUserStatus(
       request,
       env,
@@ -1817,7 +2406,9 @@ async function handleAdminUsers(
     );
   }
 
-  if (action === "unban") {
+  if (
+    action === "unban"
+  ) {
     return changeUserStatus(
       request,
       env,
@@ -1827,7 +2418,9 @@ async function handleAdminUsers(
     );
   }
 
-  if (action === "delete") {
+  if (
+    action === "delete"
+  ) {
     return deleteAdminUser(
       request,
       env,
@@ -1849,7 +2442,8 @@ async function handleAdminUsers(
       return json(
         {
           ok: false,
-          error: "USER_NOT_FOUND"
+          error:
+            "USER_NOT_FOUND"
         },
         404
       );
@@ -1858,7 +2452,9 @@ async function handleAdminUsers(
     return json({
       ok: true,
       user:
-        sanitizeUser(user)
+        sanitizeUser(
+          user
+        )
     });
   }
 
@@ -1888,7 +2484,8 @@ async function handleAdminUsers(
   return json(
     {
       ok: false,
-      error: "METHOD_NOT_ALLOWED"
+      error:
+        "METHOD_NOT_ALLOWED"
     },
     405
   );
@@ -1971,7 +2568,9 @@ async function listAdminUsers(
         "country"
       ]
     ) {
-      if (columns.has(field)) {
+      if (
+        columns.has(field)
+      ) {
         conditions.push(
           `${field} LIKE ?`
         );
@@ -2023,13 +2622,16 @@ async function listAdminUsers(
 
   const users =
     (result.results || [])
-      .map(sanitizeUser);
+      .map(
+        sanitizeUser
+      );
 
   return json({
     ok: true,
     users,
     items: users,
-    count: users.length,
+    count:
+      users.length,
     limit,
     offset
   });
@@ -2054,7 +2656,8 @@ async function updateAdminUser(
     return json(
       {
         ok: false,
-        error: "INVALID_JSON"
+        error:
+          "INVALID_JSON"
       },
       400
     );
@@ -2074,7 +2677,9 @@ async function updateAdminUser(
 
   const values = {};
 
-  for (const key of allowed) {
+  for (
+    const key of allowed
+  ) {
     if (
       Object.prototype.hasOwnProperty.call(
         body,
@@ -2094,10 +2699,6 @@ async function updateAdminUser(
   values.updated_at =
     new Date().toISOString();
 
-  /*
-   * Changing admin rights is restricted
-   * to a real super admin.
-   */
   const roleChange =
     [
       "role",
@@ -2119,7 +2720,8 @@ async function updateAdminUser(
     return json(
       {
         ok: false,
-        error: "SUPER_ADMIN_REQUIRED"
+        error:
+          "SUPER_ADMIN_REQUIRED"
       },
       403
     );
@@ -2137,7 +2739,8 @@ async function updateAdminUser(
     return json(
       {
         ok: false,
-        error: "USER_NOT_FOUND"
+        error:
+          "USER_NOT_FOUND"
       },
       404
     );
@@ -2224,7 +2827,8 @@ async function changeUserStatus(
     return json(
       {
         ok: false,
-        error: "USER_NOT_FOUND"
+        error:
+          "USER_NOT_FOUND"
       },
       404
     );
@@ -2283,14 +2887,16 @@ async function deleteAdminUser(
 
   const changes =
     Number(
-      result?.meta?.changes || 0
+      result?.meta?.changes ||
+      0
     );
 
   if (!changes) {
     return json(
       {
         ok: false,
-        error: "USER_NOT_FOUND"
+        error:
+          "USER_NOT_FOUND"
       },
       404
     );
@@ -2329,10 +2935,9 @@ async function handleAdminChatApi(
       .split("/")
       .filter(Boolean);
 
-  /*
-   * /api/admin/chat
-   */
-  if (parts.length === 3) {
+  if (
+    parts.length === 3
+  ) {
     if (
       request.method === "GET"
     ) {
@@ -2360,9 +2965,6 @@ async function handleAdminChatApi(
     }
   }
 
-  /*
-   * /api/admin/chat/:id
-   */
   const conversationId =
     parts[3];
 
@@ -2444,7 +3046,8 @@ async function adminSendChatMessage(
     return json(
       {
         ok: false,
-        error: "INVALID_JSON"
+        error:
+          "INVALID_JSON"
       },
       400
     );
@@ -2461,7 +3064,8 @@ async function adminSendChatMessage(
     return json(
       {
         ok: false,
-        error: "MESSAGE_REQUIRED"
+        error:
+          "MESSAGE_REQUIRED"
       },
       400
     );
@@ -2502,14 +3106,25 @@ async function adminSendChatMessage(
   }
 
   const message = {
-    id: crypto.randomUUID(),
-    sender: "admin",
-    senderType: "admin",
+    id:
+      crypto.randomUUID(),
+
+    sender:
+      "admin",
+
+    senderType:
+      "admin",
+
     adminId:
-      admin.admin.id || null,
+      admin.admin.id ||
+      null,
+
     adminName:
-      admin.admin.name || "Администратор",
+      admin.admin.name ||
+      "Администратор",
+
     text,
+
     createdAt:
       new Date().toISOString()
   };
@@ -2586,9 +3201,6 @@ async function handleAdminChat(
         )
       );
 
-    /*
-     * User knows the conversation ID.
-     */
     if (conversationId) {
       const conversation =
         await getConversation(
@@ -2613,9 +3225,6 @@ async function handleAdminChat(
       });
     }
 
-    /*
-     * No ID = no global conversation access.
-     */
     return json({
       ok: true,
       conversations: []
@@ -2758,7 +3367,9 @@ async function createUserChatMessage(
 
   let conversation;
 
-  if (existingConversationId) {
+  if (
+    existingConversationId
+  ) {
     conversation =
       await getConversation(
         env,
@@ -2783,23 +3394,34 @@ async function createUserChatMessage(
         !name ||
         name === "Аноним",
 
-      createdAt: now,
-      updatedAt: now,
+      createdAt:
+        now,
 
-      status: "open",
+      updatedAt:
+        now,
 
-      unreadForAdmin: true,
-      unreadForUser: false,
+      status:
+        "open",
+
+      unreadForAdmin:
+        true,
+
+      unreadForUser:
+        false,
 
       messages: []
     };
   }
 
   const message = {
-    id: crypto.randomUUID(),
+    id:
+      crypto.randomUUID(),
 
-    sender: "user",
-    senderType: "user",
+    sender:
+      "user",
+
+    senderType:
+      "user",
 
     name,
 
@@ -2822,7 +3444,8 @@ async function createUserChatMessage(
   );
 
   conversation.name =
-    name || conversation.name;
+    name ||
+    conversation.name;
 
   conversation.updatedAt =
     message.createdAt;
@@ -2863,13 +3486,17 @@ async function getAdminConversations(
       "admin-chat:index"
     );
 
-  if (!Array.isArray(ids)) {
+  if (
+    !Array.isArray(ids)
+  ) {
     return [];
   }
 
   const result = [];
 
-  for (const id of ids) {
+  for (
+    const id of ids
+  ) {
     const conversation =
       await getConversation(
         env,
@@ -2886,10 +3513,12 @@ async function getAdminConversations(
   result.sort(
     (a, b) =>
       String(
-        b.updatedAt || ""
+        b.updatedAt ||
+        ""
       ).localeCompare(
         String(
-          a.updatedAt || ""
+          a.updatedAt ||
+          ""
         )
       )
   );
@@ -2927,7 +3556,9 @@ async function saveConversation(
       "admin-chat:index"
     );
 
-  if (!Array.isArray(ids)) {
+  if (
+    !Array.isArray(ids)
+  ) {
     ids = [];
   }
 
@@ -2994,7 +3625,8 @@ async function handleNotifications(
     }
 
     const notification = {
-      id: crypto.randomUUID(),
+      id:
+        crypto.randomUUID(),
 
       title:
         clean(body.title) ||
@@ -3020,7 +3652,9 @@ async function handleNotifications(
         "notifications:public"
       );
 
-    if (!Array.isArray(items)) {
+    if (
+      !Array.isArray(items)
+    ) {
       items = [];
     }
 
@@ -3029,7 +3663,10 @@ async function handleNotifications(
     );
 
     items =
-      items.slice(0, 200);
+      items.slice(
+        0,
+        200
+      );
 
     await kvPut(
       env,
@@ -3214,19 +3851,79 @@ async function requireAdmin(
   env
 ) {
   /*
-   * 1. ADMIN KEY
+   * ==========================================================
+   * 1. SECURE ADMIN COOKIE SESSION
+   * ==========================================================
    *
-   * Set a Cloudflare secret:
+   * Это основной способ авторизации.
    *
-   * ADMIN_KEY
+   * После успешного:
    *
-   * The admin panel can send:
+   * POST /api/admin/login
    *
-   * X-Admin-Key: ...
+   * браузер получает cookie to_admin.
    *
-   * This is the safest way after removing
-   * normal user authentication.
+   * Затем каждый следующий запрос:
+   *
+   * /api/admin/me
+   * /api/admin/dashboard
+   * /api/admin/publications
+   * /api/admin/users
+   * /api/admin/chat
+   * /api/admin/notifications
+   * /api/admin/audit
+   *
+   * автоматически использует эту cookie.
+   *
+   * Пароль повторно НЕ требуется.
    */
+
+  const adminCookie =
+    getCookie(
+      request,
+      COOKIE_NAME
+    );
+
+  if (
+    adminCookie &&
+    await verifyAdminToken(
+      adminCookie,
+      ADMIN_PASSWORD
+    )
+  ) {
+    return {
+      ok: true,
+
+      admin: {
+        id:
+          "key-admin",
+
+        name:
+          "Главный администратор",
+
+        username:
+          "admin",
+
+        role:
+          "super_admin",
+
+        permissions:
+          ["*"],
+
+        is_active:
+          true
+      }
+    };
+  }
+
+  /*
+   * ==========================================================
+   * 2. OPTIONAL ADMIN KEY
+   * ==========================================================
+   *
+   * Старый способ оставлен для совместимости.
+   */
+
   const configuredKey =
     env.ADMIN_KEY;
 
@@ -3247,22 +3944,35 @@ async function requireAdmin(
       ok: true,
 
       admin: {
-        id: "key-admin",
+        id:
+          "key-admin",
+
         name:
           "Главный администратор",
+
+        username:
+          "admin",
+
         role:
           "super_admin",
-        permissions: ["*"]
+
+        permissions:
+          ["*"],
+
+        is_active:
+          true
       }
     };
   }
 
   /*
-   * 2. Existing admin table.
+   * ==========================================================
+   * 3. EXISTING ADMINS TABLE
+   * ==========================================================
    *
-   * This supports an already-existing
-   * admins table without changing it.
+   * Оставляем совместимость со старой системой.
    */
+
   if (env.DB) {
     const adminRow =
       await findAnyAdmin(
@@ -3279,14 +3989,16 @@ async function requireAdmin(
       if (!active) {
         return {
           ok: false,
-          response: json(
-            {
-              ok: false,
-              error:
-                "ADMIN_DISABLED"
-            },
-            403
-          )
+
+          response:
+            json(
+              {
+                ok: false,
+                error:
+                  "ADMIN_DISABLED"
+              },
+              403
+            )
         };
       }
 
@@ -3304,16 +4016,18 @@ async function requireAdmin(
   return {
     ok: false,
 
-    response: json(
-      {
-        ok: false,
-        error:
-          "ADMIN_AUTH_REQUIRED",
-        message:
-          "Требуется ключ администратора."
-      },
-      401
-    )
+    response:
+      json(
+        {
+          ok: false,
+          error:
+            "ADMIN_AUTH_REQUIRED",
+
+          message:
+            "Войдите в панель администратора."
+        },
+        401
+      )
   };
 }
 
@@ -3334,11 +4048,14 @@ function requirePermission(
   }
 
   const permissions =
-    admin.admin.permissions || [];
+    admin.admin.permissions ||
+    [];
 
   if (
     permissions.includes("*") ||
-    permissions.includes(permission)
+    permissions.includes(
+      permission
+    )
   ) {
     return handler();
   }
@@ -3361,11 +4078,13 @@ function normalizeAdmin(row) {
     ) ||
     (
       Number(
-        row.is_super_admin || 0
+        row.is_super_admin ||
+        0
       )
         ? "super_admin"
         : Number(
-            row.is_admin || 0
+            row.is_admin ||
+            0
           )
           ? "admin"
           : "admin"
@@ -3376,15 +4095,11 @@ function normalizeAdmin(row) {
       row.permissions
     );
 
-  /*
-   * Existing admin without
-   * explicit permissions gets
-   * full admin rights.
-   */
   if (
     !permissions.length
   ) {
-    permissions = ["*"];
+    permissions =
+      ["*"];
   }
 
   return {
@@ -3409,33 +4124,51 @@ function normalizeAdmin(row) {
 
     is_active:
       row.is_active ??
-      row.status !== "blocked"
+      row.status !==
+        "blocked"
   };
 }
 
-function sanitizeAdmin(admin) {
+function sanitizeAdmin(
+  admin
+) {
   return {
-    id: admin.id,
-    name: admin.name,
+    id:
+      admin.id,
+
+    name:
+      admin.name,
+
     username:
-      admin.username || null,
-    role: admin.role,
+      admin.username ||
+      null,
+
+    role:
+      admin.role,
+
     permissions:
-      admin.permissions || []
+      admin.permissions ||
+      []
   };
 }
 
-function adminIsActive(row) {
+function adminIsActive(
+  row
+) {
   if (
-    row.is_active !== undefined
+    row.is_active !==
+    undefined
   ) {
     return Boolean(
-      Number(row.is_active)
+      Number(
+        row.is_active
+      )
     );
   }
 
   if (
-    row.status !== undefined
+    row.status !==
+    undefined
   ) {
     return (
       String(
@@ -3462,12 +4195,6 @@ async function findAnyAdmin(
     return null;
   }
 
-  /*
-   * Since normal user authentication
-   * was removed, admin table access is
-   * only accepted through explicit
-   * admin identification headers.
-   */
   const adminId =
     clean(
       request.headers.get(
@@ -3482,7 +4209,10 @@ async function findAnyAdmin(
       )
     );
 
-  if (!adminId && !adminUsername) {
+  if (
+    !adminId &&
+    !adminUsername
+  ) {
     return null;
   }
 
@@ -3505,7 +4235,9 @@ async function findAnyAdmin(
           WHERE id = ?
           LIMIT 1
         `)
-        .bind(adminId)
+        .bind(
+          adminId
+        )
         .first();
 
     if (row) {
@@ -3525,7 +4257,9 @@ async function findAnyAdmin(
           WHERE user_id = ?
           LIMIT 1
         `)
-        .bind(adminId)
+        .bind(
+          adminId
+        )
         .first();
 
     if (row) {
@@ -3586,7 +4320,8 @@ async function writeAuditLog(
     }
 
     const values = {
-      id: crypto.randomUUID(),
+      id:
+        crypto.randomUUID(),
 
       admin_id:
         admin?.admin?.id ||
@@ -3601,10 +4336,12 @@ async function writeAuditLog(
       action,
 
       target_type:
-        targetType || null,
+        targetType ||
+        null,
 
       target_id:
-        targetId || null,
+        targetId ||
+        null,
 
       metadata:
         JSON.stringify(
@@ -3641,7 +4378,10 @@ async function findUserById(
   db,
   id
 ) {
-  if (!db || !id) {
+  if (
+    !db ||
+    !id
+  ) {
     return null;
   }
 
@@ -3684,7 +4424,9 @@ async function findUserById(
     .first();
 }
 
-function sanitizeUser(user) {
+function sanitizeUser(
+  user
+) {
   if (!user) {
     return null;
   }
@@ -3721,7 +4463,8 @@ function sanitizeUser(user) {
       null,
 
     is_active:
-      user.is_active !== undefined
+      user.is_active !==
+      undefined
         ? Boolean(
             Number(
               user.is_active
@@ -3738,9 +4481,6 @@ function sanitizeUser(user) {
       null
   };
 
-  /*
-   * Never expose password fields.
-   */
   return result;
 }
 
@@ -3752,7 +4492,10 @@ async function getPublicationById(
   db,
   id
 ) {
-  if (!db || !id) {
+  if (
+    !db ||
+    !id
+  ) {
     return null;
   }
 
@@ -3779,7 +4522,9 @@ async function incrementPublicationViews(
 
   if (
     schema.some(
-      x => x.name === "views"
+      x =>
+        x.name ===
+        "views"
     )
   ) {
     await db
@@ -3808,7 +4553,8 @@ function normalizePublication(
         row.media
       )
     ) {
-      media = row.media;
+      media =
+        row.media;
     } else if (
       row.media
     ) {
@@ -3873,7 +4619,8 @@ async function savePublicationMedia(
       const item of media
     ) {
       const mediaUrl =
-        typeof item === "string"
+        typeof item ===
+        "string"
           ? item
           : item?.url ||
             item?.src ||
@@ -3894,7 +4641,8 @@ async function savePublicationMedia(
             publicationId,
 
           media_type:
-            typeof item === "object"
+            typeof item ===
+            "object"
               ? item.type ||
                 item.media_type ||
                 null
@@ -3904,19 +4652,19 @@ async function savePublicationMedia(
             mediaUrl,
 
           media_caption:
-            typeof item === "object"
+            typeof item ===
+            "object"
               ? item.caption ||
                 item.media_caption ||
                 null
               : null,
 
-          created_at: now
+          created_at:
+            now
         }
       );
     }
-  } catch (
-    error
-  ) {
+  } catch (error) {
     console.error(
       "MEDIA ERROR:",
       error
@@ -3937,7 +4685,9 @@ async function getTableSchema(
   }
 
   const safe =
-    quoteIdentifier(table);
+    quoteIdentifier(
+      table
+    );
 
   try {
     const result =
@@ -3947,7 +4697,10 @@ async function getTableSchema(
         )
         .all();
 
-    return result.results || [];
+    return (
+      result.results ||
+      []
+    );
   } catch {
     return [];
   }
@@ -4024,7 +4777,9 @@ async function dynamicInsert(
 
   const placeholders =
     entries
-      .map(() => "?")
+      .map(
+        () => "?"
+      )
       .join(", ");
 
   try {
@@ -4172,7 +4927,8 @@ async function countTable(
         .first();
 
     return Number(
-      result?.count || 0
+      result?.count ||
+      0
     );
   } catch {
     return 0;
@@ -4209,7 +4965,8 @@ async function countWhere(
         .first();
 
     return Number(
-      result?.count || 0
+      result?.count ||
+      0
     );
   } catch {
     return 0;
@@ -4220,7 +4977,9 @@ async function countWhere(
    KV
 ============================================================ */
 
-function getKV(env) {
+function getKV(
+  env
+) {
   return (
     env.DATA ||
     env.KV ||
@@ -4277,7 +5036,9 @@ async function kvPut(
   try {
     await kv.put(
       key,
-      JSON.stringify(value)
+      JSON.stringify(
+        value
+      )
     );
 
     return true;
@@ -4298,7 +5059,10 @@ async function kvDelete(
   }
 
   try {
-    await kv.delete(key);
+    await kv.delete(
+      key
+    );
+
     return true;
   } catch {
     return false;
@@ -4374,17 +5138,23 @@ async function handleOpportunities(
         new Date().toISOString()
     };
 
-    items.unshift(item);
+    items.unshift(
+      item
+    );
 
     await kvPut(
       env,
       key,
-      items.slice(0, 500)
+      items.slice(
+        0,
+        500
+      )
     );
 
     return json({
       ok: true,
-      opportunity: item
+      opportunity:
+        item
     });
   }
 
@@ -4455,7 +5225,9 @@ async function handleMessages(
       );
 
     const list =
-      Array.isArray(messages)
+      Array.isArray(
+        messages
+      )
         ? messages
         : [];
 
@@ -4479,7 +5251,9 @@ async function handleMessages(
         new Date().toISOString()
     };
 
-    if (!message.text) {
+    if (
+      !message.text
+    ) {
       return json(
         {
           ok: false,
@@ -4497,7 +5271,10 @@ async function handleMessages(
     await kvPut(
       env,
       key,
-      list.slice(0, 500)
+      list.slice(
+        0,
+        500
+      )
     );
 
     return json({
@@ -4520,7 +5297,9 @@ async function handleMessages(
    UTILITIES
 ============================================================ */
 
-function clean(value) {
+function clean(
+  value
+) {
   if (
     value === null ||
     value === undefined
@@ -4530,10 +5309,15 @@ function clean(value) {
 
   return String(value)
     .trim()
-    .slice(0, 10000);
+    .slice(
+      0,
+      10000
+    );
 }
 
-function stringifyMaybe(value) {
+function stringifyMaybe(
+  value
+) {
   if (
     value === null ||
     value === undefined
@@ -4542,7 +5326,8 @@ function stringifyMaybe(value) {
   }
 
   if (
-    typeof value === "string"
+    typeof value ===
+    "string"
   ) {
     return value;
   }
@@ -4556,7 +5341,9 @@ function stringifyMaybe(value) {
   }
 }
 
-function numberOrZero(value) {
+function numberOrZero(
+  value
+) {
   const number =
     Number(value);
 
@@ -4629,7 +5416,8 @@ function parsePermissions(
   ) {
     return value
       .map(
-        x => String(x).trim()
+        x =>
+          String(x).trim()
       )
       .filter(Boolean);
   }
@@ -4677,14 +5465,17 @@ function constantTimeEqual(
   b
 ) {
   if (
-    typeof a !== "string" ||
-    typeof b !== "string"
+    typeof a !==
+      "string" ||
+    typeof b !==
+      "string"
   ) {
     return false;
   }
 
   if (
-    a.length !== b.length
+    a.length !==
+    b.length
   ) {
     return false;
   }
@@ -4763,7 +5554,9 @@ function corsResponse(
           "Content-Type, Accept, X-Admin-Key, X-Admin-ID, X-Admin-Username",
 
         "Access-Control-Allow-Methods":
-          ALLOWED_METHODS.join(", "),
+          ALLOWED_METHODS.join(
+            ", "
+          ),
 
         "Vary":
           "Origin"
@@ -4817,4 +5610,4 @@ function withSecurity(
       headers
     }
   );
-  }
+       }
