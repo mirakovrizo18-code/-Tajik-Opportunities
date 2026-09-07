@@ -11,41 +11,16 @@
    - User only provides a name
 
    ADMIN:
-   - One-time password login
-   - Persistent secure admin session
+   - No login
+   - No password
+   - No admin session
+   - Admin API is directly available
    - Full super_admin access
-   - Publications
-   - Users/submitters
-   - Admin chat
-   - Notifications
-   - Statistics
-   - Audit log
 ============================================================ */
 
 const VERSION = "2026.09.07";
 
 const SITE_NAME = "Tajik Opportunities";
-const COOKIE_NAME = "to_admin";
-
-/*
- * ADMIN PASSWORD
- *
- * Пользователь вводит этот пароль только на странице
- * входа администратора.
- *
- * Пароль НЕ записывается в cookie.
- * В cookie хранится только подписанная временная сессия.
- */
-const ADMIN_PASSWORD = "mirakiv_o4";
-
-/*
- * Срок административной сессии:
- * 30 дней.
- *
- * После успешного входа повторно пароль
- * в течение этого периода не спрашивается.
- */
-const ADMIN_SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 const ALLOWED_METHODS = [
   "GET",
@@ -65,7 +40,7 @@ const PUBLICATION_STATUSES = [
 ];
 
 /* ============================================================
-   MAIN
+   ENTRY
 ============================================================ */
 
 export default {
@@ -73,87 +48,89 @@ export default {
     try {
       return await handleRequest(request, env, ctx);
     } catch (error) {
-      console.error("WORKER ERROR:", error);
+      console.error("WORKER_ERROR:", error);
 
       return json(
         {
           ok: false,
-          error: "SERVER_ERROR",
-          message: error?.message || "Внутренняя ошибка сервера",
+          error: "INTERNAL_SERVER_ERROR",
+          message: error?.message || "Internal server error",
           version: VERSION
         },
-        500
+        500,
+        request
       );
     }
   }
 };
 
 /* ============================================================
-   REQUEST
+   MAIN REQUEST HANDLER
 ============================================================ */
 
 async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
-  const method = request.method.toUpperCase();
+  const path = normalizePath(url.pathname);
 
-  if (!ALLOWED_METHODS.includes(method)) {
+  if (!ALLOWED_METHODS.includes(request.method)) {
     return json(
       {
         ok: false,
         error: "METHOD_NOT_ALLOWED"
       },
-      405
+      405,
+      request
     );
   }
 
-  if (method === "OPTIONS") {
+  if (request.method === "OPTIONS") {
     return corsResponse(request);
   }
 
-  if (
-    url.pathname === "/health" ||
-    url.pathname === "/api/health"
-  ) {
-    return json({
-      ok: true,
-      service: SITE_NAME,
-      version: VERSION,
-      environment: env.ENVIRONMENT || "production",
-      time: new Date().toISOString()
-    });
-  }
-
-  if (url.pathname.startsWith("/api")) {
-    return withSecurity(
-      await handleApi(request, env, ctx)
+  if (path === "/health" || path === "/api/health") {
+    return json(
+      {
+        ok: true,
+        service: SITE_NAME,
+        version: VERSION,
+        status: "healthy",
+        environment: env.ENVIRONMENT || "production",
+        time: new Date().toISOString()
+      },
+      200,
+      request
     );
   }
 
-  /*
-   * Static assets
-   */
+  if (path.startsWith("/api")) {
+    return withSecurity(
+      await handleApi(request, env, ctx),
+      request
+    );
+  }
+
+  /* Static files */
   if (env.ASSETS) {
     const assetResponse = await env.ASSETS.fetch(request);
 
     if (assetResponse.status !== 404) {
-      return withSecurity(assetResponse);
+      return assetResponse;
     }
 
-    /*
-     * SPA / HTML fallback
-     */
-    const accept = request.headers.get("Accept") || "";
-
-    if (accept.includes("text/html")) {
-      const fallbackRequest = new Request(
+    /* SPA fallback */
+    if (
+      request.method === "GET" &&
+      !path.includes(".")
+    ) {
+      const fallback = new Request(
         new URL("/index.html", request.url),
         request
       );
 
-      const fallback = await env.ASSETS.fetch(fallbackRequest);
+      const fallbackResponse = await env.ASSETS.fetch(fallback);
 
-      if (fallback.status !== 404) {
-        return withSecurity(fallback);
+      if (fallbackResponse.status !== 404) {
+        return fallbackResponse;
       }
     }
   }
@@ -163,7 +140,8 @@ async function handleRequest(request, env, ctx) {
       ok: false,
       error: "NOT_FOUND"
     },
-    404
+    404,
+    request
   );
 }
 
@@ -173,38 +151,65 @@ async function handleRequest(request, env, ctx) {
 
 async function handleApi(request, env, ctx) {
   const url = new URL(request.url);
-  const path = url.pathname;
+  const path = normalizePath(url.pathname);
+
+  /* ----------------------------------------------------------
+     API ROOT
+  ---------------------------------------------------------- */
 
   if (path === "/api" || path === "/api/") {
-    return json({
-      ok: true,
-      service: SITE_NAME,
-      version: VERSION,
-      api: "v1",
-      user_mode: "name_only",
-      authentication: false,
-      admin: true
-    });
+    return json(
+      {
+        ok: true,
+        service: SITE_NAME,
+        version: VERSION,
+        api: "v1",
+
+        user_mode: "name_only",
+
+        authentication: {
+          users: false,
+          registration: false,
+          login: false,
+          password: false,
+          profile: false
+        },
+
+        admin: {
+          enabled: true,
+          login_required: false,
+          password_required: false,
+          session_required: false,
+          role: "super_admin"
+        }
+      },
+      200,
+      request
+    );
   }
 
   /* ----------------------------------------------------------
-     Removed authentication/profile routes
+     OLD USER AUTH ROUTES
   ---------------------------------------------------------- */
 
   if (
-    path.startsWith("/api/auth") ||
-    path === "/api/profile" ||
-    path === "/api/profile/public" ||
-    path === "/api/username/check"
+    path === "/api/auth/login" ||
+    path === "/api/auth/register" ||
+    path === "/api/auth/logout" ||
+    path === "/api/auth/me" ||
+    path === "/api/login" ||
+    path === "/api/register" ||
+    path === "/api/profile"
   ) {
     return json(
       {
         ok: false,
-        error: "AUTH_DISABLED",
+        error: "AUTHENTICATION_DISABLED",
         message:
-          "Регистрация, вход, пароль и пользовательские профили отключены."
+          "Обычная регистрация, авторизация и профили пользователей отключены."
       },
-      410
+      410,
+      request
     );
   }
 
@@ -213,55 +218,69 @@ async function handleApi(request, env, ctx) {
   ---------------------------------------------------------- */
 
   if (path === "/api/publications") {
-    return handlePublications(request, env);
+    if (request.method === "GET") {
+      return handlePublicationsList(request, env);
+    }
+
+    if (request.method === "POST") {
+      return handleCreatePublication(request, env);
+    }
+
+    return json(
+      {
+        ok: false,
+        error: "METHOD_NOT_ALLOWED"
+      },
+      405,
+      request
+    );
   }
 
-  if (path.startsWith("/api/publications/")) {
-    return handlePublicationById(request, env);
-  }
+  const publicationMatch = path.match(
+    /^\/api\/publications\/([^/]+)$/
+  );
 
-  /* ----------------------------------------------------------
-     ADMIN LOGIN
-  ---------------------------------------------------------- */
+  if (publicationMatch) {
+    const id = decodeURIComponent(publicationMatch[1]);
 
-  if (path === "/api/admin/login") {
-    return handleAdminLogin(request, env);
-  }
+    if (request.method === "GET") {
+      return handlePublicationById(request, env, id);
+    }
 
-  /* ----------------------------------------------------------
-     ADMIN LOGOUT
-  ---------------------------------------------------------- */
-
-  if (path === "/api/admin/logout") {
-    return handleAdminLogout(request);
+    return json(
+      {
+        ok: false,
+        error: "METHOD_NOT_ALLOWED"
+      },
+      405,
+      request
+    );
   }
 
   /* ----------------------------------------------------------
      ADMIN
   ---------------------------------------------------------- */
 
-  if (path === "/api/admin" || path === "/api/admin/") {
-    return handleAdminRoot(request, env);
-  }
-
-  if (path.startsWith("/api/admin/")) {
+  if (
+    path === "/api/admin" ||
+    path.startsWith("/api/admin/")
+  ) {
     return handleAdminApi(request, env, ctx);
   }
 
   /* ----------------------------------------------------------
-     ADMIN CHAT
+     PUBLIC ADMIN CHAT
   ---------------------------------------------------------- */
 
-  if (path === "/api/admin-chat") {
-    return handleAdminChat(request, env);
-  }
-
-  if (path.startsWith("/api/admin-chat/")) {
-    return handleAdminChatById(request, env);
+  if (
+    path === "/api/admin-chat" ||
+    path.startsWith("/api/admin-chat/")
+  ) {
+    return handleAdminChat(request, env, ctx);
   }
 
   /* ----------------------------------------------------------
-     NOTIFICATIONS
+     PUBLIC NOTIFICATIONS
   ---------------------------------------------------------- */
 
   if (path === "/api/notifications") {
@@ -269,15 +288,25 @@ async function handleApi(request, env, ctx) {
   }
 
   /* ----------------------------------------------------------
-     OLD / LEGACY FEATURES
+     LEGACY OPPORTUNITIES API
   ---------------------------------------------------------- */
 
-  if (path === "/api/opportunities") {
-    return handleOpportunities(request, env);
+  if (
+    path === "/api/opportunities" ||
+    path.startsWith("/api/opportunities/")
+  ) {
+    return handleLegacyOpportunities(request, env);
   }
 
-  if (path === "/api/messages") {
-    return handleMessages(request, env);
+  /* ----------------------------------------------------------
+     LEGACY MESSAGES API
+  ---------------------------------------------------------- */
+
+  if (
+    path === "/api/messages" ||
+    path.startsWith("/api/messages/")
+  ) {
+    return handleLegacyMessages(request, env);
   }
 
   return json(
@@ -286,22 +315,607 @@ async function handleApi(request, env, ctx) {
       error: "API_ROUTE_NOT_FOUND",
       path
     },
-    404
+    404,
+    request
   );
 }
 
 /* ============================================================
-   ADMIN LOGIN
+   ADMIN AUTH
+   NO LOGIN / NO PASSWORD
 ============================================================ */
 
-async function handleAdminLogin(request, env) {
-  if (request.method !== "POST") {
+async function requireAdmin(request, env) {
+  return {
+    ok: true,
+
+    admin: {
+      id: "key-admin",
+      name: "Главный администратор",
+      username: "admin",
+      role: "super_admin",
+
+      permissions: ["*"],
+
+      is_active: true
+    }
+  };
+}
+
+/* ============================================================
+   ADMIN ROOT
+============================================================ */
+
+async function handleAdminRoot(request, env) {
+  const auth = await requireAdmin(request, env);
+
+  return json(
+    {
+      ok: true,
+      admin: auth.admin,
+
+      access: {
+        login_required: false,
+        password_required: false,
+        session_required: false,
+        role: "super_admin"
+      },
+
+      endpoints: [
+        "/api/admin/me",
+        "/api/admin/dashboard",
+        "/api/admin/stats",
+        "/api/admin/users",
+        "/api/admin/publications",
+        "/api/admin/chat",
+        "/api/admin/notifications",
+        "/api/admin/audit"
+      ]
+    },
+    200,
+    request
+  );
+}
+
+/* ============================================================
+   ADMIN API ROUTER
+============================================================ */
+
+async function handleAdminApi(request, env, ctx) {
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
+
+  const auth = await requireAdmin(request, env);
+
+  if (!auth.ok) {
     return json(
       {
         ok: false,
-        error: "METHOD_NOT_ALLOWED"
+        error: "ADMIN_ACCESS_DENIED"
       },
-      405
+      401,
+      request
+    );
+  }
+
+  /* /api/admin */
+  if (path === "/api/admin" || path === "/api/admin/") {
+    return handleAdminRoot(request, env);
+  }
+
+  /* ----------------------------------------------------------
+     ME
+  ---------------------------------------------------------- */
+
+  if (path === "/api/admin/me") {
+    return json(
+      {
+        ok: true,
+        authenticated: true,
+        login_required: false,
+        admin: auth.admin
+      },
+      200,
+      request
+    );
+  }
+
+  /* ----------------------------------------------------------
+     DASHBOARD
+  ---------------------------------------------------------- */
+
+  if (path === "/api/admin/dashboard") {
+    return handleAdminDashboard(request, env);
+  }
+
+  /* ----------------------------------------------------------
+     STATS
+  ---------------------------------------------------------- */
+
+  if (path === "/api/admin/stats") {
+    return handleAdminStats(request, env);
+  }
+
+  /* ----------------------------------------------------------
+     USERS
+  ---------------------------------------------------------- */
+
+  if (
+    path === "/api/admin/users" ||
+    path.startsWith("/api/admin/users/")
+  ) {
+    return handleAdminUsers(request, env, ctx);
+  }
+
+  /* ----------------------------------------------------------
+     PUBLICATIONS
+  ---------------------------------------------------------- */
+
+  if (
+    path === "/api/admin/publications" ||
+    path.startsWith("/api/admin/publications/")
+  ) {
+    return handleAdminPublications(request, env, ctx);
+  }
+
+  /* ----------------------------------------------------------
+     CHAT
+  ---------------------------------------------------------- */
+
+  if (
+    path === "/api/admin/chat" ||
+    path.startsWith("/api/admin/chat/")
+  ) {
+    return handleAdminChatManagement(request, env, ctx);
+  }
+
+  /* ----------------------------------------------------------
+     NOTIFICATIONS
+  ---------------------------------------------------------- */
+
+  if (
+    path === "/api/admin/notifications" ||
+    path.startsWith("/api/admin/notifications/")
+  ) {
+    return handleAdminNotifications(request, env);
+  }
+
+  /* ----------------------------------------------------------
+     AUDIT
+  ---------------------------------------------------------- */
+
+  if (path === "/api/admin/audit") {
+    return handleAdminAudit(request, env);
+  }
+
+  return json(
+    {
+      ok: false,
+      error: "ADMIN_ROUTE_NOT_FOUND",
+      path
+    },
+    404,
+    request
+  );
+}
+
+/* ============================================================
+   ADMIN DASHBOARD
+============================================================ */
+
+async function handleAdminDashboard(request, env) {
+  const stats = await getDashboardStats(env);
+
+  return json(
+    {
+      ok: true,
+
+      admin: {
+        id: "key-admin",
+        name: "Главный администратор",
+        username: "admin",
+        role: "super_admin",
+        permissions: ["*"],
+        is_active: true
+      },
+
+      authentication: {
+        login_required: false,
+        password_required: false,
+        session_required: false
+      },
+
+      stats
+    },
+    200,
+    request
+  );
+}
+
+/* ============================================================
+   ADMIN STATS
+============================================================ */
+
+async function handleAdminStats(request, env) {
+  const stats = await getDashboardStats(env);
+
+  return json(
+    {
+      ok: true,
+      stats
+    },
+    200,
+    request
+  );
+}
+
+async function getDashboardStats(env) {
+  const result = {
+    publications: {
+      total: 0,
+      pending: 0,
+      published: 0,
+      rejected: 0,
+      draft: 0,
+      archived: 0
+    },
+
+    users: {
+      total: 0
+    },
+
+    chat: {
+      total: 0,
+      unread: 0
+    }
+  };
+
+  if (!env.DB) {
+    return result;
+  }
+
+  try {
+    const total = await env.DB
+      .prepare(
+        "SELECT COUNT(*) AS count FROM publications"
+      )
+      .first();
+
+    result.publications.total =
+      Number(total?.count || 0);
+  } catch {}
+
+  for (const status of PUBLICATION_STATUSES) {
+    try {
+      const row = await env.DB
+        .prepare(
+          "SELECT COUNT(*) AS count FROM publications WHERE status = ?"
+        )
+        .bind(status)
+        .first();
+
+      result.publications[status] =
+        Number(row?.count || 0);
+    } catch {}
+  }
+
+  try {
+    const users = await env.DB
+      .prepare(
+        `
+        SELECT COUNT(DISTINCT user_id) AS count
+        FROM publications
+        WHERE user_id IS NOT NULL
+        `
+      )
+      .first();
+
+    result.users.total =
+      Number(users?.count || 0);
+  } catch {}
+
+  try {
+    const chat = await env.DB
+      .prepare(
+        "SELECT COUNT(*) AS count FROM admin_chat"
+      )
+      .first();
+
+    result.chat.total =
+      Number(chat?.count || 0);
+  } catch {}
+
+  try {
+    const unread = await env.DB
+      .prepare(
+        `
+        SELECT COUNT(*) AS count
+        FROM admin_chat
+        WHERE sender_type = 'user'
+        AND (
+          read_at IS NULL
+          OR read_at = ''
+        )
+        `
+      )
+      .first();
+
+    result.chat.unread =
+      Number(unread?.count || 0);
+  } catch {}
+
+  return result;
+}
+
+/* ============================================================
+   PUBLICATIONS LIST
+============================================================ */
+
+async function handlePublicationsList(request, env) {
+  if (!env.DB) {
+    return json(
+      {
+        ok: false,
+        error: "DATABASE_NOT_CONFIGURED"
+      },
+      500,
+      request
+    );
+  }
+
+  const url = new URL(request.url);
+
+  const status =
+    url.searchParams.get("status") ||
+    "published";
+
+  const category =
+    url.searchParams.get("category");
+
+  const city =
+    url.searchParams.get("city");
+
+  const search =
+    url.searchParams.get("search") ||
+    url.searchParams.get("q");
+
+  const page =
+    Math.max(
+      1,
+      Number(url.searchParams.get("page") || 1)
+    );
+
+  const limit =
+    Math.min(
+      100,
+      Math.max(
+        1,
+        Number(url.searchParams.get("limit") || 20)
+      )
+    );
+
+  const offset = (page - 1) * limit;
+
+  const conditions = [];
+  const bindings = [];
+
+  if (status !== "all") {
+    conditions.push("status = ?");
+    bindings.push(status);
+  }
+
+  if (category) {
+    conditions.push("category = ?");
+    bindings.push(category);
+  }
+
+  if (city) {
+    conditions.push("city = ?");
+    bindings.push(city);
+  }
+
+  if (search) {
+    conditions.push(
+      `
+      (
+        title LIKE ?
+        OR text LIKE ?
+        OR category LIKE ?
+        OR city LIKE ?
+      )
+      `
+    );
+
+    const q = `%${search}%`;
+
+    bindings.push(q, q, q, q);
+  }
+
+  const where =
+    conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
+
+  const sql = `
+    SELECT *
+    FROM publications
+    ${where}
+    ORDER BY
+      pinned DESC,
+      featured DESC,
+      COALESCE(published_at, created_at) DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  bindings.push(limit, offset);
+
+  try {
+    const result = await env.DB
+      .prepare(sql)
+      .bind(...bindings)
+      .all();
+
+    const countSql = `
+      SELECT COUNT(*) AS count
+      FROM publications
+      ${where}
+    `;
+
+    const countBindings =
+      bindings.slice(0, -2);
+
+    const count = await env.DB
+      .prepare(countSql)
+      .bind(...countBindings)
+      .first();
+
+    return json(
+      {
+        ok: true,
+
+        data: result.results || [],
+
+        pagination: {
+          page,
+          limit,
+          total: Number(count?.count || 0),
+          pages: Math.ceil(
+            Number(count?.count || 0) / limit
+          )
+        }
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "PUBLICATIONS_QUERY_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   GET PUBLICATION
+============================================================ */
+
+async function handlePublicationById(
+  request,
+  env,
+  id
+) {
+  if (!env.DB) {
+    return json(
+      {
+        ok: false,
+        error: "DATABASE_NOT_CONFIGURED"
+      },
+      500,
+      request
+    );
+  }
+
+  try {
+    const publication = await env.DB
+      .prepare(
+        `
+        SELECT *
+        FROM publications
+        WHERE id = ?
+        LIMIT 1
+        `
+      )
+      .bind(id)
+      .first();
+
+    if (!publication) {
+      return json(
+        {
+          ok: false,
+          error: "PUBLICATION_NOT_FOUND"
+        },
+        404,
+        request
+      );
+    }
+
+    try {
+      await env.DB
+        .prepare(
+          `
+          UPDATE publications
+          SET views = COALESCE(views, 0) + 1
+          WHERE id = ?
+          `
+        )
+        .bind(id)
+        .run();
+
+      publication.views =
+        Number(publication.views || 0) + 1;
+    } catch {}
+
+    let media = [];
+
+    try {
+      const mediaResult = await env.DB
+        .prepare(
+          `
+          SELECT *
+          FROM publication_media
+          WHERE publication_id = ?
+          ORDER BY id ASC
+          `
+        )
+        .bind(id)
+        .all();
+
+      media = mediaResult.results || [];
+    } catch {}
+
+    return json(
+      {
+        ok: true,
+        publication,
+        media
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "PUBLICATION_QUERY_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   CREATE PUBLICATION
+============================================================ */
+
+async function handleCreatePublication(
+  request,
+  env
+) {
+  if (!env.DB) {
+    return json(
+      {
+        ok: false,
+        error: "DATABASE_NOT_CONFIGURED"
+      },
+      500,
+      request
     );
   }
 
@@ -313,810 +927,51 @@ async function handleAdminLogin(request, env) {
     return json(
       {
         ok: false,
-        error: "INVALID_JSON",
-        message: "Неверный формат запроса."
-      },
-      400
-    );
-  }
-
-  const password = String(
-    body?.password ||
-    body?.pass ||
-    body?.admin_password ||
-    ""
-  ).trim();
-
-  if (!password) {
-    return json(
-      {
-        ok: false,
-        error: "PASSWORD_REQUIRED",
-        message: "Введите пароль администратора."
-      },
-      400
-    );
-  }
-
-  if (!constantTimeEqual(password, ADMIN_PASSWORD)) {
-    return json(
-      {
-        ok: false,
-        error: "INVALID_ADMIN_PASSWORD",
-        message: "Неверный пароль администратора."
-      },
-      401
-    );
-  }
-
-  const expiresAt =
-    Date.now() +
-    ADMIN_SESSION_MAX_AGE * 1000;
-
-  const token = await createAdminToken(
-    ADMIN_PASSWORD,
-    expiresAt
-  );
-
-  /*
-   * В cookie НЕ хранится пароль.
-   *
-   * HttpOnly:
-   * JavaScript страницы не может прочитать cookie.
-   *
-   * Secure:
-   * cookie отправляется только по HTTPS.
-
-   * SameSite=Lax:
-   * защищает от большинства нежелательных
-   * cross-site запросов.
-   */
-  const cookie =
-    `${COOKIE_NAME}=${encodeURIComponent(token)}; ` +
-    `Max-Age=${ADMIN_SESSION_MAX_AGE}; ` +
-    `Path=/; ` +
-    `HttpOnly; ` +
-    `Secure; ` +
-    `SameSite=Lax`;
-
-  return json(
-    {
-      ok: true,
-      success: true,
-
-      authenticated: true,
-
-      admin: {
-        id: "key-admin",
-        name: "Главный администратор",
-        username: "admin",
-        role: "super_admin",
-        permissions: ["*"],
-        is_active: true
-      },
-
-      expires_at:
-        new Date(expiresAt).toISOString(),
-
-      message:
-        "Вход администратора выполнен."
-    },
-    200,
-    {
-      "Set-Cookie": cookie
-    }
-  );
-}
-
-/* ============================================================
-   ADMIN LOGOUT
-============================================================ */
-
-async function handleAdminLogout(request) {
-  if (
-    request.method !== "POST" &&
-    request.method !== "GET"
-  ) {
-    return json(
-      {
-        ok: false,
-        error: "METHOD_NOT_ALLOWED"
-      },
-      405
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      success: true,
-      authenticated: false,
-      message:
-        "Вы вышли из панели администратора."
-    },
-    200,
-    {
-      "Set-Cookie":
-        `${COOKIE_NAME}=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Lax`
-    }
-  );
-}
-
-/* ============================================================
-   ADMIN TOKEN
-============================================================ */
-
-async function createAdminToken(
-  password,
-  expiresAt
-) {
-  const payload =
-    `tajik-opportunities-admin.${expiresAt}`;
-
-  const signature =
-    await hmacSign(
-      password,
-      payload
-    );
-
-  return `${expiresAt}.${signature}`;
-}
-
-async function verifyAdminToken(
-  token,
-  password
-) {
-  if (!token) {
-    return false;
-  }
-
-  const parts =
-    String(token).split(".");
-
-  if (parts.length !== 2) {
-    return false;
-  }
-
-  const expiresAt =
-    Number(parts[0]);
-
-  const signature =
-    parts[1];
-
-  if (
-    !Number.isFinite(expiresAt) ||
-    !signature
-  ) {
-    return false;
-  }
-
-  if (
-    Date.now() > expiresAt
-  ) {
-    return false;
-  }
-
-  const payload =
-    `tajik-opportunities-admin.${expiresAt}`;
-
-  const expected =
-    await hmacSign(
-      password,
-      payload
-    );
-
-  return constantTimeEqual(
-    signature,
-    expected
-  );
-}
-
-async function hmacSign(
-  secret,
-  message
-) {
-  const encoder =
-    new TextEncoder();
-
-  const key =
-    await crypto.subtle.importKey(
-      "raw",
-      encoder.encode(secret),
-      {
-        name: "HMAC",
-        hash: "SHA-256"
-      },
-      false,
-      ["sign"]
-    );
-
-  const signature =
-    await crypto.subtle.sign(
-      "HMAC",
-      key,
-      encoder.encode(message)
-    );
-
-  return arrayBufferToHex(
-    signature
-  );
-}
-
-function arrayBufferToHex(
-  buffer
-) {
-  return Array.from(
-    new Uint8Array(buffer)
-  )
-    .map(
-      byte =>
-        byte
-          .toString(16)
-          .padStart(2, "0")
-    )
-    .join("");
-}
-
-function getCookie(
-  request,
-  name
-) {
-  const header =
-    request.headers.get("Cookie");
-
-  if (!header) {
-    return null;
-  }
-
-  const cookies =
-    header.split(";");
-
-  for (
-    const item of cookies
-  ) {
-    const index =
-      item.indexOf("=");
-
-    if (index === -1) {
-      continue;
-    }
-
-    const key =
-      item
-        .slice(0, index)
-        .trim();
-
-    if (key !== name) {
-      continue;
-    }
-
-    const value =
-      item
-        .slice(index + 1)
-        .trim();
-
-    try {
-      return decodeURIComponent(
-        value
-      );
-    } catch {
-      return value;
-    }
-  }
-
-  return null;
-}
-
-/* ============================================================
-   PUBLICATIONS
-============================================================ */
-
-async function handlePublications(request, env) {
-  if (!env.DB) {
-    return json(
-      {
-        ok: false,
-        error: "D1_NOT_CONFIGURED"
-      },
-      500
-    );
-  }
-
-  if (request.method === "GET") {
-    return listPublications(request, env);
-  }
-
-  if (request.method === "POST") {
-    return createPublication(request, env);
-  }
-
-  return json(
-    {
-      ok: false,
-      error: "METHOD_NOT_ALLOWED"
-    },
-    405
-  );
-}
-
-/* ============================================================
-   LIST PUBLICATIONS
-============================================================ */
-
-async function listPublications(request, env) {
-  const url = new URL(request.url);
-
-  const category = clean(
-    url.searchParams.get("category")
-  );
-
-  const city = clean(
-    url.searchParams.get("city")
-  );
-
-  const status =
-    clean(
-      url.searchParams.get("status")
-    ) || "published";
-
-  const search =
-    clean(
-      url.searchParams.get("search")
-    ) ||
-    clean(
-      url.searchParams.get("q")
-    );
-
-  const author =
-    clean(
-      url.searchParams.get("author")
-    ) ||
-    clean(
-      url.searchParams.get("name")
-    );
-
-  const limit =
-    clampNumber(
-      url.searchParams.get("limit"),
-      1,
-      100,
-      30
-    );
-
-  const offset =
-    clampNumber(
-      url.searchParams.get("offset"),
-      0,
-      100000,
-      0
-    );
-
-  const schema =
-    await getTableSchema(
-      env.DB,
-      "publications"
-    );
-
-  if (!schema.length) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATIONS_TABLE_NOT_FOUND"
-      },
-      500
-    );
-  }
-
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
-      )
-    );
-
-  const where = [];
-  const params = [];
-
-  if (
-    columns.has("status") &&
-    status !== "all"
-  ) {
-    where.push(
-      "status = ?"
-    );
-
-    params.push(status);
-  }
-
-  if (
-    category &&
-    columns.has("category")
-  ) {
-    where.push(
-      "category = ?"
-    );
-
-    params.push(category);
-  }
-
-  if (
-    city &&
-    columns.has("city")
-  ) {
-    where.push(
-      "city = ?"
-    );
-
-    params.push(city);
-  }
-
-  if (author) {
-    const authorConditions = [];
-
-    if (
-      columns.has("contact_name")
-    ) {
-      authorConditions.push(
-        "contact_name = ?"
-      );
-
-      params.push(author);
-    }
-
-    if (
-      columns.has("author_name")
-    ) {
-      authorConditions.push(
-        "author_name = ?"
-      );
-
-      params.push(author);
-    }
-
-    if (
-      authorConditions.length
-    ) {
-      where.push(
-        `(${authorConditions.join(
-          " OR "
-        )})`
-      );
-    }
-  }
-
-  if (search) {
-    const searchConditions = [];
-
-    if (
-      columns.has("title")
-    ) {
-      searchConditions.push(
-        "title LIKE ?"
-      );
-
-      params.push(
-        `%${search}%`
-      );
-    }
-
-    if (
-      columns.has("text")
-    ) {
-      searchConditions.push(
-        "text LIKE ?"
-      );
-
-      params.push(
-        `%${search}%`
-      );
-    }
-
-    if (
-      columns.has("category")
-    ) {
-      searchConditions.push(
-        "category LIKE ?"
-      );
-
-      params.push(
-        `%${search}%`
-      );
-    }
-
-    if (
-      columns.has("city")
-    ) {
-      searchConditions.push(
-        "city LIKE ?"
-      );
-
-      params.push(
-        `%${search}%`
-      );
-    }
-
-    if (
-      columns.has("contact_name")
-    ) {
-      searchConditions.push(
-        "contact_name LIKE ?"
-      );
-
-      params.push(
-        `%${search}%`
-      );
-    }
-
-    if (
-      searchConditions.length
-    ) {
-      where.push(
-        `(${searchConditions.join(
-          " OR "
-        )})`
-      );
-    }
-  }
-
-  const sql = `
-    SELECT *
-    FROM publications
-    ${
-      where.length
-        ? `WHERE ${where.join(" AND ")}`
-        : ""
-    }
-    ORDER BY
-      ${
-        columns.has("pinned")
-          ? "pinned DESC,"
-          : ""
-      }
-      ${
-        columns.has("featured")
-          ? "featured DESC,"
-          : ""
-      }
-      ${
-        columns.has("created_at")
-          ? "created_at DESC"
-          : "rowid DESC"
-      }
-    LIMIT ? OFFSET ?
-  `;
-
-  params.push(
-    limit,
-    offset
-  );
-
-  const result =
-    await env.DB
-      .prepare(sql)
-      .bind(...params)
-      .all();
-
-  const rows =
-    result.results || [];
-
-  const items =
-    rows.map(
-      normalizePublication
-    );
-
-  return json({
-    ok: true,
-    items,
-    publications: items,
-    count: items.length,
-    limit,
-    offset
-  });
-}
-
-/* ============================================================
-   CREATE PUBLICATION
-============================================================ */
-
-async function createPublication(
-  request,
-  env
-) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
         error: "INVALID_JSON"
       },
-      400
+      400,
+      request
     );
   }
 
-  const title =
-    clean(
-      body.title ||
-      body.name ||
-      body.heading
-    );
-
-  const text =
-    clean(
-      body.text ||
-      body.content ||
-      body.description
-    );
-
-  const category =
-    clean(
-      body.category
-    );
-
-  const contactName =
-    clean(
-      body.contact_name ||
-      body.author_name ||
-      body.name ||
-      "Аноним"
-    );
-
-  if (!title) {
-    return json(
-      {
-        ok: false,
-        error: "TITLE_REQUIRED",
-        message:
-          "Укажите название публикации."
-      },
-      400
-    );
-  }
-
-  if (!text) {
-    return json(
-      {
-        ok: false,
-        error: "CONTENT_REQUIRED",
-        message:
-          "Добавьте описание."
-      },
-      400
-    );
-  }
-
-  if (!category) {
-    return json(
-      {
-        ok: false,
-        error: "CATEGORY_REQUIRED",
-        message:
-          "Выберите категорию."
-      },
-      400
-    );
-  }
-
-  const now =
-    new Date().toISOString();
+  const now = new Date().toISOString();
 
   const id =
+    body.id ||
     crypto.randomUUID();
 
   const trackingCode =
-    generateTrackingCode();
+    body.tracking_code ||
+    createTrackingCode();
 
-  const media =
-    Array.isArray(body.media)
-      ? body.media
-      : [];
+  const status =
+    body.status &&
+    PUBLICATION_STATUSES.includes(body.status)
+      ? body.status
+      : "pending";
 
-  const hashtags =
-    body.tags ||
-    body.hashtags ||
-    "";
-
-  const values = {
+  const fields = {
     id,
-    title,
-    text,
-    category,
-    subcategory:
-      clean(body.subcategory),
+    user_id: body.user_id || null,
 
-    country:
-      clean(body.country),
+    title: cleanString(body.title),
+    text: cleanString(body.text),
 
-    city:
-      clean(body.city),
+    category: cleanString(body.category),
+    city: cleanString(body.city),
+    country: cleanString(body.country),
 
-    location:
-      clean(body.location),
+    hashtags: cleanString(body.hashtags),
+    media: cleanString(body.media),
 
-    scope:
-      clean(body.scope),
-
-    event_start:
-      clean(body.event_start),
-
-    event_end:
-      clean(body.event_end),
-
-    deadline:
-      clean(body.deadline),
-
-    price:
-      numberOrZero(body.price),
-
-    currency:
-      clean(body.currency),
-
-    employment_type:
-      clean(body.employment_type),
-
-    work_format:
-      clean(body.work_format),
-
-    experience:
-      clean(body.experience),
-
-    education:
-      clean(body.education),
-
-    languages:
-      stringifyMaybe(
-        body.languages
-      ),
-
-    hashtags:
-      stringifyMaybe(
-        hashtags
-      ),
-
-    contact_name:
-      contactName,
-
-    contact_phone:
-      clean(body.contact_phone),
-
-    contact_email:
-      clean(body.contact_email),
-
-    contact_telegram:
-      clean(body.contact_telegram),
-
-    external_url:
-      clean(body.external_url),
-
-    author_name:
-      contactName,
-
-    language:
-      clean(body.language) ||
-      "ru",
-
-    translate_all:
-      body.translate_all
-        ? 1
-        : 0,
-
-    media:
-      media.length
-        ? JSON.stringify(media)
-        : null,
-
-    status:
-      "pending",
+    status,
 
     views: 0,
     likes: 0,
     comments: 0,
     saves: 0,
     shares: 0,
+
     love: 0,
     support: 0,
     funny: 0,
@@ -1124,485 +979,119 @@ async function createPublication(
     sad: 0,
     angry: 0,
 
-    price_value:
-      numberOrZero(
-        body.price
-      ),
+    price: cleanString(body.price),
 
-    pinned: 0,
-    featured: 0,
+    pinned: body.pinned ? 1 : 0,
+    featured: body.featured ? 1 : 0,
 
-    created_at:
-      now,
+    created_at: body.created_at || now,
+    updated_at: now,
 
-    updated_at:
-      now,
+    tracking_code: trackingCode,
+
+    subcategory: cleanString(body.subcategory),
+    location: cleanString(body.location),
+    scope: cleanString(body.scope),
+
+    event_start: cleanString(body.event_start),
+    event_end: cleanString(body.event_end),
+    deadline: cleanString(body.deadline),
+
+    currency: cleanString(body.currency),
+    employment_type: cleanString(body.employment_type),
+    experience: cleanString(body.experience),
 
     published_at:
-      null,
+      status === "published"
+        ? now
+        : null,
 
-    tracking_code:
-      trackingCode
+    rejection_reason:
+      cleanString(body.rejection_reason),
+
+    translate_all:
+      body.translate_all ? 1 : 0,
+
+    language:
+      cleanString(body.language) || "ru",
+
+    contact_telegram:
+      cleanString(body.contact_telegram),
+
+    contact_email:
+      cleanString(body.contact_email),
+
+    contact_phone:
+      cleanString(body.contact_phone),
+
+    contact_name:
+      cleanString(body.contact_name),
+
+    education:
+      cleanString(body.education),
+
+    work_format:
+      cleanString(body.work_format),
+
+    external_url:
+      cleanString(body.external_url),
+
+    languages:
+      cleanString(body.languages)
   };
 
-  const inserted =
-    await dynamicInsert(
-      env.DB,
-      "publications",
-      values
+  try {
+    const columns = Object.keys(fields);
+
+    const placeholders =
+      columns.map(() => "?").join(", ");
+
+    const values =
+      columns.map((column) => fields[column]);
+
+    const sql = `
+      INSERT INTO publications
+      (${columns.join(", ")})
+      VALUES
+      (${placeholders})
+    `;
+
+    await env.DB
+      .prepare(sql)
+      .bind(...values)
+      .run();
+
+    await writeAuditLog(
+      env,
+      "publication_created",
+      id,
+      {
+        title: fields.title,
+        status
+      }
     );
 
-  if (!inserted.ok) {
+    return json(
+      {
+        ok: true,
+        message: "Publication created",
+        publication: fields,
+        tracking_code: trackingCode
+      },
+      201,
+      request
+    );
+  } catch (error) {
     return json(
       {
         ok: false,
-        error:
-          "PUBLICATION_CREATE_FAILED",
-        message:
-          inserted.message
+        error: "PUBLICATION_CREATE_FAILED",
+        message: error.message
       },
-      500
+      500,
+      request
     );
   }
-
-  if (media.length) {
-    await savePublicationMedia(
-      env.DB,
-      id,
-      media,
-      now
-    );
-  }
-
-  return json(
-    {
-      ok: true,
-      success: true,
-
-      id,
-
-      publication_id:
-        id,
-
-      tracking_code:
-        trackingCode,
-
-      code:
-        trackingCode,
-
-      status:
-        "pending",
-
-      message:
-        "Публикация отправлена на проверку администратора."
-    },
-    201
-  );
-}
-
-/* ============================================================
-   PUBLICATION BY ID
-============================================================ */
-
-async function handlePublicationById(
-  request,
-  env
-) {
-  const url =
-    new URL(request.url);
-
-  const parts =
-    url.pathname
-      .split("/")
-      .filter(Boolean);
-
-  const id =
-    parts[2];
-
-  if (!id) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_ID_REQUIRED"
-      },
-      400
-    );
-  }
-
-  if (
-    request.method === "GET"
-  ) {
-    const publication =
-      await getPublicationById(
-        env.DB,
-        id
-      );
-
-    if (!publication) {
-      return json(
-        {
-          ok: false,
-          error:
-            "PUBLICATION_NOT_FOUND"
-        },
-        404
-      );
-    }
-
-    try {
-      await incrementPublicationViews(
-        env.DB,
-        id
-      );
-    } catch {}
-
-    return json({
-      ok: true,
-      publication:
-        normalizePublication(
-          publication
-        )
-    });
-  }
-
-  return json(
-    {
-      ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
-  );
-}
-
-/* ============================================================
-   ADMIN ROOT
-============================================================ */
-
-async function handleAdminRoot(
-  request,
-  env
-) {
-  const admin =
-    await requireAdmin(
-      request,
-      env
-    );
-
-  if (!admin.ok) {
-    return admin.response;
-  }
-
-  return json({
-    ok: true,
-    authenticated: true,
-
-    admin: {
-      id:
-        admin.admin.id,
-
-      name:
-        admin.admin.name,
-
-      username:
-        admin.admin.username ||
-        "admin",
-
-      role:
-        admin.admin.role,
-
-      permissions:
-        admin.admin.permissions
-    },
-
-    rights: [
-      "dashboard",
-      "publications",
-      "publication_approve",
-      "publication_reject",
-      "publication_delete",
-      "publication_edit",
-      "publication_pin",
-      "publication_feature",
-      "users",
-      "user_block",
-      "user_delete",
-      "admin_chat",
-      "notifications",
-      "audit",
-      "statistics"
-    ]
-  });
-}
-
-/* ============================================================
-   ADMIN ROUTER
-============================================================ */
-
-async function handleAdminApi(
-  request,
-  env,
-  ctx
-) {
-  const url =
-    new URL(request.url);
-
-  const path =
-    url.pathname;
-
-  const admin =
-    await requireAdmin(
-      request,
-      env
-    );
-
-  if (!admin.ok) {
-    return admin.response;
-  }
-
-  /*
-   * /api/admin/me
-   */
-  if (
-    path === "/api/admin/me"
-  ) {
-    return json({
-      ok: true,
-      authenticated: true,
-
-      admin:
-        sanitizeAdmin(
-          admin.admin
-        )
-    });
-  }
-
-  /*
-   * DASHBOARD
-   */
-  if (
-    path === "/api/admin/dashboard" ||
-    path === "/api/admin/stats"
-  ) {
-    return requirePermission(
-      admin,
-      "dashboard",
-      () =>
-        getAdminDashboard(
-          request,
-          env
-        )
-    );
-  }
-
-  /*
-   * USERS
-   */
-  if (
-    path === "/api/admin/users" ||
-    path.startsWith(
-      "/api/admin/users/"
-    )
-  ) {
-    return requirePermission(
-      admin,
-      "users",
-      () =>
-        handleAdminUsers(
-          request,
-          env,
-          admin
-        )
-    );
-  }
-
-  /*
-   * PUBLICATIONS
-   */
-  if (
-    path === "/api/admin/publications" ||
-    path.startsWith(
-      "/api/admin/publications/"
-    )
-  ) {
-    return requirePermission(
-      admin,
-      "publications",
-      () =>
-        handleAdminPublications(
-          request,
-          env,
-          admin
-        )
-    );
-  }
-
-  /*
-   * CHAT
-   */
-  if (
-    path === "/api/admin/chat" ||
-    path.startsWith(
-      "/api/admin/chat/"
-    )
-  ) {
-    return requirePermission(
-      admin,
-      "admin_chat",
-      () =>
-        handleAdminChatApi(
-          request,
-          env,
-          admin
-        )
-    );
-  }
-
-  /*
-   * NOTIFICATIONS
-   */
-  if (
-    path ===
-    "/api/admin/notifications"
-  ) {
-    return requirePermission(
-      admin,
-      "notifications",
-      () =>
-        handleAdminNotifications(
-          request,
-          env,
-          admin
-        )
-    );
-  }
-
-  /*
-   * AUDIT
-   */
-  if (
-    path ===
-    "/api/admin/audit"
-  ) {
-    return requirePermission(
-      admin,
-      "audit",
-      () =>
-        handleAdminAudit(
-          request,
-          env
-        )
-    );
-  }
-
-  return json(
-    {
-      ok: false,
-      error:
-        "ADMIN_ROUTE_NOT_FOUND"
-    },
-    404
-  );
-}
-
-/* ============================================================
-   ADMIN DASHBOARD
-============================================================ */
-
-async function getAdminDashboard(
-  request,
-  env
-) {
-  const db =
-    env.DB;
-
-  const statistics = {
-    publications: 0,
-    pending: 0,
-    published: 0,
-    rejected: 0,
-    users: 0,
-    messages: 0,
-    notifications: 0
-  };
-
-  if (db) {
-    statistics.publications =
-      await countTable(
-        db,
-        "publications"
-      );
-
-    statistics.pending =
-      await countWhere(
-        db,
-        "publications",
-        "status = ?",
-        ["pending"]
-      );
-
-    statistics.published =
-      await countWhere(
-        db,
-        "publications",
-        "status = ?",
-        ["published"]
-      );
-
-    statistics.rejected =
-      await countWhere(
-        db,
-        "publications",
-        "status = ?",
-        ["rejected"]
-      );
-
-    statistics.users =
-      await countTable(
-        db,
-        "users"
-      );
-
-    statistics.notifications =
-      await countTable(
-        db,
-        "notifications"
-      );
-  }
-
-  const conversations =
-    await getAdminConversations(
-      env
-    );
-
-  statistics.messages =
-    conversations.reduce(
-      (
-        total,
-        item
-      ) =>
-        total +
-        (
-          Array.isArray(
-            item.messages
-          )
-            ? item.messages.length
-            : 0
-        ),
-      0
-    );
-
-  return json({
-    ok: true,
-    statistics,
-
-    generated_at:
-      new Date().toISOString(),
-
-    service:
-      SITE_NAME
-  });
 }
 
 /* ============================================================
@@ -1612,23 +1101,21 @@ async function getAdminDashboard(
 async function handleAdminPublications(
   request,
   env,
-  admin
+  ctx
 ) {
-  const url =
-    new URL(request.url);
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
 
-  const parts =
-    url.pathname
-      .split("/")
-      .filter(Boolean);
+  if (path === "/api/admin/publications") {
+    if (request.method === "GET") {
+      return handleAdminPublicationList(
+        request,
+        env
+      );
+    }
 
-  if (
-    parts.length === 3
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return listAdminPublications(
+    if (request.method === "POST") {
+      return handleCreatePublication(
         request,
         env
       );
@@ -1637,126 +1124,62 @@ async function handleAdminPublications(
     return json(
       {
         ok: false,
-        error:
-          "METHOD_NOT_ALLOWED"
+        error: "METHOD_NOT_ALLOWED"
       },
-      405
+      405,
+      request
+    );
+  }
+
+  const match = path.match(
+    /^\/api\/admin\/publications\/([^/]+)(?:\/([^/]+))?$/
+  );
+
+  if (!match) {
+    return json(
+      {
+        ok: false,
+        error: "INVALID_PUBLICATION_ROUTE"
+      },
+      400,
+      request
     );
   }
 
   const id =
-    parts[3];
-
-  if (!id) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_ID_REQUIRED"
-      },
-      400
-    );
-  }
+    decodeURIComponent(match[1]);
 
   const action =
-    parts[4];
+    match[2]
+      ? decodeURIComponent(match[2])
+      : null;
 
   if (action) {
-    if (
-      action === "approve"
-    ) {
-      return moderatePublication(
-        request,
-        env,
-        admin,
-        id,
-        "published"
-      );
-    }
-
-    if (
-      action === "reject"
-    ) {
-      return moderatePublication(
-        request,
-        env,
-        admin,
-        id,
-        "rejected"
-      );
-    }
-
-    if (
-      action === "pin"
-    ) {
-      return togglePublicationFlag(
-        request,
-        env,
-        admin,
-        id,
-        "pinned"
-      );
-    }
-
-    if (
-      action === "feature"
-    ) {
-      return togglePublicationFlag(
-        request,
-        env,
-        admin,
-        id,
-        "featured"
-      );
-    }
-
-    return json(
-      {
-        ok: false,
-        error:
-          "UNKNOWN_PUBLICATION_ACTION"
-      },
-      404
+    return handlePublicationAction(
+      request,
+      env,
+      id,
+      action
     );
   }
 
   if (
     request.method === "GET"
   ) {
-    const publication =
-      await getPublicationById(
-        env.DB,
-        id
-      );
-
-    if (!publication) {
-      return json(
-        {
-          ok: false,
-          error:
-            "PUBLICATION_NOT_FOUND"
-        },
-        404
-      );
-    }
-
-    return json({
-      ok: true,
-      publication:
-        normalizePublication(
-          publication
-        )
-    });
+    return handlePublicationById(
+      request,
+      env,
+      id
+    );
   }
 
   if (
-    request.method === "PATCH" ||
-    request.method === "PUT"
+    request.method === "PUT" ||
+    request.method === "PATCH"
   ) {
-    return updateAdminPublication(
+    return handleAdminPublicationUpdate(
       request,
       env,
-      admin,
       id
     );
   }
@@ -1764,10 +1187,9 @@ async function handleAdminPublications(
   if (
     request.method === "DELETE"
   ) {
-    return deleteAdminPublication(
+    return handleAdminPublicationDelete(
       request,
       env,
-      admin,
       id
     );
   }
@@ -1775,10 +1197,10 @@ async function handleAdminPublications(
   return json(
     {
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
+      error: "METHOD_NOT_ALLOWED"
     },
-    405
+    405,
+    request
   );
 }
 
@@ -1786,363 +1208,333 @@ async function handleAdminPublications(
    ADMIN PUBLICATION LIST
 ============================================================ */
 
-async function listAdminPublications(
+async function handleAdminPublicationList(
   request,
   env
 ) {
-  const url =
-    new URL(request.url);
+  const url = new URL(request.url);
 
   const status =
-    clean(
-      url.searchParams.get(
-        "status"
-      )
-    ) || "all";
+    url.searchParams.get("status") ||
+    "all";
 
-  const search =
-    clean(
-      url.searchParams.get(
-        "search"
-      )
-    ) ||
-    clean(
-      url.searchParams.get(
-        "q"
-      )
+  const page =
+    Math.max(
+      1,
+      Number(url.searchParams.get("page") || 1)
     );
 
   const limit =
-    clampNumber(
-      url.searchParams.get(
-        "limit"
-      ),
-      1,
-      200,
-      100
-    );
-
-  const offset =
-    clampNumber(
-      url.searchParams.get(
-        "offset"
-      ),
-      0,
-      100000,
-      0
-    );
-
-  const schema =
-    await getTableSchema(
-      env.DB,
-      "publications"
-    );
-
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
+    Math.min(
+      100,
+      Math.max(
+        1,
+        Number(url.searchParams.get("limit") || 50)
       )
     );
 
-  const where = [];
-  const params = [];
+  const offset = (page - 1) * limit;
+
+  const conditions = [];
+  const bindings = [];
 
   if (
     status !== "all" &&
-    columns.has("status")
+    PUBLICATION_STATUSES.includes(status)
   ) {
-    where.push(
-      "status = ?"
-    );
-
-    params.push(status);
+    conditions.push("status = ?");
+    bindings.push(status);
   }
 
-  if (search) {
-    const conditions = [];
-
-    for (
-      const field of [
-        "title",
-        "text",
-        "category",
-        "city",
-        "contact_name",
-        "tracking_code"
-      ]
-    ) {
-      if (
-        columns.has(field)
-      ) {
-        conditions.push(
-          `${field} LIKE ?`
-        );
-
-        params.push(
-          `%${search}%`
-        );
-      }
-    }
-
-    if (conditions.length) {
-      where.push(
-        `(${conditions.join(
-          " OR "
-        )})`
-      );
-    }
-  }
-
-  params.push(
-    limit,
-    offset
-  );
-
-  const result =
-    await env.DB
-      .prepare(`
-        SELECT *
-        FROM publications
-        ${
-          where.length
-            ? `WHERE ${where.join(
-                " AND "
-              )}`
-            : ""
-        }
-        ORDER BY
-          ${
-            columns.has(
-              "created_at"
-            )
-              ? "created_at DESC"
-              : "rowid DESC"
-          }
-        LIMIT ? OFFSET ?
-      `)
-      .bind(...params)
-      .all();
-
-  const items =
-    (result.results || [])
-      .map(
-        normalizePublication
-      );
-
-  return json({
-    ok: true,
-    items,
-    publications:
-      items,
-    count:
-      items.length,
-    limit,
-    offset
-  });
-}
-
-/* ============================================================
-   MODERATION
-============================================================ */
-
-async function moderatePublication(
-  request,
-  env,
-  admin,
-  id,
-  status
-) {
-  let body = {};
-
-  if (
-    request.method === "POST" ||
-    request.method === "PATCH"
-  ) {
-    try {
-      body =
-        await request.json();
-    } catch {}
-  }
-
-  const now =
-    new Date().toISOString();
-
-  const values = {
-    status,
-    updated_at:
-      now
-  };
-
-  if (
-    status === "published"
-  ) {
-    values.published_at =
-      now;
-
-    values.rejection_reason =
-      null;
-  }
-
-  if (
-    status === "rejected"
-  ) {
-    values.rejection_reason =
-      clean(
-        body.reason ||
-        body.rejection_reason
-      ) ||
-      "Отклонено администратором";
-  }
-
-  const updated =
-    await updateById(
-      env.DB,
-      "publications",
-      id,
-      values
-    );
-
-  if (!updated) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_NOT_FOUND"
-      },
-      404
-    );
-  }
-
-  await writeAuditLog(
-    env.DB,
-    admin,
-    `publication_${status}`,
-    "publication",
-    id,
-    {
-      status,
-      reason:
-        values.rejection_reason ||
-        null
-    }
-  );
-
-  return json({
-    ok: true,
-    id,
-    status,
-    message:
-      status === "published"
-        ? "Публикация одобрена."
-        : "Публикация отклонена."
-  });
-}
-
-/* ============================================================
-   PIN / FEATURE
-============================================================ */
-
-async function togglePublicationFlag(
-  request,
-  env,
-  admin,
-  id,
-  field
-) {
-  const publication =
-    await getPublicationById(
-      env.DB,
-      id
-    );
-
-  if (!publication) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_NOT_FOUND"
-      },
-      404
-    );
-  }
-
-  let body = {};
+  const where =
+    conditions.length
+      ? `WHERE ${conditions.join(" AND ")}`
+      : "";
 
   try {
-    body =
-      await request.json();
-  } catch {}
+    const result = await env.DB
+      .prepare(
+        `
+        SELECT *
+        FROM publications
+        ${where}
+        ORDER BY
+          pinned DESC,
+          featured DESC,
+          created_at DESC
+        LIMIT ? OFFSET ?
+        `
+      )
+      .bind(
+        ...bindings,
+        limit,
+        offset
+      )
+      .all();
 
-  const current =
-    Number(
-      publication[field] || 0
+    const count = await env.DB
+      .prepare(
+        `
+        SELECT COUNT(*) AS count
+        FROM publications
+        ${where}
+        `
+      )
+      .bind(...bindings)
+      .first();
+
+    return json(
+      {
+        ok: true,
+        data: result.results || [],
+        pagination: {
+          page,
+          limit,
+          total: Number(count?.count || 0),
+          pages: Math.ceil(
+            Number(count?.count || 0) /
+              limit
+          )
+        }
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "ADMIN_PUBLICATIONS_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   PUBLICATION ACTIONS
+============================================================ */
+
+async function handlePublicationAction(
+  request,
+  env,
+  id,
+  action
+) {
+  const actions = {
+    approve: "published",
+    publish: "published",
+    reject: "rejected",
+    archive: "archived",
+    draft: "draft"
+  };
+
+  if (action === "pin") {
+    return updatePublicationFlag(
+      request,
+      env,
+      id,
+      "pinned",
+      1
+    );
+  }
+
+  if (action === "unpin") {
+    return updatePublicationFlag(
+      request,
+      env,
+      id,
+      "pinned",
+      0
+    );
+  }
+
+  if (action === "feature") {
+    return updatePublicationFlag(
+      request,
+      env,
+      id,
+      "featured",
+      1
+    );
+  }
+
+  if (action === "unfeature") {
+    return updatePublicationFlag(
+      request,
+      env,
+      id,
+      "featured",
+      0
+    );
+  }
+
+  if (actions[action]) {
+    const status = actions[action];
+
+    const now =
+      new Date().toISOString();
+
+    try {
+      await env.DB
+        .prepare(
+          `
+          UPDATE publications
+          SET
+            status = ?,
+            updated_at = ?,
+            published_at =
+              CASE
+                WHEN ? = 'published'
+                THEN COALESCE(published_at, ?)
+                ELSE published_at
+              END
+          WHERE id = ?
+          `
+        )
+        .bind(
+          status,
+          now,
+          status,
+          now,
+          id
+        )
+        .run();
+
+      await writeAuditLog(
+        env,
+        `publication_${action}`,
+        id,
+        { status }
+      );
+
+      return json(
+        {
+          ok: true,
+          id,
+          status
+        },
+        200,
+        request
+      );
+    } catch (error) {
+      return json(
+        {
+          ok: false,
+          error: "PUBLICATION_ACTION_FAILED",
+          message: error.message
+        },
+        500,
+        request
+      );
+    }
+  }
+
+  return json(
+    {
+      ok: false,
+      error: "UNKNOWN_PUBLICATION_ACTION"
+    },
+    400,
+    request
+  );
+}
+
+/* ============================================================
+   PUBLICATION FLAG
+============================================================ */
+
+async function updatePublicationFlag(
+  request,
+  env,
+  id,
+  field,
+  value
+) {
+  if (
+    field !== "pinned" &&
+    field !== "featured"
+  ) {
+    return json(
+      {
+        ok: false,
+        error: "INVALID_FLAG"
+      },
+      400,
+      request
+    );
+  }
+
+  try {
+    await env.DB
+      .prepare(
+        `
+        UPDATE publications
+        SET
+          ${field} = ?,
+          updated_at = ?
+        WHERE id = ?
+        `
+      )
+      .bind(
+        value,
+        new Date().toISOString(),
+        id
+      )
+      .run();
+
+    await writeAuditLog(
+      env,
+      `publication_${field}`,
+      id,
+      { value }
     );
 
-  const next =
-    typeof body.enabled ===
-    "boolean"
-      ? body.enabled
-        ? 1
-        : 0
-      : current
-        ? 0
-        : 1;
-
-  await updateById(
-    env.DB,
-    "publications",
-    id,
-    {
-      [field]: next,
-      updated_at:
-        new Date().toISOString()
-    }
-  );
-
-  await writeAuditLog(
-    env.DB,
-    admin,
-    field,
-    "publication",
-    id,
-    {
-      enabled:
-        Boolean(next)
-    }
-  );
-
-  return json({
-    ok: true,
-    id,
-    [field]:
-      Boolean(next)
-  });
+    return json(
+      {
+        ok: true,
+        id,
+        [field]: value
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "PUBLICATION_FLAG_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
 }
 
 /* ============================================================
    UPDATE PUBLICATION
 ============================================================ */
 
-async function updateAdminPublication(
+async function handleAdminPublicationUpdate(
   request,
   env,
-  admin,
   id
 ) {
   let body;
 
   try {
-    body =
-      await request.json();
+    body = await request.json();
   } catch {
     return json(
       {
         ok: false,
-        error:
-          "INVALID_JSON"
+        error: "INVALID_JSON"
       },
-      400
+      400,
+      request
     );
   }
 
@@ -2150,192 +1542,183 @@ async function updateAdminPublication(
     "title",
     "text",
     "category",
-    "subcategory",
-    "country",
     "city",
+    "country",
+    "hashtags",
+    "media",
+    "status",
+    "price",
+    "pinned",
+    "featured",
+    "subcategory",
     "location",
     "scope",
     "event_start",
     "event_end",
     "deadline",
-    "price",
     "currency",
     "employment_type",
     "experience",
-    "education",
-    "languages",
-    "hashtags",
-    "contact_name",
-    "contact_phone",
-    "contact_email",
-    "contact_telegram",
-    "external_url",
-    "language",
-    "translate_all",
-    "status",
     "rejection_reason",
-    "pinned",
-    "featured"
+    "translate_all",
+    "language",
+    "contact_telegram",
+    "contact_email",
+    "contact_phone",
+    "contact_name",
+    "education",
+    "work_format",
+    "external_url",
+    "languages"
   ];
 
-  const values = {};
+  const updates = [];
+  const values = [];
 
-  for (
-    const key of allowed
-  ) {
+  for (const field of allowed) {
     if (
       Object.prototype.hasOwnProperty.call(
         body,
-        key
+        field
       )
     ) {
-      values[key] =
-        key === "translate_all" ||
-        key === "pinned" ||
-        key === "featured"
-          ? body[key]
-            ? 1
-            : 0
-          : body[key];
+      updates.push(`${field} = ?`);
+
+      if (
+        field === "pinned" ||
+        field === "featured" ||
+        field === "translate_all"
+      ) {
+        values.push(
+          body[field] ? 1 : 0
+        );
+      } else {
+        values.push(
+          cleanString(body[field])
+        );
+      }
     }
   }
 
-  values.updated_at =
-    new Date().toISOString();
-
-  const updated =
-    await updateById(
-      env.DB,
-      "publications",
-      id,
-      values
-    );
-
-  if (!updated) {
+  if (!updates.length) {
     return json(
       {
         ok: false,
-        error:
-          "PUBLICATION_NOT_FOUND"
+        error: "NOTHING_TO_UPDATE"
       },
-      404
+      400,
+      request
     );
   }
 
-  await writeAuditLog(
-    env.DB,
-    admin,
-    "publication_update",
-    "publication",
-    id,
-    {
-      fields:
-        Object.keys(values)
-    }
+  updates.push(
+    "updated_at = ?"
   );
 
-  return json({
-    ok: true,
-    publication:
-      normalizePublication(
-        await getPublicationById(
-          env.DB,
-          id
-        )
+  values.push(
+    new Date().toISOString()
+  );
+
+  values.push(id);
+
+  try {
+    await env.DB
+      .prepare(
+        `
+        UPDATE publications
+        SET ${updates.join(", ")}
+        WHERE id = ?
+        `
       )
-  });
+      .bind(...values)
+      .run();
+
+    await writeAuditLog(
+      env,
+      "publication_updated",
+      id,
+      body
+    );
+
+    return json(
+      {
+        ok: true,
+        message: "Publication updated"
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "PUBLICATION_UPDATE_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
 }
 
 /* ============================================================
    DELETE PUBLICATION
 ============================================================ */
 
-async function deleteAdminPublication(
+async function handleAdminPublicationDelete(
   request,
   env,
-  admin,
   id
 ) {
-  const schema =
-    await getTableSchema(
-      env.DB,
-      "publications"
-    );
-
-  if (!schema.length) {
-    return json(
-      {
-        ok: false,
-        error:
-          "TABLE_NOT_FOUND"
-      },
-      500
-    );
-  }
-
   try {
-    const mediaSchema =
-      await getTableSchema(
-        env.DB,
-        "publication_media"
-      );
-
-    if (
-      mediaSchema.some(
-        x =>
-          x.name ===
-          "publication_id"
-      )
-    ) {
-      await env.DB
-        .prepare(`
-          DELETE FROM publication_media
-          WHERE publication_id = ?
-        `)
-        .bind(id)
-        .run();
-    }
-  } catch {}
-
-  const result =
     await env.DB
-      .prepare(`
+      .prepare(
+        `
         DELETE FROM publications
         WHERE id = ?
-      `)
+        `
+      )
       .bind(id)
       .run();
 
-  if (
-    !result.meta ||
-    Number(
-      result.meta.changes || 0
-    ) === 0
-  ) {
+    try {
+      await env.DB
+        .prepare(
+          `
+          DELETE FROM publication_media
+          WHERE publication_id = ?
+          `
+        )
+        .bind(id)
+        .run();
+    } catch {}
+
+    await writeAuditLog(
+      env,
+      "publication_deleted",
+      id,
+      {}
+    );
+
+    return json(
+      {
+        ok: true,
+        message: "Publication deleted"
+      },
+      200,
+      request
+    );
+  } catch (error) {
     return json(
       {
         ok: false,
-        error:
-          "PUBLICATION_NOT_FOUND"
+        error: "PUBLICATION_DELETE_FAILED",
+        message: error.message
       },
-      404
+      500,
+      request
     );
   }
-
-  await writeAuditLog(
-    env.DB,
-    admin,
-    "publication_delete",
-    "publication",
-    id,
-    {}
-  );
-
-  return json({
-    ok: true,
-    deleted: true,
-    id
-  });
 }
 
 /* ============================================================
@@ -2345,23 +1728,14 @@ async function deleteAdminPublication(
 async function handleAdminUsers(
   request,
   env,
-  admin
+  ctx
 ) {
-  const url =
-    new URL(request.url);
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
 
-  const parts =
-    url.pathname
-      .split("/")
-      .filter(Boolean);
-
-  if (
-    parts.length === 3
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return listAdminUsers(
+  if (path === "/api/admin/users") {
+    if (request.method === "GET") {
+      return handleAdminUsersList(
         request,
         env
       );
@@ -2370,1324 +1744,969 @@ async function handleAdminUsers(
     return json(
       {
         ok: false,
-        error:
-          "METHOD_NOT_ALLOWED"
+        error: "METHOD_NOT_ALLOWED"
       },
-      405
+      405,
+      request
     );
   }
 
-  const id =
-    parts[3];
+  const match = path.match(
+    /^\/api\/admin\/users\/([^/]+)(?:\/([^/]+))?$/
+  );
 
-  if (!id) {
+  if (!match) {
     return json(
       {
         ok: false,
-        error:
-          "USER_ID_REQUIRED"
+        error: "INVALID_USER_ROUTE"
       },
-      400
+      400,
+      request
     );
   }
+
+  const userId =
+    decodeURIComponent(match[1]);
 
   const action =
-    parts[4];
+    match[2]
+      ? decodeURIComponent(match[2])
+      : null;
 
   if (
-    action === "ban"
-  ) {
-    return changeUserStatus(
-      request,
-      env,
-      admin,
-      id,
-      false
-    );
-  }
-
-  if (
+    action === "ban" ||
     action === "unban"
   ) {
-    return changeUserStatus(
+    return handleUserBanAction(
       request,
       env,
-      admin,
-      id,
-      true
+      userId,
+      action
     );
   }
 
   if (
     action === "delete"
   ) {
-    return deleteAdminUser(
+    return handleUserDelete(
       request,
       env,
-      admin,
-      id
+      userId
     );
   }
 
   if (
-    request.method === "GET"
+    request.method === "PUT" ||
+    request.method === "PATCH"
   ) {
-    const user =
-      await findUserById(
-        env.DB,
-        id
-      );
-
-    if (!user) {
-      return json(
-        {
-          ok: false,
-          error:
-            "USER_NOT_FOUND"
-        },
-        404
-      );
-    }
-
-    return json({
-      ok: true,
-      user:
-        sanitizeUser(
-          user
-        )
-    });
-  }
-
-  if (
-    request.method === "PATCH" ||
-    request.method === "PUT"
-  ) {
-    return updateAdminUser(
+    return handleUserUpdate(
       request,
       env,
-      admin,
-      id
-    );
-  }
-
-  if (
-    request.method === "DELETE"
-  ) {
-    return deleteAdminUser(
-      request,
-      env,
-      admin,
-      id
+      userId
     );
   }
 
   return json(
     {
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
+      error: "USER_ROUTE_NOT_FOUND"
     },
-    405
+    404,
+    request
   );
 }
 
 /* ============================================================
-   LIST USERS
+   USERS LIST
 ============================================================ */
 
-async function listAdminUsers(
+async function handleAdminUsersList(
   request,
   env
 ) {
-  const url =
-    new URL(request.url);
-
-  const search =
-    clean(
-      url.searchParams.get(
-        "search"
-      )
+  if (!env.DB) {
+    return json(
+      {
+        ok: false,
+        error: "DATABASE_NOT_CONFIGURED"
+      },
+      500,
+      request
     );
-
-  const limit =
-    clampNumber(
-      url.searchParams.get(
-        "limit"
-      ),
-      1,
-      200,
-      100
-    );
-
-  const offset =
-    clampNumber(
-      url.searchParams.get(
-        "offset"
-      ),
-      0,
-      100000,
-      0
-    );
-
-  const schema =
-    await getTableSchema(
-      env.DB,
-      "users"
-    );
-
-  if (!schema.length) {
-    return json({
-      ok: true,
-      users: [],
-      count: 0,
-      message:
-        "Таблица пользователей пока не содержит пользователей."
-    });
   }
 
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
+  try {
+    const result = await env.DB
+      .prepare(
+        `
+        SELECT
+          user_id,
+          COUNT(*) AS publications_count,
+          MAX(created_at) AS last_activity
+        FROM publications
+        WHERE user_id IS NOT NULL
+        GROUP BY user_id
+        ORDER BY last_activity DESC
+        LIMIT 500
+        `
       )
-    );
-
-  const where = [];
-  const params = [];
-
-  if (search) {
-    const conditions = [];
-
-    for (
-      const field of [
-        "id",
-        "name",
-        "username",
-        "email",
-        "city",
-        "country"
-      ]
-    ) {
-      if (
-        columns.has(field)
-      ) {
-        conditions.push(
-          `${field} LIKE ?`
-        );
-
-        params.push(
-          `%${search}%`
-        );
-      }
-    }
-
-    if (conditions.length) {
-      where.push(
-        `(${conditions.join(
-          " OR "
-        )})`
-      );
-    }
-  }
-
-  params.push(
-    limit,
-    offset
-  );
-
-  const result =
-    await env.DB
-      .prepare(`
-        SELECT *
-        FROM users
-        ${
-          where.length
-            ? `WHERE ${where.join(
-                " AND "
-              )}`
-            : ""
-        }
-        ORDER BY
-          ${
-            columns.has(
-              "created_at"
-            )
-              ? "created_at DESC"
-              : "rowid DESC"
-          }
-        LIMIT ? OFFSET ?
-      `)
-      .bind(...params)
       .all();
 
-  const users =
-    (result.results || [])
-      .map(
-        sanitizeUser
-      );
-
-  return json({
-    ok: true,
-    users,
-    items: users,
-    count:
-      users.length,
-    limit,
-    offset
-  });
+    return json(
+      {
+        ok: true,
+        users: result.results || []
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "USERS_QUERY_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
 }
 
 /* ============================================================
-   UPDATE USER
+   USER ACTIONS
 ============================================================ */
 
-async function updateAdminUser(
+async function handleUserBanAction(
   request,
   env,
-  admin,
-  id
+  userId,
+  action
+) {
+  /*
+    The project currently stores user information mainly
+    through publications.user_id.
+
+    If a dedicated users table exists, this block will try
+    to update it.
+  */
+
+  const active =
+    action === "unban";
+
+  try {
+    await env.DB
+      .prepare(
+        `
+        UPDATE users
+        SET is_banned = ?
+        WHERE id = ?
+        `
+      )
+      .bind(
+        active ? 0 : 1,
+        userId
+      )
+      .run();
+  } catch {}
+
+  await writeAuditLog(
+    env,
+    `user_${action}`,
+    userId,
+    {}
+  );
+
+  return json(
+    {
+      ok: true,
+      user_id: userId,
+      action
+    },
+    200,
+    request
+  );
+}
+
+async function handleUserDelete(
+  request,
+  env,
+  userId
+) {
+  try {
+    await env.DB
+      .prepare(
+        `
+        DELETE FROM users
+        WHERE id = ?
+        `
+      )
+      .bind(userId)
+      .run();
+  } catch {}
+
+  await writeAuditLog(
+    env,
+    "user_deleted",
+    userId,
+    {}
+  );
+
+  return json(
+    {
+      ok: true,
+      user_id: userId
+    },
+    200,
+    request
+  );
+}
+
+async function handleUserUpdate(
+  request,
+  env,
+  userId
 ) {
   let body;
 
   try {
-    body =
-      await request.json();
+    body = await request.json();
   } catch {
     return json(
       {
         ok: false,
-        error:
-          "INVALID_JSON"
+        error: "INVALID_JSON"
       },
-      400
+      400,
+      request
     );
   }
 
   const allowed = [
     "name",
-    "status",
-    "is_active",
-    "is_verified",
-    "is_admin",
-    "is_super_admin",
-    "role",
-    "country",
-    "city"
+    "username",
+    "email",
+    "phone",
+    "is_banned",
+    "is_active"
   ];
 
-  const values = {};
+  const updates = [];
+  const values = [];
 
-  for (
-    const key of allowed
-  ) {
+  for (const field of allowed) {
     if (
       Object.prototype.hasOwnProperty.call(
         body,
-        key
+        field
       )
     ) {
-      values[key] =
-        typeof body[key] ===
-        "boolean"
-          ? body[key]
-            ? 1
-            : 0
-          : body[key];
+      updates.push(
+        `${field} = ?`
+      );
+
+      if (
+        field === "is_banned" ||
+        field === "is_active"
+      ) {
+        values.push(
+          body[field] ? 1 : 0
+        );
+      } else {
+        values.push(
+          cleanString(body[field])
+        );
+      }
     }
   }
 
-  values.updated_at =
-    new Date().toISOString();
-
-  const roleChange =
-    [
-      "role",
-      "is_admin",
-      "is_super_admin"
-    ].some(
-      x =>
-        Object.prototype.hasOwnProperty.call(
-          body,
-          x
-        )
-    );
-
-  if (
-    roleChange &&
-    admin.admin.role !==
-      "super_admin"
-  ) {
+  if (!updates.length) {
     return json(
       {
         ok: false,
-        error:
-          "SUPER_ADMIN_REQUIRED"
+        error: "NOTHING_TO_UPDATE"
       },
-      403
+      400,
+      request
     );
   }
 
-  const updated =
-    await updateById(
-      env.DB,
-      "users",
-      id,
-      values
-    );
+  values.push(userId);
 
-  if (!updated) {
-    return json(
-      {
-        ok: false,
-        error:
-          "USER_NOT_FOUND"
-      },
-      404
-    );
-  }
-
-  await writeAuditLog(
-    env.DB,
-    admin,
-    "user_update",
-    "user",
-    id,
-    {
-      fields:
-        Object.keys(values)
-    }
-  );
-
-  return json({
-    ok: true,
-    user:
-      sanitizeUser(
-        await findUserById(
-          env.DB,
-          id
-        )
-      )
-  });
-}
-
-/* ============================================================
-   USER BAN / UNBAN
-============================================================ */
-
-async function changeUserStatus(
-  request,
-  env,
-  admin,
-  id,
-  active
-) {
-  const schema =
-    await getTableSchema(
-      env.DB,
-      "users"
-    );
-
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
-      )
-    );
-
-  const values = {
-    updated_at:
-      new Date().toISOString()
-  };
-
-  if (
-    columns.has("is_active")
-  ) {
-    values.is_active =
-      active ? 1 : 0;
-  }
-
-  if (
-    columns.has("status")
-  ) {
-    values.status =
-      active
-        ? "active"
-        : "blocked";
-  }
-
-  const updated =
-    await updateById(
-      env.DB,
-      "users",
-      id,
-      values
-    );
-
-  if (!updated) {
-    return json(
-      {
-        ok: false,
-        error:
-          "USER_NOT_FOUND"
-      },
-      404
-    );
-  }
-
-  await writeAuditLog(
-    env.DB,
-    admin,
-    active
-      ? "user_unban"
-      : "user_ban",
-    "user",
-    id,
-    {}
-  );
-
-  return json({
-    ok: true,
-    id,
-    active
-  });
-}
-
-/* ============================================================
-   DELETE USER
-============================================================ */
-
-async function deleteAdminUser(
-  request,
-  env,
-  admin,
-  id
-) {
-  if (
-    admin.admin.role !==
-    "super_admin"
-  ) {
-    return json(
-      {
-        ok: false,
-        error:
-          "SUPER_ADMIN_REQUIRED"
-      },
-      403
-    );
-  }
-
-  const result =
+  try {
     await env.DB
-      .prepare(`
-        DELETE FROM users
+      .prepare(
+        `
+        UPDATE users
+        SET ${updates.join(", ")}
         WHERE id = ?
-      `)
-      .bind(id)
+        `
+      )
+      .bind(...values)
       .run();
 
-  const changes =
-    Number(
-      result?.meta?.changes ||
-      0
+    return json(
+      {
+        ok: true,
+        user_id: userId
+      },
+      200,
+      request
     );
-
-  if (!changes) {
+  } catch (error) {
     return json(
       {
         ok: false,
-        error:
-          "USER_NOT_FOUND"
+        error: "USER_UPDATE_FAILED",
+        message: error.message
       },
-      404
+      500,
+      request
     );
   }
-
-  await writeAuditLog(
-    env.DB,
-    admin,
-    "user_delete",
-    "user",
-    id,
-    {}
-  );
-
-  return json({
-    ok: true,
-    deleted: true,
-    id
-  });
 }
 
 /* ============================================================
-   ADMIN CHAT API
+   ADMIN CHAT MANAGEMENT
 ============================================================ */
 
-async function handleAdminChatApi(
+async function handleAdminChatManagement(
   request,
   env,
-  admin
+  ctx
 ) {
-  const url =
-    new URL(request.url);
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
 
-  const parts =
-    url.pathname
-      .split("/")
-      .filter(Boolean);
-
-  if (
-    parts.length === 3
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      const conversations =
-        await getAdminConversations(
-          env
-        );
-
-      return json({
-        ok: true,
-        conversations,
-        count:
-          conversations.length
-      });
+  if (path === "/api/admin/chat") {
+    if (request.method === "GET") {
+      return handleAdminChatList(
+        request,
+        env
+      );
     }
 
-    if (
-      request.method === "POST"
-    ) {
-      return adminSendChatMessage(
+    if (request.method === "POST") {
+      return handleAdminChatSend(
         request,
-        env,
-        admin
+        env
       );
     }
   }
 
-  const conversationId =
-    parts[3];
+  const match = path.match(
+    /^\/api\/admin\/chat\/([^/]+)$/
+  );
 
-  if (!conversationId) {
-    return json(
-      {
-        ok: false,
-        error:
-          "CONVERSATION_ID_REQUIRED"
-      },
-      400
-    );
-  }
+  if (match) {
+    const id =
+      decodeURIComponent(match[1]);
 
-  const conversation =
-    await getConversation(
-      env,
-      conversationId
-    );
+    if (request.method === "GET") {
+      return handleAdminChatConversation(
+        request,
+        env,
+        id
+      );
+    }
 
-  if (!conversation) {
-    return json(
-      {
-        ok: false,
-        error:
-          "CONVERSATION_NOT_FOUND"
-      },
-      404
-    );
-  }
-
-  if (
-    request.method === "GET"
-  ) {
-    return json({
-      ok: true,
-      conversation
-    });
-  }
-
-  if (
-    request.method === "POST" ||
-    request.method === "PATCH"
-  ) {
-    return adminSendChatMessage(
-      request,
-      env,
-      admin,
-      conversationId
-    );
+    if (
+      request.method === "PATCH" ||
+      request.method === "PUT"
+    ) {
+      return handleAdminChatUpdate(
+        request,
+        env,
+        id
+      );
+    }
   }
 
   return json(
     {
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
+      error: "CHAT_ROUTE_NOT_FOUND"
     },
-    405
+    404,
+    request
   );
 }
 
 /* ============================================================
-   ADMIN CHAT MESSAGE
-============================================================ */
-
-async function adminSendChatMessage(
-  request,
-  env,
-  admin,
-  existingConversationId = null
-) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error:
-          "INVALID_JSON"
-      },
-      400
-    );
-  }
-
-  const text =
-    clean(
-      body.text ||
-      body.message ||
-      body.content
-    );
-
-  if (!text) {
-    return json(
-      {
-        ok: false,
-        error:
-          "MESSAGE_REQUIRED"
-      },
-      400
-    );
-  }
-
-  const conversationId =
-    existingConversationId ||
-    clean(
-      body.conversationId
-    );
-
-  if (!conversationId) {
-    return json(
-      {
-        ok: false,
-        error:
-          "CONVERSATION_ID_REQUIRED"
-      },
-      400
-    );
-  }
-
-  const conversation =
-    await getConversation(
-      env,
-      conversationId
-    );
-
-  if (!conversation) {
-    return json(
-      {
-        ok: false,
-        error:
-          "CONVERSATION_NOT_FOUND"
-      },
-      404
-    );
-  }
-
-  const message = {
-    id:
-      crypto.randomUUID(),
-
-    sender:
-      "admin",
-
-    senderType:
-      "admin",
-
-    adminId:
-      admin.admin.id ||
-      null,
-
-    adminName:
-      admin.admin.name ||
-      "Администратор",
-
-    text,
-
-    createdAt:
-      new Date().toISOString()
-  };
-
-  if (
-    !Array.isArray(
-      conversation.messages
-    )
-  ) {
-    conversation.messages = [];
-  }
-
-  conversation.messages.push(
-    message
-  );
-
-  conversation.updatedAt =
-    message.createdAt;
-
-  conversation.unreadForUser =
-    true;
-
-  conversation.unreadForAdmin =
-    false;
-
-  await saveConversation(
-    env,
-    conversation
-  );
-
-  await writeAuditLog(
-    env.DB,
-    admin,
-    "admin_chat_reply",
-    "conversation",
-    conversationId,
-    {}
-  );
-
-  return json({
-    ok: true,
-    conversationId,
-    message
-  });
-}
-
-/* ============================================================
-   PUBLIC ADMIN CHAT
+   PUBLIC CHAT
 ============================================================ */
 
 async function handleAdminChat(
   request,
-  env
+  env,
+  ctx
 ) {
-  if (
-    request.method === "POST"
-  ) {
-    return createUserChatMessage(
-      request,
-      env
-    );
-  }
-
-  if (
-    request.method === "GET"
-  ) {
-    const url =
-      new URL(request.url);
-
-    const conversationId =
-      clean(
-        url.searchParams.get(
-          "conversationId"
-        )
-      );
-
-    if (conversationId) {
-      const conversation =
-        await getConversation(
-          env,
-          conversationId
-        );
-
-      if (!conversation) {
-        return json(
-          {
-            ok: false,
-            error:
-              "CONVERSATION_NOT_FOUND"
-          },
-          404
-        );
-      }
-
-      return json({
-        ok: true,
-        conversation
-      });
-    }
-
-    return json({
-      ok: true,
-      conversations: []
-    });
-  }
-
-  return json(
-    {
-      ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
-  );
-}
-
-/* ============================================================
-   PUBLIC CHAT BY ID
-============================================================ */
-
-async function handleAdminChatById(
-  request,
-  env
-) {
-  const parts =
-    new URL(request.url)
-      .pathname
-      .split("/")
-      .filter(Boolean);
-
-  const conversationId =
-    parts[2];
-
-  if (!conversationId) {
+  if (!env.DB) {
     return json(
       {
         ok: false,
-        error:
-          "CONVERSATION_ID_REQUIRED"
+        error: "DATABASE_NOT_CONFIGURED"
       },
-      400
+      500,
+      request
     );
   }
 
-  if (
-    request.method === "GET"
-  ) {
-    const conversation =
-      await getConversation(
-        env,
-        conversationId
-      );
+  const url = new URL(request.url);
+  const path = normalizePath(url.pathname);
 
-    if (!conversation) {
-      return json(
-        {
-          ok: false,
-          error:
-            "CONVERSATION_NOT_FOUND"
-        },
-        404
+  if (path === "/api/admin-chat") {
+    if (request.method === "GET") {
+      return handlePublicChatList(
+        request,
+        env
       );
     }
 
-    return json({
-      ok: true,
-      conversation
-    });
+    if (request.method === "POST") {
+      return handlePublicChatSend(
+        request,
+        env
+      );
+    }
   }
 
-  if (
-    request.method === "POST"
-  ) {
-    return createUserChatMessage(
-      request,
-      env,
-      conversationId
-    );
+  const match = path.match(
+    /^\/api\/admin-chat\/([^/]+)$/
+  );
+
+  if (match) {
+    const id =
+      decodeURIComponent(match[1]);
+
+    if (request.method === "GET") {
+      return handlePublicChatConversation(
+        request,
+        env,
+        id
+      );
+    }
+
+    if (
+      request.method === "PATCH" ||
+      request.method === "PUT"
+    ) {
+      return handlePublicChatUpdate(
+        request,
+        env,
+        id
+      );
+    }
   }
 
   return json(
     {
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
+      error: "CHAT_ROUTE_NOT_FOUND"
     },
-    405
+    404,
+    request
   );
 }
 
 /* ============================================================
-   USER CHAT MESSAGE
+   PUBLIC CHAT LIST
 ============================================================ */
 
-async function createUserChatMessage(
+async function handlePublicChatList(
   request,
-  env,
-  existingConversationId = null
+  env
+) {
+  try {
+    const result = await env.DB
+      .prepare(
+        `
+        SELECT *
+        FROM admin_chat
+        ORDER BY created_at DESC
+        LIMIT 200
+        `
+      )
+      .all();
+
+    return json(
+      {
+        ok: true,
+        messages: result.results || []
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "CHAT_LIST_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   PUBLIC CHAT SEND
+============================================================ */
+
+async function handlePublicChatSend(
+  request,
+  env
 ) {
   let body;
 
   try {
-    body =
-      await request.json();
+    body = await request.json();
   } catch {
     return json(
       {
         ok: false,
-        error:
-          "INVALID_JSON"
+        error: "INVALID_JSON"
       },
-      400
+      400,
+      request
     );
   }
 
-  const text =
-    clean(
-      body.text ||
+  const message =
+    cleanString(
       body.message ||
+      body.text ||
       body.content
     );
 
-  const name =
-    clean(
-      body.name ||
-      body.author_name ||
-      body.contact_name
-    ) || "Аноним";
-
-  if (!text) {
+  if (!message) {
     return json(
       {
         ok: false,
-        error:
-          "MESSAGE_REQUIRED"
+        error: "MESSAGE_REQUIRED"
       },
-      400
+      400,
+      request
     );
   }
 
-  let conversation;
+  const id =
+    crypto.randomUUID();
 
-  if (
-    existingConversationId
-  ) {
-    conversation =
-      await getConversation(
-        env,
-        existingConversationId
-      );
-  }
+  const now =
+    new Date().toISOString();
 
-  if (!conversation) {
-    const id =
-      existingConversationId ||
-      `chat_${crypto.randomUUID()}`;
+  const conversationId =
+    cleanString(
+      body.conversation_id
+    ) ||
+    cleanString(
+      body.user_id
+    ) ||
+    crypto.randomUUID();
 
-    const now =
-      new Date().toISOString();
+  const senderName =
+    cleanString(
+      body.name ||
+      body.sender_name ||
+      "Пользователь"
+    );
 
-    conversation = {
-      id,
+  try {
+    await ensureAdminChatTable(env);
 
-      name,
-
-      anonymous:
-        !name ||
-        name === "Аноним",
-
-      createdAt:
+    await env.DB
+      .prepare(
+        `
+        INSERT INTO admin_chat
+        (
+          id,
+          conversation_id,
+          sender_type,
+          sender_name,
+          user_id,
+          message,
+          created_at,
+          read_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      )
+      .bind(
+        id,
+        conversationId,
+        "user",
+        senderName,
+        cleanString(body.user_id),
+        message,
         now,
+        null
+      )
+      .run();
 
-      updatedAt:
-        now,
-
-      status:
-        "open",
-
-      unreadForAdmin:
-        true,
-
-      unreadForUser:
-        false,
-
-      messages: []
-    };
+    return json(
+      {
+        ok: true,
+        id,
+        conversation_id: conversationId,
+        message: "Message sent"
+      },
+      201,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "CHAT_SEND_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
   }
-
-  const message = {
-    id:
-      crypto.randomUUID(),
-
-    sender:
-      "user",
-
-    senderType:
-      "user",
-
-    name,
-
-    text,
-
-    createdAt:
-      new Date().toISOString()
-  };
-
-  if (
-    !Array.isArray(
-      conversation.messages
-    )
-  ) {
-    conversation.messages = [];
-  }
-
-  conversation.messages.push(
-    message
-  );
-
-  conversation.name =
-    name ||
-    conversation.name;
-
-  conversation.updatedAt =
-    message.createdAt;
-
-  conversation.unreadForAdmin =
-    true;
-
-  conversation.unreadForUser =
-    false;
-
-  await saveConversation(
-    env,
-    conversation
-  );
-
-  return json({
-    ok: true,
-
-    conversationId:
-      conversation.id,
-
-    conversation,
-
-    message
-  });
 }
 
 /* ============================================================
-   ADMIN CHAT STORAGE
+   PUBLIC CHAT CONVERSATION
 ============================================================ */
 
-async function getAdminConversations(
-  env
+async function handlePublicChatConversation(
+  request,
+  env,
+  conversationId
 ) {
-  const ids =
-    await kvGet(
-      env,
-      "admin-chat:index"
-    );
-
-  if (
-    !Array.isArray(ids)
-  ) {
-    return [];
-  }
-
-  const result = [];
-
-  for (
-    const id of ids
-  ) {
-    const conversation =
-      await getConversation(
-        env,
-        id
-      );
-
-    if (conversation) {
-      result.push(
-        conversation
-      );
-    }
-  }
-
-  result.sort(
-    (a, b) =>
-      String(
-        b.updatedAt ||
-        ""
-      ).localeCompare(
-        String(
-          a.updatedAt ||
-          ""
-        )
+  try {
+    const result = await env.DB
+      .prepare(
+        `
+        SELECT *
+        FROM admin_chat
+        WHERE conversation_id = ?
+        ORDER BY created_at ASC
+        `
       )
-  );
+      .bind(conversationId)
+      .all();
 
-  return result;
+    return json(
+      {
+        ok: true,
+        conversation_id: conversationId,
+        messages: result.results || []
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "CHAT_CONVERSATION_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
 }
 
-async function getConversation(
+/* ============================================================
+   PUBLIC CHAT UPDATE
+============================================================ */
+
+async function handlePublicChatUpdate(
+  request,
   env,
   id
 ) {
-  if (!id) {
-    return null;
-  }
-
-  return kvGet(
+  return handleChatUpdate(
+    request,
     env,
-    `admin-chat:${id}`
-  );
-}
-
-async function saveConversation(
-  env,
-  conversation
-) {
-  await kvPut(
-    env,
-    `admin-chat:${conversation.id}`,
-    conversation
-  );
-
-  let ids =
-    await kvGet(
-      env,
-      "admin-chat:index"
-    );
-
-  if (
-    !Array.isArray(ids)
-  ) {
-    ids = [];
-  }
-
-  if (
-    !ids.includes(
-      conversation.id
-    )
-  ) {
-    ids.push(
-      conversation.id
-    );
-  }
-
-  await kvPut(
-    env,
-    "admin-chat:index",
-    ids
+    id
   );
 }
 
 /* ============================================================
-   NOTIFICATIONS
+   ADMIN CHAT LIST
 ============================================================ */
 
-async function handleNotifications(
+async function handleAdminChatList(
   request,
   env
 ) {
-  if (
-    request.method === "GET"
-  ) {
-    const items =
-      await kvGet(
-        env,
-        "notifications:public"
-      );
+  try {
+    await ensureAdminChatTable(env);
 
-    return json({
-      ok: true,
-      notifications:
-        Array.isArray(items)
-          ? items
-          : []
-    });
+    const result = await env.DB
+      .prepare(
+        `
+        SELECT *
+        FROM admin_chat
+        ORDER BY created_at DESC
+        LIMIT 500
+        `
+      )
+      .all();
+
+    return json(
+      {
+        ok: true,
+        messages: result.results || []
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "ADMIN_CHAT_LIST_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   ADMIN CHAT SEND
+============================================================ */
+
+async function handleAdminChatSend(
+  request,
+  env
+) {
+  let body;
+
+  try {
+    body = await request.json();
+  } catch {
+    return json(
+      {
+        ok: false,
+        error: "INVALID_JSON"
+      },
+      400,
+      request
+    );
   }
 
-  if (
-    request.method === "POST"
-  ) {
-    let body;
-
-    try {
-      body =
-        await request.json();
-    } catch {
-      return json(
-        {
-          ok: false,
-          error:
-            "INVALID_JSON"
-        },
-        400
-      );
-    }
-
-    const notification = {
-      id:
-        crypto.randomUUID(),
-
-      title:
-        clean(body.title) ||
-        "Уведомление",
-
-      text:
-        clean(
-          body.text ||
-          body.message
-        ),
-
-      type:
-        clean(body.type) ||
-        "info",
-
-      createdAt:
-        new Date().toISOString()
-    };
-
-    let items =
-      await kvGet(
-        env,
-        "notifications:public"
-      );
-
-    if (
-      !Array.isArray(items)
-    ) {
-      items = [];
-    }
-
-    items.unshift(
-      notification
+  const message =
+    cleanString(
+      body.message ||
+      body.text ||
+      body.content
     );
 
-    items =
-      items.slice(
-        0,
-        200
-      );
-
-    await kvPut(
-      env,
-      "notifications:public",
-      items
+  if (!message) {
+    return json(
+      {
+        ok: false,
+        error: "MESSAGE_REQUIRED"
+      },
+      400,
+      request
     );
-
-    return json({
-      ok: true,
-      notification
-    });
   }
 
-  return json(
-    {
-      ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405
+  const id =
+    crypto.randomUUID();
+
+  const now =
+    new Date().toISOString();
+
+  const conversationId =
+    cleanString(
+      body.conversation_id
+    ) ||
+    cleanString(
+      body.user_id
+    ) ||
+    crypto.randomUUID();
+
+  try {
+    await ensureAdminChatTable(env);
+
+    await env.DB
+      .prepare(
+        `
+        INSERT INTO admin_chat
+        (
+          id,
+          conversation_id,
+          sender_type,
+          sender_name,
+          user_id,
+          message,
+          created_at,
+          read_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        `
+      )
+      .bind(
+        id,
+        conversationId,
+        "admin",
+        "Главный администратор",
+        null,
+        message,
+        now,
+        now
+      )
+      .run();
+
+    return json(
+      {
+        ok: true,
+        id,
+        conversation_id: conversationId
+      },
+      201,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "ADMIN_CHAT_SEND_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   ADMIN CHAT CONVERSATION
+============================================================ */
+
+async function handleAdminChatConversation(
+  request,
+  env,
+  conversationId
+) {
+  return handlePublicChatConversation(
+    request,
+    env,
+    conversationId
   );
+}
+
+/* ============================================================
+   ADMIN CHAT UPDATE
+============================================================ */
+
+async function handleAdminChatUpdate(
+  request,
+  env,
+  id
+) {
+  return handleChatUpdate(
+    request,
+    env,
+    id
+  );
+}
+
+/* ============================================================
+   CHAT UPDATE
+============================================================ */
+
+async function handleChatUpdate(
+  request,
+  env,
+  id
+) {
+  let body;
+
+  try {
+    body = await request.json();
+  } catch {
+    body = {};
+  }
+
+  try {
+    if (
+      body.read === true ||
+      body.read_at
+    ) {
+      await env.DB
+        .prepare(
+          `
+          UPDATE admin_chat
+          SET read_at = ?
+          WHERE id = ?
+          `
+        )
+        .bind(
+          body.read_at ||
+            new Date().toISOString(),
+          id
+        )
+        .run();
+    }
+
+    return json(
+      {
+        ok: true,
+        id
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "CHAT_UPDATE_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   CHAT TABLE
+============================================================ */
+
+async function ensureAdminChatTable(env) {
+  if (!env.DB) {
+    throw new Error(
+      "Database is not configured"
+    );
+  }
+
+  try {
+    await env.DB
+      .prepare(
+        `
+        CREATE TABLE IF NOT EXISTS admin_chat (
+          id TEXT PRIMARY KEY,
+          conversation_id TEXT,
+          sender_type TEXT,
+          sender_name TEXT,
+          user_id TEXT,
+          message TEXT,
+          created_at TEXT,
+          read_at TEXT
+        )
+        `
+      )
+      .run();
+  } catch (error) {
+    console.error(
+      "CHAT_TABLE_ERROR:",
+      error
+    );
+  }
 }
 
 /* ============================================================
@@ -3696,79 +2715,207 @@ async function handleNotifications(
 
 async function handleAdminNotifications(
   request,
-  env,
-  admin
+  env
 ) {
-  if (
-    request.method === "GET"
-  ) {
-    const items =
-      await kvGet(
-        env,
-        "notifications:public"
-      );
-
-    return json({
-      ok: true,
-      notifications:
-        Array.isArray(items)
-          ? items
-          : []
-    });
+  if (request.method === "GET") {
+    return handleNotifications(
+      request,
+      env
+    );
   }
 
   if (
     request.method === "POST"
   ) {
-    const response =
-      await handleNotifications(
-        request,
+    let body;
+
+    try {
+      body = await request.json();
+    } catch {
+      return json(
+        {
+          ok: false,
+          error: "INVALID_JSON"
+        },
+        400,
+        request
+      );
+    }
+
+    try {
+      await ensureNotificationsTable(
         env
       );
 
-    await writeAuditLog(
-      env.DB,
-      admin,
-      "notification_create",
-      "notification",
-      null,
-      {}
-    );
+      const id =
+        crypto.randomUUID();
 
-    return response;
-  }
+      const now =
+        new Date().toISOString();
 
-  if (
-    request.method === "DELETE"
-  ) {
-    await kvDelete(
-      env,
-      "notifications:public"
-    );
+      await env.DB
+        .prepare(
+          `
+          INSERT INTO notifications
+          (
+            id,
+            user_id,
+            title,
+            message,
+            type,
+            is_read,
+            created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          `
+        )
+        .bind(
+          id,
+          cleanString(body.user_id),
+          cleanString(body.title),
+          cleanString(body.message),
+          cleanString(body.type) ||
+            "system",
+          0,
+          now
+        )
+        .run();
 
-    await writeAuditLog(
-      env.DB,
-      admin,
-      "notifications_clear",
-      "notification",
-      null,
-      {}
-    );
-
-    return json({
-      ok: true,
-      cleared: true
-    });
+      return json(
+        {
+          ok: true,
+          id
+        },
+        201,
+        request
+      );
+    } catch (error) {
+      return json(
+        {
+          ok: false,
+          error: "NOTIFICATION_CREATE_FAILED",
+          message: error.message
+        },
+        500,
+        request
+      );
+    }
   }
 
   return json(
     {
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
+      error: "METHOD_NOT_ALLOWED"
     },
-    405
+    405,
+    request
   );
+}
+
+/* ============================================================
+   PUBLIC NOTIFICATIONS
+============================================================ */
+
+async function handleNotifications(
+  request,
+  env
+) {
+  if (request.method !== "GET") {
+    return json(
+      {
+        ok: false,
+        error: "METHOD_NOT_ALLOWED"
+      },
+      405,
+      request
+    );
+  }
+
+  try {
+    await ensureNotificationsTable(
+      env
+    );
+
+    const url = new URL(request.url);
+
+    const userId =
+      url.searchParams.get(
+        "user_id"
+      );
+
+    let result;
+
+    if (userId) {
+      result = await env.DB
+        .prepare(
+          `
+          SELECT *
+          FROM notifications
+          WHERE user_id = ?
+             OR user_id IS NULL
+          ORDER BY created_at DESC
+          LIMIT 100
+          `
+        )
+        .bind(userId)
+        .all();
+    } else {
+      result = await env.DB
+        .prepare(
+          `
+          SELECT *
+          FROM notifications
+          ORDER BY created_at DESC
+          LIMIT 100
+          `
+        )
+        .all();
+    }
+
+    return json(
+      {
+        ok: true,
+        notifications:
+          result.results || []
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "NOTIFICATIONS_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
+  }
+}
+
+/* ============================================================
+   NOTIFICATIONS TABLE
+============================================================ */
+
+async function ensureNotificationsTable(
+  env
+) {
+  await env.DB
+    .prepare(
+      `
+      CREATE TABLE IF NOT EXISTS notifications (
+        id TEXT PRIMARY KEY,
+        user_id TEXT,
+        title TEXT,
+        message TEXT,
+        type TEXT,
+        is_read INTEGER DEFAULT 0,
+        created_at TEXT
+      )
+      `
+    )
+    .run();
 }
 
 /* ============================================================
@@ -3779,1293 +2926,119 @@ async function handleAdminAudit(
   request,
   env
 ) {
-  if (!env.DB) {
-    return json({
-      ok: true,
-      logs: []
-    });
-  }
+  try {
+    await ensureAuditTable(env);
 
-  const url =
-    new URL(request.url);
+    const url = new URL(request.url);
 
-  const limit =
-    clampNumber(
-      url.searchParams.get(
-        "limit"
-      ),
-      1,
-      200,
-      100
-    );
+    const limit =
+      Math.min(
+        500,
+        Math.max(
+          1,
+          Number(
+            url.searchParams.get(
+              "limit"
+            ) || 100
+          )
+        )
+      );
 
-  const schema =
-    await getTableSchema(
-      env.DB,
-      "audit_logs"
-    );
-
-  if (!schema.length) {
-    return json({
-      ok: true,
-      logs: []
-    });
-  }
-
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
-      )
-    );
-
-  const order =
-    columns.has("created_at")
-      ? "created_at DESC"
-      : "rowid DESC";
-
-  const result =
-    await env.DB
-      .prepare(`
+    const result = await env.DB
+      .prepare(
+        `
         SELECT *
-        FROM audit_logs
-        ORDER BY ${order}
+        FROM audit_log
+        ORDER BY created_at DESC
         LIMIT ?
-      `)
+        `
+      )
       .bind(limit)
       .all();
 
-  return json({
-    ok: true,
-    logs:
-      result.results || []
-  });
-}
-
-/* ============================================================
-   ADMIN AUTHORIZATION
-============================================================ */
-
-async function requireAdmin(
-  request,
-  env
-) {
-  /*
-   * ==========================================================
-   * 1. SECURE ADMIN COOKIE SESSION
-   * ==========================================================
-   *
-   * Это основной способ авторизации.
-   *
-   * После успешного:
-   *
-   * POST /api/admin/login
-   *
-   * браузер получает cookie to_admin.
-   *
-   * Затем каждый следующий запрос:
-   *
-   * /api/admin/me
-   * /api/admin/dashboard
-   * /api/admin/publications
-   * /api/admin/users
-   * /api/admin/chat
-   * /api/admin/notifications
-   * /api/admin/audit
-   *
-   * автоматически использует эту cookie.
-   *
-   * Пароль повторно НЕ требуется.
-   */
-
-  const adminCookie =
-    getCookie(
-      request,
-      COOKIE_NAME
-    );
-
-  if (
-    adminCookie &&
-    await verifyAdminToken(
-      adminCookie,
-      ADMIN_PASSWORD
-    )
-  ) {
-    return {
-      ok: true,
-
-      admin: {
-        id:
-          "key-admin",
-
-        name:
-          "Главный администратор",
-
-        username:
-          "admin",
-
-        role:
-          "super_admin",
-
-        permissions:
-          ["*"],
-
-        is_active:
-          true
-      }
-    };
-  }
-
-  /*
-   * ==========================================================
-   * 2. OPTIONAL ADMIN KEY
-   * ==========================================================
-   *
-   * Старый способ оставлен для совместимости.
-   */
-
-  const configuredKey =
-    env.ADMIN_KEY;
-
-  const suppliedKey =
-    request.headers.get(
-      "X-Admin-Key"
-    );
-
-  if (
-    configuredKey &&
-    suppliedKey &&
-    constantTimeEqual(
-      configuredKey,
-      suppliedKey
-    )
-  ) {
-    return {
-      ok: true,
-
-      admin: {
-        id:
-          "key-admin",
-
-        name:
-          "Главный администратор",
-
-        username:
-          "admin",
-
-        role:
-          "super_admin",
-
-        permissions:
-          ["*"],
-
-        is_active:
-          true
-      }
-    };
-  }
-
-  /*
-   * ==========================================================
-   * 3. EXISTING ADMINS TABLE
-   * ==========================================================
-   *
-   * Оставляем совместимость со старой системой.
-   */
-
-  if (env.DB) {
-    const adminRow =
-      await findAnyAdmin(
-        env.DB,
-        request
-      );
-
-    if (adminRow) {
-      const active =
-        adminIsActive(
-          adminRow
-        );
-
-      if (!active) {
-        return {
-          ok: false,
-
-          response:
-            json(
-              {
-                ok: false,
-                error:
-                  "ADMIN_DISABLED"
-              },
-              403
-            )
-        };
-      }
-
-      return {
+    return json(
+      {
         ok: true,
-
-        admin:
-          normalizeAdmin(
-            adminRow
-          )
-      };
-    }
+        logs: result.results || []
+      },
+      200,
+      request
+    );
+  } catch (error) {
+    return json(
+      {
+        ok: false,
+        error: "AUDIT_FAILED",
+        message: error.message
+      },
+      500,
+      request
+    );
   }
-
-  return {
-    ok: false,
-
-    response:
-      json(
-        {
-          ok: false,
-          error:
-            "ADMIN_AUTH_REQUIRED",
-
-          message:
-            "Войдите в панель администратора."
-        },
-        401
-      )
-  };
 }
 
 /* ============================================================
-   PERMISSIONS
+   AUDIT TABLE
 ============================================================ */
 
-function requirePermission(
-  admin,
-  permission,
-  handler
-) {
-  if (
-    admin.admin.role ===
-    "super_admin"
-  ) {
-    return handler();
-  }
-
-  const permissions =
-    admin.admin.permissions ||
-    [];
-
-  if (
-    permissions.includes("*") ||
-    permissions.includes(
-      permission
+async function ensureAuditTable(env) {
+  await env.DB
+    .prepare(
+      `
+      CREATE TABLE IF NOT EXISTS audit_log (
+        id TEXT PRIMARY KEY,
+        action TEXT,
+        target_id TEXT,
+        data TEXT,
+        created_at TEXT
+      )
+      `
     )
-  ) {
-    return handler();
-  }
-
-  return json(
-    {
-      ok: false,
-      error:
-        "PERMISSION_DENIED",
-      permission
-    },
-    403
-  );
+    .run();
 }
-
-function normalizeAdmin(row) {
-  const role =
-    clean(
-      row.role
-    ) ||
-    (
-      Number(
-        row.is_super_admin ||
-        0
-      )
-        ? "super_admin"
-        : Number(
-            row.is_admin ||
-            0
-          )
-          ? "admin"
-          : "admin"
-    );
-
-  let permissions =
-    parsePermissions(
-      row.permissions
-    );
-
-  if (
-    !permissions.length
-  ) {
-    permissions =
-      ["*"];
-  }
-
-  return {
-    id:
-      row.id ||
-      row.user_id ||
-      row.admin_id ||
-      null,
-
-    name:
-      row.name ||
-      row.username ||
-      "Администратор",
-
-    username:
-      row.username ||
-      null,
-
-    role,
-
-    permissions,
-
-    is_active:
-      row.is_active ??
-      row.status !==
-        "blocked"
-  };
-}
-
-function sanitizeAdmin(
-  admin
-) {
-  return {
-    id:
-      admin.id,
-
-    name:
-      admin.name,
-
-    username:
-      admin.username ||
-      null,
-
-    role:
-      admin.role,
-
-    permissions:
-      admin.permissions ||
-      []
-  };
-}
-
-function adminIsActive(
-  row
-) {
-  if (
-    row.is_active !==
-    undefined
-  ) {
-    return Boolean(
-      Number(
-        row.is_active
-      )
-    );
-  }
-
-  if (
-    row.status !==
-    undefined
-  ) {
-    return (
-      String(
-        row.status
-      ).toLowerCase() !==
-      "blocked"
-    );
-  }
-
-  return true;
-}
-
-async function findAnyAdmin(
-  db,
-  request
-) {
-  const schema =
-    await getTableSchema(
-      db,
-      "admins"
-    );
-
-  if (!schema.length) {
-    return null;
-  }
-
-  const adminId =
-    clean(
-      request.headers.get(
-        "X-Admin-ID"
-      )
-    );
-
-  const adminUsername =
-    clean(
-      request.headers.get(
-        "X-Admin-Username"
-      )
-    );
-
-  if (
-    !adminId &&
-    !adminUsername
-  ) {
-    return null;
-  }
-
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
-      )
-    );
-
-  if (
-    adminId &&
-    columns.has("id")
-  ) {
-    const row =
-      await db
-        .prepare(`
-          SELECT *
-          FROM admins
-          WHERE id = ?
-          LIMIT 1
-        `)
-        .bind(
-          adminId
-        )
-        .first();
-
-    if (row) {
-      return row;
-    }
-  }
-
-  if (
-    adminId &&
-    columns.has("user_id")
-  ) {
-    const row =
-      await db
-        .prepare(`
-          SELECT *
-          FROM admins
-          WHERE user_id = ?
-          LIMIT 1
-        `)
-        .bind(
-          adminId
-        )
-        .first();
-
-    if (row) {
-      return row;
-    }
-  }
-
-  if (
-    adminUsername &&
-    columns.has("username")
-  ) {
-    const row =
-      await db
-        .prepare(`
-          SELECT *
-          FROM admins
-          WHERE username = ?
-          LIMIT 1
-        `)
-        .bind(
-          adminUsername
-        )
-        .first();
-
-    if (row) {
-      return row;
-    }
-  }
-
-  return null;
-}
-
-/* ============================================================
-   AUDIT LOG
-============================================================ */
 
 async function writeAuditLog(
-  db,
-  admin,
+  env,
   action,
-  targetType,
   targetId,
-  metadata
+  data
 ) {
-  if (!db) {
+  if (!env.DB) {
     return;
   }
 
   try {
-    const schema =
-      await getTableSchema(
-        db,
-        "audit_logs"
-      );
+    await ensureAuditTable(env);
 
-    if (!schema.length) {
-      return;
-    }
-
-    const values = {
-      id:
+    await env.DB
+      .prepare(
+        `
+        INSERT INTO audit_log
+        (
+          id,
+          action,
+          target_id,
+          data,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?)
+        `
+      )
+      .bind(
         crypto.randomUUID(),
-
-      admin_id:
-        admin?.admin?.id ||
-        admin?.id ||
-        null,
-
-      admin_name:
-        admin?.admin?.name ||
-        admin?.name ||
-        null,
-
-      action,
-
-      target_type:
-        targetType ||
-        null,
-
-      target_id:
-        targetId ||
-        null,
-
-      metadata:
+        action,
+        targetId || null,
         JSON.stringify(
-          metadata || {}
+          data || {}
         ),
-
-      details:
-        JSON.stringify(
-          metadata || {}
-        ),
-
-      created_at:
         new Date().toISOString()
-    };
-
-    await dynamicInsert(
-      db,
-      "audit_logs",
-      values
-    );
-  } catch (error) {
-    console.error(
-      "AUDIT ERROR:",
-      error
-    );
-  }
-}
-
-/* ============================================================
-   USERS
-============================================================ */
-
-async function findUserById(
-  db,
-  id
-) {
-  if (
-    !db ||
-    !id
-  ) {
-    return null;
-  }
-
-  const schema =
-    await getTableSchema(
-      db,
-      "users"
-    );
-
-  if (!schema.length) {
-    return null;
-  }
-
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
-      )
-    );
-
-  const idColumn =
-    columns.has("id")
-      ? "id"
-      : columns.has("user_id")
-        ? "user_id"
-        : null;
-
-  if (!idColumn) {
-    return null;
-  }
-
-  return db
-    .prepare(`
-      SELECT *
-      FROM users
-      WHERE ${idColumn} = ?
-      LIMIT 1
-    `)
-    .bind(id)
-    .first();
-}
-
-function sanitizeUser(
-  user
-) {
-  if (!user) {
-    return null;
-  }
-
-  const result = {
-    id:
-      user.id ||
-      user.user_id ||
-      null,
-
-    name:
-      user.name ||
-      user.display_name ||
-      null,
-
-    username:
-      user.username ||
-      null,
-
-    country:
-      user.country ||
-      null,
-
-    city:
-      user.city ||
-      null,
-
-    role:
-      user.role ||
-      null,
-
-    status:
-      user.status ||
-      null,
-
-    is_active:
-      user.is_active !==
-      undefined
-        ? Boolean(
-            Number(
-              user.is_active
-            )
-          )
-        : true,
-
-    created_at:
-      user.created_at ||
-      null,
-
-    updated_at:
-      user.updated_at ||
-      null
-  };
-
-  return result;
-}
-
-/* ============================================================
-   PUBLICATION HELPERS
-============================================================ */
-
-async function getPublicationById(
-  db,
-  id
-) {
-  if (
-    !db ||
-    !id
-  ) {
-    return null;
-  }
-
-  return db
-    .prepare(`
-      SELECT *
-      FROM publications
-      WHERE id = ?
-      LIMIT 1
-    `)
-    .bind(id)
-    .first();
-}
-
-async function incrementPublicationViews(
-  db,
-  id
-) {
-  const schema =
-    await getTableSchema(
-      db,
-      "publications"
-    );
-
-  if (
-    schema.some(
-      x =>
-        x.name ===
-        "views"
-    )
-  ) {
-    await db
-      .prepare(`
-        UPDATE publications
-        SET views = COALESCE(views, 0) + 1
-        WHERE id = ?
-      `)
-      .bind(id)
-      .run();
-  }
-}
-
-function normalizePublication(
-  row
-) {
-  if (!row) {
-    return null;
-  }
-
-  let media = [];
-
-  try {
-    if (
-      Array.isArray(
-        row.media
-      )
-    ) {
-      media =
-        row.media;
-    } else if (
-      row.media
-    ) {
-      media =
-        JSON.parse(
-          row.media
-        );
-    }
-  } catch {
-    media = [];
-  }
-
-  return {
-    ...row,
-
-    content:
-      row.text ??
-      row.content ??
-      "",
-
-    text:
-      row.text ??
-      row.content ??
-      "",
-
-    tags:
-      row.hashtags ??
-      row.tags ??
-      "",
-
-    author_name:
-      row.author_name ??
-      row.contact_name ??
-      "",
-
-    media
-  };
-}
-
-/* ============================================================
-   PUBLICATION MEDIA
-============================================================ */
-
-async function savePublicationMedia(
-  db,
-  publicationId,
-  media,
-  now
-) {
-  try {
-    const schema =
-      await getTableSchema(
-        db,
-        "publication_media"
-      );
-
-    if (!schema.length) {
-      return;
-    }
-
-    for (
-      const item of media
-    ) {
-      const mediaUrl =
-        typeof item ===
-        "string"
-          ? item
-          : item?.url ||
-            item?.src ||
-            item?.media_url;
-
-      if (!mediaUrl) {
-        continue;
-      }
-
-      await dynamicInsert(
-        db,
-        "publication_media",
-        {
-          id:
-            crypto.randomUUID(),
-
-          publication_id:
-            publicationId,
-
-          media_type:
-            typeof item ===
-            "object"
-              ? item.type ||
-                item.media_type ||
-                null
-              : null,
-
-          media_url:
-            mediaUrl,
-
-          media_caption:
-            typeof item ===
-            "object"
-              ? item.caption ||
-                item.media_caption ||
-                null
-              : null,
-
-          created_at:
-            now
-        }
-      );
-    }
-  } catch (error) {
-    console.error(
-      "MEDIA ERROR:",
-      error
-    );
-  }
-}
-
-/* ============================================================
-   D1 HELPERS
-============================================================ */
-
-async function getTableSchema(
-  db,
-  table
-) {
-  if (!db) {
-    return [];
-  }
-
-  const safe =
-    quoteIdentifier(
-      table
-    );
-
-  try {
-    const result =
-      await db
-        .prepare(
-          `PRAGMA table_info(${safe})`
-        )
-        .all();
-
-    return (
-      result.results ||
-      []
-    );
-  } catch {
-    return [];
-  }
-}
-
-function quoteIdentifier(
-  identifier
-) {
-  if (
-    !/^[A-Za-z_][A-Za-z0-9_]*$/.test(
-      identifier
-    )
-  ) {
-    throw new Error(
-      "Unsafe SQL identifier"
-    );
-  }
-
-  return `"${identifier}"`;
-}
-
-async function dynamicInsert(
-  db,
-  table,
-  values
-) {
-  const schema =
-    await getTableSchema(
-      db,
-      table
-    );
-
-  if (!schema.length) {
-    return {
-      ok: false,
-      message:
-        `Таблица ${table} не найдена.`
-    };
-  }
-
-  const allowed =
-    new Set(
-      schema.map(
-        x => x.name
-      )
-    );
-
-  const entries =
-    Object.entries(
-      values
-    ).filter(
-      ([key, value]) =>
-        allowed.has(key) &&
-        value !== undefined
-    );
-
-  if (!entries.length) {
-    return {
-      ok: false,
-      message:
-        "Нет доступных полей для записи."
-    };
-  }
-
-  const columns =
-    entries
-      .map(
-        ([key]) =>
-          quoteIdentifier(
-            key
-          )
-      )
-      .join(", ");
-
-  const placeholders =
-    entries
-      .map(
-        () => "?"
-      )
-      .join(", ");
-
-  try {
-    await db
-      .prepare(`
-        INSERT INTO ${quoteIdentifier(
-          table
-        )}
-        (${columns})
-        VALUES (${placeholders})
-      `)
-      .bind(
-        ...entries.map(
-          ([, value]) =>
-            value
-        )
       )
       .run();
-
-    return {
-      ok: true
-    };
   } catch (error) {
     console.error(
-      `INSERT ${table}:`,
+      "AUDIT_WRITE_ERROR:",
       error
     );
-
-    return {
-      ok: false,
-      message:
-        error?.message ||
-        "Ошибка D1 INSERT"
-    };
-  }
-}
-
-async function updateById(
-  db,
-  table,
-  id,
-  values
-) {
-  const schema =
-    await getTableSchema(
-      db,
-      table
-    );
-
-  if (!schema.length) {
-    return false;
-  }
-
-  const columns =
-    new Set(
-      schema.map(
-        x => x.name
-      )
-    );
-
-  const idColumn =
-    columns.has("id")
-      ? "id"
-      : columns.has("user_id")
-        ? "user_id"
-        : null;
-
-  if (!idColumn) {
-    return false;
-  }
-
-  const entries =
-    Object.entries(
-      values
-    ).filter(
-      ([key, value]) =>
-        columns.has(key) &&
-        value !== undefined
-    );
-
-  if (!entries.length) {
-    return false;
-  }
-
-  const assignments =
-    entries
-      .map(
-        ([key]) =>
-          `${quoteIdentifier(
-            key
-          )} = ?`
-      )
-      .join(", ");
-
-  const result =
-    await db
-      .prepare(`
-        UPDATE ${quoteIdentifier(
-          table
-        )}
-        SET ${assignments}
-        WHERE ${quoteIdentifier(
-          idColumn
-        )} = ?
-      `)
-      .bind(
-        ...entries.map(
-          ([, value]) =>
-            value
-        ),
-        id
-      )
-      .run();
-
-  return (
-    Number(
-      result?.meta?.changes ||
-      0
-    ) > 0
-  );
-}
-
-async function countTable(
-  db,
-  table
-) {
-  try {
-    const schema =
-      await getTableSchema(
-        db,
-        table
-      );
-
-    if (!schema.length) {
-      return 0;
-    }
-
-    const result =
-      await db
-        .prepare(
-          `SELECT COUNT(*) AS count FROM ${quoteIdentifier(
-            table
-          )}`
-        )
-        .first();
-
-    return Number(
-      result?.count ||
-      0
-    );
-  } catch {
-    return 0;
-  }
-}
-
-async function countWhere(
-  db,
-  table,
-  where,
-  params
-) {
-  try {
-    const schema =
-      await getTableSchema(
-        db,
-        table
-      );
-
-    if (!schema.length) {
-      return 0;
-    }
-
-    const result =
-      await db
-        .prepare(`
-          SELECT COUNT(*) AS count
-          FROM ${quoteIdentifier(
-            table
-          )}
-          WHERE ${where}
-        `)
-        .bind(...params)
-        .first();
-
-    return Number(
-      result?.count ||
-      0
-    );
-  } catch {
-    return 0;
-  }
-}
-
-/* ============================================================
-   KV
-============================================================ */
-
-function getKV(
-  env
-) {
-  return (
-    env.DATA ||
-    env.KV ||
-    null
-  );
-}
-
-async function kvGet(
-  env,
-  key
-) {
-  const kv =
-    getKV(env);
-
-  if (!kv) {
-    return null;
-  }
-
-  try {
-    const value =
-      await kv.get(key);
-
-    if (
-      value === null ||
-      value === undefined
-    ) {
-      return null;
-    }
-
-    try {
-      return JSON.parse(
-        value
-      );
-    } catch {
-      return value;
-    }
-  } catch {
-    return null;
-  }
-}
-
-async function kvPut(
-  env,
-  key,
-  value
-) {
-  const kv =
-    getKV(env);
-
-  if (!kv) {
-    return false;
-  }
-
-  try {
-    await kv.put(
-      key,
-      JSON.stringify(
-        value
-      )
-    );
-
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-async function kvDelete(
-  env,
-  key
-) {
-  const kv =
-    getKV(env);
-
-  if (!kv) {
-    return false;
-  }
-
-  try {
-    await kv.delete(
-      key
-    );
-
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -5073,98 +3046,31 @@ async function kvDelete(
    LEGACY OPPORTUNITIES
 ============================================================ */
 
-async function handleOpportunities(
+async function handleLegacyOpportunities(
   request,
   env
 ) {
-  const key =
-    "opportunities";
-
-  if (
-    request.method === "GET"
-  ) {
-    const data =
-      await kvGet(
-        env,
-        key
-      );
-
-    return json({
-      ok: true,
-      opportunities:
-        Array.isArray(data)
-          ? data
-          : []
-    });
+  if (request.method === "GET") {
+    return handlePublicationsList(
+      request,
+      env
+    );
   }
 
-  if (
-    request.method === "POST"
-  ) {
-    let body;
-
-    try {
-      body =
-        await request.json();
-    } catch {
-      return json(
-        {
-          ok: false,
-          error:
-            "INVALID_JSON"
-        },
-        400
-      );
-    }
-
-    const data =
-      await kvGet(
-        env,
-        key
-      );
-
-    const items =
-      Array.isArray(data)
-        ? data
-        : [];
-
-    const item = {
-      id:
-        crypto.randomUUID(),
-
-      ...body,
-
-      created_at:
-        new Date().toISOString()
-    };
-
-    items.unshift(
-      item
+  if (request.method === "POST") {
+    return handleCreatePublication(
+      request,
+      env
     );
-
-    await kvPut(
-      env,
-      key,
-      items.slice(
-        0,
-        500
-      )
-    );
-
-    return json({
-      ok: true,
-      opportunity:
-        item
-    });
   }
 
   return json(
     {
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
+      error: "METHOD_NOT_ALLOWED"
     },
-    405
+    405,
+    request
   );
 }
 
@@ -5172,361 +3078,195 @@ async function handleOpportunities(
    LEGACY MESSAGES
 ============================================================ */
 
-async function handleMessages(
+async function handleLegacyMessages(
   request,
   env
 ) {
-  const key =
-    "messages";
-
-  if (
-    request.method === "GET"
-  ) {
-    const messages =
-      await kvGet(
-        env,
-        key
-      );
-
-    return json({
-      ok: true,
-      messages:
-        Array.isArray(
-          messages
-        )
-          ? messages
-          : []
-    });
+  if (request.method === "GET") {
+    return handlePublicChatList(
+      request,
+      env
+    );
   }
 
-  if (
-    request.method === "POST"
-  ) {
-    let body;
-
-    try {
-      body =
-        await request.json();
-    } catch {
-      return json(
-        {
-          ok: false,
-          error:
-            "INVALID_JSON"
-        },
-        400
-      );
-    }
-
-    const messages =
-      await kvGet(
-        env,
-        key
-      );
-
-    const list =
-      Array.isArray(
-        messages
-      )
-        ? messages
-        : [];
-
-    const message = {
-      id:
-        crypto.randomUUID(),
-
-      name:
-        clean(
-          body.name
-        ) ||
-        "Аноним",
-
-      text:
-        clean(
-          body.text ||
-          body.message
-        ),
-
-      createdAt:
-        new Date().toISOString()
-    };
-
-    if (
-      !message.text
-    ) {
-      return json(
-        {
-          ok: false,
-          error:
-            "MESSAGE_REQUIRED"
-        },
-        400
-      );
-    }
-
-    list.unshift(
-      message
+  if (request.method === "POST") {
+    return handlePublicChatSend(
+      request,
+      env
     );
-
-    await kvPut(
-      env,
-      key,
-      list.slice(
-        0,
-        500
-      )
-    );
-
-    return json({
-      ok: true,
-      message
-    });
   }
 
   return json(
     {
       ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
+      error: "METHOD_NOT_ALLOWED"
     },
-    405
+    405,
+    request
   );
 }
 
 /* ============================================================
-   UTILITIES
+   HELPERS
 ============================================================ */
 
-function clean(
-  value
-) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return "";
+function normalizePath(path) {
+  if (!path) {
+    return "/";
   }
-
-  return String(value)
-    .trim()
-    .slice(
-      0,
-      10000
-    );
-}
-
-function stringifyMaybe(
-  value
-) {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return null;
-  }
-
-  if (
-    typeof value ===
-    "string"
-  ) {
-    return value;
-  }
-
-  try {
-    return JSON.stringify(
-      value
-    );
-  } catch {
-    return String(value);
-  }
-}
-
-function numberOrZero(
-  value
-) {
-  const number =
-    Number(value);
-
-  return Number.isFinite(
-    number
-  )
-    ? number
-    : 0;
-}
-
-function clampNumber(
-  value,
-  min,
-  max,
-  fallback
-) {
-  const number =
-    Number(value);
-
-  if (
-    !Number.isFinite(
-      number
-    )
-  ) {
-    return fallback;
-  }
-
-  return Math.min(
-    max,
-    Math.max(
-      min,
-      Math.floor(number)
-    )
-  );
-}
-
-function generateTrackingCode() {
-  const chars =
-    "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
   let result =
-    "TO-";
+    path.replace(
+      /\/+/g,
+      "/"
+    );
 
-  for (
-    let i = 0;
-    i < 8;
-    i++
+  if (
+    result.length > 1 &&
+    result.endsWith("/")
   ) {
-    result +=
-      chars[
-        Math.floor(
-          Math.random() *
-          chars.length
-        )
-      ];
+    result =
+      result.slice(
+        0,
+        -1
+      );
   }
 
   return result;
 }
 
-function parsePermissions(
-  value
-) {
-  if (!value) {
-    return [];
+function cleanString(value) {
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return null;
   }
 
   if (
-    Array.isArray(value)
+    typeof value === "object"
   ) {
-    return value
-      .map(
-        x =>
-          String(x).trim()
-      )
-      .filter(Boolean);
+    try {
+      return JSON.stringify(
+        value
+      );
+    } catch {
+      return null;
+    }
   }
-
-  try {
-    const parsed =
-      JSON.parse(value);
-
-    if (
-      Array.isArray(parsed)
-    ) {
-      return parsed
-        .map(
-          x =>
-            String(x).trim()
-        )
-        .filter(Boolean);
-    }
-
-    if (
-      typeof parsed ===
-      "string"
-    ) {
-      return parsed
-        .split(",")
-        .map(
-          x =>
-            x.trim()
-        )
-        .filter(Boolean);
-    }
-  } catch {}
 
   return String(value)
-    .split(",")
-    .map(
-      x =>
-        x.trim()
-    )
-    .filter(Boolean);
+    .trim();
 }
 
-function constantTimeEqual(
-  a,
-  b
-) {
-  if (
-    typeof a !==
-      "string" ||
-    typeof b !==
-      "string"
-  ) {
-    return false;
-  }
+function createTrackingCode() {
+  const timestamp =
+    Date.now()
+      .toString(36)
+      .toUpperCase();
 
-  if (
-    a.length !==
-    b.length
-  ) {
-    return false;
-  }
+  const random =
+    crypto.randomUUID()
+      .replace(/-/g, "")
+      .slice(0, 8)
+      .toUpperCase();
 
-  let result = 0;
-
-  for (
-    let i = 0;
-    i < a.length;
-    i++
-  ) {
-    result |=
-      a.charCodeAt(i) ^
-      b.charCodeAt(i);
-  }
-
-  return result === 0;
+  return `TO-${timestamp}-${random}`;
 }
 
 /* ============================================================
-   RESPONSE
+   JSON RESPONSE
 ============================================================ */
 
 function json(
   data,
   status = 200,
-  headers = {}
+  request = null
 ) {
+  const headers =
+    new Headers();
+
+  headers.set(
+    "Content-Type",
+    "application/json; charset=utf-8"
+  );
+
+  headers.set(
+    "Cache-Control",
+    "no-store"
+  );
+
+  headers.set(
+    "X-Content-Type-Options",
+    "nosniff"
+  );
+
+  headers.set(
+    "X-Frame-Options",
+    "SAMEORIGIN"
+  );
+
+  headers.set(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin"
+  );
+
+  if (request) {
+    applyCors(
+      headers,
+      request
+    );
+  }
+
   return new Response(
-    JSON.stringify(
-      data,
-      null,
-      2
-    ),
+    JSON.stringify(data),
     {
       status,
-
-      headers: {
-        "Content-Type":
-          "application/json; charset=utf-8",
-
-        "Cache-Control":
-          "no-store",
-
-        ...headers
-      }
+      headers
     }
   );
 }
 
-function corsResponse(
+/* ============================================================
+   CORS
+============================================================ */
+
+function corsResponse(request) {
+  const headers =
+    new Headers();
+
+  applyCors(
+    headers,
+    request
+  );
+
+  headers.set(
+    "Access-Control-Allow-Headers",
+    [
+      "Content-Type",
+      "Accept",
+      "X-Admin-Key",
+      "X-Admin-ID",
+      "X-Admin-Username"
+    ].join(", ")
+  );
+
+  headers.set(
+    "Access-Control-Allow-Methods",
+    ALLOWED_METHODS.join(", ")
+  );
+
+  return new Response(
+    null,
+    {
+      status: 204,
+      headers
+    }
+  );
+}
+
+function applyCors(
+  headers,
   request
 ) {
   const origin =
@@ -5534,39 +3274,36 @@ function corsResponse(
       "Origin"
     );
 
-  const allowed =
-    origin ||
-    "https://tajik-opportunities.com";
+  /*
+    Since authentication and cookies are no longer used,
+    credentials are not required.
+  */
 
-  return new Response(
-    null,
-    {
-      status: 204,
+  if (origin) {
+    headers.set(
+      "Access-Control-Allow-Origin",
+      origin
+    );
 
-      headers: {
-        "Access-Control-Allow-Origin":
-          allowed,
-
-        "Access-Control-Allow-Credentials":
-          "true",
-
-        "Access-Control-Allow-Headers":
-          "Content-Type, Accept, X-Admin-Key, X-Admin-ID, X-Admin-Username",
-
-        "Access-Control-Allow-Methods":
-          ALLOWED_METHODS.join(
-            ", "
-          ),
-
-        "Vary":
-          "Origin"
-      }
-    }
-  );
+    headers.set(
+      "Vary",
+      "Origin"
+    );
+  } else {
+    headers.set(
+      "Access-Control-Allow-Origin",
+      "https://tajik-opportunities.com"
+    );
+  }
 }
 
+/* ============================================================
+   SECURITY HEADERS
+============================================================ */
+
 function withSecurity(
-  response
+  response,
+  request
 ) {
   const headers =
     new Headers(
@@ -5594,20 +3331,27 @@ function withSecurity(
   );
 
   headers.set(
-    "X-Powered-By",
-    SITE_NAME
+    "Cross-Origin-Resource-Policy",
+    "same-origin"
+  );
+
+  headers.set(
+    "Access-Control-Allow-Origin",
+    request.headers.get("Origin") ||
+      "https://tajik-opportunities.com"
+  );
+
+  headers.set(
+    "Vary",
+    "Origin"
   );
 
   return new Response(
     response.body,
     {
-      status:
-        response.status,
-
-      statusText:
-        response.statusText,
-
+      status: response.status,
+      statusText: response.statusText,
       headers
     }
   );
-       }
+           }
