@@ -1,5280 +1,4967 @@
-/* ============================================================
-   TAJIK OPPORTUNITIES
-   ADMIN CONTROL CENTER
-   public/js/admin.js
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#101827">
+<title>Tajik Opportunities — Admin</title>
 
-   VERSION: 2026.09.07
+<style>
+:root{
+  --bg:#f4f7fb;
+  --panel:#ffffff;
+  --panel2:#f8fafc;
+  --text:#172033;
+  --muted:#718096;
+  --line:#e6ebf2;
+  --primary:#2563eb;
+  --primary2:#1d4ed8;
+  --success:#16a34a;
+  --danger:#dc2626;
+  --warning:#d97706;
+  --purple:#7c3aed;
+  --dark:#0f172a;
+  --shadow:0 18px 55px rgba(15,23,42,.09);
+  --radius:18px;
+}
 
-   ADMIN MODE:
-   - Без входа
-   - Без пароля
-   - Без регистрации
-   - Сразу открывается панель
-   - Полные права super_admin
+*{box-sizing:border-box}
 
-   УПРАВЛЕНИЕ:
-   - Dashboard
-   - Статистика
-   - Заявки
-   - Публикации
-   - Участники
-   - Комментарии
-   - Чаты
-   - Уведомления
-   - Корзина
-   - Модерация
-   - Редактирование данных
-============================================================ */
+html,body{
+  margin:0;
+  padding:0;
+  min-height:100%;
+  font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
 
+button,input,select,textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.hidden{
+  display:none!important;
+}
+
+/* LOGIN */
+
+.login-screen{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:25px;
+  background:
+    radial-gradient(circle at 10% 10%,rgba(37,99,235,.22),transparent 30%),
+    radial-gradient(circle at 90% 90%,rgba(124,58,237,.2),transparent 30%),
+    #0b1220;
+}
+
+.login-card{
+  width:min(460px,100%);
+  background:rgba(255,255,255,.97);
+  border-radius:28px;
+  padding:38px;
+  box-shadow:0 30px 100px rgba(0,0,0,.3);
+}
+
+.brand{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin-bottom:30px;
+}
+
+.brand-logo{
+  width:54px;
+  height:54px;
+  border-radius:17px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:white;
+  font-size:25px;
+  box-shadow:0 10px 30px rgba(37,99,235,.3);
+}
+
+.brand-title{
+  font-size:21px;
+  font-weight:900;
+}
+
+.brand-sub{
+  color:var(--muted);
+  font-size:13px;
+  margin-top:3px;
+}
+
+.login-card h1{
+  margin:0 0 8px;
+  font-size:28px;
+}
+
+.login-card p{
+  color:var(--muted);
+  line-height:1.6;
+}
+
+.field{
+  margin-bottom:17px;
+}
+
+.field label{
+  display:block;
+  font-size:13px;
+  font-weight:800;
+  margin-bottom:8px;
+}
+
+.field input,
+.field select,
+.field textarea{
+  width:100%;
+  border:1px solid var(--line);
+  background:white;
+  border-radius:13px;
+  padding:13px 14px;
+  outline:none;
+  color:var(--text);
+  transition:.2s;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 4px rgba(37,99,235,.09);
+}
+
+.login-button{
+  width:100%;
+  border:0;
+  color:white;
+  padding:14px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#2563eb,#4f46e5);
+  font-weight:900;
+  box-shadow:0 12px 30px rgba(37,99,235,.25);
+}
+
+.login-error{
+  margin-top:14px;
+  padding:12px;
+  border-radius:12px;
+  background:#fef2f2;
+  color:#b91c1c;
+  font-size:13px;
+}
+
+/* APP */
+
+.app{
+  display:flex;
+  min-height:100vh;
+}
+
+.sidebar{
+  width:275px;
+  position:fixed;
+  inset:0 auto 0 0;
+  background:#0d1525;
+  color:white;
+  overflow-y:auto;
+  z-index:50;
+  border-right:1px solid rgba(255,255,255,.06);
+}
+
+.sidebar-top{
+  padding:23px 19px;
+  border-bottom:1px solid rgba(255,255,255,.07);
+}
+
+.sidebar-brand{
+  display:flex;
+  gap:12px;
+  align-items:center;
+}
+
+.sidebar-logo{
+  width:43px;
+  height:43px;
+  border-radius:13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  font-size:21px;
+}
+
+.sidebar-brand strong{
+  display:block;
+  font-size:15px;
+}
+
+.sidebar-brand span{
+  color:#9aa8be;
+  font-size:11px;
+}
+
+.nav{
+  padding:15px 10px 30px;
+}
+
+.nav-section{
+  color:#69778f;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:1.2px;
+  font-weight:900;
+  padding:15px 12px 7px;
+}
+
+.nav-item{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#b9c3d3;
+  padding:11px 12px;
+  border-radius:11px;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  text-align:left;
+  font-size:13px;
+  margin:2px 0;
+  transition:.18s;
+}
+
+.nav-item:hover{
+  background:rgba(255,255,255,.06);
+  color:white;
+}
+
+.nav-item.active{
+  background:linear-gradient(90deg,rgba(37,99,235,.9),rgba(79,70,229,.85));
+  color:white;
+  box-shadow:0 7px 22px rgba(37,99,235,.2);
+}
+
+.nav-icon{
+  width:21px;
+  text-align:center;
+  font-size:15px;
+}
+
+.nav-badge{
+  margin-left:auto;
+  min-width:20px;
+  padding:2px 6px;
+  text-align:center;
+  border-radius:20px;
+  background:#ef4444;
+  color:white;
+  font-size:10px;
+  font-weight:900;
+}
+
+.main{
+  margin-left:275px;
+  width:calc(100% - 275px);
+  min-width:0;
+}
+
+.topbar{
+  height:72px;
+  background:rgba(255,255,255,.92);
+  backdrop-filter:blur(18px);
+  border-bottom:1px solid var(--line);
+  position:sticky;
+  top:0;
+  z-index:30;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  padding:0 25px;
+}
+
+.mobile-menu{
+  display:none;
+  border:0;
+  background:#eef2ff;
+  width:40px;
+  height:40px;
+  border-radius:12px;
+}
+
+.global-search{
+  flex:1;
+  max-width:620px;
+  position:relative;
+}
+
+.global-search input{
+  width:100%;
+  border:1px solid var(--line);
+  background:#f7f9fc;
+  padding:11px 15px 11px 42px;
+  border-radius:13px;
+  outline:none;
+}
+
+.search-icon{
+  position:absolute;
+  left:14px;
+  top:10px;
+  color:#8a96a9;
+}
+
+.top-actions{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.icon-button{
+  width:40px;
+  height:40px;
+  border:1px solid var(--line);
+  background:white;
+  border-radius:12px;
+  position:relative;
+}
+
+.admin-mini{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding-left:8px;
+}
+
+.admin-avatar{
+  width:39px;
+  height:39px;
+  border-radius:12px;
+  background:linear-gradient(135deg,#1e293b,#475569);
+  color:white;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+}
+
+.admin-mini strong{
+  display:block;
+  font-size:12px;
+}
+
+.admin-mini span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+}
+
+.content{
+  padding:25px;
+  max-width:1800px;
+  margin:auto;
+}
+
+.page-head{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:15px;
+  margin-bottom:22px;
+}
+
+.page-title{
+  margin:0;
+  font-size:27px;
+  font-weight:950;
+  letter-spacing:-.5px;
+}
+
+.page-description{
+  color:var(--muted);
+  margin-top:6px;
+  font-size:13px;
+}
+
+.head-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.btn{
+  border:1px solid var(--line);
+  background:white;
+  color:var(--text);
+  padding:10px 14px;
+  border-radius:11px;
+  font-weight:800;
+  font-size:12px;
+}
+
+.btn:hover{
+  transform:translateY(-1px);
+  box-shadow:0 7px 20px rgba(15,23,42,.07);
+}
+
+.btn-primary{
+  background:var(--primary);
+  color:white;
+  border-color:var(--primary);
+}
+
+.btn-success{
+  background:#ecfdf3;
+  color:#15803d;
+  border-color:#bbf7d0;
+}
+
+.btn-danger{
+  background:#fef2f2;
+  color:#b91c1c;
+  border-color:#fecaca;
+}
+
+.btn-warning{
+  background:#fff7ed;
+  color:#c2410c;
+  border-color:#fed7aa;
+}
+
+.btn-dark{
+  background:#111827;
+  color:white;
+  border-color:#111827;
+}
+
+/* DASHBOARD */
+
+.stat-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:15px;
+  margin-bottom:20px;
+}
+
+.stat-card{
+  background:white;
+  border:1px solid var(--line);
+  border-radius:17px;
+  padding:19px;
+  box-shadow:0 5px 20px rgba(15,23,42,.035);
+}
+
+.stat-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.stat-icon{
+  width:40px;
+  height:40px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#eff6ff;
+  font-size:18px;
+}
+
+.stat-label{
+  color:var(--muted);
+  font-size:12px;
+  font-weight:700;
+}
+
+.stat-value{
+  font-size:27px;
+  font-weight:950;
+  margin-top:11px;
+}
+
+.stat-foot{
+  margin-top:7px;
+  color:#94a3b8;
+  font-size:11px;
+}
+
+.dashboard-grid{
+  display:grid;
+  grid-template-columns:1.5fr 1fr;
+  gap:18px;
+}
+
+.card{
+  background:white;
+  border:1px solid var(--line);
+  border-radius:18px;
+  box-shadow:0 5px 25px rgba(15,23,42,.035);
+  overflow:hidden;
+}
+
+.card-head{
+  padding:17px 19px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.card-head h3{
+  margin:0;
+  font-size:14px;
+}
+
+.card-body{
+  padding:19px;
+}
+
+/* TABLE */
+
+.toolbar{
+  display:flex;
+  gap:9px;
+  flex-wrap:wrap;
+  padding:15px;
+  border-bottom:1px solid var(--line);
+  background:#fbfcfe;
+}
+
+.toolbar input,
+.toolbar select{
+  border:1px solid var(--line);
+  background:white;
+  padding:10px 12px;
+  border-radius:10px;
+  outline:none;
+  min-width:150px;
+}
+
+.table-wrap{
+  width:100%;
+  overflow-x:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:850px;
+}
+
+th{
+  text-align:left;
+  color:#7b8799;
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.7px;
+  padding:13px 15px;
+  background:#fbfcfe;
+  border-bottom:1px solid var(--line);
+}
+
+td{
+  padding:13px 15px;
+  border-bottom:1px solid #edf0f4;
+  font-size:12px;
+  vertical-align:middle;
+}
+
+tr:hover td{
+  background:#fbfdff;
+}
+
+.status{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:5px 8px;
+  border-radius:30px;
+  font-size:10px;
+  font-weight:900;
+}
+
+.status-published{background:#ecfdf3;color:#15803d}
+.status-pending{background:#fff7ed;color:#c2410c}
+.status-rejected{background:#fef2f2;color:#b91c1c}
+.status-archived{background:#f1f5f9;color:#64748b}
+.status-deleted{background:#fef2f2;color:#991b1b}
+.status-active{background:#ecfdf3;color:#15803d}
+.status-blocked{background:#fef2f2;color:#b91c1c}
+
+.row-actions{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+}
+
+.small-btn{
+  border:1px solid var(--line);
+  background:white;
+  border-radius:8px;
+  padding:6px 8px;
+  font-size:10px;
+  font-weight:800;
+}
+
+.small-btn:hover{
+  background:#f8fafc;
+}
+
+/* MODALS */
+
+.modal-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.58);
+  backdrop-filter:blur(5px);
+  z-index:100;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:18px;
+}
+
+.modal{
+  width:min(1000px,100%);
+  max-height:calc(100vh - 36px);
+  overflow:auto;
+  background:white;
+  border-radius:22px;
+  box-shadow:0 30px 100px rgba(0,0,0,.25);
+}
+
+.modal.large{
+  width:min(1250px,100%);
+}
+
+.modal-head{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:white;
+  padding:18px 20px;
+  border-bottom:1px solid var(--line);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.modal-head h2{
+  margin:0;
+  font-size:18px;
+}
+
+.modal-close{
+  width:36px;
+  height:36px;
+  border:0;
+  background:#f1f5f9;
+  border-radius:10px;
+}
+
+.modal-body{
+  padding:20px;
+}
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+}
+
+.form-full{
+  grid-column:1/-1;
+}
+
+.modal-foot{
+  position:sticky;
+  bottom:0;
+  background:white;
+  padding:15px 20px;
+  border-top:1px solid var(--line);
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+/* CHAT */
+
+.chat-layout{
+  display:grid;
+  grid-template-columns:330px 1fr;
+  min-height:620px;
+}
+
+.chat-list{
+  border-right:1px solid var(--line);
+  overflow:auto;
+}
+
+.chat-search{
+  padding:12px;
+  border-bottom:1px solid var(--line);
+}
+
+.chat-search input{
+  width:100%;
+  padding:10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+}
+
+.chat-user{
+  padding:13px;
+  border-bottom:1px solid #edf0f4;
+  cursor:pointer;
+  display:flex;
+  gap:10px;
+}
+
+.chat-user:hover,
+.chat-user.active{
+  background:#f5f8ff;
+}
+
+.chat-avatar{
+  width:40px;
+  height:40px;
+  flex:none;
+  border-radius:12px;
+  background:#e8eefc;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:900;
+}
+
+.chat-info{
+  min-width:0;
+  flex:1;
+}
+
+.chat-info strong{
+  display:block;
+  font-size:12px;
+}
+
+.chat-info span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  margin-top:3px;
+}
+
+.chat-window{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.chat-header{
+  padding:15px 18px;
+  border-bottom:1px solid var(--line);
+}
+
+.chat-header strong{
+  font-size:13px;
+}
+
+.chat-header small{
+  display:block;
+  color:var(--muted);
+  margin-top:4px;
+}
+
+.chat-messages{
+  flex:1;
+  padding:20px;
+  background:#f7f9fc;
+  overflow:auto;
+  min-height:440px;
+}
+
+.message{
+  max-width:72%;
+  margin-bottom:12px;
+}
+
+.message.mine{
+  margin-left:auto;
+}
+
+.message-bubble{
+  padding:10px 13px;
+  border-radius:15px;
+  background:white;
+  border:1px solid var(--line);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.message.mine .message-bubble{
+  background:#2563eb;
+  color:white;
+  border-color:#2563eb;
+}
+
+.message-time{
+  font-size:9px;
+  color:#94a3b8;
+  margin-top:3px;
+}
+
+.chat-compose{
+  padding:12px;
+  border-top:1px solid var(--line);
+  display:flex;
+  gap:8px;
+}
+
+.chat-compose textarea{
+  flex:1;
+  resize:none;
+  height:43px;
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:11px;
+}
+
+/* SETTINGS */
+
+.settings-grid{
+  display:grid;
+  grid-template-columns:250px 1fr;
+}
+
+.settings-nav{
+  border-right:1px solid var(--line);
+  padding:12px;
+}
+
+.settings-tab{
+  width:100%;
+  text-align:left;
+  padding:11px;
+  border:0;
+  background:transparent;
+  border-radius:10px;
+  font-weight:800;
+  font-size:12px;
+}
+
+.settings-tab.active{
+  background:#eff6ff;
+  color:#1d4ed8;
+}
+
+.setting-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 0;
+  border-bottom:1px solid #edf0f4;
+  gap:20px;
+}
+
+.setting-row strong{
+  display:block;
+  font-size:12px;
+}
+
+.setting-row span{
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  margin-top:4px;
+}
+
+.switch{
+  width:44px;
+  height:24px;
+  border-radius:20px;
+  background:#cbd5e1;
+  position:relative;
+  border:0;
+  flex:none;
+}
+
+.switch::after{
+  content:"";
+  position:absolute;
+  width:18px;
+  height:18px;
+  top:3px;
+  left:3px;
+  border-radius:50%;
+  background:white;
+  transition:.2s;
+}
+
+.switch.on{
+  background:#2563eb;
+}
+
+.switch.on::after{
+  left:23px;
+}
+
+/* EMPTY */
+
+.empty{
+  padding:55px 20px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.empty-icon{
+  font-size:38px;
+  margin-bottom:10px;
+}
+
+/* TOAST */
+
+.toast-box{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:300;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.toast{
+  min-width:270px;
+  max-width:380px;
+  background:#111827;
+  color:white;
+  padding:13px 15px;
+  border-radius:13px;
+  box-shadow:0 15px 40px rgba(0,0,0,.2);
+  font-size:12px;
+  animation:toastIn .2s ease;
+}
+
+.toast.success{border-left:4px solid #22c55e}
+.toast.error{border-left:4px solid #ef4444}
+
+@keyframes toastIn{
+  from{transform:translateY(10px);opacity:0}
+  to{transform:translateY(0);opacity:1}
+}
+
+/* RESPONSIVE */
+
+@media(max-width:1150px){
+  .stat-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+
+  .dashboard-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:850px){
+  .sidebar{
+    transform:translateX(-100%);
+    transition:.25s;
+  }
+
+  .sidebar.open{
+    transform:translateX(0);
+  }
+
+  .main{
+    margin-left:0;
+    width:100%;
+  }
+
+  .mobile-menu{
+    display:block;
+  }
+
+  .admin-mini .admin-text{
+    display:none;
+  }
+
+  .content{
+    padding:17px;
+  }
+
+  .settings-grid{
+    grid-template-columns:1fr;
+  }
+
+  .settings-nav{
+    border-right:0;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    overflow:auto;
+  }
+
+  .settings-tab{
+    min-width:130px;
+  }
+}
+
+@media(max-width:600px){
+  .topbar{
+    padding:0 12px;
+  }
+
+  .global-search{
+    display:none;
+  }
+
+  .stat-grid{
+    grid-template-columns:1fr;
+  }
+
+  .page-head{
+    flex-direction:column;
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .form-full{
+    grid-column:auto;
+  }
+
+  .chat-layout{
+    grid-template-columns:1fr;
+  }
+
+  .chat-list{
+    max-height:230px;
+    border-right:0;
+    border-bottom:1px solid var(--line);
+  }
+
+  .login-card{
+    padding:25px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<!-- LOGIN -->
+
+<section id="loginScreen" class="login-screen">
+  <div class="login-card">
+
+    <div class="brand">
+      <div class="brand-logo">🇹🇯</div>
+      <div>
+        <div class="brand-title">Tajik Opportunities</div>
+        <div class="brand-sub">Administrative Control Center</div>
+      </div>
+    </div>
+
+    <h1>Административный вход</h1>
+    <p>
+      Панель полного управления платформой.
+      Участникам не требуется регистрация или обычный вход.
+    </p>
+
+    <form id="loginForm">
+
+      <div class="field">
+        <label>Имя администратора</label>
+        <input id="loginUsername" value="admin" autocomplete="username" required>
+      </div>
+
+      <div class="field">
+        <label>Пароль</label>
+        <input id="loginPassword" type="password" autocomplete="current-password" required>
+      </div>
+
+      <button class="login-button" type="submit">
+        Войти в панель
+      </button>
+
+      <div id="loginError" class="login-error hidden"></div>
+
+    </form>
+  </div>
+</section>
+
+
+<!-- APP -->
+
+<div id="app" class="app hidden">
+
+  <aside id="sidebar" class="sidebar">
+
+    <div class="sidebar-top">
+      <div class="sidebar-brand">
+        <div class="sidebar-logo">🇹🇯</div>
+        <div>
+          <strong>Tajik Opportunities</strong>
+          <span>ADMIN CONTROL CENTER</span>
+        </div>
+      </div>
+    </div>
+
+    <nav class="nav">
+
+      <div class="nav-section">Главное</div>
+
+      <button class="nav-item active" data-page="dashboard">
+        <span class="nav-icon">📊</span>
+        Обзор
+      </button>
+
+      <button class="nav-item" data-page="publications">
+        <span class="nav-icon">📰</span>
+        Публикации
+        <span id="pendingBadge" class="nav-badge hidden">0</span>
+      </button>
+
+      <button class="nav-item" data-page="pending">
+        <span class="nav-icon">⏳</span>
+        Ожидают разрешения
+      </button>
+
+      <button class="nav-item" data-page="participants">
+        <span class="nav-icon">👥</span>
+        Участники
+      </button>
+
+      <div class="nav-section">Общение</div>
+
+      <button class="nav-item" data-page="chats">
+        <span class="nav-icon">💬</span>
+        Чаты
+        <span id="chatBadge" class="nav-badge hidden">0</span>
+      </button>
+
+      <button class="nav-item" data-page="comments">
+        <span class="nav-icon">💭</span>
+        Комментарии
+      </button>
+
+      <button class="nav-item" data-page="notifications">
+        <span class="nav-icon">🔔</span>
+        Уведомления
+      </button>
+
+      <button class="nav-item" data-page="reports">
+        <span class="nav-icon">🚨</span>
+        Жалобы
+      </button>
+
+      <div class="nav-section">Социальные функции</div>
+
+      <button class="nav-item" data-page="reactions">
+        <span class="nav-icon">❤️</span>
+        Реакции
+      </button>
+
+      <button class="nav-item" data-page="saves">
+        <span class="nav-icon">🔖</span>
+        Сохранения
+      </button>
+
+      <button class="nav-item" data-page="shares">
+        <span class="nav-icon">🔁</span>
+        Репосты и поделились
+      </button>
+
+      <button class="nav-item" data-page="follows">
+        <span class="nav-icon">➕</span>
+        Подписки
+      </button>
+
+      <button class="nav-item" data-page="groups">
+        <span class="nav-icon">👨‍👩‍👧‍👦</span>
+        Группы
+      </button>
+
+      <button class="nav-item" data-page="stories">
+        <span class="nav-icon">⭕</span>
+        Истории
+      </button>
+
+      <button class="nav-item" data-page="polls">
+        <span class="nav-icon">📊</span>
+        Опросы
+      </button>
+
+      <div class="nav-section">Контент</div>
+
+      <button class="nav-item" data-page="hashtags">
+        <span class="nav-icon">#️⃣</span>
+        Хэштеги
+      </button>
+
+      <button class="nav-item" data-page="categories">
+        <span class="nav-icon">🗂️</span>
+        Категории
+      </button>
+
+      <button class="nav-item" data-page="locations">
+        <span class="nav-icon">🌍</span>
+        Страны и города
+      </button>
+
+      <button class="nav-item" data-page="translations">
+        <span class="nav-icon">🌐</span>
+        Переводы
+      </button>
+
+      <div class="nav-section">Бизнес</div>
+
+      <button class="nav-item" data-page="payments">
+        <span class="nav-icon">💳</span>
+        Платежи
+      </button>
+
+      <button class="nav-item" data-page="ads">
+        <span class="nav-icon">📢</span>
+        Реклама
+      </button>
+
+      <button class="nav-item" data-page="support">
+        <span class="nav-icon">🆘</span>
+        Поддержка
+      </button>
+
+      <div class="nav-section">Система</div>
+
+      <button class="nav-item" data-page="analytics">
+        <span class="nav-icon">📈</span>
+        Аналитика
+      </button>
+
+      <button class="nav-item" data-page="settings">
+        <span class="nav-icon">⚙️</span>
+        Настройки
+      </button>
+
+      <button class="nav-item" data-page="audit">
+        <span class="nav-icon">📋</span>
+        Журнал действий
+      </button>
+
+      <button class="nav-item" data-page="system">
+        <span class="nav-icon">🛡️</span>
+        Система
+      </button>
+
+      <div class="nav-section">Сайт</div>
+
+      <button class="nav-item" onclick="openSite()">
+        <span class="nav-icon">🌐</span>
+        Открыть сайт
+      </button>
+
+      <button class="nav-item" onclick="logout()">
+        <span class="nav-icon">🚪</span>
+        Выйти
+      </button>
+
+    </nav>
+  </aside>
+
+
+  <main class="main">
+
+    <header class="topbar">
+
+      <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+
+      <div class="global-search">
+        <span class="search-icon">🔎</span>
+        <input id="globalSearch" placeholder="Поиск по панели...">
+      </div>
+
+      <div class="top-actions">
+
+        <button class="icon-button" onclick="refreshCurrentPage()" title="Обновить">
+          ↻
+        </button>
+
+        <button class="icon-button" onclick="goPage('notifications')" title="Уведомления">
+          🔔
+        </button>
+
+        <div class="admin-mini">
+          <div class="admin-avatar">A</div>
+          <div class="admin-text">
+            <strong id="adminName">admin</strong>
+            <span>Super Administrator</span>
+          </div>
+        </div>
+
+      </div>
+
+    </header>
+
+
+    <section id="content" class="content"></section>
+
+  </main>
+
+</div>
+
+
+<div id="modalRoot"></div>
+<div id="toastBox" class="toast-box"></div>
+
+
+<script>
 "use strict";
 
-/* ============================================================
-   STATE
-============================================================ */
+/* =========================================================
+   CORE
+========================================================= */
 
 const state = {
-  authenticated: true,
-  loading: false,
-
-  admin: {
-    id: "key-admin",
-    name: "Главный администратор",
-    username: "admin",
-    role: "super_admin",
-    permissions: ["*"],
-    is_active: true
-  },
-
+  page: "dashboard",
   stats: {},
-  submissions: [],
-  posts: [],
-  users: [],
+  publications: [],
+  participants: [],
   comments: [],
-  chats: [],
+  reports: [],
   notifications: [],
-  audit: [],
-
-  trashPosts: [],
-  rejectedSubmissions: [],
-
-  filter: "pending",
-  postFilter: "all",
-  trashFilter: "all",
-
-  userSearch: "",
-  userFilter: "all",
-
-  selectedSubmission: null,
-  selectedPost: null,
-  selectedUser: null,
-  selectedComment: null,
-  selectedChat: null,
-
-  editingCounters: false
+  chats: [],
+  currentParticipant: null,
+  currentChatMessages: [],
+  settings: {},
+  admin: null
 };
 
+const API_BASE = "/api";
 
-/* ============================================================
-   HELPERS
-============================================================ */
+async function api(path, options = {}) {
 
-function $(id) {
-  return document.getElementById(id);
-}
-
-
-function escapeHtml(value) {
-  if (value === null || value === undefined) {
-    return "";
-  }
-
-  return String(value)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
-
-
-function escapeAttribute(value) {
-  return escapeHtml(value);
-}
-
-
-function formatDate(value) {
-  if (!value) {
-    return "—";
-  }
-
-  try {
-    const date = new Date(value);
-
-    if (Number.isNaN(date.getTime())) {
-      return escapeHtml(value);
-    }
-
-    return date.toLocaleString(
-      "ru-RU",
-      {
-        dateStyle: "medium",
-        timeStyle: "short"
-      }
-    );
-  } catch {
-    return escapeHtml(value);
-  }
-}
-
-
-function formatNumber(value) {
-  const number = Number(value || 0);
-
-  return number.toLocaleString("ru-RU");
-}
-
-
-function getValue(id) {
-  const element = $(id);
-
-  if (!element) {
-    return "";
-  }
-
-  return String(element.value || "").trim();
-}
-
-
-function setValue(id, value) {
-  const element = $(id);
-
-  if (!element) {
-    return;
-  }
-
-  element.value =
-    value === null ||
-    value === undefined
-      ? ""
-      : value;
-}
-
-
-function safeJson(value) {
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return "{}";
-  }
-}
-
-
-function getQuery(name) {
-  const params =
-    new URLSearchParams(
-      window.location.search
-    );
-
-  return params.get(name);
-}
-
-
-/* ============================================================
-   API
-============================================================ */
-
-async function api(
-  url,
-  options = {}
-) {
-  const requestOptions = {
+  const config = {
     credentials: "include",
-    ...options,
     headers: {
-      Accept: "application/json",
+      "Content-Type": "application/json",
       ...(options.headers || {})
-    }
+    },
+    ...options
   };
 
-  if (
-    requestOptions.body &&
-    typeof requestOptions.body !== "string"
-  ) {
-    requestOptions.headers[
-      "Content-Type"
-    ] = "application/json";
+  try {
 
-    requestOptions.body =
-      JSON.stringify(
-        requestOptions.body
-      );
-  }
+    const response = await fetch(API_BASE + path, config);
 
-  const response =
-    await fetch(
-      url,
-      requestOptions
-    );
+    let data = null;
 
-  const contentType =
-    response.headers.get(
-      "content-type"
-    ) || "";
+    try {
+      data = await response.json();
+    } catch {
+      data = {};
+    }
 
-  let data;
+    if (response.status === 401) {
+      showLogin();
+      throw new Error(data?.error || "Сессия администратора завершена");
+    }
 
-  if (
-    contentType.includes(
-      "application/json"
-    )
-  ) {
-    data =
-      await response.json()
-        .catch(() => ({}));
-  } else {
-    const text =
-      await response.text()
-        .catch(() => "");
-
-    data = {
-      ok: response.ok,
-      message: text
-    };
-  }
-
-  if (!response.ok) {
-    const error =
-      new Error(
-        data?.message ||
+    if (!response.ok) {
+      throw new Error(
         data?.error ||
-        `Ошибка API: ${response.status}`
+        data?.message ||
+        "Ошибка сервера"
       );
+    }
 
-    error.status =
-      response.status;
+    return data;
 
-    error.data = data;
+  } catch (error) {
+
+    if (error.message !== "Сессия администратора завершена") {
+      toast(error.message, "error");
+    }
 
     throw error;
   }
-
-  return data;
 }
 
 
-function handleUnauthorized(error) {
-  if (
-    error &&
-    error.status === 401
-  ) {
-    console.error(
-      "Admin authorization is disabled. Worker should allow admin access."
-    );
+/* =========================================================
+   LOGIN
+========================================================= */
 
-    return false;
-  }
+document.getElementById("loginForm").addEventListener("submit", async e => {
 
-  return false;
-}
-
-
-/* ============================================================
-   NOTIFICATION
-============================================================ */
-
-function notify(
-  message,
-  type = "success"
-) {
-  const old =
-    document.querySelector(
-      ".admin-toast"
-    );
-
-  old?.remove();
-
-  const toast =
-    document.createElement(
-      "div"
-    );
-
-  toast.className =
-    `admin-toast admin-toast-${type}`;
-
-  toast.textContent =
-    message;
-
-  Object.assign(
-    toast.style,
-    {
-      position: "fixed",
-      right: "22px",
-      bottom: "22px",
-      zIndex: "99999",
-      padding: "14px 18px",
-      borderRadius: "14px",
-      background: "#111827",
-      color: "#fff",
-      boxShadow:
-        "0 15px 45px rgba(0,0,0,.22)",
-      fontWeight: "700",
-      maxWidth: "420px"
-    }
-  );
-
-  document.body.appendChild(
-    toast
-  );
-
-  setTimeout(
-    () => toast.remove(),
-    3500
-  );
-}
-
-
-/* ============================================================
-   ADMIN INFORMATION
-============================================================ */
-
-async function loadAdmin() {
-  try {
-    const data =
-      await api(
-        "/api/admin/me"
-      );
-
-    if (data?.admin) {
-      state.admin =
-        data.admin;
-    }
-
-    updateAdminIdentity();
-
-  } catch (error) {
-    /*
-     * Авторизация отключена.
-     * Даже если /me отсутствует,
-     * панель продолжает работать.
-     */
-
-    console.warn(
-      "Не удалось получить /api/admin/me:",
-      error
-    );
-
-    updateAdminIdentity();
-  }
-}
-
-
-function updateAdminIdentity() {
-  const name =
-    state.admin?.name ||
-    "Главный администратор";
+  e.preventDefault();
 
   const username =
-    state.admin?.username ||
-    "admin";
+    document.getElementById("loginUsername").value.trim();
 
-  document
-    .querySelectorAll(
-      "[data-admin-name]"
-    )
-    .forEach(
-      element => {
-        element.textContent =
-          name;
-      }
-    );
+  const password =
+    document.getElementById("loginPassword").value;
 
-  document
-    .querySelectorAll(
-      "[data-admin-username]"
-    )
-    .forEach(
-      element => {
-        element.textContent =
-          `@${username}`;
-      }
-    );
+  const errorBox =
+    document.getElementById("loginError");
 
-  document
-    .querySelectorAll(
-      "[data-admin-role]"
-    )
-    .forEach(
-      element => {
-        element.textContent =
-          "SUPER ADMIN";
-      }
-    );
+  errorBox.classList.add("hidden");
+
+  try {
+
+    await api("/admin/login", {
+      method: "POST",
+      body: JSON.stringify({
+        username,
+        password
+      })
+    });
+
+    await startAdmin();
+
+  } catch (error) {
+
+    errorBox.textContent =
+      error.message || "Не удалось выполнить вход";
+
+    errorBox.classList.remove("hidden");
+  }
+});
+
+
+async function startAdmin() {
+
+  try {
+
+    const me = await api("/admin/me");
+
+    state.admin = me?.data || me?.admin || me;
+
+    document.getElementById("loginScreen")
+      .classList.add("hidden");
+
+    document.getElementById("app")
+      .classList.remove("hidden");
+
+    document.getElementById("adminName").textContent =
+      state.admin?.username || "admin";
+
+    await goPage("dashboard");
+
+  } catch {
+
+    showLogin();
+
+  }
 }
 
 
-/* ============================================================
-   DASHBOARD
-============================================================ */
+function showLogin() {
 
-async function loadStats() {
+  document.getElementById("loginScreen")
+    .classList.remove("hidden");
+
+  document.getElementById("app")
+    .classList.add("hidden");
+}
+
+
+async function logout() {
+
   try {
-    const data =
-      await api(
-        "/api/admin/stats"
+    await api("/admin/logout", {
+      method:"POST"
+    });
+  } catch {}
+
+  showLogin();
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+document.querySelectorAll(".nav-item[data-page]")
+.forEach(button => {
+
+  button.addEventListener("click", () => {
+    goPage(button.dataset.page);
+  });
+
+});
+
+
+async function goPage(page) {
+
+  state.page = page;
+
+  document.querySelectorAll(".nav-item[data-page]")
+    .forEach(item => {
+      item.classList.toggle(
+        "active",
+        item.dataset.page === page
       );
+    });
+
+  document.getElementById("sidebar")
+    .classList.remove("open");
+
+  const loaders = {
+    dashboard: renderDashboard,
+    publications: renderPublications,
+    pending: renderPending,
+    participants: renderParticipants,
+    chats: renderChats,
+    comments: renderComments,
+    reports: renderReports,
+    notifications: renderNotifications,
+    reactions: renderSimpleModule,
+    saves: renderSimpleModule,
+    shares: renderSimpleModule,
+    follows: renderSimpleModule,
+    groups: renderSimpleModule,
+    stories: renderSimpleModule,
+    polls: renderSimpleModule,
+    hashtags: renderSimpleModule,
+    categories: renderSimpleModule,
+    locations: renderSimpleModule,
+    translations: renderSimpleModule,
+    payments: renderSimpleModule,
+    ads: renderSimpleModule,
+    support: renderSimpleModule,
+    analytics: renderAnalytics,
+    settings: renderSettings,
+    audit: renderAudit,
+    system: renderSystem
+  };
+
+  const loader = loaders[page];
+
+  if (loader) {
+    await loader();
+  }
+}
+
+
+function refreshCurrentPage() {
+  goPage(state.page);
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar")
+    .classList.toggle("open");
+}
+
+function openSite() {
+  window.open("/", "_blank", "noopener");
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+async function renderDashboard() {
+
+  const root = document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">Панель управления</h1>
+        <div class="page-description">
+          Полный обзор Tajik Opportunities и текущей активности платформы.
+        </div>
+      </div>
+
+      <div class="head-actions">
+        <button class="btn" onclick="refreshCurrentPage()">↻ Обновить</button>
+        <button class="btn btn-primary" onclick="goPage('pending')">
+          ⏳ Проверить публикации
+        </button>
+      </div>
+    </div>
+
+    <div id="statsGrid" class="stat-grid">
+      ${loadingStats()}
+    </div>
+
+    <div class="dashboard-grid">
+
+      <div class="card">
+        <div class="card-head">
+          <h3>⚡ Быстрые действия</h3>
+        </div>
+
+        <div class="card-body">
+
+          <div style="
+            display:grid;
+            grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+            gap:10px;
+          ">
+
+            <button class="btn" onclick="goPage('pending')">
+              ⏳ Ожидают разрешения
+            </button>
+
+            <button class="btn" onclick="goPage('participants')">
+              👥 Участники
+            </button>
+
+            <button class="btn" onclick="goPage('chats')">
+              💬 Чаты
+            </button>
+
+            <button class="btn" onclick="goPage('reports')">
+              🚨 Жалобы
+            </button>
+
+            <button class="btn" onclick="goPage('comments')">
+              💭 Комментарии
+            </button>
+
+            <button class="btn" onclick="goPage('analytics')">
+              📈 Аналитика
+            </button>
+
+            <button class="btn" onclick="goPage('settings')">
+              ⚙️ Настройки
+            </button>
+
+            <button class="btn btn-dark" onclick="openSite()">
+              🌐 Открыть сайт
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+
+
+      <div class="card">
+
+        <div class="card-head">
+          <h3>🛡️ Статус системы</h3>
+        </div>
+
+        <div class="card-body">
+
+          <div class="setting-row">
+            <div>
+              <strong>Администрация</strong>
+              <span>Права главного администратора</span>
+            </div>
+            <span class="status status-active">АКТИВНА</span>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Регистрация участников</strong>
+              <span>Участники используют сайт без регистрации</span>
+            </div>
+            <span class="status status-active">ОТКЛ.</span>
+          </div>
+
+          <div class="setting-row">
+            <div>
+              <strong>Публичная публикация</strong>
+              <span>Требуется одобрение администратора</span>
+            </div>
+            <span class="status status-active">МОДЕРАЦИЯ</span>
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+  try {
+
+    const result = await api("/admin/stats");
 
     state.stats =
-      data.stats ||
-      data ||
+      result?.data ||
+      result?.stats ||
+      result ||
       {};
 
     renderStats();
 
-  } catch (error) {
-    handleUnauthorized(error);
+    updateBadges();
 
-    console.error(
-      "Stats error:",
-      error
-    );
-  }
+  } catch {}
+
+}
+
+
+function loadingStats() {
+
+  return `
+    <div class="stat-card">
+      <div class="stat-label">Загрузка...</div>
+      <div class="stat-value">—</div>
+    </div>
+  `.repeat(4);
 }
 
 
 function renderStats() {
-  const stats =
-    state.stats ||
-    {};
 
-  const values = {
-    total:
-      stats.total ||
-      stats.total_publications ||
-      stats.publications ||
-      0,
+  const s = state.stats;
 
-    pending:
-      stats.pending ||
-      stats.pending_publications ||
-      stats.pending_submissions ||
-      0,
+  const stats = [
+    ["📰","Публикации",
+      val(s.total_publications ?? s.publications ?? s.total)],
+    ["⏳","Ожидают разрешения",
+      val(s.pending_publications ?? s.pending)],
+    ["👥","Участники",
+      val(s.total_participants ?? s.participants)],
+    ["💬","Непрочитанные чаты",
+      val(s.unread_messages ?? s.unread_chats)],
+    ["👁️","Просмотры",
+      val(s.views)],
+    ["❤️","Реакции",
+      val(s.reactions ?? s.likes)],
+    ["🔁","Поделились",
+      val(s.shares)],
+    ["🔖","Сохранения",
+      val(s.saves)],
+    ["🚨","Жалобы",
+      val(s.reports)],
+    ["💭","Комментарии",
+      val(s.comments)]
+  ];
 
-    published:
-      stats.published ||
-      stats.published_publications ||
-      0,
+  const grid =
+    document.getElementById("statsGrid");
 
-    users:
-      stats.users ||
-      stats.total_users ||
-      stats.participants ||
-      0,
+  if (!grid) return;
 
-    comments:
-      stats.comments ||
-      stats.total_comments ||
-      0,
+  grid.innerHTML = stats.map(x => `
+    <div class="stat-card">
 
-    chats:
-      stats.chats ||
-      stats.total_chats ||
-      0,
+      <div class="stat-top">
+        <div class="stat-label">${x[1]}</div>
+        <div class="stat-icon">${x[0]}</div>
+      </div>
 
-    notifications:
-      stats.notifications ||
-      stats.total_notifications ||
-      0,
+      <div class="stat-value">${x[2]}</div>
 
-    views:
-      stats.views ||
-      stats.total_views ||
-      0,
+      <div class="stat-foot">
+        Управляется из административной панели
+      </div>
 
-    likes:
-      stats.likes ||
-      stats.total_likes ||
-      0
-  };
-
-  const map = {
-    adminTotal:
-      values.total,
-
-    adminPending:
-      values.pending,
-
-    adminPublished:
-      values.published,
-
-    adminUsers:
-      values.users,
-
-    adminComments:
-      values.comments,
-
-    adminChats:
-      values.chats,
-
-    adminNotifications:
-      values.notifications,
-
-    adminViews:
-      values.views,
-
-    adminLikes:
-      values.likes,
-
-    totalPublications:
-      values.total,
-
-    pendingPublications:
-      values.pending,
-
-    publishedPublications:
-      values.published,
-
-    totalUsers:
-      values.users
-  };
-
-  Object.entries(map)
-    .forEach(
-      ([id, value]) => {
-        const element =
-          $(id);
-
-        if (element) {
-          element.textContent =
-            formatNumber(value);
-        }
-      }
-    );
+    </div>
+  `).join("");
 }
 
 
-/* ============================================================
-   SUBMISSIONS
-============================================================ */
+function val(value) {
 
-async function loadSubmissions() {
+  if (
+    value === undefined ||
+    value === null ||
+    value === ""
+  ) return "0";
+
+  return Number(value).toLocaleString("ru-RU");
+}
+
+
+function updateBadges() {
+
+  const pending =
+    state.stats.pending_publications ??
+    state.stats.pending ??
+    0;
+
+  const badge =
+    document.getElementById("pendingBadge");
+
+  if (pending > 0) {
+    badge.textContent = val(pending);
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+
+/* =========================================================
+   PUBLICATIONS
+========================================================= */
+
+async function loadPublications(params = "") {
+
+  const result =
+    await api("/admin/publications" + params);
+
+  return result?.data ||
+         result?.publications ||
+         result?.items ||
+         [];
+}
+
+
+async function renderPublications() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">Публикации</h1>
+        <div class="page-description">
+          Полное управление всеми публикациями платформы.
+        </div>
+      </div>
+
+      <div class="head-actions">
+        <button class="btn" onclick="loadPublicationTable()">↻ Обновить</button>
+        <button class="btn btn-primary" onclick="openCreatePublication()">
+          ＋ Создать публикацию
+        </button>
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="toolbar">
+
+        <input
+          id="pubSearch"
+          placeholder="Поиск по публикациям..."
+        >
+
+        <select id="pubStatus">
+          <option value="">Все статусы</option>
+          <option value="pending">Ожидает</option>
+          <option value="published">Опубликовано</option>
+          <option value="rejected">Отклонено</option>
+          <option value="draft">Черновик</option>
+          <option value="archived">Архив</option>
+          <option value="deleted">Удалено</option>
+          <option value="awaiting_payment">Ожидает оплаты</option>
+          <option value="paid">Оплачено</option>
+        </select>
+
+        <select id="pubVisibility">
+          <option value="">Любая видимость</option>
+          <option value="public">Публичная</option>
+          <option value="private">Приватная</option>
+          <option value="hidden">Скрытая</option>
+        </select>
+
+        <button class="btn" onclick="loadPublicationTable()">
+          Применить
+        </button>
+
+      </div>
+
+      <div id="publicationTable"></div>
+
+    </div>
+  `;
+
+  await loadPublicationTable();
+}
+
+
+async function loadPublicationTable() {
+
+  const box =
+    document.getElementById("publicationTable");
+
+  if (!box) return;
+
+  box.innerHTML =
+    `<div class="empty">Загрузка публикаций...</div>`;
+
   try {
-    const url =
-      `/api/admin/submissions?status=${encodeURIComponent(
-        state.filter
-      )}`;
 
-    const data =
-      await api(url);
+    const search =
+      encodeURIComponent(
+        document.getElementById("pubSearch")?.value || ""
+      );
 
-    state.submissions =
-      data.submissions ||
-      data.publications ||
-      data.items ||
-      [];
+    const status =
+      encodeURIComponent(
+        document.getElementById("pubStatus")?.value || ""
+      );
 
-    renderSubmissions();
+    const visibility =
+      encodeURIComponent(
+        document.getElementById("pubVisibility")?.value || ""
+      );
 
-    updateSubmissionCounters();
+    const params =
+      `?search=${search}&status=${status}&visibility=${visibility}`;
 
-  } catch (error) {
-    handleUnauthorized(error);
+    state.publications =
+      await loadPublications(params);
 
-    console.error(
-      "Submissions error:",
-      error
-    );
+    box.innerHTML =
+      publicationTable(state.publications);
 
-    renderSubmissionsError(
-      error
-    );
+  } catch {
+
+    box.innerHTML =
+      `<div class="empty">Не удалось загрузить публикации.</div>`;
   }
 }
 
 
-function renderSubmissionsError(
-  error
-) {
-  const list =
-    $("adminSubmissionsList") ||
-    $("submissionsList");
+function publicationTable(items) {
 
-  if (!list) {
-    return;
+  if (!items.length) {
+    return `
+      <div class="empty">
+        <div class="empty-icon">📰</div>
+        Публикаций пока нет.
+      </div>
+    `;
   }
 
-  list.innerHTML = `
-    <div class="admin-empty">
-      ⚠️ Не удалось загрузить заявки.<br>
-      <small>
-        ${escapeHtml(
-          error?.message ||
-          "Ошибка сервера"
-        )}
-      </small>
+  return `
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Публикация</th>
+            <th>Автор</th>
+            <th>Статус</th>
+            <th>Просмотры</th>
+            <th>Реакции</th>
+            <th>Дата</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${items.map(p => `
+
+            <tr>
+
+              <td>
+                <strong>${escapeHtml(
+                  p.title || "Без названия"
+                )}</strong>
+
+                <div style="color:#94a3b8;margin-top:4px">
+                  ID: ${escapeHtml(String(p.id ?? ""))}
+                </div>
+              </td>
+
+              <td>
+                ${escapeHtml(
+                  p.author_name ||
+                  p.username ||
+                  "Участник"
+                )}
+
+                ${
+                  p.username
+                    ? `<div style="color:#94a3b8">${escapeHtml(p.username)}</div>`
+                    : ""
+                }
+              </td>
+
+              <td>
+                ${statusBadge(p.status)}
+              </td>
+
+              <td>
+                ${val(p.views_count ?? p.views)}
+              </td>
+
+              <td>
+                ${val(
+                  p.likes_count ??
+                  p.reactions_count ??
+                  p.likes
+                )}
+              </td>
+
+              <td>
+                ${formatDate(
+                  p.created_at ||
+                  p.published_at
+                )}
+              </td>
+
+              <td>
+
+                <div class="row-actions">
+
+                  <button class="small-btn"
+                    onclick="openPublication('${esc(p.id)}')">
+                    Открыть
+                  </button>
+
+                  ${
+                    p.status === "pending"
+                    ? `
+                      <button class="small-btn"
+                        onclick="publicationAction('${esc(p.id)}','approve')">
+                        ✓ Одобрить
+                      </button>
+                    `
+                    : ""
+                  }
+
+                  <button class="small-btn"
+                    onclick="editPublication('${esc(p.id)}')">
+                    ✎
+                  </button>
+
+                  <button class="small-btn"
+                    onclick="editCounters('${esc(p.id)}')">
+                    🔢
+                  </button>
+
+                  <button class="small-btn"
+                    onclick="publicationAction('${esc(p.id)}','delete')">
+                    🗑
+                  </button>
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          `).join("")}
+
+        </tbody>
+
+      </table>
+
     </div>
   `;
 }
 
 
-function updateSubmissionCounters() {
-  const count =
-    state.submissions.length;
+function statusBadge(status) {
 
-  document
-    .querySelectorAll(
-      "[data-pending-count]"
-    )
-    .forEach(
-      element => {
-        element.textContent =
-          formatNumber(count);
-      }
-    );
+  const names = {
+    published:"Опубликовано",
+    pending:"Ожидает",
+    rejected:"Отклонено",
+    archived:"Архив",
+    deleted:"Удалено",
+    draft:"Черновик",
+    awaiting_payment:"Ожидает оплаты",
+    paid:"Оплачено"
+  };
+
+  return `
+    <span class="status status-${escapeHtml(status || "pending")}">
+      ${escapeHtml(names[status] || status || "Не указан")}
+    </span>
+  `;
 }
 
 
-function renderSubmissions() {
-  const list =
-    $("adminSubmissionsList") ||
-    $("submissionsList");
+async function publicationAction(id, action) {
 
-  if (!list) {
-    return;
-  }
+  const labels = {
+    approve:"одобрить",
+    reject:"отклонить",
+    publish:"опубликовать",
+    hide:"скрыть",
+    archive:"архивировать",
+    restore:"восстановить",
+    delete:"удалить",
+    pin:"закрепить",
+    unpin:"открепить",
+    feature:"выделить"
+  };
 
-  list.innerHTML = "";
+  if (
+    !confirm(
+      `Вы действительно хотите ${labels[action] || action} публикацию?`
+    )
+  ) return;
 
-  if (!state.submissions.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        <div style="font-size:42px;">
-          📭
+  try {
+
+    await api(`/admin/publications/${encodeURIComponent(id)}/action`, {
+      method:"POST",
+      body:JSON.stringify({ action })
+    });
+
+    toast("Действие выполнено", "success");
+
+    await loadPublicationTable();
+
+  } catch {}
+}
+
+
+async function openPublication(id) {
+
+  try {
+
+    const result =
+      await api(
+        `/admin/publications/${encodeURIComponent(id)}`
+      );
+
+    const p =
+      result?.data ||
+      result?.publication ||
+      result;
+
+    showModal(`
+      <div class="modal large">
+
+        <div class="modal-head">
+          <h2>📰 Публикация</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
         </div>
-        <strong>
-          Заявок нет
-        </strong>
-        <div>
-          В выбранном разделе пока ничего нет.
-        </div>
-      </div>
-    `;
 
-    return;
-  }
+        <div class="modal-body">
 
-  state.submissions.forEach(
-    submission => {
+          <h2>${escapeHtml(p.title || "Без названия")}</h2>
 
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      const title =
-        submission.title ||
-        "Без названия";
-
-      const author =
-        submission.user_name ||
-        submission.author_name ||
-        submission.contact_name ||
-        submission.username ||
-        "Участник";
-
-      const status =
-        submission.status ||
-        state.filter ||
-        "pending";
-
-      card.innerHTML = `
-        <div class="admin-card-top">
-          <div>
-            <h3 class="admin-card-title">
-              ${escapeHtml(title)}
-            </h3>
-
-            <div class="admin-card-meta">
-              <span class="admin-badge">
-                👤 ${escapeHtml(author)}
-              </span>
-
-              <span class="admin-badge">
-                ID:
-                ${escapeHtml(
-                  submission.id
-                )}
-              </span>
-
-              <span class="admin-badge">
-                ${escapeHtml(status)}
-              </span>
-            </div>
+          <div style="margin:10px 0">
+            ${statusBadge(p.status)}
           </div>
+
+          <div style="
+            white-space:pre-wrap;
+            line-height:1.7;
+            font-size:13px;
+            margin:20px 0;
+          ">
+            ${escapeHtml(p.body || p.description || "")}
+          </div>
+
+          <div class="form-grid">
+
+            ${infoField("Автор",
+              p.author_name || p.username || "Участник")}
+
+            ${infoField("Username",
+              p.username || "—")}
+
+            ${infoField("Категория",
+              p.category || "—")}
+
+            ${infoField("Страна",
+              p.country || "—")}
+
+            ${infoField("Город",
+              p.city || "—")}
+
+            ${infoField("Видимость",
+              p.visibility || "—")}
+
+            ${infoField("Просмотры",
+              val(p.views_count))}
+
+            ${infoField("Лайки",
+              val(p.likes_count))}
+
+            ${infoField("Комментарии",
+              val(p.comments_count))}
+
+            ${infoField("Поделились",
+              val(p.shares_count))}
+
+            ${infoField("Сохранения",
+              val(p.saves_count))}
+
+            ${infoField("Жалобы",
+              val(p.reports_count))}
+
+          </div>
+
         </div>
 
-        <div class="admin-card-preview">
-          ${escapeHtml(
-            submission.text ||
-            submission.description ||
-            ""
-          ).slice(0, 500)}
-        </div>
+        <div class="modal-foot">
 
-        <div class="admin-card-meta">
-          📍 ${escapeHtml(
-            submission.city ||
-            submission.location ||
-            "Не указано"
-          )}
-          ·
-          📅 ${formatDate(
-            submission.created_at
-          )}
-        </div>
-
-        <div class="admin-card-actions">
-
-          <button
-            type="button"
-            class="admin-button admin-button-primary"
-            data-action="submission-open"
-          >
-            👁 Открыть
+          <button class="btn"
+            onclick="editPublication('${esc(p.id)}')">
+            ✎ Редактировать
           </button>
 
-          ${
-            status === "pending"
-              ? `
-                <button
-                  type="button"
-                  class="admin-button admin-button-success"
-                  data-action="submission-approve"
-                >
-                  ✓ Одобрить
-                </button>
+          <button class="btn"
+            onclick="editCounters('${esc(p.id)}')">
+            🔢 Изменить счётчики
+          </button>
 
-                <button
-                  type="button"
-                  class="admin-button admin-button-danger"
-                  data-action="submission-reject"
-                >
-                  ✕ Отклонить
-                </button>
+          <button class="btn btn-primary"
+            onclick="closeModal()">
+            Закрыть
+          </button>
+
+        </div>
+
+      </div>
+    `);
+
+  } catch {}
+}
+
+
+async function editPublication(id) {
+
+  try {
+
+    const result =
+      await api(
+        `/admin/publications/${encodeURIComponent(id)}`
+      );
+
+    const p =
+      result?.data ||
+      result?.publication ||
+      result;
+
+    showModal(`
+      <div class="modal large">
+
+        <div class="modal-head">
+          <h2>✎ Редактирование публикации</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+
+        <form class="modal-body" id="editPublicationForm">
+
+          <div class="form-grid">
+
+            ${inputField("title","Заголовок",p.title || "",true)}
+
+            ${inputField("category","Категория",p.category || "")}
+
+            ${inputField("country","Страна",p.country || "")}
+
+            ${inputField("city","Город",p.city || "")}
+
+            ${inputField("location","Место",p.location || "")}
+
+            ${inputField("scope","Охват",p.scope || "")}
+
+            ${inputField("deadline","Дедлайн",p.deadline || "")}
+
+            ${inputField("price","Цена / зарплата",p.price ?? "")}
+
+            ${inputField("currency","Валюта",p.currency || "")}
+
+            ${inputField("employment_type","Тип занятости",p.employment_type || "")}
+
+            ${inputField("work_format","Формат работы",p.work_format || "")}
+
+            ${inputField("experience","Опыт",p.experience || "")}
+
+            ${inputField("education","Образование",p.education || "")}
+
+            ${inputField("languages","Языки",p.languages || "")}
+
+            ${inputField("tags","Теги",p.tags || "")}
+
+            ${selectField(
+              "status",
+              "Статус",
+              p.status,
+              [
+                "pending",
+                "published",
+                "rejected",
+                "draft",
+                "archived",
+                "deleted",
+                "awaiting_payment",
+                "paid"
+              ]
+            )}
+
+            ${selectField(
+              "visibility",
+              "Видимость",
+              p.visibility,
+              ["public","private","hidden"]
+            )}
+
+            ${textareaField(
+              "body",
+              "Текст публикации",
+              p.body || p.description || ""
+            )}
+
+            ${textareaField(
+              "media_urls",
+              "Медиа URL",
+              Array.isArray(p.media)
+                ? p.media.join("\\n")
+                : (p.media_urls || "")
+            )}
+
+            ${textareaField(
+              "admin_note",
+              "Заметка администратора",
+              p.admin_note || ""
+            )}
+
+          </div>
+
+        </form>
+
+        <div class="modal-foot">
+
+          <button class="btn" onclick="closeModal()">
+            Отмена
+          </button>
+
+          <button class="btn btn-primary"
+            onclick="savePublication('${esc(id)}')">
+            Сохранить изменения
+          </button>
+
+        </div>
+
+      </div>
+    `);
+
+  } catch {}
+}
+
+
+async function savePublication(id) {
+
+  const form =
+    document.getElementById("editPublicationForm");
+
+  const data =
+    Object.fromEntries(
+      new FormData(form).entries()
+    );
+
+  try {
+
+    await api(
+      `/admin/publications/${encodeURIComponent(id)}`,
+      {
+        method:"PUT",
+        body:JSON.stringify(data)
+      }
+    );
+
+    closeModal();
+
+    toast("Публикация сохранена", "success");
+
+    await loadPublicationTable();
+
+  } catch {}
+}
+
+
+async function editCounters(id) {
+
+  const p =
+    state.publications.find(
+      x => String(x.id) === String(id)
+    ) || {};
+
+  showModal(`
+    <div class="modal">
+
+      <div class="modal-head">
+        <h2>🔢 Управление счётчиками</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+
+      <div class="modal-body">
+
+        <p style="color:#718096;font-size:12px">
+          Администратор может вручную установить любое
+          неотрицательное значение счётчика.
+        </p>
+
+        <div class="form-grid">
+
+          ${counterField("views_count","Просмотры",p.views_count)}
+
+          ${counterField("likes_count","Лайки",p.likes_count)}
+
+          ${counterField("comments_count","Комментарии",p.comments_count)}
+
+          ${counterField("shares_count","Поделились",p.shares_count)}
+
+          ${counterField("saves_count","Сохранения",p.saves_count)}
+
+          ${counterField("reports_count","Жалобы",p.reports_count)}
+
+          ${counterField("reaction_love","❤️ Love",p.reaction_love)}
+
+          ${counterField("reaction_support","👍 Support",p.reaction_support)}
+
+          ${counterField("reaction_funny","😂 Funny",p.reaction_funny)}
+
+          ${counterField("reaction_wow","😮 Wow",p.reaction_wow)}
+
+          ${counterField("reaction_sad","😢 Sad",p.reaction_sad)}
+
+          ${counterField("reaction_angry","😡 Angry",p.reaction_angry)}
+
+        </div>
+
+      </div>
+
+      <div class="modal-foot">
+
+        <button class="btn" onclick="closeModal()">Отмена</button>
+
+        <button class="btn btn-primary"
+          onclick="saveCounters('${esc(id)}')">
+          Сохранить счётчики
+        </button>
+
+      </div>
+
+    </div>
+  `);
+}
+
+
+async function saveCounters(id) {
+
+  const inputs =
+    document.querySelectorAll(
+      "#modalRoot input[data-counter]"
+    );
+
+  const counters = {};
+
+  inputs.forEach(input => {
+
+    let number =
+      Number(input.value);
+
+    if (!Number.isFinite(number) || number < 0) {
+      number = 0;
+    }
+
+    counters[input.dataset.counter] =
+      Math.floor(number);
+  });
+
+  try {
+
+    await api(
+      `/admin/publications/${encodeURIComponent(id)}/counters`,
+      {
+        method:"PUT",
+        body:JSON.stringify(counters)
+      }
+    );
+
+    closeModal();
+
+    toast("Счётчики обновлены", "success");
+
+    await loadPublicationTable();
+
+  } catch {}
+}
+
+
+/* =========================================================
+   CREATE PUBLICATION
+========================================================= */
+
+function openCreatePublication() {
+
+  showModal(`
+    <div class="modal large">
+
+      <div class="modal-head">
+        <h2>＋ Создать публикацию</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+
+      <form id="createPublicationForm" class="modal-body">
+
+        <div class="form-grid">
+
+          ${inputField("title","Заголовок","")}
+
+          ${inputField("category","Категория","")}
+
+          ${inputField("country","Страна","")}
+
+          ${inputField("city","Город","")}
+
+          ${inputField("location","Место","")}
+
+          ${inputField("scope","Охват","international")}
+
+          ${inputField("deadline","Дедлайн","")}
+
+          ${inputField("price","Цена / зарплата","")}
+
+          ${inputField("currency","Валюта","TJS")}
+
+          ${inputField("employment_type","Тип занятости","")}
+
+          ${inputField("work_format","Формат работы","")}
+
+          ${inputField("experience","Опыт","")}
+
+          ${inputField("education","Образование","")}
+
+          ${inputField("languages","Языки","")}
+
+          ${inputField("tags","Теги","")}
+
+          ${selectField(
+            "status",
+            "Статус",
+            "published",
+            ["draft","pending","published"]
+          )}
+
+          ${selectField(
+            "visibility",
+            "Видимость",
+            "public",
+            ["public","private","hidden"]
+          )}
+
+          ${textareaField("body","Текст","")}
+
+          ${textareaField(
+            "media_urls",
+            "URL изображений / видео / аудио",
+            ""
+          )}
+
+        </div>
+
+      </form>
+
+      <div class="modal-foot">
+
+        <button class="btn" onclick="closeModal()">
+          Отмена
+        </button>
+
+        <button class="btn btn-primary"
+          onclick="createPublication()">
+          Создать
+        </button>
+
+      </div>
+
+    </div>
+  `);
+}
+
+
+async function createPublication() {
+
+  const form =
+    document.getElementById("createPublicationForm");
+
+  const data =
+    Object.fromEntries(
+      new FormData(form).entries()
+    );
+
+  try {
+
+    await api("/admin/publications", {
+      method:"POST",
+      body:JSON.stringify(data)
+    });
+
+    closeModal();
+
+    toast("Публикация создана", "success");
+
+    await loadPublicationTable();
+
+  } catch {}
+}
+
+
+/* =========================================================
+   PENDING
+========================================================= */
+
+async function renderPending() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">⏳ Ожидают разрешения</h1>
+        <div class="page-description">
+          Публикации, которые ещё не разрешены к публичному показу.
+        </div>
+      </div>
+
+      <button class="btn" onclick="renderPending()">
+        ↻ Обновить
+      </button>
+
+    </div>
+
+    <div class="card">
+      <div id="pendingTable"></div>
+    </div>
+  `;
+
+  try {
+
+    const items =
+      await loadPublications("?status=pending");
+
+    document.getElementById("pendingTable")
+      .innerHTML = publicationTable(items);
+
+  } catch {}
+}
+
+
+/* =========================================================
+   PARTICIPANTS
+========================================================= */
+
+async function renderParticipants() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">👥 Участники</h1>
+        <div class="page-description">
+          Участники автоматически появляются при использовании сайта.
+          Регистрация и вход участникам не требуются.
+        </div>
+      </div>
+
+      <button class="btn" onclick="loadParticipants()">
+        ↻ Обновить
+      </button>
+
+    </div>
+
+    <div class="card">
+
+      <div class="toolbar">
+
+        <input
+          id="participantSearch"
+          placeholder="Имя, @username..."
+        >
+
+        <select id="participantStatus">
+          <option value="">Все</option>
+          <option value="active">Активные</option>
+          <option value="blocked">Заблокированные</option>
+          <option value="deleted">Удалённые</option>
+        </select>
+
+        <button class="btn"
+          onclick="loadParticipants()">
+          Поиск
+        </button>
+
+      </div>
+
+      <div id="participantsTable"></div>
+
+    </div>
+  `;
+
+  await loadParticipants();
+}
+
+
+async function loadParticipants() {
+
+  const box =
+    document.getElementById("participantsTable");
+
+  if (!box) return;
+
+  box.innerHTML =
+    `<div class="empty">Загрузка участников...</div>`;
+
+  try {
+
+    const search =
+      encodeURIComponent(
+        document.getElementById("participantSearch")?.value || ""
+      );
+
+    const status =
+      encodeURIComponent(
+        document.getElementById("participantStatus")?.value || ""
+      );
+
+    const result =
+      await api(
+        `/admin/participants?search=${search}&status=${status}`
+      );
+
+    state.participants =
+      result?.data ||
+      result?.participants ||
+      result?.items ||
+      [];
+
+    box.innerHTML =
+      participantTable(state.participants);
+
+  } catch {
+
+    box.innerHTML =
+      `<div class="empty">Не удалось загрузить участников.</div>`;
+  }
+}
+
+
+function participantTable(items) {
+
+  if (!items.length) {
+    return `
+      <div class="empty">
+        <div class="empty-icon">👥</div>
+        Участников пока нет.
+      </div>
+    `;
+  }
+
+  return `
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Участник</th>
+            <th>Username</th>
+            <th>Статус</th>
+            <th>Проверка</th>
+            <th>Публикации</th>
+            <th>Последняя активность</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+
+        <tbody>
+
+          ${items.map(u => `
+
+            <tr>
+
+              <td>
+                <strong>
+                  ${escapeHtml(
+                    u.name ||
+                    u.display_name ||
+                    "Участник"
+                  )}
+                </strong>
+              </td>
+
+              <td>
+                ${escapeHtml(
+                  u.username ||
+                  "—"
+                )}
+              </td>
+
+              <td>
+                ${statusBadge(
+                  u.status || "active"
+                )}
+              </td>
+
+              <td>
+                ${
+                  u.verified
+                    ? "✅ Да"
+                    : "—"
+                }
+              </td>
+
+              <td>
+                ${val(
+                  u.publications_count ??
+                  u.posts_count
+                )}
+              </td>
+
+              <td>
+                ${formatDate(
+                  u.last_active_at ||
+                  u.updated_at
+                )}
+              </td>
+
+              <td>
+
+                <div class="row-actions">
+
+                  <button class="small-btn"
+                    onclick="openParticipant('${esc(u.id)}')">
+                    Открыть
+                  </button>
+
+                  <button class="small-btn"
+                    onclick="openChat('${esc(u.id)}')">
+                    💬 Чат
+                  </button>
+
+                  <button class="small-btn"
+                    onclick="editParticipant('${esc(u.id)}')">
+                    ✎
+                  </button>
+
+                  ${
+                    u.status === "blocked"
+                    ?
+                    `<button class="small-btn"
+                      onclick="participantAction('${esc(u.id)}','unblock')">
+                      Разблокировать
+                    </button>`
+                    :
+                    `<button class="small-btn"
+                      onclick="participantAction('${esc(u.id)}','block')">
+                      Блок
+                    </button>`
+                  }
+
+                </div>
+
+              </td>
+
+            </tr>
+
+          `).join("")}
+
+        </tbody>
+
+      </table>
+
+    </div>
+  `;
+}
+
+
+async function openParticipant(id) {
+
+  try {
+
+    const result =
+      await api(
+        `/admin/participants/${encodeURIComponent(id)}`
+      );
+
+    const u =
+      result?.data ||
+      result?.participant ||
+      result;
+
+    showModal(`
+      <div class="modal">
+
+        <div class="modal-head">
+          <h2>👤 Профиль участника</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
+
+        <div class="modal-body">
+
+          <div style="
+            display:flex;
+            align-items:center;
+            gap:15px;
+            margin-bottom:25px;
+          ">
+
+            <div class="admin-avatar">
+              ${(u.name || "U").charAt(0).toUpperCase()}
+            </div>
+
+            <div>
+              <h2 style="margin:0">
+                ${escapeHtml(u.name || "Участник")}
+              </h2>
+
+              <div style="color:#718096;margin-top:4px">
+                ${escapeHtml(u.username || "Без username")}
+              </div>
+            </div>
+
+          </div>
+
+          <div class="form-grid">
+
+            ${infoField("Страна",u.country || "—")}
+            ${infoField("Город",u.city || "—")}
+            ${infoField("Статус",u.status || "active")}
+            ${infoField("Роль",u.role || "participant")}
+            ${infoField("Проверен",u.verified ? "Да" : "Нет")}
+            ${infoField("Публикации",val(u.publications_count))}
+            ${infoField("Создан",formatDate(u.created_at))}
+            ${infoField("Активность",formatDate(u.last_active_at))}
+
+          </div>
+
+          ${
+            u.bio
+              ? `
+                <div style="margin-top:20px">
+                  <strong>О себе</strong>
+                  <p style="line-height:1.6">
+                    ${escapeHtml(u.bio)}
+                  </p>
+                </div>
               `
               : ""
           }
 
         </div>
-      `;
 
-      card
-        .querySelector(
-          '[data-action="submission-open"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openSubmission(
-              submission
-            )
-        );
+        <div class="modal-foot">
 
-      card
-        .querySelector(
-          '[data-action="submission-approve"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            approveSubmission(
-              submission.id
-            )
-        );
-
-      card
-        .querySelector(
-          '[data-action="submission-reject"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            rejectSubmission(
-              submission.id
-            )
-        );
-
-      list.appendChild(
-        card
-      );
-    }
-  );
-}
-
-
-function openSubmission(
-  submission
-) {
-  state.selectedSubmission =
-    submission;
-
-  let modal =
-    $("submissionModal");
-
-  if (!modal) {
-    createSubmissionModal();
-
-    modal =
-      $("submissionModal");
-  }
-
-  const title =
-    $("submissionModalTitle");
-
-  const body =
-    $("submissionModalBody");
-
-  if (title) {
-    title.textContent =
-      submission.title ||
-      "Заявка";
-  }
-
-  if (body) {
-    body.innerHTML =
-      renderPublicationDetails(
-        submission
-      );
-  }
-
-  modal.hidden = false;
-}
-
-
-function createSubmissionModal() {
-  const modal =
-    document.createElement(
-      "div"
-    );
-
-  modal.id =
-    "submissionModal";
-
-  modal.className =
-    "admin-modal";
-
-  modal.innerHTML = `
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-        <h2 id="submissionModalTitle">
-          Заявка
-        </h2>
-
-        <button
-          id="submissionClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-      </div>
-
-      <div
-        id="submissionModalBody"
-        class="admin-modal-body"
-      ></div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="submissionCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
-
-        <button
-          id="submissionReject"
-          type="button"
-          class="admin-button admin-button-danger"
-        >
-          ✕ Отклонить
-        </button>
-
-        <button
-          id="submissionApprove"
-          type="button"
-          class="admin-button admin-button-success"
-        >
-          ✓ Одобрить
-        </button>
-
-      </div>
-    </div>
-  `;
-
-  document.body.appendChild(
-    modal
-  );
-
-  $("submissionClose")
-    ?.addEventListener(
-      "click",
-      closeSubmissionModal
-    );
-
-  $("submissionCancel")
-    ?.addEventListener(
-      "click",
-      closeSubmissionModal
-    );
-
-  $("submissionApprove")
-    ?.addEventListener(
-      "click",
-      () => {
-        if (
-          state.selectedSubmission
-        ) {
-          approveSubmission(
-            state.selectedSubmission.id
-          );
-        }
-      }
-    );
-
-  $("submissionReject")
-    ?.addEventListener(
-      "click",
-      () => {
-        if (
-          state.selectedSubmission
-        ) {
-          rejectSubmission(
-            state.selectedSubmission.id
-          );
-        }
-      }
-    );
-}
-
-
-function closeSubmissionModal() {
-  const modal =
-    $("submissionModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-
-  state.selectedSubmission =
-    null;
-}
-
-
-async function approveSubmission(
-  id
-) {
-  if (!id) {
-    return;
-  }
-
-  if (
-    !confirm(
-      "Одобрить эту публикацию?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/publication/action",
-      {
-        method: "POST",
-        body: {
-          id,
-          action: "approve"
-        }
-      }
-    );
-
-    notify(
-      "Публикация одобрена."
-    );
-
-    closeSubmissionModal();
-
-    await Promise.all([
-      loadSubmissions(),
-      loadPosts(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось одобрить публикацию.",
-      "error"
-    );
-  }
-}
-
-
-async function rejectSubmission(
-  id
-) {
-  if (!id) {
-    return;
-  }
-
-  const reason =
-    prompt(
-      "Причина отклонения:",
-      ""
-    );
-
-  if (reason === null) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/publication/action",
-      {
-        method: "POST",
-        body: {
-          id,
-          action: "reject",
-          rejection_reason:
-            reason
-        }
-      }
-    );
-
-    notify(
-      "Публикация отклонена."
-    );
-
-    closeSubmissionModal();
-
-    await Promise.all([
-      loadSubmissions(),
-      loadPosts(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось отклонить публикацию.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   PUBLICATIONS
-============================================================ */
-
-async function loadPosts() {
-  try {
-    const data =
-      await api(
-        "/api/admin/publications"
-      );
-
-    state.posts =
-      data.publications ||
-      data.posts ||
-      data.items ||
-      [];
-
-    renderPosts();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    console.error(
-      "Posts error:",
-      error
-    );
-  }
-}
-
-
-function renderPosts() {
-  const list =
-    $("adminPostsList") ||
-    $("postsList");
-
-  if (!list) {
-    return;
-  }
-
-  let posts =
-    [...state.posts];
-
-  if (
-    state.postFilter &&
-    state.postFilter !== "all"
-  ) {
-    posts =
-      posts.filter(
-        post =>
-          post.status ===
-          state.postFilter
-      );
-  }
-
-  list.innerHTML = "";
-
-  if (!posts.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        📄 Публикаций нет.
-      </div>
-    `;
-
-    return;
-  }
-
-  posts.forEach(
-    post => {
-
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-        <div class="admin-card-top">
-
-          <div>
-            <h3 class="admin-card-title">
-              ${escapeHtml(
-                post.title ||
-                "Без названия"
-              )}
-            </h3>
-
-            <div class="admin-card-meta">
-
-              <span class="admin-badge">
-                ${escapeHtml(
-                  post.status ||
-                  "unknown"
-                )}
-              </span>
-
-              <span class="admin-badge">
-                ID:
-                ${escapeHtml(
-                  post.id
-                )}
-              </span>
-
-              ${
-                post.pinned
-                  ? `
-                    <span class="admin-badge">
-                      📌 Закреплено
-                    </span>
-                  `
-                  : ""
-              }
-
-              ${
-                post.featured
-                  ? `
-                    <span class="admin-badge">
-                      ⭐ Важное
-                    </span>
-                  `
-                  : ""
-              }
-
-            </div>
-          </div>
-
-        </div>
-
-        <div class="admin-card-preview">
-          ${escapeHtml(
-            post.text ||
-            post.description ||
-            ""
-          ).slice(0, 600)}
-        </div>
-
-        <div class="admin-card-meta">
-
-          👁 ${formatNumber(
-            post.views
-          )}
-
-          · ❤️ ${formatNumber(
-            post.likes
-          )}
-
-          · 💬 ${formatNumber(
-            post.comments
-          )}
-
-          ·
-          ${formatDate(
-            post.created_at
-          )}
-
-        </div>
-
-        <div class="admin-card-actions">
-
-          <button
-            type="button"
-            class="admin-button admin-button-primary"
-            data-action="post-open"
-          >
-            👁 Открыть
+          <button class="btn"
+            onclick="editParticipant('${esc(u.id)}')">
+            ✎ Редактировать
           </button>
 
-          <button
-            type="button"
-            class="admin-button admin-button-light"
-            data-action="post-edit"
-          >
-            ✏️ Изменить
-          </button>
-
-          <button
-            type="button"
-            class="admin-button admin-button-light"
-            data-action="post-counters"
-          >
-            📊 Счётчики
-          </button>
-
-          <button
-            type="button"
-            class="admin-button admin-button-danger"
-            data-action="post-delete"
-          >
-            🗑 Удалить
-          </button>
-
-        </div>
-      `;
-
-      card
-        .querySelector(
-          '[data-action="post-open"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openPost(post)
-        );
-
-      card
-        .querySelector(
-          '[data-action="post-edit"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openPostEdit(post)
-        );
-
-      card
-        .querySelector(
-          '[data-action="post-counters"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openCountersEditor(post)
-        );
-
-      card
-        .querySelector(
-          '[data-action="post-delete"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            deletePost(post.id)
-        );
-
-      list.appendChild(
-        card
-      );
-    }
-  );
-}
-
-
-function renderPublicationDetails(
-  post
-) {
-  const ignored =
-    new Set([
-      "text",
-      "description",
-      "media",
-      "created_at",
-      "updated_at"
-    ]);
-
-  let fields = "";
-
-  Object.entries(
-    post || {}
-  ).forEach(
-    ([key, value]) => {
-
-      if (
-        ignored.has(key)
-      ) {
-        return;
-      }
-
-      if (
-        value === null ||
-        value === undefined ||
-        value === ""
-      ) {
-        return;
-      }
-
-      let display =
-        value;
-
-      if (
-        typeof value ===
-        "object"
-      ) {
-        display =
-          safeJson(value);
-      }
-
-      fields += `
-        <div
-          style="
-            padding:12px 0;
-            border-bottom:1px solid rgba(0,0,0,.08);
-          "
-        >
-          <strong>
-            ${escapeHtml(key)}
-          </strong>
-
-          <div
-            style="
-              margin-top:4px;
-              word-break:break-word;
-            "
-          >
-            ${escapeHtml(display)}
-          </div>
-        </div>
-      `;
-    }
-  );
-
-  return `
-    <div>
-
-      <div
-        style="
-          margin-bottom:20px;
-          font-size:16px;
-          line-height:1.7;
-        "
-      >
-        ${escapeHtml(
-          post?.text ||
-          post?.description ||
-          "Нет текста"
-        )}
-      </div>
-
-      <div>
-        ${fields}
-      </div>
-
-      <div
-        style="
-          margin-top:20px;
-          color:#6b7280;
-        "
-      >
-        Создано:
-        ${formatDate(
-          post?.created_at
-        )}
-      </div>
-
-      <div
-        style="
-          color:#6b7280;
-        "
-      >
-        Изменено:
-        ${formatDate(
-          post?.updated_at
-        )}
-      </div>
-
-    </div>
-  `;
-}
-
-
-function openPost(post) {
-  state.selectedPost =
-    post;
-
-  let modal =
-    $("postModal");
-
-  if (!modal) {
-    createPostModal();
-
-    modal =
-      $("postModal");
-  }
-
-  const title =
-    $("postModalTitle");
-
-  const body =
-    $("postModalBody");
-
-  if (title) {
-    title.textContent =
-      post.title ||
-      "Публикация";
-  }
-
-  if (body) {
-    body.innerHTML =
-      renderPublicationDetails(
-        post
-      );
-  }
-
-  modal.hidden = false;
-}
-
-
-function createPostModal() {
-  const modal =
-    document.createElement(
-      "div"
-    );
-
-  modal.id =
-    "postModal";
-
-  modal.className =
-    "admin-modal";
-
-  modal.innerHTML = `
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2 id="postModalTitle">
-          Публикация
-        </h2>
-
-        <button
-          id="postModalClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div
-        id="postModalBody"
-        class="admin-modal-body"
-      ></div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="postModalCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
-
-      </div>
-
-    </div>
-  `;
-
-  document.body.appendChild(
-    modal
-  );
-
-  $("postModalClose")
-    ?.addEventListener(
-      "click",
-      closePostModal
-    );
-
-  $("postModalCancel")
-    ?.addEventListener(
-      "click",
-      closePostModal
-    );
-}
-
-
-function closePostModal() {
-  const modal =
-    $("postModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-
-  state.selectedPost =
-    null;
-}
-
-
-/* ============================================================
-   PUBLICATION EDITOR
-============================================================ */
-
-function openPostEdit(post) {
-  state.selectedPost =
-    post;
-
-  let modal =
-    $("postEditModal");
-
-  if (!modal) {
-    createPostEditModal();
-
-    modal =
-      $("postEditModal");
-  }
-
-  setValue(
-    "postEditTitle",
-    post.title
-  );
-
-  setValue(
-    "postEditText",
-    post.text ||
-    post.description
-  );
-
-  setValue(
-    "postEditCategory",
-    post.category
-  );
-
-  setValue(
-    "postEditCity",
-    post.city
-  );
-
-  setValue(
-    "postEditStatus",
-    post.status
-  );
-
-  setValue(
-    "postEditPrice",
-    post.price
-  );
-
-  setValue(
-    "postEditCurrency",
-    post.currency
-  );
-
-  setValue(
-    "postEditLocation",
-    post.location
-  );
-
-  setValue(
-    "postEditContactName",
-    post.contact_name
-  );
-
-  setValue(
-    "postEditContactPhone",
-    post.contact_phone
-  );
-
-  setValue(
-    "postEditContactTelegram",
-    post.contact_telegram
-  );
-
-  setValue(
-    "postEditContactEmail",
-    post.contact_email
-  );
-
-  setValue(
-    "postEditExternalUrl",
-    post.external_url
-  );
-
-  const pinned =
-    $("postEditPinned");
-
-  if (pinned) {
-    pinned.checked =
-      Boolean(
-        post.pinned
-      );
-  }
-
-  const featured =
-    $("postEditFeatured");
-
-  if (featured) {
-    featured.checked =
-      Boolean(
-        post.featured
-      );
-  }
-
-  modal.hidden = false;
-}
-
-
-function createPostEditModal() {
-  const modal =
-    document.createElement(
-      "div"
-    );
-
-  modal.id =
-    "postEditModal";
-
-  modal.className =
-    "admin-modal";
-
-  modal.innerHTML = `
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          ✏️ Редактирование публикации
-        </h2>
-
-        <button
-          id="postEditClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <form
-        id="postEditForm"
-        class="admin-modal-body"
-      >
-
-        <label>
-          Название
-          <input
-            id="postEditTitle"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Текст
-          <textarea
-            id="postEditText"
-            class="admin-textarea"
-            rows="8"
-          ></textarea>
-        </label>
-
-        <label>
-          Категория
-          <input
-            id="postEditCategory"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Город
-          <input
-            id="postEditCity"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Статус
-          <select
-            id="postEditStatus"
-            class="admin-input"
-          >
-            <option value="pending">
-              pending
-            </option>
-
-            <option value="published">
-              published
-            </option>
-
-            <option value="rejected">
-              rejected
-            </option>
-
-            <option value="draft">
-              draft
-            </option>
-
-            <option value="archived">
-              archived
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Цена
-          <input
-            id="postEditPrice"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Валюта
-          <input
-            id="postEditCurrency"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Местоположение
-          <input
-            id="postEditLocation"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Контактное имя
-          <input
-            id="postEditContactName"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Телефон
-          <input
-            id="postEditContactPhone"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Telegram
-          <input
-            id="postEditContactTelegram"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Email
-          <input
-            id="postEditContactEmail"
-            class="admin-input"
-            type="email"
-          >
-        </label>
-
-        <label>
-          Внешняя ссылка
-          <input
-            id="postEditExternalUrl"
-            class="admin-input"
-            type="url"
-          >
-        </label>
-
-        <label
-          style="
-            display:flex;
-            gap:10px;
-            align-items:center;
-          "
-        >
-          <input
-            id="postEditPinned"
-            type="checkbox"
-          >
-
-          📌 Закрепить
-        </label>
-
-        <label
-          style="
-            display:flex;
-            gap:10px;
-            align-items:center;
-          "
-        >
-          <input
-            id="postEditFeatured"
-            type="checkbox"
-          >
-
-          ⭐ Сделать важной
-        </label>
-
-        <div class="admin-modal-footer">
-
-          <button
-            id="postEditCancel"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            Отмена
-          </button>
-
-          <button
-            type="submit"
-            class="admin-button admin-button-primary"
-          >
-            💾 Сохранить
-          </button>
-
-        </div>
-
-      </form>
-
-    </div>
-  `;
-
-  document.body.appendChild(
-    modal
-  );
-
-  $("postEditClose")
-    ?.addEventListener(
-      "click",
-      closePostEditModal
-    );
-
-  $("postEditCancel")
-    ?.addEventListener(
-      "click",
-      closePostEditModal
-    );
-
-  $("postEditForm")
-    ?.addEventListener(
-      "submit",
-      event => {
-        event.preventDefault();
-        savePost();
-      }
-    );
-}
-
-
-function closePostEditModal() {
-  const modal =
-    $("postEditModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-}
-
-
-async function savePost() {
-  const post =
-    state.selectedPost;
-
-  if (!post) {
-    return;
-  }
-
-  const payload = {
-    id: post.id,
-
-    title:
-      getValue(
-        "postEditTitle"
-      ),
-
-    text:
-      getValue(
-        "postEditText"
-      ),
-
-    category:
-      getValue(
-        "postEditCategory"
-      ),
-
-    city:
-      getValue(
-        "postEditCity"
-      ),
-
-    status:
-      getValue(
-        "postEditStatus"
-      ),
-
-    price:
-      getValue(
-        "postEditPrice"
-      ),
-
-    currency:
-      getValue(
-        "postEditCurrency"
-      ),
-
-    location:
-      getValue(
-        "postEditLocation"
-      ),
-
-    contact_name:
-      getValue(
-        "postEditContactName"
-      ),
-
-    contact_phone:
-      getValue(
-        "postEditContactPhone"
-      ),
-
-    contact_telegram:
-      getValue(
-        "postEditContactTelegram"
-      ),
-
-    contact_email:
-      getValue(
-        "postEditContactEmail"
-      ),
-
-    external_url:
-      getValue(
-        "postEditExternalUrl"
-      ),
-
-    pinned:
-      Boolean(
-        $("postEditPinned")
-          ?.checked
-      ),
-
-    featured:
-      Boolean(
-        $("postEditFeatured")
-          ?.checked
-      )
-  };
-
-  try {
-    await api(
-      "/api/admin/publication/edit",
-      {
-        method: "POST",
-        body: payload
-      }
-    );
-
-    notify(
-      "Публикация сохранена."
-    );
-
-    closePostEditModal();
-
-    await Promise.all([
-      loadPosts(),
-      loadSubmissions(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось сохранить публикацию.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   COUNTERS
-============================================================ */
-
-function createCountersModal() {
-  if (
-    $("countersModal")
-  ) {
-    return;
-  }
-
-  const modal =
-    document.createElement(
-      "div"
-    );
-
-  modal.id =
-    "countersModal";
-
-  modal.className =
-    "admin-modal";
-
-  modal.innerHTML = `
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          📊 Ручное изменение счётчиков
-        </h2>
-
-        <button
-          id="countersClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div class="admin-modal-body">
-
-        <input
-          id="counterViews"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="Просмотры"
-        >
-
-        <input
-          id="counterLikes"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="Лайки"
-        >
-
-        <input
-          id="counterComments"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="Комментарии"
-        >
-
-        <input
-          id="counterSaves"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="Сохранения"
-        >
-
-        <input
-          id="counterShares"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="Репосты"
-        >
-
-        <input
-          id="counterLove"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="❤️ Love"
-        >
-
-        <input
-          id="counterSupport"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="👍 Support"
-        >
-
-        <input
-          id="counterFunny"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="😂 Funny"
-        >
-
-        <input
-          id="counterWow"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="😮 Wow"
-        >
-
-        <input
-          id="counterSad"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="😢 Sad"
-        >
-
-        <input
-          id="counterAngry"
-          class="admin-input"
-          type="number"
-          min="0"
-          placeholder="😡 Angry"
-        >
-
-      </div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="countersCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Отмена
-        </button>
-
-        <button
-          id="countersSave"
-          type="button"
-          class="admin-button admin-button-primary"
-        >
-          💾 Сохранить
-        </button>
-
-      </div>
-
-    </div>
-  `;
-
-  document.body.appendChild(
-    modal
-  );
-
-  $("countersClose")
-    ?.addEventListener(
-      "click",
-      closeCountersEditor
-    );
-
-  $("countersCancel")
-    ?.addEventListener(
-      "click",
-      closeCountersEditor
-    );
-
-  $("countersSave")
-    ?.addEventListener(
-      "click",
-      saveCounters
-    );
-}
-
-
-function openCountersEditor(
-  post
-) {
-  state.selectedPost =
-    post;
-
-  createCountersModal();
-
-  setValue(
-    "counterViews",
-    post.views || 0
-  );
-
-  setValue(
-    "counterLikes",
-    post.likes || 0
-  );
-
-  setValue(
-    "counterComments",
-    post.comments || 0
-  );
-
-  setValue(
-    "counterSaves",
-    post.saves || 0
-  );
-
-  setValue(
-    "counterShares",
-    post.shares || 0
-  );
-
-  setValue(
-    "counterLove",
-    post.love || 0
-  );
-
-  setValue(
-    "counterSupport",
-    post.support || 0
-  );
-
-  setValue(
-    "counterFunny",
-    post.funny || 0
-  );
-
-  setValue(
-    "counterWow",
-    post.wow || 0
-  );
-
-  setValue(
-    "counterSad",
-    post.sad || 0
-  );
-
-  setValue(
-    "counterAngry",
-    post.angry || 0
-  );
-
-  const modal =
-    $("countersModal");
-
-  if (modal) {
-    modal.hidden = false;
-  }
-}
-
-
-function closeCountersEditor() {
-  const modal =
-    $("countersModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-
-  state.selectedPost =
-    null;
-}
-
-
-async function saveCounters() {
-  const post =
-    state.selectedPost;
-
-  if (!post) {
-    return;
-  }
-
-  const counters = {
-    views:
-      Number(
-        getValue(
-          "counterViews"
-        )
-      ) || 0,
-
-    likes:
-      Number(
-        getValue(
-          "counterLikes"
-        )
-      ) || 0,
-
-    comments:
-      Number(
-        getValue(
-          "counterComments"
-        )
-      ) || 0,
-
-    saves:
-      Number(
-        getValue(
-          "counterSaves"
-        )
-      ) || 0,
-
-    shares:
-      Number(
-        getValue(
-          "counterShares"
-        )
-      ) || 0,
-
-    love:
-      Number(
-        getValue(
-          "counterLove"
-        )
-      ) || 0,
-
-    support:
-      Number(
-        getValue(
-          "counterSupport"
-        )
-      ) || 0,
-
-    funny:
-      Number(
-        getValue(
-          "counterFunny"
-        )
-      ) || 0,
-
-    wow:
-      Number(
-        getValue(
-          "counterWow"
-        )
-      ) || 0,
-
-    sad:
-      Number(
-        getValue(
-          "counterSad"
-        )
-      ) || 0,
-
-    angry:
-      Number(
-        getValue(
-          "counterAngry"
-        )
-      ) || 0
-  };
-
-  try {
-    await api(
-      "/api/admin/publication/counters",
-      {
-        method: "POST",
-        body: {
-          id: post.id,
-          ...counters
-        }
-      }
-    );
-
-    notify(
-      "Счётчики обновлены."
-    );
-
-    closeCountersEditor();
-
-    await Promise.all([
-      loadPosts(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось изменить счётчики.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   DELETE POST
-============================================================ */
-
-async function deletePost(
-  id
-) {
-  if (!id) {
-    return;
-  }
-
-  if (
-    !confirm(
-      "Переместить публикацию в корзину?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/publication/action",
-      {
-        method: "POST",
-        body: {
-          id,
-          action: "delete"
-        }
-      }
-    );
-
-    notify(
-      "Публикация перемещена в корзину."
-    );
-
-    await Promise.all([
-      loadPosts(),
-      loadTrash(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось удалить публикацию.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   TRASH
-============================================================ */
-
-async function loadTrash() {
-  try {
-    const data =
-      await api(
-        "/api/admin/trash"
-      );
-
-    state.trashPosts =
-      data.posts ||
-      data.publications ||
-      data.items ||
-      [];
-
-    renderTrash();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    console.error(
-      "Trash error:",
-      error
-    );
-  }
-}
-
-
-function renderTrash() {
-  const list =
-    $("adminTrashList") ||
-    $("trashList");
-
-  if (!list) {
-    return;
-  }
-
-  list.innerHTML = "";
-
-  if (!state.trashPosts.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        🗑 Корзина пуста.
-      </div>
-    `;
-
-    return;
-  }
-
-  state.trashPosts.forEach(
-    post => {
-
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-        <h3 class="admin-card-title">
-          ${escapeHtml(
-            post.title ||
-            "Без названия"
-          )}
-        </h3>
-
-        <div class="admin-card-meta">
-          ID:
-          ${escapeHtml(
-            post.id
-          )}
-
-          ·
-
-          ${formatDate(
-            post.updated_at ||
-            post.created_at
-          )}
-        </div>
-
-        <div class="admin-card-actions">
-
-          <button
-            class="admin-button admin-button-success"
-            type="button"
-            data-action="restore"
-          >
-            ♻️ Восстановить
-          </button>
-
-          <button
-            class="admin-button admin-button-danger"
-            type="button"
-            data-action="permanent"
-          >
-            🗑 Удалить навсегда
-          </button>
-
-        </div>
-      `;
-
-      card
-        .querySelector(
-          '[data-action="restore"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            restorePost(
-              post.id
-            )
-        );
-
-      card
-        .querySelector(
-          '[data-action="permanent"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            permanentDeletePost(
-              post.id
-            )
-        );
-
-      list.appendChild(
-        card
-      );
-    }
-  );
-}
-
-
-async function restorePost(
-  id
-) {
-  if (
-    !confirm(
-      "Восстановить публикацию?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/trash/restore",
-      {
-        method: "POST",
-        body: {
-          id
-        }
-      }
-    );
-
-    notify(
-      "Публикация восстановлена."
-    );
-
-    await Promise.all([
-      loadTrash(),
-      loadPosts(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось восстановить.",
-      "error"
-    );
-  }
-}
-
-
-async function permanentDeletePost(
-  id
-) {
-  if (
-    !confirm(
-      "Удалить публикацию НАВСЕГДА? Это действие нельзя отменить."
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/trash/permanent-delete",
-      {
-        method: "POST",
-        body: {
-          id
-        }
-      }
-    );
-
-    notify(
-      "Публикация удалена навсегда."
-    );
-
-    await loadTrash();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось удалить.",
-      "error"
-    );
-  }
-}
-
-
-async function emptyTrash() {
-  if (
-    !confirm(
-      "Полностью очистить корзину?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/trash/empty",
-      {
-        method: "POST"
-      }
-    );
-
-    notify(
-      "Корзина очищена."
-    );
-
-    await Promise.all([
-      loadTrash(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось очистить корзину.",
-      "error"
-    );
-  }
-}
-
-
-async function trashAllPosts() {
-  if (
-    !confirm(
-      "Переместить все публикации в корзину?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/trash/all",
-      {
-        method: "POST"
-      }
-    );
-
-    notify(
-      "Публикации перемещены в корзину."
-    );
-
-    await Promise.all([
-      loadPosts(),
-      loadTrash(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось выполнить действие.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   USERS / PARTICIPANTS
-============================================================ */
-
-async function loadUsers() {
-  try {
-    const data =
-      await api(
-        "/api/admin/users"
-      );
-
-    state.users =
-      data.users ||
-      data.participants ||
-      data.items ||
-      [];
-
-    renderUsers();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    console.error(
-      "Users error:",
-      error
-    );
-  }
-}
-
-
-function renderUsers() {
-  const list =
-    $("adminUsersList") ||
-    $("usersList") ||
-    $("participantsList");
-
-  if (!list) {
-    return;
-  }
-
-  let users =
-    [...state.users];
-
-  const search =
-    state.userSearch
-      .toLowerCase()
-      .trim();
-
-  if (search) {
-    users =
-      users.filter(
-        user => {
-
-          const values =
-            Object.values(
-              user || {}
-            )
-              .filter(
-                value =>
-                  value !== null &&
-                  value !== undefined
-              )
-              .map(
-                value =>
-                  typeof value ===
-                  "object"
-                    ? safeJson(value)
-                    : String(value)
-              )
-              .join(" ")
-              .toLowerCase();
-
-          return values.includes(
-            search
-          );
-        }
-      );
-  }
-
-  if (
-    state.userFilter &&
-    state.userFilter !== "all"
-  ) {
-    users =
-      users.filter(
-        user => {
-
-          const status =
-            String(
-              user.status ||
-              user.account_status ||
-              "active"
-            )
-              .toLowerCase();
-
-          return (
-            status ===
-            state.userFilter
-          );
-        }
-      );
-  }
-
-  list.innerHTML = "";
-
-  if (!users.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        👤 Участники не найдены.
-      </div>
-    `;
-
-    return;
-  }
-
-  users.forEach(
-    user => {
-
-      const id =
-        user.id ||
-        user.user_id ||
-        user.uuid ||
-        "";
-
-      const name =
-        user.name ||
-        user.full_name ||
-        user.display_name ||
-        user.username ||
-        user.contact_name ||
-        "Без имени";
-
-      const status =
-        user.status ||
-        user.account_status ||
-        "active";
-
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-        <div class="admin-card-top">
-
-          <div>
-
-            <h3 class="admin-card-title">
-              ${escapeHtml(name)}
-            </h3>
-
-            <div class="admin-card-meta">
-
-              <span class="admin-badge">
-                ID:
-                ${escapeHtml(id)}
-              </span>
-
-              <span class="admin-badge">
-                ${escapeHtml(status)}
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="admin-card-preview">
-
-          ${
-            user.phone
-              ? `📞 ${escapeHtml(user.phone)}<br>`
-              : ""
-          }
-
-          ${
-            user.email
-              ? `✉️ ${escapeHtml(user.email)}<br>`
-              : ""
-          }
-
-          ${
-            user.city
-              ? `📍 ${escapeHtml(user.city)}<br>`
-              : ""
-          }
-
-          ${
-            user.created_at
-              ? `📅 ${formatDate(user.created_at)}`
-              : ""
-          }
-
-        </div>
-
-        <div class="admin-card-actions">
-
-          <button
-            type="button"
-            class="admin-button admin-button-primary"
-            data-action="user-open"
-          >
-            👁 Все данные
-          </button>
-
-          <button
-            type="button"
-            class="admin-button admin-button-light"
-            data-action="user-edit"
-          >
-            ✏️ Изменить
-          </button>
-
-          <button
-            type="button"
-            class="admin-button admin-button-danger"
-            data-action="user-delete"
-          >
-            🗑 Удалить
-          </button>
-
-        </div>
-      `;
-
-      card
-        .querySelector(
-          '[data-action="user-open"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openUser(user)
-        );
-
-      card
-        .querySelector(
-          '[data-action="user-edit"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openUserEdit(user)
-        );
-
-      card
-        .querySelector(
-          '[data-action="user-delete"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            manageUser(
-              id,
-              "delete"
-            )
-        );
-
-      list.appendChild(
-        card
-      );
-    }
-  );
-}
-
-
-function renderUserAllData(
-  user
-) {
-  let html = "";
-
-  Object.entries(
-    user || {}
-  ).forEach(
-    ([key, value]) => {
-
-      let display =
-        value;
-
-      if (
-        value === null ||
-        value === undefined
-      ) {
-        display = "—";
-      }
-
-      if (
-        typeof value ===
-        "object"
-      ) {
-        display =
-          safeJson(value);
-      }
-
-      html += `
-        <div
-          style="
-            padding:13px 0;
-            border-bottom:1px solid rgba(0,0,0,.08);
-          "
-        >
-
-          <div
-            style="
-              font-size:12px;
-              color:#6b7280;
-              margin-bottom:4px;
-              font-weight:700;
-            "
-          >
-            ${escapeHtml(key)}
-          </div>
-
-          <div
-            style="
-              word-break:break-word;
-            "
-          >
-            ${escapeHtml(display)}
-          </div>
-
-        </div>
-      `;
-    }
-  );
-
-  return html;
-}
-
-
-function openUser(user) {
-  state.selectedUser =
-    user;
-
-  let modal =
-    $("userModal");
-
-  if (!modal) {
-    createUserModal();
-
-    modal =
-      $("userModal");
-  }
-
-  const body =
-    $("userModalBody");
-
-  if (body) {
-    body.innerHTML =
-      renderUserAllData(
-        user
-      );
-  }
-
-  modal.hidden = false;
-}
-
-
-function createUserModal() {
-  const modal =
-    document.createElement(
-      "div"
-    );
-
-  modal.id =
-    "userModal";
-
-  modal.className =
-    "admin-modal";
-
-  modal.innerHTML = `
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          👤 Данные участника
-        </h2>
-
-        <button
-          id="userModalClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div
-        id="userModalBody"
-        class="admin-modal-body"
-      ></div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="userModalEdit"
-          type="button"
-          class="admin-button admin-button-primary"
-        >
-          ✏️ Изменить
-        </button>
-
-        <button
-          id="userModalCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
-
-      </div>
-
-    </div>
-  `;
-
-  document.body.appendChild(
-    modal
-  );
-
-  $("userModalClose")
-    ?.addEventListener(
-      "click",
-      closeUserModal
-    );
-
-  $("userModalCancel")
-    ?.addEventListener(
-      "click",
-      closeUserModal
-    );
-
-  $("userModalEdit")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        if (
-          state.selectedUser
-        ) {
-          openUserEdit(
-            state.selectedUser
-          );
-        }
-
-      }
-    );
-}
-
-
-function closeUserModal() {
-  const modal =
-    $("userModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-}
-
-
-function openUserEdit(
-  user
-) {
-  state.selectedUser =
-    user;
-
-  let modal =
-    $("userEditModal");
-
-  if (!modal) {
-    createUserEditModal();
-
-    modal =
-      $("userEditModal");
-  }
-
-  setValue(
-    "userEditName",
-    user.name ||
-    user.full_name ||
-    user.display_name
-  );
-
-  setValue(
-    "userEditUsername",
-    user.username
-  );
-
-  setValue(
-    "userEditEmail",
-    user.email
-  );
-
-  setValue(
-    "userEditPhone",
-    user.phone
-  );
-
-  setValue(
-    "userEditCity",
-    user.city
-  );
-
-  setValue(
-    "userEditCountry",
-    user.country
-  );
-
-  setValue(
-    "userEditBio",
-    user.bio
-  );
-
-  setValue(
-    "userEditTelegram",
-    user.contact_telegram ||
-    user.telegram
-  );
-
-  setValue(
-    "userEditStatus",
-    user.status ||
-    "active"
-  );
-
-  modal.hidden = false;
-}
-
-
-function createUserEditModal() {
-  const modal =
-    document.createElement(
-      "div"
-    );
-
-  modal.id =
-    "userEditModal";
-
-  modal.className =
-    "admin-modal";
-
-  modal.innerHTML = `
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          ✏️ Изменить участника
-        </h2>
-
-        <button
-          id="userEditClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <form
-        id="userEditForm"
-        class="admin-modal-body"
-      >
-
-        <label>
-          Имя
-          <input
-            id="userEditName"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Username
-          <input
-            id="userEditUsername"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Email
-          <input
-            id="userEditEmail"
-            class="admin-input"
-            type="email"
-          >
-        </label>
-
-        <label>
-          Телефон
-          <input
-            id="userEditPhone"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Город
-          <input
-            id="userEditCity"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Страна
-          <input
-            id="userEditCountry"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Telegram
-          <input
-            id="userEditTelegram"
-            class="admin-input"
-            type="text"
-          >
-        </label>
-
-        <label>
-          Статус
-          <select
-            id="userEditStatus"
-            class="admin-input"
-          >
-            <option value="active">
-              active
-            </option>
-
-            <option value="blocked">
-              blocked
-            </option>
-
-            <option value="banned">
-              banned
-            </option>
-
-            <option value="inactive">
-              inactive
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Описание
-          <textarea
-            id="userEditBio"
-            class="admin-textarea"
-            rows="6"
-          ></textarea>
-        </label>
-
-        <div class="admin-modal-footer">
-
-          <button
-            id="userEditCancel"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            Отмена
-          </button>
-
-          <button
-            type="submit"
-            class="admin-button admin-button-primary"
-          >
-            💾 Сохранить
-          </button>
-
-        </div>
-
-      </form>
-
-    </div>
-  `;
-
-  document.body.appendChild(
-    modal
-  );
-
-  $("userEditClose")
-    ?.addEventListener(
-      "click",
-      closeUserEditModal
-    );
-
-  $("userEditCancel")
-    ?.addEventListener(
-      "click",
-      closeUserEditModal
-    );
-
-  $("userEditForm")
-    ?.addEventListener(
-      "submit",
-      event => {
-
-        event.preventDefault();
-
-        saveUser();
-
-      }
-    );
-}
-
-
-function closeUserEditModal() {
-  const modal =
-    $("userEditModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-}
-
-
-async function saveUser() {
-  const user =
-    state.selectedUser;
-
-  if (!user) {
-    return;
-  }
-
-  const id =
-    user.id ||
-    user.user_id ||
-    user.uuid;
-
-  try {
-    await api(
-      "/api/admin/user/edit",
-      {
-        method: "POST",
-        body: {
-          id,
-
-          name:
-            getValue(
-              "userEditName"
-            ),
-
-          username:
-            getValue(
-              "userEditUsername"
-            ),
-
-          email:
-            getValue(
-              "userEditEmail"
-            ),
-
-          phone:
-            getValue(
-              "userEditPhone"
-            ),
-
-          city:
-            getValue(
-              "userEditCity"
-            ),
-
-          country:
-            getValue(
-              "userEditCountry"
-            ),
-
-          bio:
-            getValue(
-              "userEditBio"
-            ),
-
-          contact_telegram:
-            getValue(
-              "userEditTelegram"
-            ),
-
-          status:
-            getValue(
-              "userEditStatus"
-            )
-        }
-      }
-    );
-
-    notify(
-      "Данные участника изменены."
-    );
-
-    closeUserEditModal();
-
-    await loadUsers();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось изменить участника.",
-      "error"
-    );
-  }
-}
-
-
-async function manageUser(
-  id,
-  action
-) {
-  if (!id) {
-    return;
-  }
-
-  const texts = {
-    delete:
-      "Удалить участника?",
-    ban:
-      "Заблокировать участника?",
-    unban:
-      "Разблокировать участника?"
-  };
-
-  if (
-    !confirm(
-      texts[action] ||
-      "Выполнить действие?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/user/action",
-      {
-        method: "POST",
-        body: {
-          id,
-          action
-        }
-      }
-    );
-
-    notify(
-      "Действие выполнено."
-    );
-
-    await Promise.all([
-      loadUsers(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось выполнить действие.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   COMMENTS
-============================================================ */
-
-async function loadComments() {
-  try {
-    const data =
-      await api(
-        "/api/admin/comments"
-      );
-
-    state.comments =
-      data.comments ||
-      data.items ||
-      [];
-
-    renderComments();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    console.error(
-      "Comments error:",
-      error
-    );
-  }
-}
-
-
-function renderComments() {
-  const list =
-    $("adminCommentsList") ||
-    $("commentsList");
-
-  if (!list) {
-    return;
-  }
-
-  list.innerHTML = "";
-
-  if (!state.comments.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        💬 Комментариев нет.
-      </div>
-    `;
-
-    return;
-  }
-
-  state.comments.forEach(
-    comment => {
-
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-        <div class="admin-card-top">
-
-          <div>
-
-            <h3 class="admin-card-title">
-              ${escapeHtml(
-                comment.author_name ||
-                comment.username ||
-                "Пользователь"
-              )}
-            </h3>
-
-            <div class="admin-card-meta">
-
-              <span class="admin-badge">
-                ID:
-                ${escapeHtml(
-                  comment.id
-                )}
-              </span>
-
-              <span class="admin-badge">
-                ${formatDate(
-                  comment.created_at
-                )}
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="admin-card-preview">
-          ${escapeHtml(
-            comment.content ||
-            comment.text ||
-            ""
-          )}
-        </div>
-
-        <div class="admin-card-actions">
-
-          <button
-            type="button"
-            class="admin-button admin-button-light"
-            data-action="comment-edit"
-          >
-            ✏️ Изменить
-          </button>
-
-          <button
-            type="button"
-            class="admin-button admin-button-danger"
-            data-action="comment-delete"
-          >
-            🗑 Удалить
-          </button>
-
-        </div>
-      `;
-
-      card
-        .querySelector(
-          '[data-action="comment-edit"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            editComment(
-              comment
-            )
-        );
-
-      card
-        .querySelector(
-          '[data-action="comment-delete"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            deleteComment(
-              comment.id
-            )
-        );
-
-      list.appendChild(
-        card
-      );
-    }
-  );
-}
-
-
-async function editComment(
-  comment
-) {
-  const current =
-    comment.content ||
-    comment.text ||
-    "";
-
-  const text =
-    prompt(
-      "Измените комментарий:",
-      current
-    );
-
-  if (text === null) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/comment/edit",
-      {
-        method: "POST",
-        body: {
-          id: comment.id,
-          content: text
-        }
-      }
-    );
-
-    notify(
-      "Комментарий изменён."
-    );
-
-    await Promise.all([
-      loadComments(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось изменить комментарий.",
-      "error"
-    );
-  }
-}
-
-
-async function deleteComment(
-  id
-) {
-  if (
-    !confirm(
-      "Удалить комментарий?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-    await api(
-      "/api/admin/comment/action",
-      {
-        method: "POST",
-        body: {
-          id,
-          action: "delete"
-        }
-      }
-    );
-
-    notify(
-      "Комментарий удалён."
-    );
-
-    await Promise.all([
-      loadComments(),
-      loadStats()
-    ]);
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось удалить комментарий.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   CHATS
-============================================================ */
-
-async function loadChats() {
-  try {
-    const data =
-      await api(
-        "/api/admin/chats"
-      );
-
-    state.chats =
-      data.chats ||
-      data.conversations ||
-      data.items ||
-      [];
-
-    renderChats();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    console.error(
-      "Chats error:",
-      error
-    );
-  }
-}
-
-
-function renderChats() {
-  const list =
-    $("adminChatsList") ||
-    $("chatsList");
-
-  if (!list) {
-    return;
-  }
-
-  list.innerHTML = "";
-
-  if (!state.chats.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        💬 Чатов пока нет.
-      </div>
-    `;
-
-    return;
-  }
-
-  state.chats.forEach(
-    chat => {
-
-      const userId =
-        chat.user_id ||
-        chat.userId ||
-        chat.id;
-
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-        <div class="admin-card-top">
-
-          <div>
-
-            <h3 class="admin-card-title">
-              ${escapeHtml(
-                chat.user_name ||
-                chat.name ||
-                chat.username ||
-                "Пользователь"
-              )}
-            </h3>
-
-            <div class="admin-card-meta">
-
-              <span class="admin-badge">
-                ID:
-                ${escapeHtml(
-                  userId
-                )}
-              </span>
-
-              <span class="admin-badge">
-                ${formatDate(
-                  chat.updated_at ||
-                  chat.last_message_at
-                )}
-              </span>
-
-              ${
-                chat.unread
-                  ? `
-                    <span class="admin-badge">
-                      🔴 ${formatNumber(chat.unread)}
-                    </span>
-                  `
-                  : ""
-              }
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="admin-card-preview">
-          ${escapeHtml(
-            chat.last_message ||
-            chat.message ||
-            "Нет сообщений"
-          )}
-        </div>
-
-        <div class="admin-card-actions">
-
-          <button
-            type="button"
-            class="admin-button admin-button-primary"
-            data-action="chat-open"
-          >
+          <button class="btn"
+            onclick="openChat('${esc(u.id)}')">
             💬 Открыть чат
           </button>
 
+          <button class="btn btn-primary"
+            onclick="closeModal()">
+            Закрыть
+          </button>
+
         </div>
-      `;
 
-      card
-        .querySelector(
-          '[data-action="chat-open"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openAdminChat(
-              userId
-            )
-        );
+      </div>
+    `);
 
-      list.appendChild(
-        card
-      );
-    }
-  );
+  } catch {}
 }
 
 
-async function openAdminChat(
-  userId
-) {
+async function editParticipant(id) {
+
   try {
-    const data =
+
+    const result =
       await api(
-        `/api/admin/chat/messages?user_id=${encodeURIComponent(
-          userId
-        )}`
+        `/admin/participants/${encodeURIComponent(id)}`
       );
 
-    state.selectedChat = {
-      userId,
-      messages:
-        data.messages ||
-        []
-    };
+    const u =
+      result?.data ||
+      result?.participant ||
+      result;
 
-    showAdminChatModal();
+    showModal(`
+      <div class="modal">
 
-  } catch (error) {
-    handleUnauthorized(error);
+        <div class="modal-head">
+          <h2>✎ Управление участником</h2>
+          <button class="modal-close" onclick="closeModal()">×</button>
+        </div>
 
-    notify(
-      error.message ||
-      "Не удалось открыть чат.",
-      "error"
-    );
-  }
-}
+        <form id="participantForm" class="modal-body">
 
+          <div class="form-grid">
 
-function showAdminChatModal() {
-  let modal =
-    $("adminChatModal");
+            ${inputField("name","Имя",u.name || "")}
 
-  if (!modal) {
-    createAdminChatModal();
+            ${inputField("username","Username",u.username || "")}
 
-    modal =
-      $("adminChatModal");
-  }
+            ${inputField("country","Страна",u.country || "")}
 
-  const body =
-    $("adminChatBody");
+            ${inputField("city","Город",u.city || "")}
 
-  if (!body) {
-    return;
-  }
+            ${inputField("profession","Профессия",u.profession || "")}
 
-  const messages =
-    state.selectedChat?.messages ||
-    [];
+            ${inputField("company","Компания",u.company || "")}
 
-  body.innerHTML =
-    messages.length
-      ? messages
-          .map(
-            message => {
+            ${inputField("website","Сайт",u.website || "")}
 
-              const isAdmin =
-                message.sender_type ===
-                  "admin" ||
-                message.author_type ===
-                  "admin";
+            ${inputField("languages","Языки",u.languages || "")}
 
-              return `
-                <div
-                  style="
-                    padding:13px;
-                    margin-bottom:9px;
-                    border-radius:14px;
-                    background:${
-                      isAdmin
-                        ? "#e8f1ff"
-                        : "#f3f4f6"
-                    };
-                  "
-                >
+            ${inputField("skills","Навыки",u.skills || "")}
 
-                  <strong>
-                    ${escapeHtml(
-                      message.sender_name ||
-                      message.author_name ||
-                      (
-                        isAdmin
-                          ? "Администратор"
-                          : "Пользователь"
-                      )
-                    )}
-                  </strong>
+            ${selectField(
+              "role",
+              "Роль",
+              u.role || "participant",
+              [
+                "participant",
+                "verified_participant",
+                "moderator",
+                "editor",
+                "manager",
+                "super_admin"
+              ]
+            )}
 
-                  <div
-                    style="
-                      margin-top:6px;
-                      line-height:1.55;
-                      white-space:pre-wrap;
-                    "
-                  >
-                    ${escapeHtml(
-                      message.content ||
-                      message.text ||
-                      ""
-                    )}
-                  </div>
+            ${selectField(
+              "status",
+              "Статус",
+              u.status || "active",
+              [
+                "active",
+                "blocked",
+                "deleted",
+                "deactivated"
+              ]
+            )}
 
-                  <small
-                    style="
-                      display:block;
-                      margin-top:7px;
-                      color:#6b7280;
-                    "
-                  >
-                    ${formatDate(
-                      message.created_at
-                    )}
-                  </small>
+            ${textareaField(
+              "bio",
+              "О себе",
+              u.bio || ""
+            )}
 
-                </div>
-              `;
-            }
-          )
-          .join("")
-      : `
-          <div class="admin-empty">
-            Сообщений нет.
           </div>
-        `;
 
-  modal.hidden = false;
+        </form>
 
-  requestAnimationFrame(
-    () => {
-      body.scrollTop =
-        body.scrollHeight;
-    }
-  );
+        <div class="modal-foot">
+
+          <button class="btn"
+            onclick="closeModal()">
+            Отмена
+          </button>
+
+          <button class="btn btn-primary"
+            onclick="saveParticipant('${esc(id)}')">
+            Сохранить
+          </button>
+
+        </div>
+
+      </div>
+    `);
+
+  } catch {}
 }
 
 
-function createAdminChatModal() {
-  const modal =
-    document.createElement(
-      "div"
+async function saveParticipant(id) {
+
+  const form =
+    document.getElementById("participantForm");
+
+  const data =
+    Object.fromEntries(
+      new FormData(form).entries()
     );
 
-  modal.id =
-    "adminChatModal";
+  try {
 
-  modal.className =
-    "admin-modal";
+    await api(
+      `/admin/participants/${encodeURIComponent(id)}`,
+      {
+        method:"PUT",
+        body:JSON.stringify(data)
+      }
+    );
 
-  modal.innerHTML = `
-    <div class="admin-modal-box">
+    closeModal();
 
-      <div class="admin-modal-header">
+    toast("Участник обновлён", "success");
 
-        <h2>
-          💬 Чат с участником
-        </h2>
+    await loadParticipants();
 
-        <button
-          id="adminChatClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
+  } catch {}
+}
 
+
+async function participantAction(id, action) {
+
+  if (
+    !confirm(
+      action === "block"
+        ? "Заблокировать участника?"
+        : "Разблокировать участника?"
+    )
+  ) return;
+
+  try {
+
+    await api(
+      `/admin/participants/${encodeURIComponent(id)}`,
+      {
+        method:"PUT",
+        body:JSON.stringify({
+          status:
+            action === "block"
+              ? "blocked"
+              : "active"
+        })
+      }
+    );
+
+    toast("Статус участника изменён","success");
+
+    await loadParticipants();
+
+  } catch {}
+}
+
+
+/* =========================================================
+   CHAT
+========================================================= */
+
+async function renderChats() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">💬 Чаты с участниками</h1>
+        <div class="page-description">
+          Приватные разговоры Tajik Opportunities с отдельными участниками.
+        </div>
       </div>
 
-      <div
-        id="adminChatBody"
-        class="admin-modal-body"
-        style="
-          max-height:500px;
-          overflow:auto;
-        "
-      ></div>
+    </div>
 
-      <div class="admin-modal-body">
+    <div class="card">
 
-        <textarea
-          id="adminChatMessage"
-          class="admin-textarea"
-          style="min-height:100px;"
-          placeholder="Введите ответ участнику..."
-        ></textarea>
+      <div class="chat-layout">
 
-      </div>
+        <div class="chat-list">
 
-      <div class="admin-modal-footer">
+          <div class="chat-search">
+            <input
+              id="chatSearch"
+              placeholder="Поиск участника..."
+              oninput="filterChats()"
+            >
+          </div>
 
-        <button
-          id="adminChatCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
+          <div id="chatListItems">
+            <div class="empty">Загрузка...</div>
+          </div>
 
-        <button
-          id="adminChatSend"
-          type="button"
-          class="admin-button admin-button-success"
-        >
-          📤 Отправить
-        </button>
+        </div>
+
+        <div class="chat-window">
+
+          <div id="chatHeader" class="chat-header">
+            <strong>Выберите участника</strong>
+            <small>
+              Здесь отображается приватная переписка.
+            </small>
+          </div>
+
+          <div id="chatMessages" class="chat-messages">
+            <div class="empty">
+              <div class="empty-icon">💬</div>
+              Выберите чат слева.
+            </div>
+          </div>
+
+          <div class="chat-compose">
+
+            <textarea
+              id="chatInput"
+              placeholder="Написать сообщение участнику..."
+            ></textarea>
+
+            <button class="btn btn-primary"
+              onclick="sendChatMessage()">
+              Отправить
+            </button>
+
+          </div>
+
+        </div>
 
       </div>
 
     </div>
   `;
 
-  document.body.appendChild(
-    modal
-  );
-
-  $("adminChatClose")
-    ?.addEventListener(
-      "click",
-      closeAdminChat
-    );
-
-  $("adminChatCancel")
-    ?.addEventListener(
-      "click",
-      closeAdminChat
-    );
-
-  $("adminChatSend")
-    ?.addEventListener(
-      "click",
-      sendAdminChatMessage
-    );
-}
-
-
-function closeAdminChat() {
-  const modal =
-    $("adminChatModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-
-  state.selectedChat =
-    null;
-}
-
-
-async function sendAdminChatMessage() {
-  const chat =
-    state.selectedChat;
-
-  if (!chat) {
-    return;
-  }
-
-  const content =
-    getValue(
-      "adminChatMessage"
-    );
-
-  if (!content) {
-    notify(
-      "Введите сообщение.",
-      "error"
-    );
-
-    return;
-  }
-
   try {
-    await api(
-      "/api/admin/chat/send",
-      {
-        method: "POST",
-        body: {
-          user_id:
-            chat.userId,
 
-          content
-        }
-      }
-    );
+    const result =
+      await api("/admin/chat");
 
-    setValue(
-      "adminChatMessage",
-      ""
-    );
-
-    await openAdminChat(
-      chat.userId
-    );
-
-    notify(
-      "Сообщение отправлено."
-    );
-
-    await loadChats();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    notify(
-      error.message ||
-      "Не удалось отправить сообщение.",
-      "error"
-    );
-  }
-}
-
-
-/* ============================================================
-   NOTIFICATIONS
-============================================================ */
-
-async function loadNotifications() {
-  try {
-    const data =
-      await api(
-        "/api/admin/notifications"
-      );
-
-    state.notifications =
-      data.notifications ||
-      data.items ||
+    state.chats =
+      result?.data ||
+      result?.chats ||
+      result?.items ||
       [];
 
-    renderNotifications();
+    renderChatList();
 
-  } catch (error) {
-    handleUnauthorized(error);
-
-    console.error(
-      "Notifications error:",
-      error
-    );
-  }
+  } catch {}
 }
 
 
-function renderNotifications() {
-  const list =
-    $("adminNotificationsList") ||
-    $("notificationsList");
+function renderChatList() {
 
-  if (!list) {
-    return;
-  }
+  const box =
+    document.getElementById("chatListItems");
 
-  list.innerHTML = "";
+  if (!box) return;
 
-  if (!state.notifications.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        🔔 Уведомлений нет.
+  if (!state.chats.length) {
+
+    box.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">💬</div>
+        Чатов пока нет.
       </div>
     `;
 
     return;
   }
 
-  state.notifications.forEach(
-    notification => {
+  box.innerHTML =
+    state.chats.map(c => `
 
-      const card =
-        document.createElement(
-          "article"
-        );
+      <div class="chat-user"
+        data-chat-name="${escapeHtml(
+          (c.name || c.username || "").toLowerCase()
+        )}"
+        onclick="openChat('${esc(
+          c.participant_id || c.user_id || c.id
+        )}')">
 
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-        <h3 class="admin-card-title">
-          ${escapeHtml(
-            notification.title ||
-            "Уведомление"
-          )}
-        </h3>
-
-        <div class="admin-card-preview">
-          ${escapeHtml(
-            notification.message ||
-            notification.content ||
-            ""
-          )}
+        <div class="chat-avatar">
+          ${(c.name || "U").charAt(0).toUpperCase()}
         </div>
 
-        <div class="admin-card-meta">
-
-          ${formatDate(
-            notification.created_at
-          )}
-
-        </div>
-      `;
-
-      list.appendChild(
-        card
-      );
-    }
-  );
-}
-
-
-/* ============================================================
-   AUDIT LOG
-============================================================ */
-
-async function loadAudit() {
-  try {
-    const data =
-      await api(
-        "/api/admin/audit"
-      );
-
-    state.audit =
-      data.audit ||
-      data.logs ||
-      data.items ||
-      [];
-
-    renderAudit();
-
-  } catch (error) {
-    handleUnauthorized(error);
-
-    console.error(
-      "Audit error:",
-      error
-    );
-  }
-}
-
-
-function renderAudit() {
-  const list =
-    $("adminAuditList") ||
-    $("auditList");
-
-  if (!list) {
-    return;
-  }
-
-  list.innerHTML = "";
-
-  if (!state.audit.length) {
-    list.innerHTML = `
-      <div class="admin-empty">
-        📋 Журнал действий пуст.
-      </div>
-    `;
-
-    return;
-  }
-
-  state.audit.forEach(
-    item => {
-
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-        <div class="admin-card-top">
+        <div class="chat-info">
 
           <strong>
             ${escapeHtml(
-              item.action ||
-              item.event ||
-              "Действие"
+              c.name ||
+              c.username ||
+              "Участник"
             )}
           </strong>
 
-          <span class="admin-badge">
-            ${formatDate(
-              item.created_at
+          <span>
+            ${escapeHtml(
+              c.last_message ||
+              c.username ||
+              "Открыть чат"
             )}
           </span>
 
         </div>
 
-        <div class="admin-card-preview">
+      </div>
 
-          ${escapeHtml(
-            item.description ||
-            item.message ||
-            item.target ||
-            ""
+    `).join("");
+}
+
+
+function filterChats() {
+
+  const q =
+    document.getElementById("chatSearch")
+      ?.value
+      .toLowerCase()
+      .trim() || "";
+
+  document.querySelectorAll(".chat-user")
+    .forEach(item => {
+
+      item.style.display =
+        !q ||
+        item.dataset.chatName.includes(q)
+          ? ""
+          : "none";
+
+    });
+}
+
+
+async function openChat(participantId) {
+
+  state.currentParticipant =
+    participantId;
+
+  try {
+
+    const result =
+      await api(
+        `/admin/chat/${encodeURIComponent(participantId)}/messages`
+      );
+
+    state.currentChatMessages =
+      result?.data ||
+      result?.messages ||
+      result?.items ||
+      [];
+
+    const chat =
+      state.chats.find(c =>
+        String(
+          c.participant_id ||
+          c.user_id ||
+          c.id
+        ) === String(participantId)
+      ) || {};
+
+    const header =
+      document.getElementById("chatHeader");
+
+    if (header) {
+
+      header.innerHTML = `
+        <strong>
+          🇹🇯 Tajik Opportunities
+          <span style="color:#16a34a">✓</span>
+          — ${escapeHtml(
+            chat.name ||
+            chat.username ||
+            "Участник"
           )}
+        </strong>
 
-        </div>
-
-        <div class="admin-card-meta">
-
-          Администратор:
+        <small>
           ${escapeHtml(
-            item.admin_name ||
-            "Главный администратор"
+            chat.username || ""
           )}
+          · Приватный чат
+        </small>
+      `;
+    }
+
+    renderMessages();
+
+  } catch {}
+}
+
+
+function renderMessages() {
+
+  const box =
+    document.getElementById("chatMessages");
+
+  if (!box) return;
+
+  if (!state.currentChatMessages.length) {
+
+    box.innerHTML = `
+      <div class="empty">
+        Сообщений пока нет.
+      </div>
+    `;
+
+    return;
+  }
+
+  box.innerHTML =
+    state.currentChatMessages.map(m => {
+
+      const mine =
+        m.sender_role === "admin" ||
+        m.is_admin === true ||
+        m.sender === "admin";
+
+      return `
+        <div class="message ${mine ? "mine" : ""}">
+
+          <div class="message-bubble">
+            ${escapeHtml(
+              m.message ||
+              m.text ||
+              m.body ||
+              ""
+            )}
+          </div>
+
+          <div class="message-time">
+            ${formatDate(
+              m.created_at
+            )}
+          </div>
 
         </div>
       `;
 
-      list.appendChild(
-        card
-      );
-    }
-  );
+    }).join("");
+
+  box.scrollTop =
+    box.scrollHeight;
 }
 
 
-/* ============================================================
-   FILTERS
-============================================================ */
+async function sendChatMessage() {
 
-function setupFilters() {
+  const input =
+    document.getElementById("chatInput");
 
-  document
-    .querySelectorAll(
-      "[data-admin-filter]"
-    )
-    .forEach(
-      button => {
+  const text =
+    input?.value.trim();
 
-        button.addEventListener(
-          "click",
-          async () => {
-
-            const filter =
-              button.dataset
-                .adminFilter;
-
-            if (!filter) {
-              return;
-            }
-
-            state.filter =
-              filter;
-
-            document
-              .querySelectorAll(
-                "[data-admin-filter]"
-              )
-              .forEach(
-                item =>
-                  item.classList.toggle(
-                    "active",
-                    item === button
-                  )
-              );
-
-            await loadSubmissions();
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-post-filter]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            state.postFilter =
-              button.dataset
-                .postFilter ||
-              "all";
-
-            document
-              .querySelectorAll(
-                "[data-post-filter]"
-              )
-              .forEach(
-                item =>
-                  item.classList.toggle(
-                    "active",
-                    item === button
-                  )
-              );
-
-            renderPosts();
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-trash-filter]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            state.trashFilter =
-              button.dataset
-                .trashFilter ||
-              "all";
-
-            document
-              .querySelectorAll(
-                "[data-trash-filter]"
-              )
-              .forEach(
-                item =>
-                  item.classList.toggle(
-                    "active",
-                    item === button
-                  )
-              );
-
-            renderTrash();
-
-          }
-        );
-
-      }
-    );
-
-
-  document
-    .querySelectorAll(
-      "[data-user-filter]"
-    )
-    .forEach(
-      button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            state.userFilter =
-              button.dataset
-                .userFilter ||
-              "all";
-
-            document
-              .querySelectorAll(
-                "[data-user-filter]"
-              )
-              .forEach(
-                item =>
-                  item.classList.toggle(
-                    "active",
-                    item === button
-                  )
-              );
-
-            renderUsers();
-
-          }
-        );
-
-      }
-    );
-
-
-  const userSearch =
-    $("adminUserSearch") ||
-    $("userSearch");
-
-  userSearch
-    ?.addEventListener(
-      "input",
-      event => {
-
-        state.userSearch =
-          event.target.value;
-
-        renderUsers();
-
-      }
-    );
-}
-
-
-/* ============================================================
-   REFRESH
-============================================================ */
-
-async function refreshEverything() {
-  if (state.loading) {
+  if (!text || !state.currentParticipant) {
     return;
   }
 
-  state.loading =
-    true;
+  try {
+
+    await api(
+      `/admin/chat/${encodeURIComponent(
+        state.currentParticipant
+      )}/send`,
+      {
+        method:"POST",
+        body:JSON.stringify({
+          message:text,
+          text
+        })
+      }
+    );
+
+    input.value = "";
+
+    await openChat(
+      state.currentParticipant
+    );
+
+  } catch {}
+}
+
+
+/* =========================================================
+   COMMENTS
+========================================================= */
+
+async function renderComments() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">💭 Комментарии</h1>
+        <div class="page-description">
+          Управление комментариями, ответами и модерацией.
+        </div>
+      </div>
+      <button class="btn" onclick="loadComments()">↻ Обновить</button>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <input id="commentSearch" placeholder="Поиск комментария...">
+        <select id="commentStatus">
+          <option value="">Все</option>
+          <option value="visible">Видимые</option>
+          <option value="hidden">Скрытые</option>
+          <option value="deleted">Удалённые</option>
+        </select>
+        <button class="btn" onclick="loadComments()">Поиск</button>
+      </div>
+      <div id="commentsTable"></div>
+    </div>
+  `;
+
+  await loadComments();
+}
+
+
+async function loadComments() {
+
+  const box =
+    document.getElementById("commentsTable");
+
+  if (!box) return;
 
   try {
 
-    await Promise.allSettled([
-      loadAdmin(),
-      loadStats(),
-      loadSubmissions(),
-      loadPosts(),
-      loadTrash(),
-      loadUsers(),
-      loadComments(),
-      loadChats(),
-      loadNotifications(),
-      loadAudit()
-    ]);
-
-    updateAdminIdentity();
-
-    notify(
-      "Панель обновлена."
-    );
-
-  } finally {
-    state.loading =
-      false;
-  }
-}
-
-
-/* ============================================================
-   EVENTS
-============================================================ */
-
-function setupEvents() {
-
-  /*
-   * Старая форма входа больше НЕ используется.
-   */
-
-  const loginButton =
-    $("adminLoginButton");
-
-  if (loginButton) {
-    loginButton.style.display =
-      "none";
-  }
-
-  const password =
-    $("adminPassword");
-
-  if (password) {
-    password.style.display =
-      "none";
-  }
-
-  const loginForm =
-    $("adminLoginForm");
-
-  if (loginForm) {
-    loginForm.style.display =
-      "none";
-  }
-
-
-  /*
-   * Старую кнопку logout скрываем.
-   */
-
-  const logout =
-    $("adminLogout");
-
-  if (logout) {
-    logout.style.display =
-      "none";
-  }
-
-
-  $("adminRefresh")
-    ?.addEventListener(
-      "click",
-      refreshEverything
-    );
-
-
-  $("adminPostsRefresh")
-    ?.addEventListener(
-      "click",
-      async () => {
-
-        await Promise.all([
-          loadPosts(),
-          loadStats()
-        ]);
-
-        notify(
-          "Публикации обновлены."
-        );
-
-      }
-    );
-
-
-  $("adminTrashRefresh")
-    ?.addEventListener(
-      "click",
-      async () => {
-
-        await Promise.all([
-          loadTrash(),
-          loadStats()
-        ]);
-
-        notify(
-          "Корзина обновлена."
-        );
-
-      }
-    );
-
-
-  $("adminUsersRefresh")
-    ?.addEventListener(
-      "click",
-      async () => {
-
-        await Promise.all([
-          loadUsers(),
-          loadStats()
-        ]);
-
-        notify(
-          "Участники обновлены."
-        );
-
-      }
-    );
-
-
-  $("adminCommentsRefresh")
-    ?.addEventListener(
-      "click",
-      async () => {
-
-        await Promise.all([
-          loadComments(),
-          loadStats()
-        ]);
-
-      }
-    );
-
-
-  $("adminChatsRefresh")
-    ?.addEventListener(
-      "click",
-      loadChats
-    );
-
-
-  $("adminNotificationsRefresh")
-    ?.addEventListener(
-      "click",
-      loadNotifications
-    );
-
-
-  $("adminAuditRefresh")
-    ?.addEventListener(
-      "click",
-      loadAudit
-    );
-
-
-  $("trashEmptyButton")
-    ?.addEventListener(
-      "click",
-      emptyTrash
-    );
-
-
-  $("trashAllPostsButton")
-    ?.addEventListener(
-      "click",
-      trashAllPosts
-    );
-
-
-  document
-    .querySelectorAll(
-      [
-        "submissionModal",
-        "postModal",
-        "postEditModal",
-        "countersModal",
-        "userModal",
-        "userEditModal",
-        "adminChatModal"
-      ].map(
-        id => `#${id}`
-      ).join(",")
-    )
-    .forEach(
-      modal => {
-
-        modal.addEventListener(
-          "click",
-          event => {
-
-            if (
-              event.target !==
-              event.currentTarget
-            ) {
-              return;
-            }
-
-            const map = {
-              submissionModal:
-                closeSubmissionModal,
-
-              postModal:
-                closePostModal,
-
-              postEditModal:
-                closePostEditModal,
-
-              countersModal:
-                closeCountersEditor,
-
-              userModal:
-                closeUserModal,
-
-              userEditModal:
-                closeUserEditModal,
-
-              adminChatModal:
-                closeAdminChat
-            };
-
-            map[
-              modal.id
-            ]?.();
-
-          }
-        );
-
-      }
-    );
-
-
-  document.addEventListener(
-    "keydown",
-    event => {
-
-      if (
-        event.key !==
-        "Escape"
-      ) {
-        return;
-      }
-
-      closeSubmissionModal();
-      closePostModal();
-      closePostEditModal();
-      closeCountersEditor();
-      closeUserModal();
-      closeUserEditModal();
-      closeAdminChat();
-
+    const result =
+      await api("/admin/comments");
+
+    state.comments =
+      result?.data ||
+      result?.comments ||
+      result?.items ||
+      [];
+
+    if (!state.comments.length) {
+
+      box.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">💭</div>
+          Комментариев нет.
+        </div>
+      `;
+
+      return;
     }
-  );
+
+    box.innerHTML = `
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Автор</th>
+              <th>Комментарий</th>
+              <th>Статус</th>
+              <th>Дата</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+
+            ${state.comments.map(c => `
+
+              <tr>
+
+                <td>
+                  ${escapeHtml(
+                    c.author_name ||
+                    c.username ||
+                    "Участник"
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    c.body ||
+                    c.text ||
+                    c.comment ||
+                    ""
+                  )}
+                </td>
+
+                <td>
+                  ${statusBadge(
+                    c.status || "visible"
+                  )}
+                </td>
+
+                <td>
+                  ${formatDate(c.created_at)}
+                </td>
+
+                <td>
+
+                  <div class="row-actions">
+
+                    <button class="small-btn"
+                      onclick="editComment('${esc(c.id)}')">
+                      ✎
+                    </button>
+
+                    <button class="small-btn"
+                      onclick="deleteComment('${esc(c.id)}')">
+                      🗑
+                    </button>
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            `).join("")}
+
+          </tbody>
+        </table>
+      </div>
+    `;
+
+  } catch {
+
+    box.innerHTML =
+      `<div class="empty">Ошибка загрузки.</div>`;
+  }
 }
 
 
-/* ============================================================
-   REMOVE OLD LOGIN UI
-============================================================ */
+async function editComment(id) {
 
-function removeOldLoginUI() {
+  const comment =
+    state.comments.find(
+      x => String(x.id) === String(id)
+    ) || {};
 
-  const selectors = [
-    "#adminLogin",
-    "#adminLoginPanel",
-    ".admin-login",
-    ".admin-login-panel",
-    "[data-admin-login]"
-  ];
+  showModal(`
+    <div class="modal">
 
-  selectors.forEach(
-    selector => {
+      <div class="modal-head">
+        <h2>✎ Редактирование комментария</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
 
-      document
-        .querySelectorAll(
-          selector
-        )
-        .forEach(
-          element => {
+      <div class="modal-body">
 
-            /*
-             * Не удаляем случайно
-             * весь admin dashboard.
-             * Скрываем только явно
-             * обозначенные login-блоки.
-             */
+        ${textareaField(
+          "comment_body",
+          "Текст комментария",
+          comment.body ||
+          comment.text ||
+          ""
+        )}
 
-            element.hidden =
-              true;
+        ${selectField(
+          "comment_status",
+          "Статус",
+          comment.status || "visible",
+          ["visible","hidden","deleted"]
+        )}
 
-            element.style.display =
-              "none";
+      </div>
 
-          }
-        );
+      <div class="modal-foot">
 
+        <button class="btn" onclick="closeModal()">
+          Отмена
+        </button>
+
+        <button class="btn btn-primary"
+          onclick="saveComment('${esc(id)}')">
+          Сохранить
+        </button>
+
+      </div>
+
+    </div>
+  `);
+}
+
+
+async function saveComment(id) {
+
+  const body =
+    document.querySelector(
+      "#modalRoot textarea[name='comment_body']"
+    )?.value || "";
+
+  const status =
+    document.querySelector(
+      "#modalRoot select[name='comment_status']"
+    )?.value || "visible";
+
+  try {
+
+    await api(
+      `/admin/comments/${encodeURIComponent(id)}`,
+      {
+        method:"PUT",
+        body:JSON.stringify({
+          body,
+          status
+        })
+      }
+    );
+
+    closeModal();
+
+    toast("Комментарий обновлён","success");
+
+    await loadComments();
+
+  } catch {}
+}
+
+
+async function deleteComment(id) {
+
+  if (!confirm("Удалить комментарий?")) return;
+
+  try {
+
+    await api(
+      `/admin/comments/${encodeURIComponent(id)}`,
+      {
+        method:"DELETE"
+      }
+    );
+
+    toast("Комментарий удалён","success");
+
+    await loadComments();
+
+  } catch {}
+}
+
+
+/* =========================================================
+   REPORTS
+========================================================= */
+
+async function renderReports() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">🚨 Жалобы</h1>
+        <div class="page-description">
+          Все жалобы пользователей и обращения по контенту.
+        </div>
+      </div>
+      <button class="btn" onclick="loadReports()">↻ Обновить</button>
+    </div>
+
+    <div class="card">
+      <div class="toolbar">
+        <select id="reportStatus">
+          <option value="">Все статусы</option>
+          <option value="open">Открытые</option>
+          <option value="reviewed">Рассмотренные</option>
+          <option value="resolved">Решённые</option>
+          <option value="rejected">Отклонённые</option>
+        </select>
+        <button class="btn" onclick="loadReports()">Применить</button>
+      </div>
+      <div id="reportsTable"></div>
+    </div>
+  `;
+
+  await loadReports();
+}
+
+
+async function loadReports() {
+
+  const box =
+    document.getElementById("reportsTable");
+
+  if (!box) return;
+
+  try {
+
+    const result =
+      await api("/admin/reports");
+
+    state.reports =
+      result?.data ||
+      result?.reports ||
+      result?.items ||
+      [];
+
+    if (!state.reports.length) {
+
+      box.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🚨</div>
+          Жалоб нет.
+        </div>
+      `;
+
+      return;
     }
-  );
 
+    box.innerHTML = `
+      <div class="table-wrap">
+        <table>
 
-  document
-    .querySelectorAll(
-      "[data-admin-dashboard]"
-    )
-    .forEach(
-      element => {
-        element.hidden =
-          false;
+          <thead>
+            <tr>
+              <th>Причина</th>
+              <th>Кто пожаловался</th>
+              <th>Объект</th>
+              <th>Статус</th>
+              <th>Дата</th>
+              <th>Действия</th>
+            </tr>
+          </thead>
 
-        element.style.display =
-          "";
-      }
-    );
+          <tbody>
+
+            ${state.reports.map(r => `
+
+              <tr>
+
+                <td>
+                  <strong>
+                    ${escapeHtml(
+                      r.reason ||
+                      "Жалоба"
+                    )}
+                  </strong>
+
+                  ${
+                    r.description
+                    ? `<div style="color:#718096;margin-top:4px">
+                        ${escapeHtml(r.description)}
+                       </div>`
+                    : ""
+                  }
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.reporter_name ||
+                    r.username ||
+                    "Участник"
+                  )}
+                </td>
+
+                <td>
+                  ${escapeHtml(
+                    r.target_type ||
+                    "—"
+                  )}
+                  <div style="color:#94a3b8">
+                    ${escapeHtml(
+                      String(r.target_id || "")
+                    )}
+                  </div>
+                </td>
+
+                <td>
+                  ${statusBadge(
+                    r.status || "open"
+                  )}
+                </td>
+
+                <td>
+                  ${formatDate(r.created_at)}
+                </td>
+
+                <td>
+
+                  <div class="row-actions">
+
+                    <button class="small-btn"
+                      onclick="updateReport('${esc(r.id)}','reviewed')">
+                      Рассмотреть
+                    </button>
+
+                    <button class="small-btn"
+                      onclick="updateReport('${esc(r.id)}','resolved')">
+                      Решить
+                    </button>
+
+                    <button class="small-btn"
+                      onclick="updateReport('${esc(r.id)}','rejected')">
+                      Отклонить
+                    </button>
+
+                  </div>
+
+                </td>
+
+              </tr>
+
+            `).join("")}
+
+          </tbody>
+
+        </table>
+      </div>
+    `;
+
+  } catch {}
 }
 
 
-/* ============================================================
-   SHOW ADMIN PANEL
-============================================================ */
+async function updateReport(id,status) {
 
-function showDashboard() {
+  try {
 
-  state.authenticated =
-    true;
-
-  removeOldLoginUI();
-
-  document
-    .querySelectorAll(
-      "[data-admin-dashboard]"
-    )
-    .forEach(
-      element => {
-        element.hidden =
-          false;
+    await api(
+      `/admin/reports/${encodeURIComponent(id)}`,
+      {
+        method:"PUT",
+        body:JSON.stringify({status})
       }
     );
 
-  document
-    .querySelectorAll(
-      ".admin-dashboard"
-    )
-    .forEach(
-      element => {
+    toast("Жалоба обновлена","success");
 
-        if (
-          element.dataset
-            .adminDashboard ===
-          "true"
-        ) {
-          element.hidden =
-            false;
+    await loadReports();
+
+  } catch {}
+}
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function renderNotifications() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+    <div class="page-head">
+      <div>
+        <h1 class="page-title">🔔 Уведомления</h1>
+        <div class="page-description">
+          Контроль событий, новых публикаций, сообщений и системных предупреждений.
+        </div>
+      </div>
+      <button class="btn" onclick="loadNotifications()">↻ Обновить</button>
+    </div>
+
+    <div class="card">
+      <div id="notificationsList">
+        <div class="empty">Загрузка...</div>
+      </div>
+    </div>
+  `;
+
+  await loadNotifications();
+}
+
+
+async function loadNotifications() {
+
+  try {
+
+    const result =
+      await api("/admin/notifications");
+
+    state.notifications =
+      result?.data ||
+      result?.notifications ||
+      result?.items ||
+      [];
+
+    const box =
+      document.getElementById("notificationsList");
+
+    if (!state.notifications.length) {
+
+      box.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">🔔</div>
+          Уведомлений нет.
+        </div>
+      `;
+
+      return;
+    }
+
+    box.innerHTML =
+      state.notifications.map(n => `
+
+        <div style="
+          padding:16px 19px;
+          border-bottom:1px solid #edf0f4;
+        ">
+
+          <strong>
+            ${escapeHtml(
+              n.title ||
+              n.type ||
+              "Уведомление"
+            )}
+          </strong>
+
+          <div style="
+            color:#64748b;
+            font-size:12px;
+            margin-top:5px;
+          ">
+            ${escapeHtml(
+              n.message ||
+              n.body ||
+              ""
+            )}
+          </div>
+
+          <div style="
+            color:#94a3b8;
+            font-size:10px;
+            margin-top:7px;
+          ">
+            ${formatDate(n.created_at)}
+          </div>
+
+        </div>
+
+      `).join("");
+
+  } catch {}
+}
+
+
+/* =========================================================
+   SIMPLE MODULES
+========================================================= */
+
+async function renderSimpleModule() {
+
+  const names = {
+    reactions:["❤️","Реакции","Управление всеми реакциями публикаций и пользователей."],
+    saves:["🔖","Сохранения","Сохранённые публикации и коллекции."],
+    shares:["🔁","Репосты и поделились","Контроль распространения публикаций."],
+    follows:["➕","Подписки","Подписки между участниками и официальными страницами."],
+    groups:["👨‍👩‍👧‍👦","Группы","Сообщества и группы платформы."],
+    stories:["⭕","Истории","Временные публикации и статусы."],
+    polls:["📊","Опросы","Опросы, голосования и результаты."],
+    hashtags:["#️⃣","Хэштеги","Хэштеги и поиск публикаций по ним."],
+    categories:["🗂️","Категории","Категории и типы контента."],
+    locations:["🌍","Страны и города","География публикаций и участников."],
+    translations:["🌐","Переводы","Перевод публикаций на доступные языки."],
+    payments:["💳","Платежи","Суммы, оплаты и статусы публикаций."],
+    ads:["📢","Реклама","Рекламные публикации и кампании."],
+    support:["🆘","Поддержка","Обращения и заявки участников."]
+  };
+
+  const item =
+    names[state.page] ||
+    ["⚙️",state.page,""];
+
+  document.getElementById("content").innerHTML = `
+
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">
+          ${item[0]} ${item[1]}
+        </h1>
+
+        <div class="page-description">
+          ${item[2]}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="card">
+
+      <div class="empty">
+
+        <div class="empty-icon">
+          ${item[0]}
+        </div>
+
+        <h3 style="color:#172033">
+          Модуль управления
+        </h3>
+
+        <p>
+          Раздел подготовлен в административной панели.
+          Здесь можно централизованно управлять этим направлением
+          без изменения остальных разделов сайта.
+        </p>
+
+        <button class="btn btn-primary"
+          onclick="goPage('dashboard')">
+          Вернуться в обзор
+        </button>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   ANALYTICS
+========================================================= */
+
+async function renderAnalytics() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">📈 Аналитика</h1>
+
+        <div class="page-description">
+          Статистика платформы, публикаций, участников и активности.
+        </div>
+      </div>
+
+      <button class="btn"
+        onclick="renderAnalytics()">
+        ↻ Обновить
+      </button>
+
+    </div>
+
+    <div class="stat-grid">
+
+      <div class="stat-card">
+        <div class="stat-label">Просмотры</div>
+        <div class="stat-value">
+          ${val(state.stats.views)}
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Реакции</div>
+        <div class="stat-value">
+          ${val(state.stats.reactions)}
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Комментарии</div>
+        <div class="stat-value">
+          ${val(state.stats.comments)}
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Поделились</div>
+        <div class="stat-value">
+          ${val(state.stats.shares)}
+        </div>
+      </div>
+
+    </div>
+
+    <div class="dashboard-grid">
+
+      <div class="card">
+
+        <div class="card-head">
+          <h3>📊 Метрики платформы</h3>
+        </div>
+
+        <div class="card-body">
+
+          ${metricRow(
+            "Публикации",
+            state.stats.total_publications ??
+            state.stats.publications
+          )}
+
+          ${metricRow(
+            "Опубликовано",
+            state.stats.published_publications
+          )}
+
+          ${metricRow(
+            "Ожидают разрешения",
+            state.stats.pending_publications ??
+            state.stats.pending
+          )}
+
+          ${metricRow(
+            "Участники",
+            state.stats.total_participants ??
+            state.stats.participants
+          )}
+
+          ${metricRow(
+            "Жалобы",
+            state.stats.reports
+          )}
+
+          ${metricRow(
+            "Сохранения",
+            state.stats.saves
+          )}
+
+        </div>
+
+      </div>
+
+      <div class="card">
+
+        <div class="card-head">
+          <h3>🎯 Контроль активности</h3>
+        </div>
+
+        <div class="card-body">
+
+          <p style="color:#718096;font-size:12px;line-height:1.7">
+            Администратор может отслеживать публикации,
+            участников, реакции, сообщения, жалобы,
+            просмотры, сохранения и распространение контента.
+          </p>
+
+          <button class="btn btn-primary"
+            onclick="goPage('publications')">
+            Открыть публикации
+          </button>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+async function renderSettings() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">⚙️ Настройки</h1>
+
+        <div class="page-description">
+          Центральное управление конфигурацией платформы.
+        </div>
+      </div>
+
+      <button class="btn btn-primary"
+        onclick="saveSettings()">
+        Сохранить
+      </button>
+
+    </div>
+
+    <div class="card">
+
+      <div class="settings-grid">
+
+        <div class="settings-nav">
+
+          <button class="settings-tab active">
+            Основные
+          </button>
+
+          <button class="settings-tab">
+            Участники
+          </button>
+
+          <button class="settings-tab">
+            Модерация
+          </button>
+
+          <button class="settings-tab">
+            Языки
+          </button>
+
+          <button class="settings-tab">
+            Уведомления
+          </button>
+
+          <button class="settings-tab">
+            Безопасность
+          </button>
+
+        </div>
+
+        <div class="card-body">
+
+          <div class="field">
+            <label>Название сайта</label>
+            <input
+              id="settingSiteName"
+              value="Tajik Opportunities"
+            >
+          </div>
+
+          <div class="field">
+            <label>Официальный username</label>
+            <input
+              id="settingOfficialUsername"
+              value="@tajikopportunities"
+            >
+          </div>
+
+          <div class="field">
+            <label>Язык по умолчанию</label>
+            <select id="settingLanguage">
+              <option value="ru">Русский</option>
+              <option value="tg">Тоҷикӣ</option>
+              <option value="en">English</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label>Часовой пояс</label>
+            <input
+              id="settingTimezone"
+              value="Asia/Dushanbe"
+            >
+          </div>
+
+          <div class="setting-row">
+
+            <div>
+              <strong>Участники без регистрации</strong>
+              <span>
+                Участник открывает сайт и пользуется им без аккаунта.
+              </span>
+            </div>
+
+            <button class="switch on" type="button"></button>
+
+          </div>
+
+          <div class="setting-row">
+
+            <div>
+              <strong>Участники без обычного входа</strong>
+              <span>
+                Не показывать форму входа участникам.
+              </span>
+            </div>
+
+            <button class="switch on" type="button"></button>
+
+          </div>
+
+          <div class="setting-row">
+
+            <div>
+              <strong>Модерация публикаций</strong>
+              <span>
+                Новые публикации сначала попадают администратору.
+              </span>
+            </div>
+
+            <button class="switch on" type="button"></button>
+
+          </div>
+
+          <div class="setting-row">
+
+            <div>
+              <strong>Приватные чаты</strong>
+              <span>
+                У каждого участника отдельная переписка с официальным аккаунтом.
+              </span>
+            </div>
+
+            <button class="switch on" type="button"></button>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+
+  try {
+
+    const result =
+      await api("/admin/settings");
+
+    state.settings =
+      result?.data ||
+      result?.settings ||
+      result ||
+      {};
+
+    const s = state.settings;
+
+    if (s.site_name)
+      document.getElementById("settingSiteName").value =
+        s.site_name;
+
+    if (s.official_username)
+      document.getElementById("settingOfficialUsername").value =
+        s.official_username;
+
+    if (s.default_language)
+      document.getElementById("settingLanguage").value =
+        s.default_language;
+
+    if (s.timezone)
+      document.getElementById("settingTimezone").value =
+        s.timezone;
+
+  } catch {}
+}
+
+
+async function saveSettings() {
+
+  const data = {
+    site_name:
+      document.getElementById("settingSiteName")?.value,
+
+    official_username:
+      document.getElementById("settingOfficialUsername")?.value,
+
+    default_language:
+      document.getElementById("settingLanguage")?.value,
+
+    timezone:
+      document.getElementById("settingTimezone")?.value,
+
+    participant_registration:false,
+    participant_login:false,
+    publication_moderation:true,
+    private_chat:true
+  };
+
+  try {
+
+    await api("/admin/settings", {
+      method:"PUT",
+      body:JSON.stringify(data)
+    });
+
+    toast("Настройки сохранены","success");
+
+  } catch {}
+}
+
+
+/* =========================================================
+   AUDIT
+========================================================= */
+
+async function renderAudit() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">📋 Журнал действий</h1>
+
+        <div class="page-description">
+          История административных изменений и действий.
+        </div>
+      </div>
+
+      <button class="btn"
+        onclick="renderAudit()">
+        ↻ Обновить
+      </button>
+
+    </div>
+
+    <div class="card">
+
+      <div id="auditList">
+        <div class="empty">Загрузка...</div>
+      </div>
+
+    </div>
+  `;
+
+  try {
+
+    const result =
+      await api("/admin/audit");
+
+    const items =
+      result?.data ||
+      result?.audit ||
+      result?.items ||
+      [];
+
+    const box =
+      document.getElementById("auditList");
+
+    if (!items.length) {
+
+      box.innerHTML = `
+        <div class="empty">
+          <div class="empty-icon">📋</div>
+          Журнал пока пуст.
+        </div>
+      `;
+
+      return;
+    }
+
+    box.innerHTML =
+      items.map(a => `
+
+        <div style="
+          padding:15px 19px;
+          border-bottom:1px solid #edf0f4;
+        ">
+
+          <strong>
+            ${escapeHtml(
+              a.action ||
+              a.event ||
+              "Действие"
+            )}
+          </strong>
+
+          <div style="
+            color:#64748b;
+            font-size:11px;
+            margin-top:5px;
+          ">
+            ${escapeHtml(
+              a.description ||
+              a.target_type ||
+              ""
+            )}
+          </div>
+
+          <div style="
+            color:#94a3b8;
+            font-size:10px;
+            margin-top:5px;
+          ">
+            ${formatDate(a.created_at)}
+          </div>
+
+        </div>
+
+      `).join("");
+
+  } catch {}
+}
+
+
+/* =========================================================
+   SYSTEM
+========================================================= */
+
+async function renderSystem() {
+
+  const root =
+    document.getElementById("content");
+
+  root.innerHTML = `
+
+    <div class="page-head">
+
+      <div>
+        <h1 class="page-title">🛡️ Система</h1>
+
+        <div class="page-description">
+          Техническое состояние административной системы.
+        </div>
+      </div>
+
+      <button class="btn"
+        onclick="renderSystem()">
+        ↻ Проверить
+      </button>
+
+    </div>
+
+    <div class="card">
+
+      <div class="card-body">
+
+        <div class="setting-row">
+
+          <div>
+            <strong>Cloudflare Worker API</strong>
+            <span>Основной сервер приложения</span>
+          </div>
+
+          <span class="status status-active">
+            ДОСТУПЕН
+          </span>
+
+        </div>
+
+        <div class="setting-row">
+
+          <div>
+            <strong>D1 Database</strong>
+            <span>Хранилище данных платформы</span>
+          </div>
+
+          <span class="status status-active">
+            ПОДКЛЮЧЕНА
+          </span>
+
+        </div>
+
+        <div class="setting-row">
+
+          <div>
+            <strong>Права администратора</strong>
+            <span>Полный набор разрешений</span>
+          </div>
+
+          <span class="status status-active">
+            *
+          </span>
+
+        </div>
+
+        <div class="setting-row">
+
+          <div>
+            <strong>Участническая регистрация</strong>
+            <span>Не используется</span>
+          </div>
+
+          <span class="status status-active">
+            ОТКЛЮЧЕНА
+          </span>
+
+        </div>
+
+        <div class="setting-row">
+
+          <div>
+            <strong>Участнический вход</strong>
+            <span>Не используется</span>
+          </div>
+
+          <span class="status status-active">
+            ОТКЛЮЧЕН
+          </span>
+
+        </div>
+
+      </div>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   MODAL
+========================================================= */
+
+function showModal(html) {
+
+  const root =
+    document.getElementById("modalRoot");
+
+  root.innerHTML = `
+    <div class="modal-backdrop"
+      onclick="backdropClose(event)">
+      ${html}
+    </div>
+  `;
+}
+
+
+function backdropClose(event) {
+
+  if (
+    event.target.classList.contains(
+      "modal-backdrop"
+    )
+  ) {
+    closeModal();
+  }
+}
+
+
+function closeModal() {
+
+  document.getElementById("modalRoot")
+    .innerHTML = "";
+}
+
+
+/* =========================================================
+   FORM HELPERS
+========================================================= */
+
+function inputField(name,label,value="",required=false) {
+
+  return `
+    <div class="field">
+
+      <label>${escapeHtml(label)}</label>
+
+      <input
+        name="${escapeHtml(name)}"
+        value="${escapeAttr(value)}"
+        ${required ? "required" : ""}
+      >
+
+    </div>
+  `;
+}
+
+
+function textareaField(name,label,value="") {
+
+  return `
+    <div class="field form-full">
+
+      <label>${escapeHtml(label)}</label>
+
+      <textarea
+        name="${escapeHtml(name)}"
+        rows="6"
+      >${escapeHtml(value)}</textarea>
+
+    </div>
+  `;
+}
+
+
+function selectField(name,label,value,options) {
+
+  return `
+    <div class="field">
+
+      <label>${escapeHtml(label)}</label>
+
+      <select name="${escapeHtml(name)}">
+
+        ${options.map(o => `
+          <option
+            value="${escapeAttr(o)}"
+            ${String(o) === String(value) ? "selected" : ""}
+          >
+            ${escapeHtml(o)}
+          </option>
+        `).join("")}
+
+      </select>
+
+    </div>
+  `;
+}
+
+
+function counterField(name,label,value) {
+
+  return `
+    <div class="field">
+
+      <label>${escapeHtml(label)}</label>
+
+      <input
+        type="number"
+        min="0"
+        step="1"
+        data-counter="${escapeAttr(name)}"
+        value="${escapeAttr(value ?? 0)}"
+      >
+
+    </div>
+  `;
+}
+
+
+function infoField(label,value) {
+
+  return `
+    <div style="
+      padding:13px;
+      background:#f8fafc;
+      border:1px solid #edf0f4;
+      border-radius:12px;
+    ">
+
+      <div style="
+        color:#94a3b8;
+        font-size:10px;
+        font-weight:800;
+        text-transform:uppercase;
+      ">
+        ${escapeHtml(label)}
+      </div>
+
+      <div style="
+        margin-top:5px;
+        font-size:12px;
+        font-weight:800;
+      ">
+        ${escapeHtml(String(value ?? "—"))}
+      </div>
+
+    </div>
+  `;
+}
+
+
+function metricRow(label,value) {
+
+  return `
+    <div class="setting-row">
+
+      <div>
+        <strong>${escapeHtml(label)}</strong>
+        <span>Текущее значение</span>
+      </div>
+
+      <strong>
+        ${val(value)}
+      </strong>
+
+    </div>
+  `;
+}
+
+
+/* =========================================================
+   UTILITIES
+========================================================= */
+
+function escapeHtml(value) {
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+
+function escapeAttr(value) {
+  return escapeHtml(value);
+}
+
+
+function esc(value) {
+  return String(value ?? "")
+    .replace(/\\/g,"\\\\")
+    .replace(/'/g,"\\'")
+    .replace(/"/g,"&quot;");
+}
+
+
+function formatDate(value) {
+
+  if (!value) return "—";
+
+  try {
+
+    return new Date(value)
+      .toLocaleString(
+        "ru-RU",
+        {
+          dateStyle:"short",
+          timeStyle:"short"
         }
+      );
+
+  } catch {
+
+    return String(value);
+  }
+}
+
+
+function toast(message,type="success") {
+
+  const box =
+    document.getElementById("toastBox");
+
+  const item =
+    document.createElement("div");
+
+  item.className =
+    `toast ${type}`;
+
+  item.textContent =
+    message;
+
+  box.appendChild(item);
+
+  setTimeout(() => {
+    item.remove();
+  },4000);
+}
+
+
+/* =========================================================
+   GLOBAL SEARCH
+========================================================= */
+
+document.getElementById("globalSearch")
+.addEventListener("keydown", e => {
+
+  if (e.key !== "Enter") return;
+
+  const q =
+    e.target.value.trim();
+
+  if (!q) return;
+
+  if (
+    q.startsWith("@") ||
+    q.length > 2
+  ) {
+
+    goPage("participants");
+
+    setTimeout(() => {
+
+      const input =
+        document.getElementById(
+          "participantSearch"
+        );
+
+      if (input) {
+
+        input.value = q;
+        loadParticipants();
 
       }
-    );
-}
 
-
-/* ============================================================
-   NEW AUTH FLOW
-============================================================ */
-
-async function checkAuthentication() {
-
-  /*
-   * Вход полностью отключён.
-   *
-   * Панель считается авторизованной
-   * сразу после открытия страницы.
-   */
-
-  state.authenticated =
-    true;
-
-  showDashboard();
-
-  updateAdminIdentity();
-
-  await refreshEverything();
-}
-
-
-/*
- * Совместимость со старым admin.html.
- *
- * Если старый HTML где-то всё ещё
- * вызывает handleLogin(), функция
- * просто открывает панель.
- */
-function handleLogin() {
-  state.authenticated =
-    true;
-
-  showDashboard();
-
-  refreshEverything();
-}
-
-
-/*
- * Совместимость со старым HTML.
- *
- * Реального logout больше нет.
- */
-function handleLogout() {
-  state.authenticated =
-    true;
-
-  showDashboard();
-
-  notify(
-    "Вход администратора отключён.",
-    "info"
-  );
-}
-
-
-/* ============================================================
-   GLOBAL ADMIN API
-============================================================ */
-
-window.TajikAdmin = {
-  state,
-
-  api,
-
-  refresh:
-    refreshEverything,
-
-  loadStats,
-
-  loadSubmissions,
-
-  loadPosts,
-
-  loadUsers,
-
-  loadComments,
-
-  loadChats,
-
-  loadNotifications,
-
-  loadAudit,
-
-  openPost,
-
-  openPostEdit,
-
-  openUser,
-
-  openUserEdit,
-
-  openAdminChat
-};
-
-
-/* ============================================================
-   START
-============================================================ */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-
-    createCountersModal();
-
-    setupEvents();
-
-    setupFilters();
-
-    showDashboard();
-
-    await checkAuthentication();
+    },100);
 
   }
-);
+
+});
+
+
+/* =========================================================
+   START
+========================================================= */
+
+startAdmin();
+
+</script>
+
+</body>
+</html>
