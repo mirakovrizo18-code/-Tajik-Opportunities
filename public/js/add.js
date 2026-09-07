@@ -1,1321 +1,2005 @@
-/* ============================================================
-   TAJIK OPPORTUNITIES
-   PUBLIC/JS/ADD.JS
-   Создание публикации
-   V7 — синхронизирован с public/add.html
-   ============================================================ */
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
-(() => {
-  "use strict";
+<title>Tajik Opportunities — Чёрный список</title>
 
-  const state = {
-    submitting: false,
-    mediaIndex: 1,
-    formChanged: false
-  };
+<style>
+*{
+  box-sizing:border-box;
+}
 
-  const form = document.getElementById("submissionForm");
+:root{
+  --bg:#f4f7fb;
+  --card:#fff;
+  --text:#172033;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --primary:#2563eb;
+  --primary-dark:#1d4ed8;
+  --danger:#dc2626;
+  --danger-bg:#fee2e2;
+  --success:#16a34a;
+  --success-bg:#dcfce7;
+  --warning:#d97706;
+  --warning-bg:#fef3c7;
+  --shadow:0 12px 35px rgba(15,23,42,.08);
+  --radius:18px;
+}
 
-  if (!form) {
-    console.warn("Tajik Opportunities: форма публикации не найдена.");
-    return;
+html,body{
+  margin:0;
+  padding:0;
+  min-height:100%;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Inter,Arial,sans-serif;
+}
+
+button,
+input,
+textarea,
+select{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.app{
+  min-height:100vh;
+}
+
+/* TOP */
+
+.topbar{
+  height:72px;
+  background:rgba(255,255,255,.94);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 25px;
+  position:sticky;
+  top:0;
+  z-index:100;
+  backdrop-filter:blur(14px);
+}
+
+.back{
+  border:0;
+  background:#f1f5f9;
+  color:#334155;
+  border-radius:11px;
+  padding:10px 13px;
+  font-weight:800;
+  margin-right:15px;
+}
+
+.logo{
+  font-size:19px;
+  font-weight:950;
+}
+
+.spacer{
+  flex:1;
+}
+
+.admin{
+  background:#eef2ff;
+  color:#3730a3;
+  padding:9px 13px;
+  border-radius:11px;
+  font-size:13px;
+  font-weight:800;
+}
+
+/* CONTENT */
+
+.content{
+  max-width:1450px;
+  margin:auto;
+  padding:28px;
+}
+
+.head{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:15px;
+  margin-bottom:22px;
+}
+
+.title{
+  margin:0;
+  font-size:30px;
+  font-weight:950;
+}
+
+.subtitle{
+  margin:7px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+/* BUTTONS */
+
+.btn{
+  border:0;
+  border-radius:11px;
+  padding:10px 14px;
+  font-size:13px;
+  font-weight:850;
+  transition:.18s;
+}
+
+.btn:hover{
+  transform:translateY(-1px);
+}
+
+.primary{
+  background:var(--primary);
+  color:#fff;
+}
+
+.primary:hover{
+  background:var(--primary-dark);
+}
+
+.secondary{
+  background:#f1f5f9;
+  color:#334155;
+}
+
+.danger{
+  background:var(--danger-bg);
+  color:#991b1b;
+}
+
+.success{
+  background:var(--success-bg);
+  color:#166534;
+}
+
+.warning{
+  background:var(--warning-bg);
+  color:#92400e;
+}
+
+.small-btn{
+  padding:7px 10px;
+  font-size:12px;
+}
+
+/* STATS */
+
+.stats{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:17px;
+  margin-bottom:20px;
+}
+
+.stat{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:20px;
+  position:relative;
+}
+
+.stat-label{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:750;
+}
+
+.stat-value{
+  margin-top:7px;
+  font-size:30px;
+  font-weight:950;
+}
+
+.stat-icon{
+  position:absolute;
+  right:18px;
+  top:18px;
+  width:43px;
+  height:43px;
+  border-radius:13px;
+  background:#fef2f2;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:21px;
+}
+
+/* CARD */
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+.card-head{
+  padding:18px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.card-title{
+  font-weight:900;
+  font-size:16px;
+}
+
+.card-body{
+  padding:20px;
+}
+
+/* FILTER */
+
+.filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:18px;
+}
+
+.input,
+.select,
+.textarea{
+  width:100%;
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:11px 13px;
+  background:#fff;
+  color:var(--text);
+  outline:none;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(37,99,235,.1);
+}
+
+.search{
+  flex:1;
+  min-width:250px;
+}
+
+.filter-select{
+  width:auto;
+  min-width:180px;
+}
+
+/* TABLE */
+
+.table-wrap{
+  overflow:auto;
+}
+
+table{
+  width:100%;
+  min-width:1050px;
+  border-collapse:collapse;
+}
+
+th{
+  background:#f8fafc;
+  color:#64748b;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  text-align:left;
+  padding:13px 15px;
+  border-bottom:1px solid var(--border);
+}
+
+td{
+  padding:15px;
+  border-bottom:1px solid #edf0f3;
+  font-size:13px;
+  vertical-align:top;
+}
+
+tr:hover td{
+  background:#fafcff;
+}
+
+.id{
+  font-family:monospace;
+  font-size:11px;
+  word-break:break-all;
+  max-width:230px;
+}
+
+.reason{
+  max-width:250px;
+}
+
+.note{
+  max-width:260px;
+  color:#475569;
+}
+
+.status{
+  display:inline-flex;
+  padding:5px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:850;
+}
+
+.status-blocked{
+  background:var(--danger-bg);
+  color:#991b1b;
+}
+
+.status-active{
+  background:var(--success-bg);
+  color:#166534;
+}
+
+/* MODAL */
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.58);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  padding:20px;
+  z-index:1000;
+  backdrop-filter:blur(5px);
+}
+
+.modal.open{
+  display:flex;
+}
+
+.modal-box{
+  width:min(700px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:22px;
+  box-shadow:0 30px 90px rgba(0,0,0,.25);
+}
+
+.modal-head{
+  padding:20px 22px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.modal-title{
+  font-size:19px;
+  font-weight:950;
+}
+
+.close{
+  width:36px;
+  height:36px;
+  border:0;
+  border-radius:10px;
+  background:#f1f5f9;
+  font-size:20px;
+}
+
+.modal-body{
+  padding:22px;
+}
+
+.modal-footer{
+  padding:16px 22px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:flex-end;
+  gap:9px;
+}
+
+.form-group{
+  margin-bottom:16px;
+}
+
+.label{
+  display:block;
+  font-size:12px;
+  font-weight:850;
+  color:#475569;
+  margin-bottom:7px;
+}
+
+.textarea{
+  min-height:120px;
+  resize:vertical;
+}
+
+/* TOAST */
+
+.toast-wrap{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:5000;
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+}
+
+.toast{
+  min-width:280px;
+  max-width:430px;
+  padding:14px 16px;
+  border-radius:13px;
+  color:#fff;
+  background:#111827;
+  font-size:13px;
+  font-weight:750;
+  box-shadow:0 15px 40px rgba(0,0,0,.22);
+}
+
+.toast.success{
+  background:#166534;
+}
+
+.toast.error{
+  background:#991b1b;
+}
+
+/* EMPTY */
+
+.empty{
+  padding:50px 20px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.empty-icon{
+  font-size:44px;
+  margin-bottom:10px;
+}
+
+/* MOBILE */
+
+@media(max-width:900px){
+
+  .stats{
+    grid-template-columns:repeat(2,1fr);
   }
 
-  /* ============================================================
-     ELEMENTS
-     ============================================================ */
+}
 
-  const titleInput = document.getElementById("title");
-  const contentInput = document.getElementById("content");
-  const categoryInput = document.getElementById("category");
-  const subcategoryInput = document.getElementById("subcategory");
+@media(max-width:650px){
 
-  const countryInput = document.getElementById("country");
-  const cityInput = document.getElementById("city");
-  const locationInput = document.getElementById("location");
-  const scopeInput = document.getElementById("scope");
-
-  const eventStartInput = document.getElementById("event_start");
-  const eventEndInput = document.getElementById("event_end");
-  const deadlineInput = document.getElementById("deadline");
-
-  const priceInput = document.getElementById("price");
-  const currencyInput = document.getElementById("currency");
-
-  const employmentInput =
-    document.getElementById("employment_type");
-
-  const workFormatInput =
-    document.getElementById("work_format");
-
-  const experienceInput =
-    document.getElementById("experience");
-
-  const educationInput =
-    document.getElementById("education");
-
-  const languagesInput =
-    document.getElementById("languages");
-
-  const tagsInput =
-    document.getElementById("tags");
-
-  const contactNameInput =
-    document.getElementById("contact_name");
-
-  const contactPhoneInput =
-    document.getElementById("contact_phone");
-
-  const contactEmailInput =
-    document.getElementById("contact_email");
-
-  const contactTelegramInput =
-    document.getElementById("contact_telegram");
-
-  const externalUrlInput =
-    document.getElementById("external_url");
-
-  const authorInput =
-    document.getElementById("author_name");
-
-  const languageInput =
-    document.getElementById("language");
-
-  const translateAllInput =
-    document.getElementById("translateAll");
-
-  const websiteInput =
-    document.getElementById("website");
-
-  const mediaList =
-    document.getElementById("mediaList");
-
-  const addMediaButton =
-    document.getElementById("addMediaButton");
-
-  const submitButton =
-    document.getElementById("submitSubmission");
-
-  const formMessage =
-    document.getElementById("formMessage");
-
-  const successState =
-    document.getElementById("submissionSuccess");
-
-  const submitCard =
-    document.getElementById("submitCard");
-
-  const trackingCodeElement =
-    document.getElementById("trackingCode");
-
-  const copyTrackingButton =
-    document.getElementById("copyTrackingButton");
-
-  const trackingStatusLink =
-    document.getElementById("trackingStatusLink");
-
-  const toast =
-    document.getElementById("toast");
-
-  const titleCounter =
-    document.getElementById("titleCounter");
-
-  const contentCounter =
-    document.getElementById("contentCounter");
-
-
-  /* ============================================================
-     HELPERS
-     ============================================================ */
-
-  function getValue(element) {
-    if (!element) return "";
-    return String(element.value || "").trim();
+  .content{
+    padding:15px;
   }
 
-
-  function getChecked(element) {
-    return Boolean(element && element.checked);
+  .topbar{
+    padding:0 14px;
   }
 
-
-  function safeUrl(url) {
-    if (!url) return true;
-
-    try {
-      const parsed = new URL(url);
-
-      return (
-        parsed.protocol === "http:" ||
-        parsed.protocol === "https:"
-      );
-    } catch {
-      return false;
-    }
+  .logo{
+    font-size:15px;
   }
 
-
-  function escapeHtml(value) {
-    return String(value || "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
+  .admin{
+    display:none;
   }
 
-
-  function showToast(message, type = "success") {
-    if (!toast) return;
-
-    toast.textContent = message;
-
-    toast.className = "toast";
-
-    toast.classList.add("show");
-
-    if (type) {
-      toast.classList.add(type);
-    }
-
-    clearTimeout(toast._timer);
-
-    toast._timer = setTimeout(() => {
-      toast.classList.remove("show");
-    }, 3500);
+  .head{
+    align-items:flex-start;
+    flex-direction:column;
   }
 
-
-  function showMessage(message, type = "error") {
-    if (!formMessage) return;
-
-    formMessage.hidden = false;
-
-    formMessage.textContent = message;
-
-    formMessage.className =
-      "form-message " + type;
-
-    try {
-      formMessage.scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-    } catch {
-      /* ignore */
-    }
+  .title{
+    font-size:23px;
   }
 
-
-  function clearMessage() {
-    if (!formMessage) return;
-
-    formMessage.hidden = true;
-
-    formMessage.textContent = "";
-
-    formMessage.className =
-      "form-message";
+  .stats{
+    grid-template-columns:1fr;
   }
 
+}
+</style>
+</head>
 
-  function setLoading(loading) {
-    if (!submitButton) return;
+<body>
 
-    if (loading) {
-      submitButton.disabled = true;
+<div class="app">
 
-      submitButton.dataset.originalText =
-        submitButton.innerHTML;
+<header class="topbar">
 
-      submitButton.innerHTML =
-        "⏳ Отправляем публикацию...";
-    } else {
-      submitButton.disabled = false;
+  <button class="back"
+          onclick="goAdmin()">
+    ← Админ-панель
+  </button>
 
-      if (submitButton.dataset.originalText) {
-        submitButton.innerHTML =
-          submitButton.dataset.originalText;
-      }
-    }
-  }
+  <div class="logo">
+    🇹🇯 Tajik Opportunities
+  </div>
+
+  <div class="spacer"></div>
+
+  <div class="admin">
+    👑 Администратор
+  </div>
+
+</header>
+
+<main class="content">
+
+  <div class="head">
+
+    <div>
+      <h1 class="title">
+        🚫 Чёрный список
+      </h1>
+
+      <p class="subtitle">
+        Полное управление заблокированными участниками платформы
+      </p>
+    </div>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+
+      <button class="btn secondary"
+              onclick="loadBlacklist()">
+        🔄 Обновить
+      </button>
+
+      <button class="btn danger"
+              onclick="openBlockModal()">
+        🚫 Заблокировать участника
+      </button>
+
+    </div>
+
+  </div>
 
 
-  /* ============================================================
-     COUNTERS
-     ============================================================ */
+  <!-- STATS -->
 
-  function updateCounters() {
-    if (titleCounter) {
-      titleCounter.textContent =
-        String(getValue(titleInput).length);
-    }
+  <div class="stats">
 
-    if (contentCounter) {
-      contentCounter.textContent =
-        String(getValue(contentInput).length);
-    }
-  }
+    <div class="stat">
 
-
-  /* ============================================================
-     MEDIA
-     ============================================================ */
-
-  function createMediaItem(index) {
-    const item =
-      document.createElement("div");
-
-    item.className = "media-item";
-
-    item.dataset.mediaIndex =
-      String(index);
-
-    item.innerHTML = `
-      <div class="media-item-header">
-        <strong>Медиа #${index}</strong>
-
-        <button
-          type="button"
-          class="remove-media"
-          title="Удалить медиа"
-        >
-          ✕ Удалить
-        </button>
+      <div class="stat-label">
+        Всего записей
       </div>
 
-      <div class="form-grid-2">
-
-        <div class="form-group">
-
-          <label>
-            Тип медиа
-          </label>
-
-          <select
-            name="media_type"
-            class="media-type"
-          >
-
-            <option value="image">
-              🖼️ Изображение
-            </option>
-
-            <option value="gallery">
-              🖼️ Галерея
-            </option>
-
-            <option value="video">
-              🎬 Видео
-            </option>
-
-            <option value="music">
-              🎵 Музыка
-            </option>
-
-            <option value="audio">
-              🔊 Аудио
-            </option>
-
-            <option value="link">
-              🔗 Ссылка
-            </option>
-
-            <option value="document">
-              📄 Документ
-            </option>
-
-            <option value="other">
-              📎 Другое
-            </option>
-
-          </select>
-
-        </div>
-
-        <div class="form-group">
-
-          <label>
-            URL
-          </label>
-
-          <input
-            type="url"
-            name="media_url"
-            class="media-url"
-            placeholder="https://example.com/..."
-            inputmode="url"
-          >
-
-        </div>
-
+      <div class="stat-value"
+           id="statTotal">
+        0
       </div>
+
+      <div class="stat-icon">
+        🚫
+      </div>
+
+    </div>
+
+
+    <div class="stat">
+
+      <div class="stat-label">
+        Активные блокировки
+      </div>
+
+      <div class="stat-value"
+           id="statActive">
+        0
+      </div>
+
+      <div class="stat-icon">
+        🔴
+      </div>
+
+    </div>
+
+
+    <div class="stat">
+
+      <div class="stat-label">
+        Разблокированные
+      </div>
+
+      <div class="stat-value"
+           id="statUnblocked">
+        0
+      </div>
+
+      <div class="stat-icon">
+        🟢
+      </div>
+
+    </div>
+
+
+    <div class="stat">
+
+      <div class="stat-label">
+        Сегодня
+      </div>
+
+      <div class="stat-value"
+           id="statToday">
+        0
+      </div>
+
+      <div class="stat-icon">
+        📅
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- FILTER -->
+
+  <div class="filters">
+
+    <input
+      id="search"
+      class="input search"
+      placeholder="🔎 Поиск по ID, причине или заметке..."
+      oninput="renderBlacklist()"
+    >
+
+    <select
+      id="statusFilter"
+      class="select filter-select"
+      onchange="renderBlacklist()">
+
+      <option value="">Все</option>
+      <option value="blocked">Заблокированные</option>
+      <option value="unblocked">Разблокированные</option>
+
+    </select>
+
+  </div>
+
+
+  <!-- TABLE -->
+
+  <div class="card">
+
+    <div class="card-head">
+
+      <div class="card-title">
+        Список участников
+      </div>
+
+      <div class="small"
+           id="countText">
+        0 записей
+      </div>
+
+    </div>
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+
+          <tr>
+
+            <th>Участник</th>
+            <th>Статус</th>
+            <th>Причина</th>
+            <th>Заметка администратора</th>
+            <th>Заблокирован</th>
+            <th>Последняя активность</th>
+            <th>Управление</th>
+
+          </tr>
+
+        </thead>
+
+        <tbody id="blacklistTable">
+
+          <tr>
+
+            <td colspan="7">
+
+              <div class="empty">
+                <div class="empty-icon">⏳</div>
+                Загрузка...
+              </div>
+
+            </td>
+
+          </tr>
+
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</main>
+
+</div>
+
+
+<!-- BLOCK MODAL -->
+
+<div class="modal"
+     id="blockModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <div class="modal-title">
+        🚫 Блокировка участника
+      </div>
+
+      <button class="close"
+              onclick="closeModal('blockModal')">
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
 
       <div class="form-group">
 
-        <label>
-          Подпись
+        <label class="label">
+          ID участника
         </label>
 
         <input
-          type="text"
-          name="media_caption"
-          class="media-caption"
-          maxlength="300"
-          placeholder="Описание медиа"
+          id="blockParticipantId"
+          class="input"
+          placeholder="Например: visitor_xxxxxxxxx"
         >
 
       </div>
-    `;
 
-    return item;
+
+      <div class="form-group">
+
+        <label class="label">
+          Причина блокировки
+        </label>
+
+        <select
+          id="blockReason"
+          class="select">
+
+          <option value="spam">
+            Спам
+          </option>
+
+          <option value="fraud">
+            Мошенничество
+          </option>
+
+          <option value="scam">
+            Обман
+          </option>
+
+          <option value="abuse">
+            Оскорбления / нарушение правил
+          </option>
+
+          <option value="illegal">
+            Запрещённый контент
+          </option>
+
+          <option value="harassment">
+            Преследование
+          </option>
+
+          <option value="fake">
+            Ложная информация
+          </option>
+
+          <option value="other">
+            Другая причина
+          </option>
+
+        </select>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="label">
+          Дополнительная причина
+        </label>
+
+        <textarea
+          id="blockReasonText"
+          class="textarea"
+          placeholder="Подробно укажите причину блокировки..."
+        ></textarea>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="label">
+          Внутренняя заметка администратора
+        </label>
+
+        <textarea
+          id="blockNote"
+          class="textarea"
+          placeholder="Эта заметка видна только администратору..."
+        ></textarea>
+
+      </div>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+      <button class="btn secondary"
+              onclick="closeModal('blockModal')">
+        Отмена
+      </button>
+
+      <button class="btn danger"
+              onclick="blockParticipant()">
+        🚫 Заблокировать
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- EDIT MODAL -->
+
+<div class="modal"
+     id="editModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <div class="modal-title">
+        ✏️ Изменить запись ЧС
+      </div>
+
+      <button class="close"
+              onclick="closeModal('editModal')">
+        ×
+      </button>
+
+    </div>
+
+
+    <div class="modal-body">
+
+      <input type="hidden"
+             id="editId">
+
+
+      <div class="form-group">
+
+        <label class="label">
+          ID участника
+        </label>
+
+        <input
+          id="editParticipantId"
+          class="input"
+          readonly
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="label">
+          Причина
+        </label>
+
+        <input
+          id="editReason"
+          class="input"
+        >
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="label">
+          Заметка администратора
+        </label>
+
+        <textarea
+          id="editNote"
+          class="textarea"
+        ></textarea>
+
+      </div>
+
+
+      <div class="form-group">
+
+        <label class="label">
+          Статус
+        </label>
+
+        <select
+          id="editBlocked"
+          class="select">
+
+          <option value="true">
+            Заблокирован
+          </option>
+
+          <option value="false">
+            Разблокирован
+          </option>
+
+        </select>
+
+      </div>
+
+    </div>
+
+
+    <div class="modal-footer">
+
+      <button class="btn secondary"
+              onclick="closeModal('editModal')">
+        Отмена
+      </button>
+
+      <button class="btn primary"
+              onclick="saveBlacklistEntry()">
+        💾 Сохранить
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- TOAST -->
+
+<div class="toast-wrap"
+     id="toastWrap"></div>
+
+
+<script>
+
+/* =========================================================
+   TAJIK OPPORTUNITIES
+   ADMIN BLACKLIST
+========================================================= */
+
+const API="/api";
+
+let blacklist=[];
+
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function $(id){
+  return document.getElementById(id);
+}
+
+
+function esc(value){
+
+  if(value===null || value===undefined){
+    return "";
   }
 
+  return String(value)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 
-  function addMediaItem() {
-    if (!mediaList) return;
+}
 
-    state.mediaIndex++;
 
-    const item =
-      createMediaItem(state.mediaIndex);
+function formatDate(value){
 
-    mediaList.appendChild(item);
-
-    state.formChanged = true;
-
-    const input =
-      item.querySelector(".media-url");
-
-    if (input) {
-      input.focus();
-    }
+  if(!value){
+    return "—";
   }
 
+  try{
 
-  function renumberMedia() {
-    if (!mediaList) return;
+    return new Date(value)
+      .toLocaleString("ru-RU");
 
-    const items =
-      mediaList.querySelectorAll(
-        ".media-item"
-      );
+  }catch{
 
-    items.forEach((item, index) => {
-      const number = index + 1;
+    return String(value);
 
-      item.dataset.mediaIndex =
-        String(number);
-
-      const title =
-        item.querySelector(
-          ".media-item-header strong"
-        );
-
-      if (title) {
-        title.textContent =
-          `Медиа #${number}`;
-      }
-    });
-
-    state.mediaIndex =
-      items.length || 1;
   }
 
+}
 
-  function collectMedia() {
-    if (!mediaList) return [];
 
-    const items =
-      mediaList.querySelectorAll(
-        ".media-item"
-      );
+function number(value){
 
-    const result = [];
+  return Number(value || 0)
+    .toLocaleString("ru-RU");
 
-    items.forEach((item) => {
-      const type =
-        item.querySelector(".media-type");
+}
 
-      const url =
-        item.querySelector(".media-url");
 
-      const caption =
-        item.querySelector(".media-caption");
+function toast(message,type=""){
 
-      const mediaUrl =
-        getValue(url);
+  const el=document.createElement("div");
 
-      if (!mediaUrl) {
-        return;
-      }
+  el.className="toast "+type;
 
-      result.push({
-        type:
-          getValue(type) || "other",
+  el.textContent=message;
 
-        url:
-          mediaUrl,
+  $("toastWrap").appendChild(el);
 
-        caption:
-          getValue(caption)
-      });
-    });
+  setTimeout(()=>{
+    el.remove();
+  },3500);
 
-    return result;
-  }
+}
 
 
-  /* ============================================================
-     VALIDATION
-     ============================================================ */
+/* =========================================================
+   API
+========================================================= */
 
-  function validate() {
-    const title =
-      getValue(titleInput);
+async function api(path,options={}){
 
-    const content =
-      getValue(contentInput);
+  try{
 
-    const category =
-      getValue(categoryInput);
+    const response=await fetch(
+      API+path,
+      {
+        ...options,
 
-    if (!title) {
-      return "Введите заголовок публикации.";
-    }
-
-    if (title.length < 5) {
-      return "Заголовок должен содержать минимум 5 символов.";
-    }
-
-    if (title.length > 180) {
-      return "Заголовок не должен превышать 180 символов.";
-    }
-
-    if (!content) {
-      return "Введите описание публикации.";
-    }
-
-    if (content.length < 20) {
-      return "Описание должно содержать минимум 20 символов.";
-    }
-
-    if (content.length > 10000) {
-      return "Описание не должно превышать 10000 символов.";
-    }
-
-    if (!category) {
-      return "Выберите категорию.";
-    }
-
-
-    const externalUrl =
-      getValue(externalUrlInput);
-
-    if (
-      externalUrl &&
-      !safeUrl(externalUrl)
-    ) {
-      return "Укажите корректную официальную ссылку.";
-    }
-
-
-    const email =
-      getValue(contactEmailInput);
-
-    if (
-      email &&
-      !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-    ) {
-      return "Укажите корректный email.";
-    }
-
-
-    const price =
-      getValue(priceInput);
-
-    if (price) {
-      const numericPrice =
-        Number(price);
-
-      if (
-        !Number.isFinite(numericPrice) ||
-        numericPrice < 0
-      ) {
-        return "Укажите корректную цену или зарплату.";
-      }
-    }
-
-
-    const eventStart =
-      getValue(eventStartInput);
-
-    const eventEnd =
-      getValue(eventEndInput);
-
-    if (
-      eventStart &&
-      eventEnd &&
-      new Date(eventEnd) < new Date(eventStart)
-    ) {
-      return "Дата окончания не может быть раньше даты начала.";
-    }
-
-
-    const media =
-      collectMedia();
-
-    for (
-      let index = 0;
-      index < media.length;
-      index++
-    ) {
-      if (!safeUrl(media[index].url)) {
-        return (
-          `Некорректная ссылка в медиа #${index + 1}.`
-        );
-      }
-    }
-
-
-    return null;
-  }
-
-
-  /* ============================================================
-     COLLECT PUBLICATION
-     ============================================================ */
-
-  function collectPublication() {
-    const media =
-      collectMedia();
-
-    return {
-
-      title:
-        getValue(titleInput),
-
-      content:
-        getValue(contentInput),
-
-      category:
-        getValue(categoryInput),
-
-      subcategory:
-        getValue(subcategoryInput),
-
-      country:
-        getValue(countryInput),
-
-      city:
-        getValue(cityInput),
-
-      location:
-        getValue(locationInput),
-
-      scope:
-        getValue(scopeInput),
-
-      event_start:
-        getValue(eventStartInput),
-
-      event_end:
-        getValue(eventEndInput),
-
-      deadline:
-        getValue(deadlineInput),
-
-      price:
-        getValue(priceInput),
-
-      currency:
-        getValue(currencyInput),
-
-      employment_type:
-        getValue(employmentInput),
-
-      work_format:
-        getValue(workFormatInput),
-
-      experience:
-        getValue(experienceInput),
-
-      education:
-        getValue(educationInput),
-
-      languages:
-        getValue(languagesInput),
-
-      tags:
-        getValue(tagsInput),
-
-      contact_name:
-        getValue(contactNameInput),
-
-      contact_phone:
-        getValue(contactPhoneInput),
-
-      contact_email:
-        getValue(contactEmailInput),
-
-      contact_telegram:
-        getValue(contactTelegramInput),
-
-      external_url:
-        getValue(externalUrlInput),
-
-      author_name:
-        getValue(authorInput),
-
-      language:
-        getValue(languageInput) || "ru",
-
-      translate_all:
-        getChecked(translateAllInput),
-
-      media
-    };
-  }
-
-
-  /* ============================================================
-     API
-     ============================================================ */
-
-  async function submitPublication(publication) {
-
-    const response =
-      await fetch(
-        "/api/publications",
-        {
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json",
-
-            "Accept":
-              "application/json"
-          },
-
-          credentials:
-            "include",
-
-          body:
-            JSON.stringify(publication)
+        headers:{
+          "Content-Type":"application/json",
+          ...(options.headers || {})
         }
-      );
+      }
+    );
 
 
-    let result = null;
+    const text=await response.text();
 
-    try {
-      result =
-        await response.json();
-    } catch {
-      result = null;
+    let data={};
+
+    try{
+
+      data=text
+        ? JSON.parse(text)
+        : {};
+
+    }catch{
+
+      data={
+        ok:false,
+        error:text ||
+          "Сервер вернул неправильный ответ"
+      };
+
     }
 
 
-    if (!response.ok) {
-
-      if (response.status === 401) {
-        throw new Error(
-          "Чтобы отправить публикацию, сначала войдите в аккаунт."
-        );
-      }
-
-      if (response.status === 403) {
-        throw new Error(
-          result?.error ||
-          result?.message ||
-          "Отправка публикаций сейчас недоступна."
-        );
-      }
-
-      if (response.status === 429) {
-        throw new Error(
-          "Слишком много запросов. Подождите немного и попробуйте снова."
-        );
-      }
+    if(!response.ok){
 
       throw new Error(
-        result?.error ||
-        result?.message ||
-        "Не удалось отправить публикацию."
+        data.error ||
+        data.message ||
+        `Ошибка сервера: ${response.status}`
       );
+
     }
 
 
-    return result;
-  }
+    return data;
 
+  }catch(error){
 
-  /* ============================================================
-     SUCCESS
-     ============================================================ */
+    console.error(error);
 
-  function getTrackingCode(result) {
-
-    return (
-      result?.tracking_code ||
-      result?.trackingCode ||
-      result?.submission_code ||
-      result?.submissionCode ||
-      result?.code ||
-      result?.data?.tracking_code ||
-      result?.data?.trackingCode ||
-      result?.data?.submission_code ||
-      result?.data?.submissionCode ||
-      result?.data?.code ||
-      result?.publication?.tracking_code ||
-      result?.publication?.id ||
-      result?.id ||
-      ""
+    toast(
+      error.message ||
+      "Ошибка соединения с сервером",
+      "error"
     );
+
+    throw error;
+
   }
 
-
-  function showSuccess(result) {
-
-    const code =
-      getTrackingCode(result);
+}
 
 
-    if (trackingCodeElement) {
+/* =========================================================
+   LOAD
+========================================================= */
 
-      trackingCodeElement.textContent =
-        code || "Отправлено";
-    }
+async function loadBlacklist(){
 
+  $("blacklistTable").innerHTML=`
 
-    if (
-      trackingStatusLink &&
-      code
-    ) {
+    <tr>
 
-      trackingStatusLink.href =
-        `/status.html?code=${encodeURIComponent(code)}`;
-    }
+      <td colspan="7">
 
+        <div class="empty">
 
-    if (submitCard) {
-      submitCard.hidden = true;
-    }
+          <div class="empty-icon">
+            ⏳
+          </div>
 
+          Загрузка чёрного списка...
 
-    if (successState) {
-      successState.hidden = false;
-    }
+        </div>
 
+      </td>
 
-    if (formMessage) {
-      formMessage.hidden = true;
-    }
+    </tr>
+
+  `;
 
 
-    state.formChanged = false;
+  try{
+
+    const data=
+      await api("/admin/blacklist");
 
 
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
+    blacklist=
+      data.items ||
+      data.blacklist ||
+      data.rows ||
+      data.participants ||
+      [];
+
+
+    updateStats();
+
+    renderBlacklist();
+
+  }catch(error){
+
+    $("blacklistTable").innerHTML=`
+
+      <tr>
+
+        <td colspan="7">
+
+          <div class="empty">
+
+            <div class="empty-icon">
+              ⚠️
+            </div>
+
+            Не удалось загрузить чёрный список
+
+          </div>
+
+        </td>
+
+      </tr>
+
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   STATS
+========================================================= */
+
+function updateStats(){
+
+  const total=blacklist.length;
+
+  const active=
+    blacklist.filter(
+      x=>Boolean(x.blocked)
+    ).length;
+
+  const unblocked=
+    total-active;
+
+
+  const todayStart=
+    new Date();
+
+  todayStart.setHours(
+    0,0,0,0
+  );
+
+
+  const today=
+    blacklist.filter(x=>{
+
+      const date=
+        new Date(
+          x.blocked_at ||
+          x.created_at
+        );
+
+      return date>=todayStart;
+
+    }).length;
+
+
+  $("statTotal").textContent=
+    number(total);
+
+  $("statActive").textContent=
+    number(active);
+
+  $("statUnblocked").textContent=
+    number(unblocked);
+
+  $("statToday").textContent=
+    number(today);
+
+}
+
+
+/* =========================================================
+   RENDER
+========================================================= */
+
+function renderBlacklist(){
+
+  const search=
+    ($("search").value || "")
+      .trim()
+      .toLowerCase();
+
+
+  const filter=
+    $("statusFilter").value;
+
+
+  let rows=
+    blacklist.filter(item=>{
+
+      const participant=
+        String(
+          item.participant_id ||
+          item.visitor_id ||
+          item.id ||
+          ""
+        ).toLowerCase();
+
+
+      const reason=
+        String(
+          item.reason ||
+          item.reason_text ||
+          ""
+        ).toLowerCase();
+
+
+      const note=
+        String(
+          item.note ||
+          item.admin_note ||
+          ""
+        ).toLowerCase();
+
+
+      const matchesSearch=
+        !search ||
+        participant.includes(search) ||
+        reason.includes(search) ||
+        note.includes(search);
+
+
+      const blocked=
+        Boolean(item.blocked);
+
+
+      const matchesStatus=
+        !filter ||
+        (filter==="blocked" && blocked) ||
+        (filter==="unblocked" && !blocked);
+
+
+      return matchesSearch &&
+             matchesStatus;
+
     });
+
+
+  $("countText").textContent=
+    `${rows.length.toLocaleString("ru-RU")} записей`;
+
+
+  if(!rows.length){
+
+    $("blacklistTable").innerHTML=`
+
+      <tr>
+
+        <td colspan="7">
+
+          <div class="empty">
+
+            <div class="empty-icon">
+              🛡️
+            </div>
+
+            В чёрном списке ничего не найдено
+
+          </div>
+
+        </td>
+
+      </tr>
+
+    `;
+
+    return;
+
   }
 
 
-  /* ============================================================
-     COPY TRACKING CODE
-     ============================================================ */
+  $("blacklistTable").innerHTML=
+    rows.map(renderRow).join("");
 
-  async function copyTrackingCode() {
+}
 
-    if (!trackingCodeElement) {
-      return;
-    }
 
-    const code =
-      trackingCodeElement.textContent.trim();
+function renderRow(item){
 
+  const id=
+    item.id ||
+    item.participant_id ||
+    item.visitor_id ||
+    "";
 
-    if (
-      !code ||
-      code === "—" ||
-      code === "Отправлено"
-    ) {
-      showToast(
-        "Код публикации ещё недоступен.",
-        "warning"
-      );
 
-      return;
-    }
+  const participantId=
+    item.participant_id ||
+    item.visitor_id ||
+    item.id ||
+    "—";
 
 
-    try {
+  const blocked=
+    Boolean(item.blocked);
 
-      if (
-        navigator.clipboard &&
-        window.isSecureContext
-      ) {
 
-        await navigator.clipboard.writeText(
-          code
-        );
+  return `
 
-      } else {
+    <tr>
 
-        const textarea =
-          document.createElement("textarea");
+      <td>
 
-        textarea.value = code;
+        <div class="id">
+          ${esc(participantId)}
+        </div>
 
-        textarea.style.position =
-          "fixed";
+        ${
+          item.publications_count !== undefined
+          ?
+          `
+          <div class="muted"
+               style="margin-top:6px">
+            📰 Публикаций:
+            ${number(item.publications_count)}
+          </div>
+          `
+          :
+          ""
+        }
 
-        textarea.style.left =
-          "-9999px";
+      </td>
 
-        textarea.style.top =
-          "0";
 
-        document.body.appendChild(
-          textarea
-        );
+      <td>
 
-        textarea.focus();
+        ${
+          blocked
 
-        textarea.select();
+          ?
 
-        document.execCommand(
-          "copy"
-        );
+          `
+          <span class="status status-blocked">
+            🔴 Заблокирован
+          </span>
+          `
 
-        textarea.remove();
-      }
+          :
 
+          `
+          <span class="status status-active">
+            🟢 Разблокирован
+          </span>
+          `
 
-      showToast(
-        "Код публикации скопирован.",
-        "success"
-      );
+        }
 
-    } catch (error) {
+      </td>
 
-      console.error(
-        "Copy tracking code error:",
-        error
-      );
 
-      showToast(
-        "Не удалось скопировать код.",
-        "error"
-      );
-    }
-  }
+      <td>
 
+        <div class="reason">
 
-  /* ============================================================
-     SUBMIT
-     ============================================================ */
+          <strong>
+            ${esc(
+              item.reason ||
+              "Без причины"
+            )}
+          </strong>
 
-  async function handleSubmit(event) {
 
-    event.preventDefault();
-
-
-    if (state.submitting) {
-      return;
-    }
-
-
-    clearMessage();
-
-
-    /*
-     * Honeypot.
-     * Если скрытое поле заполнено,
-     * считаем отправку подозрительной.
-     */
-
-    if (getValue(websiteInput)) {
-
-      showMessage(
-        "Не удалось обработать форму.",
-        "error"
-      );
-
-      return;
-    }
-
-
-    const validationError =
-      validate();
-
-
-    if (validationError) {
-
-      showMessage(
-        validationError,
-        "error"
-      );
-
-      return;
-    }
-
-
-    const publication =
-      collectPublication();
-
-
-    state.submitting = true;
-
-    setLoading(true);
-
-
-    try {
-
-      const result =
-        await submitPublication(
-          publication
-        );
-
-
-      state.formChanged = false;
-
-
-      showSuccess(result);
-
-
-      showToast(
-        "Публикация отправлена на модерацию.",
-        "success"
-      );
-
-
-    } catch (error) {
-
-      console.error(
-        "Tajik Opportunities publication error:",
-        error
-      );
-
-
-      showMessage(
-        error?.message ||
-        "Произошла ошибка при отправке публикации. Попробуйте ещё раз.",
-        "error"
-      );
-
-
-      showToast(
-        "Не удалось отправить публикацию.",
-        "error"
-      );
-
-
-    } finally {
-
-      state.submitting = false;
-
-      setLoading(false);
-    }
-  }
-
-
-  /* ============================================================
-     MEDIA EVENTS
-     ============================================================ */
-
-  function handleMediaClick(event) {
-
-    const removeButton =
-      event.target.closest(
-        ".remove-media"
-      );
-
-    if (!removeButton) {
-      return;
-    }
-
-
-    const item =
-      removeButton.closest(
-        ".media-item"
-      );
-
-    if (!item) {
-      return;
-    }
-
-
-    const items =
-      mediaList
-        ? mediaList.querySelectorAll(
-            ".media-item"
-          )
-        : [];
-
-
-    /*
-     * Оставляем хотя бы один блок.
-     */
-
-    if (items.length <= 1) {
-
-      const url =
-        item.querySelector(
-          ".media-url"
-        );
-
-      const caption =
-        item.querySelector(
-          ".media-caption"
-        );
-
-      if (url) {
-        url.value = "";
-      }
-
-      if (caption) {
-        caption.value = "";
-      }
-
-      state.formChanged = true;
-
-      return;
-    }
-
-
-    item.remove();
-
-    renumberMedia();
-
-    state.formChanged = true;
-  }
-
-
-  /* ============================================================
-     FORM CHANGED
-     ============================================================ */
-
-  function markChanged() {
-    state.formChanged = true;
-  }
-
-
-  /* ============================================================
-     CATEGORY HELP
-     ============================================================ */
-
-  function setupCategoryHelp() {
-
-    if (!categoryInput) {
-      return;
-    }
-
-
-    categoryInput.addEventListener(
-      "change",
-      () => {
-
-        const category =
-          getValue(categoryInput);
-
-
-        if (
-          category === "jobs" ||
-          category === "job_seekers" ||
-          category === "employees"
-        ) {
-
-          if (employmentInput) {
-
-            const wrapper =
-              employmentInput.closest(
-                ".form-group"
-              );
-
-            wrapper?.classList.remove(
-              "hidden"
-            );
+          ${
+            item.reason_text
+            ?
+            `
+            <div class="muted"
+                 style="margin-top:5px">
+              ${esc(item.reason_text)}
+            </div>
+            `
+            :
+            ""
           }
-        }
+
+        </div>
+
+      </td>
 
 
-        markChanged();
-      }
-    );
-  }
+      <td>
+
+        <div class="note">
+
+          ${esc(
+            item.note ||
+            item.admin_note ||
+            "Нет заметки"
+          )}
+
+        </div>
+
+      </td>
 
 
-  /* ============================================================
-     BEFORE UNLOAD
-     ============================================================ */
-
-  function setupBeforeUnload() {
-
-    window.addEventListener(
-      "beforeunload",
-      (event) => {
-
-        if (!state.formChanged) {
-          return;
-        }
-
-        event.preventDefault();
-
-        event.returnValue = "";
-      }
-    );
-  }
+      <td>
+        ${formatDate(
+          item.blocked_at ||
+          item.created_at
+        )}
+      </td>
 
 
-  /* ============================================================
-     INITIALIZE
-     ============================================================ */
-
-  function init() {
-
-    form.addEventListener(
-      "submit",
-      handleSubmit
-    );
+      <td>
+        ${formatDate(
+          item.last_seen_at ||
+          item.updated_at
+        )}
+      </td>
 
 
-    form.addEventListener(
-      "input",
-      markChanged
-    );
+      <td>
+
+        <div style="
+          display:flex;
+          gap:6px;
+          flex-wrap:wrap;
+        ">
+
+          <button
+            class="btn small-btn secondary"
+            onclick="editEntry('${esc(id)}')">
+            ✏️ Изменить
+          </button>
 
 
-    form.addEventListener(
-      "change",
-      markChanged
-    );
+          ${
+            blocked
 
+            ?
 
-    if (titleInput) {
+            `
+            <button
+              class="btn small-btn success"
+              onclick="unblock('${esc(id)}')">
+              🔓 Разблокировать
+            </button>
+            `
 
-      titleInput.addEventListener(
-        "input",
-        updateCounters
-      );
-    }
+            :
 
+            `
+            <button
+              class="btn small-btn danger"
+              onclick="blockExisting('${esc(id)}')">
+              🚫 Заблокировать
+            </button>
+            `
 
-    if (contentInput) {
-
-      contentInput.addEventListener(
-        "input",
-        updateCounters
-      );
-    }
-
-
-    if (addMediaButton) {
-
-      addMediaButton.addEventListener(
-        "click",
-        addMediaItem
-      );
-    }
-
-
-    if (mediaList) {
-
-      mediaList.addEventListener(
-        "click",
-        handleMediaClick
-      );
-    }
-
-
-    if (copyTrackingButton) {
-
-      copyTrackingButton.addEventListener(
-        "click",
-        copyTrackingCode
-      );
-    }
-
-
-    setupCategoryHelp();
-
-    setupBeforeUnload();
-
-    updateCounters();
-
-    renumberMedia();
-
-
-    /*
-     * Если форма отправлена успешно,
-     * предупреждение beforeunload отключается.
-     */
-
-    state.formChanged = false;
-  }
-
-
-  /* ============================================================
-     START
-     ============================================================ */
-
-  if (
-    document.readyState ===
-    "loading"
-  ) {
-
-    document.addEventListener(
-      "DOMContentLoaded",
-      init,
-      { once: true }
-    );
-
-  } else {
-
-    init();
-  }
-
-
-  /* ============================================================
-     PUBLIC API
-     ============================================================ */
-
-  window.TajikOpportunitiesAdd = {
-
-    submit: handleSubmit,
-
-    validate,
-
-    collectPublication,
-
-    collectMedia,
-
-    addMedia: addMediaItem,
-
-    resetMedia: () => {
-
-      if (!mediaList) return;
-
-      const items =
-        mediaList.querySelectorAll(
-          ".media-item"
-        );
-
-      items.forEach(
-        (item, index) => {
-
-          if (index > 0) {
-            item.remove();
           }
-        }
-      );
 
-      renumberMedia();
+
+          <button
+            class="btn small-btn danger"
+            onclick="deleteEntry('${esc(id)}')">
+            🗑 Удалить
+          </button>
+
+        </div>
+
+      </td>
+
+    </tr>
+
+  `;
+
+}
+
+
+/* =========================================================
+   OPEN BLOCK
+========================================================= */
+
+function openBlockModal(){
+
+  $("blockParticipantId").value="";
+  $("blockReason").value="spam";
+  $("blockReasonText").value="";
+  $("blockNote").value="";
+
+  openModal("blockModal");
+
+}
+
+
+/* =========================================================
+   BLOCK
+========================================================= */
+
+async function blockParticipant(){
+
+  const participantId=
+    $("blockParticipantId")
+      .value
+      .trim();
+
+
+  if(!participantId){
+
+    toast(
+      "Введите ID участника",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  const reason=
+    $("blockReason").value;
+
+
+  const reasonText=
+    $("blockReasonText")
+      .value
+      .trim();
+
+
+  const note=
+    $("blockNote")
+      .value
+      .trim();
+
+
+  try{
+
+    await api(
+      "/admin/blacklist",
+      {
+        method:"POST",
+
+        body:JSON.stringify({
+
+          participant_id:
+            participantId,
+
+          visitor_id:
+            participantId,
+
+          reason,
+
+          reason_text:
+            reasonText,
+
+          note,
+
+          blocked:true
+
+        })
+
+      }
+    );
+
+
+    closeModal("blockModal");
+
+
+    toast(
+      "Участник добавлен в ЧС",
+      "success"
+    );
+
+
+    loadBlacklist();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   BLOCK EXISTING
+========================================================= */
+
+async function blockExisting(id){
+
+  if(!confirm(
+    "Заблокировать этого участника?"
+  )){
+    return;
+  }
+
+
+  try{
+
+    await api(
+      "/admin/blacklist/"+encodeURIComponent(id),
+      {
+        method:"PATCH",
+
+        body:JSON.stringify({
+
+          blocked:true
+
+        })
+
+      }
+    );
+
+
+    toast(
+      "Участник заблокирован",
+      "success"
+    );
+
+
+    loadBlacklist();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   UNBLOCK
+========================================================= */
+
+async function unblock(id){
+
+  if(!confirm(
+    "Разблокировать этого участника?"
+  )){
+    return;
+  }
+
+
+  try{
+
+    await api(
+      "/admin/blacklist/"+encodeURIComponent(id),
+      {
+        method:"PATCH",
+
+        body:JSON.stringify({
+
+          blocked:false
+
+        })
+
+      }
+    );
+
+
+    toast(
+      "Участник разблокирован",
+      "success"
+    );
+
+
+    loadBlacklist();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   EDIT
+========================================================= */
+
+function editEntry(id){
+
+  const item=
+    blacklist.find(
+      x=>String(
+        x.id ||
+        x.participant_id ||
+        x.visitor_id
+      )===String(id)
+    );
+
+
+  if(!item){
+
+    toast(
+      "Запись не найдена",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  $("editId").value=
+    item.id ||
+    item.participant_id ||
+    item.visitor_id ||
+    "";
+
+
+  $("editParticipantId").value=
+    item.participant_id ||
+    item.visitor_id ||
+    item.id ||
+    "";
+
+
+  $("editReason").value=
+    item.reason ||
+    "";
+
+
+  $("editNote").value=
+    item.note ||
+    item.admin_note ||
+    "";
+
+
+  $("editBlocked").value=
+    item.blocked
+    ? "true"
+    : "false";
+
+
+  openModal("editModal");
+
+}
+
+
+async function saveBlacklistEntry(){
+
+  const id=
+    $("editId").value;
+
+
+  if(!id){
+
+    toast(
+      "Не найден ID записи",
+      "error"
+    );
+
+    return;
+
+  }
+
+
+  try{
+
+    await api(
+      "/admin/blacklist/"+
+      encodeURIComponent(id),
+      {
+        method:"PATCH",
+
+        body:JSON.stringify({
+
+          reason:
+            $("editReason").value,
+
+          note:
+            $("editNote").value,
+
+          blocked:
+            $("editBlocked").value==="true"
+
+        })
+
+      }
+    );
+
+
+    closeModal("editModal");
+
+
+    toast(
+      "Запись сохранена",
+      "success"
+    );
+
+
+    loadBlacklist();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   DELETE
+========================================================= */
+
+async function deleteEntry(id){
+
+  if(!confirm(
+    "Удалить эту запись из чёрного списка?\n\n"+
+    "Это действие удалит саму запись ЧС."
+  )){
+    return;
+  }
+
+
+  try{
+
+    await api(
+      "/admin/blacklist/"+
+      encodeURIComponent(id),
+      {
+        method:"DELETE"
+      }
+    );
+
+
+    toast(
+      "Запись удалена",
+      "success"
+    );
+
+
+    loadBlacklist();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   MODALS
+========================================================= */
+
+function openModal(id){
+
+  $(id).classList.add("open");
+
+}
+
+
+function closeModal(id){
+
+  $(id).classList.remove("open");
+
+}
+
+
+document.querySelectorAll(".modal")
+.forEach(modal=>{
+
+  modal.addEventListener(
+    "click",
+    event=>{
+
+      if(event.target===modal){
+
+        modal.classList.remove("open");
+
+      }
+
+    }
+  );
+
+});
+
+
+document.addEventListener(
+  "keydown",
+  event=>{
+
+    if(event.key==="Escape"){
+
+      document
+        .querySelectorAll(".modal.open")
+        .forEach(modal=>{
+          modal.classList.remove("open");
+        });
+
     }
 
-  };
+  }
+);
 
-})();
+
+/* =========================================================
+   BACK
+========================================================= */
+
+function goAdmin(){
+
+  location.href="/admin.html";
+
+}
+
+
+/* =========================================================
+   INIT
+========================================================= */
+
+loadBlacklist();
+
+</script>
+
+</body>
+</html>
