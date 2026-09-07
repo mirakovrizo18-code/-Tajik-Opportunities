@@ -2,36 +2,76 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>Админ-панель — Tajik Opportunities</title>
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+
+  <meta
+    name="theme-color"
+    content="#0b1220"
+  >
 
   <meta
     name="description"
-    content="Полная панель управления Tajik Opportunities"
+    content="Административная панель Tajik Opportunities"
   >
 
-  <link rel="stylesheet" href="/css/style.css">
+  <title>Админ-панель — Tajik Opportunities</title>
 
   <style>
+    /* =========================================================
+       TAJIK OPPORTUNITIES
+       ADMIN PANEL
+       Version: 2026.09.07
+
+       ADMIN AUTH:
+       - No login
+       - No password
+       - No registration
+       - Direct access
+    ========================================================= */
+
     :root {
-      --admin-bg: #f4f6f9;
-      --admin-card: #ffffff;
-      --admin-border: #e5e7eb;
-      --admin-text: #111827;
-      --admin-muted: #6b7280;
+      --bg: #07101f;
+      --bg-2: #0b1629;
+      --panel: rgba(16, 28, 49, .82);
+      --panel-solid: #101c31;
+      --panel-2: #13233c;
+      --border: rgba(255, 255, 255, .09);
+      --border-strong: rgba(255, 255, 255, .15);
 
-      --admin-primary: #2563eb;
-      --admin-primary-hover: #1d4ed8;
+      --text: #f7f9fc;
+      --text-2: #c5cfdd;
+      --muted: #8391a7;
 
-      --admin-success: #16a34a;
-      --admin-danger: #dc2626;
-      --admin-warning: #d97706;
-      --admin-purple: #7c3aed;
-      --admin-dark: #111827;
+      --gold: #d7ad62;
+      --gold-2: #f1d18e;
+      --gold-soft: rgba(215, 173, 98, .14);
 
-      --admin-radius: 16px;
-      --admin-shadow: 0 8px 30px rgba(0,0,0,.06);
+      --green: #48d597;
+      --green-soft: rgba(72, 213, 151, .13);
+
+      --blue: #62a9ff;
+      --blue-soft: rgba(98, 169, 255, .13);
+
+      --red: #ff6875;
+      --red-soft: rgba(255, 104, 117, .13);
+
+      --orange: #ffae57;
+      --orange-soft: rgba(255, 174, 87, .13);
+
+      --purple: #a989ff;
+      --purple-soft: rgba(169, 137, 255, .13);
+
+      --shadow: 0 24px 70px rgba(0, 0, 0, .35);
+
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+
+      --sidebar: 275px;
     }
 
     * {
@@ -39,23 +79,79 @@
     }
 
     html {
+      min-height: 100%;
       scroll-behavior: smooth;
     }
 
     body {
       margin: 0;
-      background: var(--admin-bg);
-      color: var(--admin-text);
+      min-height: 100vh;
+
+      color: var(--text);
+
       font-family:
-        Arial,
-        Helvetica,
+        Inter,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
         sans-serif;
+
+      background:
+        radial-gradient(
+          circle at 15% 10%,
+          rgba(215, 173, 98, .09),
+          transparent 30%
+        ),
+        radial-gradient(
+          circle at 85% 20%,
+          rgba(98, 169, 255, .07),
+          transparent 30%
+        ),
+        linear-gradient(
+          135deg,
+          #050b15 0%,
+          #07101f 45%,
+          #0a1424 100%
+        );
+
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+
+      pointer-events: none;
+
+      background:
+        linear-gradient(
+          rgba(255,255,255,.018) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          90deg,
+          rgba(255,255,255,.018) 1px,
+          transparent 1px
+        );
+
+      background-size: 42px 42px;
+
+      mask-image: linear-gradient(
+        to bottom,
+        rgba(0,0,0,.7),
+        transparent 90%
+      );
+
+      z-index: -1;
     }
 
     button,
     input,
-    textarea,
-    select {
+    select,
+    textarea {
       font: inherit;
     }
 
@@ -65,4166 +161,5274 @@
 
     a {
       color: inherit;
+      text-decoration: none;
     }
 
-    .admin-page {
-      min-height: 100vh;
-    }
+    /* ======================================================
+       LOADING
+    ====================================================== */
 
-    /* =========================
-       HEADER
-    ========================== */
-
-    .admin-header {
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      background: rgba(255,255,255,.96);
-      backdrop-filter: blur(14px);
-      border-bottom: 1px solid var(--admin-border);
-    }
-
-    .admin-header-inner {
-      max-width: 1500px;
-      margin: 0 auto;
-      padding: 13px 20px;
+    #adminLoading {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
 
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
 
-      gap: 15px;
+      background:
+        radial-gradient(
+          circle at center,
+          rgba(215,173,98,.08),
+          transparent 40%
+        ),
+        #050b15;
     }
 
-    .admin-brand {
+    .loading-box {
+      width: min(420px, calc(100% - 40px));
+
+      padding: 36px;
+
+      text-align: center;
+
+      background: rgba(16,28,49,.9);
+      border: 1px solid var(--border);
+
+      border-radius: 26px;
+
+      box-shadow: var(--shadow);
+
+      backdrop-filter: blur(22px);
+    }
+
+    .loading-logo {
+      width: 66px;
+      height: 66px;
+
+      margin: 0 auto 20px;
+
       display: flex;
       align-items: center;
-      gap: 12px;
-      min-width: 0;
-    }
+      justify-content: center;
 
-    .admin-logo {
-      width: 48px;
-      height: 48px;
+      border-radius: 20px;
 
-      border-radius: 13px;
-      object-fit: cover;
+      background:
+        linear-gradient(
+          145deg,
+          rgba(215,173,98,.25),
+          rgba(215,173,98,.07)
+        );
 
-      background: #eef2ff;
-      border: 1px solid var(--admin-border);
-    }
+      border: 1px solid rgba(215,173,98,.28);
 
-    .admin-brand-title {
-      margin: 0;
-
-      font-size: 18px;
-      font-weight: 900;
-    }
-
-    .admin-brand-subtitle {
-      margin: 3px 0 0;
-
-      color: var(--admin-muted);
-      font-size: 12px;
-    }
-
-    .admin-header-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    /* =========================
-       CONTAINER
-    ========================== */
-
-    .admin-container {
-      max-width: 1500px;
-      margin: 0 auto;
-      padding: 25px 20px 50px;
-    }
-
-    /* =========================
-       BUTTONS
-    ========================== */
-
-    .admin-button {
-      border: 0;
-      border-radius: 10px;
-
-      padding: 10px 14px;
-
-      font-weight: 800;
-      font-size: 13px;
-
-      transition:
-        background .15s,
-        transform .1s,
-        opacity .15s;
-    }
-
-    .admin-button:hover {
-      transform: translateY(-1px);
-    }
-
-    .admin-button:disabled {
-      opacity: .55;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .admin-button-primary {
-      background: var(--admin-primary);
-      color: #fff;
-    }
-
-    .admin-button-primary:hover {
-      background: var(--admin-primary-hover);
-    }
-
-    .admin-button-success {
-      background: var(--admin-success);
-      color: #fff;
-    }
-
-    .admin-button-danger {
-      background: var(--admin-danger);
-      color: #fff;
-    }
-
-    .admin-button-warning {
-      background: var(--admin-warning);
-      color: #fff;
-    }
-
-    .admin-button-purple {
-      background: var(--admin-purple);
-      color: #fff;
-    }
-
-    .admin-button-dark {
-      background: var(--admin-dark);
-      color: #fff;
-    }
-
-    .admin-button-light {
-      background: #fff;
-      color: var(--admin-text);
-      border: 1px solid var(--admin-border);
-    }
-
-    /* =========================
-       LOGIN
-    ========================== */
-
-    .admin-login {
-      max-width: 470px;
-      margin: 65px auto;
-
-      padding: 30px;
-
-      background: #fff;
-      border: 1px solid var(--admin-border);
-      border-radius: 22px;
-
-      box-shadow: var(--admin-shadow);
-    }
-
-    .admin-login h1 {
-      margin: 0 0 8px;
-      font-size: 27px;
-    }
-
-    .admin-login p {
-      margin: 0 0 24px;
-      color: var(--admin-muted);
-      line-height: 1.55;
-    }
-
-    /* =========================
-       FORMS
-    ========================== */
-
-    .admin-form-group {
-      margin-bottom: 15px;
-    }
-
-    .admin-form-group label {
-      display: block;
-      margin-bottom: 7px;
-
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .admin-input,
-    .admin-textarea,
-    .admin-select {
-      width: 100%;
-
-      border: 1px solid var(--admin-border);
-      border-radius: 10px;
-
-      background: #fff;
-      color: var(--admin-text);
-
-      padding: 11px 12px;
-
-      outline: none;
-    }
-
-    .admin-input:focus,
-    .admin-textarea:focus,
-    .admin-select:focus {
-      border-color: var(--admin-primary);
-      box-shadow: 0 0 0 3px rgba(37,99,235,.12);
-    }
-
-    .admin-textarea {
-      min-height: 150px;
-      resize: vertical;
-    }
-
-    /* =========================
-       MESSAGES
-    ========================== */
-
-    .admin-message {
-      display: none;
-
-      margin-top: 12px;
-      padding: 11px 13px;
-
-      border-radius: 10px;
-
-      font-size: 13px;
-      line-height: 1.45;
-    }
-
-    .admin-message.show {
-      display: block;
-    }
-
-    .admin-message.error {
-      color: #991b1b;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-    }
-
-    .admin-message.success {
-      color: #166534;
-      background: #f0fdf4;
-      border: 1px solid #bbf7d0;
-    }
-
-    /* =========================
-       DASHBOARD
-    ========================== */
-
-    .admin-dashboard {
-      display: none;
-    }
-
-    .admin-dashboard.active {
-      display: block;
-    }
-
-    .admin-title-row {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-
-      gap: 15px;
-      margin-bottom: 22px;
-
-      flex-wrap: wrap;
-    }
-
-    .admin-title-row h1 {
-      margin: 0;
       font-size: 30px;
     }
 
-    .admin-title-row p {
-      margin: 5px 0 0;
-      color: var(--admin-muted);
-      line-height: 1.5;
+    .spinner {
+      width: 24px;
+      height: 24px;
+
+      margin: 22px auto 0;
+
+      border: 2px solid rgba(255,255,255,.12);
+      border-top-color: var(--gold);
+
+      border-radius: 50%;
+
+      animation: spin .8s linear infinite;
     }
 
-    .admin-actions {
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ======================================================
+       APP
+    ====================================================== */
+
+    #adminApp {
+      display: none;
+      min-height: 100vh;
+    }
+
+    #adminApp.ready {
+      display: block;
+    }
+
+    /* ======================================================
+       SIDEBAR
+    ====================================================== */
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+
+      width: var(--sidebar);
+
+      padding: 24px 16px;
+
+      background:
+        linear-gradient(
+          180deg,
+          rgba(13,25,44,.98),
+          rgba(7,15,27,.98)
+        );
+
+      border-right: 1px solid var(--border);
+
+      z-index: 100;
+
+      overflow-y: auto;
+    }
+
+    .brand {
       display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
+      align-items: center;
+      gap: 13px;
+
+      padding: 10px 10px 24px;
+
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 20px;
     }
 
-    /* =========================
-       STATS
-    ========================== */
+    .brand-logo {
+      width: 48px;
+      height: 48px;
 
-    .admin-stats {
-      display: grid;
+      flex: 0 0 48px;
 
-      grid-template-columns:
-        repeat(8, minmax(0, 1fr));
+      display: flex;
+      align-items: center;
+      justify-content: center;
 
-      gap: 12px;
-
-      margin-bottom: 25px;
-    }
-
-    .admin-stat {
-      background: #fff;
-
-      border: 1px solid var(--admin-border);
       border-radius: 15px;
 
-      padding: 16px;
+      background:
+        linear-gradient(
+          145deg,
+          rgba(215,173,98,.25),
+          rgba(215,173,98,.06)
+        );
 
-      box-shadow: var(--admin-shadow);
+      border: 1px solid rgba(215,173,98,.25);
+
+      font-size: 22px;
+
+      box-shadow:
+        0 8px 30px rgba(215,173,98,.08);
     }
 
-    .admin-stat-label {
-      color: var(--admin-muted);
+    .brand-text {
+      min-width: 0;
+    }
+
+    .brand-title {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -.2px;
+    }
+
+    .brand-subtitle {
+      margin-top: 4px;
+
+      color: var(--muted);
 
       font-size: 11px;
-      font-weight: 800;
-
-      margin-bottom: 7px;
+      line-height: 1.3;
     }
 
-    .admin-stat-value {
-      font-size: 25px;
-      font-weight: 900;
-
-      overflow-wrap: anywhere;
-    }
-
-    .admin-stat-small {
-      margin-top: 5px;
-      color: var(--admin-muted);
-      font-size: 11px;
-    }
-
-    /* =========================
-       NAVIGATION
-    ========================== */
-
-    .admin-navigation {
-      display: flex;
-      gap: 7px;
-
-      margin-bottom: 22px;
-
-      overflow-x: auto;
-
-      padding-bottom: 4px;
-    }
-
-    .admin-navigation button {
-      flex: 0 0 auto;
-
-      border: 1px solid var(--admin-border);
-      background: #fff;
-
-      border-radius: 999px;
-
-      padding: 9px 14px;
-
-      font-size: 13px;
-      font-weight: 800;
-    }
-
-    .admin-navigation button.active {
-      color: #fff;
-      background: var(--admin-primary);
-      border-color: var(--admin-primary);
-    }
-
-    /* =========================
-       SECTIONS
-    ========================== */
-
-    .admin-section {
-      background: #fff;
-
-      border: 1px solid var(--admin-border);
-      border-radius: var(--admin-radius);
-
-      margin-bottom: 23px;
-
-      overflow: hidden;
-      box-shadow: var(--admin-shadow);
-    }
-
-    .admin-section-header {
-      padding: 18px 20px;
-
-      border-bottom: 1px solid var(--admin-border);
-
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .admin-section-header h2 {
-      margin: 0;
-      font-size: 20px;
-    }
-
-    .admin-section-header p {
-      margin: 4px 0 0;
-
-      color: var(--admin-muted);
-      font-size: 13px;
-    }
-
-    .admin-content {
-      padding: 20px;
-    }
-
-    /* =========================
-       FILTERS
-    ========================== */
-
-    .admin-filters {
-      display: flex;
-      gap: 7px;
-
-      padding: 13px 20px;
-
-      border-bottom: 1px solid var(--admin-border);
-
-      overflow-x: auto;
-    }
-
-    .admin-filter {
-      flex: 0 0 auto;
-
-      border: 1px solid var(--admin-border);
-      background: #fff;
-
-      color: var(--admin-text);
-
-      border-radius: 999px;
-
-      padding: 8px 13px;
-
-      font-size: 12px;
-      font-weight: 800;
-    }
-
-    .admin-filter.active {
-      background: var(--admin-primary);
-      color: #fff;
-      border-color: var(--admin-primary);
-    }
-
-    /* =========================
-       CARDS
-    ========================== */
-
-    .admin-list {
-      display: grid;
-      gap: 13px;
-    }
-
-    .admin-card {
-      border: 1px solid var(--admin-border);
-      border-radius: 14px;
-
-      padding: 16px;
-
-      background: #fff;
-    }
-
-    .admin-card:hover {
-      border-color: #cbd5e1;
-    }
-
-    .admin-card-top {
-      display: flex;
-
-      justify-content: space-between;
-      align-items: flex-start;
-
-      gap: 14px;
-    }
-
-    .admin-card-title {
-      margin: 0;
-
-      font-size: 17px;
-      line-height: 1.4;
-    }
-
-    .admin-card-meta {
-      display: flex;
-      flex-wrap: wrap;
-
-      gap: 6px;
-
-      margin-top: 9px;
-    }
-
-    .admin-badge {
-      display: inline-flex;
-      align-items: center;
-
-      border-radius: 999px;
-
-      padding: 5px 9px;
-
-      background: #f3f4f6;
-      color: #374151;
-
-      font-size: 11px;
-      font-weight: 800;
-    }
-
-    .admin-badge.pending {
-      background: #fff7ed;
-      color: #9a3412;
-    }
-
-    .admin-badge.approved {
-      background: #f0fdf4;
-      color: #166534;
-    }
-
-    .admin-badge.rejected {
-      background: #fef2f2;
-      color: #991b1b;
-    }
-
-    .admin-badge.paid {
-      background: #eff6ff;
-      color: #1d4ed8;
-    }
-
-    .admin-badge.hidden {
-      background: #f3f4f6;
-      color: #374151;
-    }
-
-    .admin-card-preview {
-      margin: 13px 0;
-
-      color: #4b5563;
-
-      line-height: 1.55;
-
-      white-space: pre-line;
-
-      display: -webkit-box;
-      -webkit-line-clamp: 4;
-      -webkit-box-orient: vertical;
-
-      overflow: hidden;
-    }
-
-    .admin-card-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-
-      padding-top: 13px;
-
-      border-top: 1px solid #f0f0f0;
-    }
-
-    /* =========================
-       PUBLICATION STATISTICS
-    ========================== */
-
-    .publication-stat-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(6, minmax(0, 1fr));
-
-      gap: 8px;
-
-      margin: 14px 0;
-    }
-
-    .publication-stat {
-      background: #f8fafc;
-
-      border: 1px solid #e5e7eb;
-
-      border-radius: 11px;
-
-      padding: 10px;
-    }
-
-    .publication-stat-label {
-      color: var(--admin-muted);
+    .sidebar-label {
+      padding: 0 12px;
+      margin: 20px 0 9px;
+
+      color: #687890;
 
       font-size: 10px;
       font-weight: 800;
 
-      margin-bottom: 5px;
+      text-transform: uppercase;
+      letter-spacing: 1.3px;
     }
 
-    .publication-stat-value {
+    .nav {
+      display: grid;
+      gap: 5px;
+    }
+
+    .nav-button {
+      width: 100%;
+
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      padding: 12px 13px;
+
+      border: 1px solid transparent;
+      border-radius: 13px;
+
+      background: transparent;
+      color: var(--text-2);
+
+      text-align: left;
+
+      transition:
+        background .2s ease,
+        border-color .2s ease,
+        color .2s ease,
+        transform .2s ease;
+    }
+
+    .nav-button:hover {
+      background: rgba(255,255,255,.045);
+      border-color: var(--border);
+      color: var(--text);
+
+      transform: translateX(2px);
+    }
+
+    .nav-button.active {
+      color: #fff;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(215,173,98,.17),
+          rgba(215,173,98,.055)
+        );
+
+      border-color:
+        rgba(215,173,98,.22);
+
+      box-shadow:
+        inset 3px 0 0 var(--gold);
+    }
+
+    .nav-icon {
+      width: 23px;
+
+      display: inline-flex;
+      justify-content: center;
+
       font-size: 18px;
-      font-weight: 900;
-
-      overflow-wrap: anywhere;
     }
 
-    /* =========================
-       MANUAL COUNTERS
-    ========================== */
-
-    .counter-editor {
-      margin-top: 14px;
-
-      padding: 15px;
-
-      background: #f8fafc;
-
-      border: 1px solid #e2e8f0;
-
-      border-radius: 14px;
+    .nav-text {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 650;
     }
 
-    .counter-editor-title {
-      margin-bottom: 12px;
+    .nav-badge {
+      min-width: 22px;
+      height: 21px;
 
-      font-size: 14px;
-      font-weight: 900;
+      padding: 0 6px;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 999px;
+
+      color: #fff;
+      background: rgba(255,104,117,.18);
+
+      font-size: 10px;
+      font-weight: 800;
     }
 
-    .counter-grid {
+    .sidebar-bottom {
+      margin-top: 25px;
+      padding-top: 20px;
+
+      border-top: 1px solid var(--border);
+    }
+
+    .admin-card {
+      padding: 14px;
+
+      border-radius: 15px;
+
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--border);
+    }
+
+    .admin-card-top {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+    }
+
+    .admin-avatar {
+      width: 40px;
+      height: 40px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 13px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(215,173,98,.3),
+          rgba(215,173,98,.08)
+        );
+
+      border: 1px solid rgba(215,173,98,.22);
+
+      font-size: 17px;
+    }
+
+    .admin-name {
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .admin-role {
+      margin-top: 3px;
+
+      color: var(--green);
+
+      font-size: 10px;
+      font-weight: 700;
+    }
+
+    /* ======================================================
+       MAIN
+    ====================================================== */
+
+    .main {
+      min-height: 100vh;
+      margin-left: var(--sidebar);
+    }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+
+      min-height: 76px;
+
+      padding: 14px 28px;
+
+      display: flex;
+      align-items: center;
+      gap: 18px;
+
+      background:
+        rgba(7,16,31,.78);
+
+      border-bottom: 1px solid var(--border);
+
+      backdrop-filter: blur(22px);
+
+      z-index: 80;
+    }
+
+    .mobile-menu {
+      display: none;
+
+      width: 42px;
+      height: 42px;
+
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 12px;
+
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+      color: #fff;
+
+      font-size: 20px;
+    }
+
+    .page-heading {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .page-title {
+      margin: 0;
+
+      font-size: 22px;
+      font-weight: 850;
+
+      letter-spacing: -.5px;
+    }
+
+    .page-description {
+      margin-top: 3px;
+
+      color: var(--muted);
+
+      font-size: 12px;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .top-button {
+      min-height: 40px;
+
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+
+      padding: 0 13px;
+
+      border-radius: 11px;
+
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,.04);
+
+      color: var(--text-2);
+
+      font-size: 12px;
+      font-weight: 750;
+
+      transition: .2s ease;
+    }
+
+    .top-button:hover {
+      color: #fff;
+      border-color: var(--border-strong);
+      background: rgba(255,255,255,.075);
+      transform: translateY(-1px);
+    }
+
+    .top-button.primary {
+      color: #16120a;
+
+      border-color: transparent;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--gold-2),
+          var(--gold)
+        );
+
+      box-shadow:
+        0 8px 25px rgba(215,173,98,.13);
+    }
+
+    .top-button.primary:hover {
+      color: #16120a;
+      background:
+        linear-gradient(
+          135deg,
+          #f7dca1,
+          #d9ad5e
+        );
+    }
+
+    /* ======================================================
+       CONTENT
+    ====================================================== */
+
+    .content {
+      padding: 28px;
+      max-width: 1700px;
+      margin: 0 auto;
+    }
+
+    .section {
+      display: none;
+      animation: sectionIn .25s ease;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    @keyframes sectionIn {
+      from {
+        opacity: 0;
+        transform: translateY(5px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero {
+      position: relative;
+
+      padding: 30px;
+
+      margin-bottom: 22px;
+
+      overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+
+      background:
+        radial-gradient(
+          circle at 90% 0%,
+          rgba(215,173,98,.16),
+          transparent 35%
+        ),
+        linear-gradient(
+          135deg,
+          rgba(19,35,60,.94),
+          rgba(11,22,39,.9)
+        );
+
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "";
+
+      position: absolute;
+
+      width: 260px;
+      height: 260px;
+
+      right: -110px;
+      bottom: -150px;
+
+      border-radius: 50%;
+
+      border: 1px solid rgba(215,173,98,.13);
+      box-shadow:
+        0 0 0 35px rgba(215,173,98,.025),
+        0 0 0 70px rgba(215,173,98,.015);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      max-width: 800px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+
+      padding: 6px 10px;
+
+      border-radius: 999px;
+
+      color: var(--gold-2);
+
+      background: var(--gold-soft);
+      border: 1px solid rgba(215,173,98,.18);
+
+      font-size: 10px;
+      font-weight: 800;
+
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .hero h2 {
+      margin: 15px 0 8px;
+
+      font-size: clamp(24px, 3vw, 34px);
+      line-height: 1.1;
+
+      letter-spacing: -.8px;
+    }
+
+    .hero p {
+      margin: 0;
+
+      color: var(--text-2);
+
+      font-size: 13px;
+      line-height: 1.7;
+
+      max-width: 720px;
+    }
+
+    /* ======================================================
+       CARDS
+    ====================================================== */
+
+    .stats-grid {
       display: grid;
 
       grid-template-columns:
         repeat(4, minmax(0, 1fr));
 
+      gap: 14px;
+
+      margin-bottom: 22px;
+    }
+
+    .stat-card {
+      position: relative;
+
+      min-height: 140px;
+
+      padding: 20px;
+
+      overflow: hidden;
+
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(19,35,60,.86),
+          rgba(12,23,40,.86)
+        );
+
+      transition:
+        transform .2s ease,
+        border-color .2s ease;
+
+      box-shadow:
+        0 12px 40px rgba(0,0,0,.16);
+    }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-strong);
+    }
+
+    .stat-icon {
+      width: 38px;
+      height: 38px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 12px;
+
+      font-size: 18px;
+    }
+
+    .stat-icon.gold {
+      color: var(--gold-2);
+      background: var(--gold-soft);
+    }
+
+    .stat-icon.green {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .stat-icon.blue {
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .stat-icon.purple {
+      color: var(--purple);
+      background: var(--purple-soft);
+    }
+
+    .stat-label {
+      margin-top: 15px;
+
+      color: var(--muted);
+
+      font-size: 11px;
+      font-weight: 700;
+    }
+
+    .stat-value {
+      margin-top: 4px;
+
+      font-size: 26px;
+      line-height: 1;
+
+      font-weight: 850;
+      letter-spacing: -.6px;
+    }
+
+    .stat-note {
+      margin-top: 8px;
+
+      color: #718098;
+
+      font-size: 10px;
+    }
+
+    .stat-glow {
+      position: absolute;
+
+      width: 120px;
+      height: 120px;
+
+      right: -60px;
+      top: -60px;
+
+      border-radius: 50%;
+
+      background: rgba(215,173,98,.08);
+
+      filter: blur(10px);
+    }
+
+    /* ======================================================
+       PANELS
+    ====================================================== */
+
+    .grid-2 {
+      display: grid;
+
+      grid-template-columns:
+        minmax(0, 1.2fr)
+        minmax(320px, .8fr);
+
+      gap: 18px;
+
+      margin-bottom: 20px;
+    }
+
+    .panel {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(16,28,49,.9),
+          rgba(11,22,39,.88)
+        );
+
+      overflow: hidden;
+
+      box-shadow:
+        0 12px 45px rgba(0,0,0,.15);
+    }
+
+    .panel-header {
+      min-height: 62px;
+
+      padding: 15px 18px;
+
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title-wrap {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .panel-title {
+      margin: 0;
+
+      font-size: 14px;
+      font-weight: 820;
+    }
+
+    .panel-subtitle {
+      margin-top: 3px;
+
+      color: var(--muted);
+
+      font-size: 10px;
+    }
+
+    .panel-body {
+      padding: 18px;
+    }
+
+    /* ======================================================
+       STATUS
+    ====================================================== */
+
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      padding: 12px 0;
+
+      border-bottom: 1px solid rgba(255,255,255,.055);
+    }
+
+    .status-row:last-child {
+      border-bottom: 0;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+
+      flex: 0 0 8px;
+
+      border-radius: 50%;
+    }
+
+    .status-dot.online {
+      background: var(--green);
+
+      box-shadow:
+        0 0 0 5px rgba(72,213,151,.08),
+        0 0 15px rgba(72,213,151,.35);
+    }
+
+    .status-dot.warning {
+      background: var(--orange);
+
+      box-shadow:
+        0 0 0 5px rgba(255,174,87,.07);
+    }
+
+    .status-name {
+      flex: 1;
+
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .status-value {
+      color: var(--muted);
+      font-size: 10px;
+    }
+
+    /* ======================================================
+       TABLE
+    ====================================================== */
+
+    .table-wrap {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+
+      border-collapse: collapse;
+
+      min-width: 650px;
+    }
+
+    th {
+      padding: 12px 15px;
+
+      color: #728097;
+
+      border-bottom: 1px solid var(--border);
+
+      font-size: 10px;
+      font-weight: 800;
+
+      text-align: left;
+
+      text-transform: uppercase;
+      letter-spacing: .7px;
+    }
+
+    td {
+      padding: 14px 15px;
+
+      border-bottom: 1px solid rgba(255,255,255,.045);
+
+      color: var(--text-2);
+
+      font-size: 11px;
+    }
+
+    tr:last-child td {
+      border-bottom: 0;
+    }
+
+    tr:hover td {
+      background: rgba(255,255,255,.018);
+    }
+
+    /* ======================================================
+       BADGES
+    ====================================================== */
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+
+      padding: 5px 8px;
+
+      border-radius: 999px;
+
+      font-size: 9px;
+      font-weight: 800;
+    }
+
+    .badge.green {
+      color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .badge.red {
+      color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .badge.gold {
+      color: var(--gold-2);
+      background: var(--gold-soft);
+    }
+
+    .badge.blue {
+      color: var(--blue);
+      background: var(--blue-soft);
+    }
+
+    .badge.orange {
+      color: var(--orange);
+      background: var(--orange-soft);
+    }
+
+    /* ======================================================
+       ACTIONS
+    ====================================================== */
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 7px;
+    }
+
+    .action-button {
+      min-height: 34px;
+
+      padding: 0 10px;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+
+      border-radius: 9px;
+
+      color: var(--text-2);
+
+      background: rgba(255,255,255,.035);
+      border: 1px solid var(--border);
+
+      font-size: 10px;
+      font-weight: 750;
+
+      transition: .2s ease;
+    }
+
+    .action-button:hover {
+      color: #fff;
+      border-color: var(--border-strong);
+      background: rgba(255,255,255,.07);
+    }
+
+    .action-button.gold {
+      color: var(--gold-2);
+    }
+
+    .action-button.green {
+      color: var(--green);
+    }
+
+    .action-button.red {
+      color: var(--red);
+    }
+
+    /* ======================================================
+       EMPTY / ERROR
+    ====================================================== */
+
+    .empty {
+      padding: 45px 20px;
+
+      text-align: center;
+
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      margin-bottom: 12px;
+      font-size: 32px;
+      opacity: .75;
+    }
+
+    .empty-title {
+      color: var(--text-2);
+
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .empty-text {
+      margin-top: 5px;
+
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .error-box {
+      padding: 16px;
+
+      color: #ffb3ba;
+
+      border: 1px solid rgba(255,104,117,.2);
+      background: rgba(255,104,117,.07);
+
+      border-radius: 13px;
+
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    /* ======================================================
+       TOOLBAR
+    ====================================================== */
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      margin-bottom: 16px;
+
+      flex-wrap: wrap;
+    }
+
+    .toolbar-spacer {
+      flex: 1;
+    }
+
+    .search {
+      min-width: 230px;
+
+      height: 39px;
+
+      padding: 0 13px;
+
+      color: var(--text);
+
+      border: 1px solid var(--border);
+      border-radius: 10px;
+
+      outline: none;
+
+      background: rgba(255,255,255,.035);
+    }
+
+    .search::placeholder {
+      color: #66758d;
+    }
+
+    .search:focus {
+      border-color:
+        rgba(215,173,98,.35);
+
+      box-shadow:
+        0 0 0 3px rgba(215,173,98,.06);
+    }
+
+    /* ======================================================
+       QUICK ACTIONS
+    ====================================================== */
+
+    .quick-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
       gap: 10px;
     }
 
-    .counter-field label {
-      display: block;
+    .quick {
+      padding: 16px;
 
-      margin-bottom: 5px;
+      text-align: left;
 
-      color: #4b5563;
+      border-radius: 14px;
+
+      border: 1px solid var(--border);
+
+      background: rgba(255,255,255,.025);
+
+      color: var(--text);
+
+      transition: .2s ease;
+    }
+
+    .quick:hover {
+      transform: translateY(-2px);
+
+      background: rgba(255,255,255,.05);
+
+      border-color: var(--border-strong);
+    }
+
+    .quick-icon {
+      font-size: 20px;
+    }
+
+    .quick-title {
+      margin-top: 10px;
 
       font-size: 11px;
       font-weight: 800;
     }
 
-    .counter-field input {
-      width: 100%;
+    .quick-text {
+      margin-top: 4px;
 
-      padding: 10px;
+      color: var(--muted);
 
-      border: 1px solid var(--admin-border);
-      border-radius: 9px;
-
-      font-size: 14px;
-      font-weight: 700;
-
-      outline: none;
+      font-size: 9px;
+      line-height: 1.45;
     }
 
-    .counter-field input:focus {
-      border-color: var(--admin-primary);
-      box-shadow: 0 0 0 3px rgba(37,99,235,.1);
-    }
-
-    .counter-actions {
-      display: flex;
-
-      gap: 8px;
-
-      margin-top: 12px;
-
-      flex-wrap: wrap;
-    }
-
-    .counter-warning {
-      margin-top: 9px;
-
-      color: #92400e;
-
-      font-size: 11px;
-      line-height: 1.4;
-    }
-
-    /* =========================
-       SEARCH
-    ========================== */
-
-    .admin-search {
-      display: grid;
-
-      grid-template-columns:
-        minmax(0, 1fr)
-        auto;
-
-      gap: 8px;
-
-      margin-bottom: 15px;
-    }
-
-    /* =========================
-       EMPTY / LOADING
-    ========================== */
-
-    .admin-empty,
-    .admin-loading,
-    .admin-error {
-      padding: 35px 15px;
-
-      text-align: center;
-
-      color: var(--admin-muted);
-    }
-
-    .admin-error {
-      color: #991b1b;
-    }
-
-    .admin-hidden {
-      display: none !important;
-    }
-
-    /* =========================
-       USER MANAGEMENT
-    ========================== */
-
-    .user-card {
-      display: grid;
-
-      grid-template-columns: auto minmax(0,1fr) auto;
-
-      align-items: center;
-
-      gap: 14px;
-
-      padding: 14px;
-
-      border: 1px solid var(--admin-border);
-
-      border-radius: 14px;
-
-      background: #fff;
-    }
-
-    .user-avatar {
-      width: 48px;
-      height: 48px;
-
-      border-radius: 50%;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      background: #eef2ff;
-
-      overflow: hidden;
-
-      font-size: 23px;
-    }
-
-    .user-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .user-name {
-      font-weight: 900;
-    }
-
-    .user-username {
-      margin-top: 3px;
-
-      color: var(--admin-muted);
-
-      font-size: 12px;
-    }
-
-    .user-meta {
-      display: flex;
-
-      flex-wrap: wrap;
-
-      gap: 6px;
-
-      margin-top: 7px;
-    }
-
-    .user-actions {
-      display: flex;
-
-      gap: 6px;
-
-      flex-wrap: wrap;
-
-      justify-content: flex-end;
-    }
-
-    /* =========================
-       TABLE
-    ========================== */
-
-    .admin-table-wrap {
-      overflow-x: auto;
-    }
-
-    .admin-table {
-      width: 100%;
-
-      border-collapse: collapse;
-
-      min-width: 850px;
-    }
-
-    .admin-table th,
-    .admin-table td {
-      padding: 11px;
-
-      border-bottom: 1px solid var(--admin-border);
-
-      text-align: left;
-
-      font-size: 12px;
-
-      vertical-align: middle;
-    }
-
-    .admin-table th {
-      color: var(--admin-muted);
-
-      font-size: 11px;
-      text-transform: uppercase;
-    }
-
-    /* =========================
-       DANGER ZONE
-    ========================== */
-
-    .admin-danger-zone {
-      margin-bottom: 15px;
-
-      padding: 13px;
-
-      background: #fff7ed;
-
-      border: 1px solid #fed7aa;
-
-      border-radius: 12px;
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: space-between;
-
-      gap: 12px;
-
-      flex-wrap: wrap;
-    }
-
-    .admin-danger-zone strong {
-      color: #9a3412;
-    }
-
-    /* =========================
-       MODAL
-    ========================== */
-
-    .admin-modal {
-      position: fixed;
-
-      inset: 0;
-
-      z-index: 500;
-
+    /* ======================================================
+       MOBILE OVERLAY
+    ====================================================== */
+
+    .sidebar-overlay {
       display: none;
 
-      align-items: center;
-      justify-content: center;
+      position: fixed;
+      inset: 0;
 
-      padding: 15px;
+      background: rgba(0,0,0,.58);
 
-      background: rgba(0,0,0,.62);
+      z-index: 90;
     }
 
-    .admin-modal.active {
-      display: flex;
-    }
-
-    .admin-modal-box {
-      width: min(1000px,100%);
-
-      max-height: 94vh;
-
-      overflow: auto;
-
-      background: #fff;
-
-      border-radius: 18px;
-
-      box-shadow:
-        0 25px 80px rgba(0,0,0,.28);
-    }
-
-    .admin-modal-header {
-      position: sticky;
-
-      top: 0;
-
-      z-index: 2;
-
-      padding: 17px 20px;
-
-      border-bottom: 1px solid var(--admin-border);
-
-      display: flex;
-
-      align-items: center;
-      justify-content: space-between;
-
-      background: #fff;
-    }
-
-    .admin-modal-header h2 {
-      margin: 0;
-      font-size: 19px;
-    }
-
-    .admin-modal-close {
-      width: 38px;
-      height: 38px;
-
-      border: 0;
-
-      border-radius: 10px;
-
-      background: #f3f4f6;
-
-      font-size: 21px;
-    }
-
-    .admin-modal-body {
-      padding: 20px;
-    }
-
-    .admin-modal-footer {
-      position: sticky;
-
-      bottom: 0;
-
-      padding: 14px 20px;
-
-      border-top: 1px solid var(--admin-border);
-
-      background: #fff;
-
-      display: flex;
-
-      justify-content: flex-end;
-
-      gap: 8px;
-
-      flex-wrap: wrap;
-    }
-
-    .admin-detail {
-      display: grid;
-
-      gap: 13px;
-    }
-
-    .admin-detail-row {
-      padding-bottom: 11px;
-
-      border-bottom: 1px solid #f0f0f0;
-    }
-
-    .admin-detail-label {
+    .sidebar-overlay.active {
       display: block;
-
-      margin-bottom: 5px;
-
-      color: var(--admin-muted);
-
-      font-size: 10px;
-      font-weight: 900;
-
-      text-transform: uppercase;
     }
 
-    .admin-detail-value {
-      white-space: pre-wrap;
+    /* ======================================================
+       TOAST
+    ====================================================== */
 
-      line-height: 1.55;
+    #toast {
+      position: fixed;
 
-      overflow-wrap: anywhere;
+      right: 24px;
+      bottom: 24px;
+
+      max-width: 370px;
+
+      padding: 13px 16px;
+
+      display: none;
+      align-items: center;
+      gap: 10px;
+
+      color: #fff;
+
+      background:
+        rgba(17,29,49,.96);
+
+      border: 1px solid var(--border-strong);
+
+      border-radius: 13px;
+
+      box-shadow: var(--shadow);
+
+      backdrop-filter: blur(20px);
+
+      font-size: 11px;
+      font-weight: 700;
+
+      z-index: 10000;
     }
 
-    .admin-edit-grid {
-      display: grid;
-
-      grid-template-columns:
-        1fr 1fr;
-
-      gap: 14px;
+    #toast.show {
+      display: flex;
+      animation: toastIn .25s ease;
     }
 
-    .admin-edit-full {
-      grid-column: 1 / -1;
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
-    /* =========================
-       CONFIRM OVERLAY
-    ========================== */
-
-    .counter-confirm-box {
-      max-width: 520px;
-    }
-
-    .confirm-summary {
-      padding: 15px;
-
-      background: #f8fafc;
-
-      border-radius: 12px;
-
-      border: 1px solid var(--admin-border);
-
-      line-height: 1.65;
-    }
-
-    .confirm-summary strong {
-      font-weight: 900;
-    }
-
-    /* =========================
-       FOOTER
-    ========================== */
-
-    .admin-footer {
-      max-width: 1500px;
-
-      margin: 0 auto;
-
-      padding: 20px;
-
-      color: var(--admin-muted);
-
-      font-size: 12px;
-
-      text-align: center;
-    }
-
-    /* =========================
+    /* ======================================================
        RESPONSIVE
-    ========================== */
+    ====================================================== */
 
-    @media (max-width: 1250px) {
-      .admin-stats {
+    @media (max-width: 1200px) {
+
+      .stats-grid {
         grid-template-columns:
-          repeat(4, minmax(0,1fr));
+          repeat(2, minmax(0, 1fr));
       }
 
-      .publication-stat-grid {
-        grid-template-columns:
-          repeat(3, minmax(0,1fr));
-      }
-
-      .counter-grid {
-        grid-template-columns:
-          repeat(2, minmax(0,1fr));
-      }
-    }
-
-    @media (max-width: 800px) {
-      .admin-stats {
-        grid-template-columns:
-          repeat(2, minmax(0,1fr));
-      }
-
-      .admin-edit-grid {
+      .grid-2 {
         grid-template-columns: 1fr;
       }
 
-      .admin-edit-full {
-        grid-column: auto;
-      }
-
-      .user-card {
-        grid-template-columns:
-          auto minmax(0,1fr);
-      }
-
-      .user-actions {
-        grid-column: 1 / -1;
-        justify-content: stretch;
-      }
-
-      .user-actions .admin-button {
-        flex: 1;
-      }
     }
 
-    @media (max-width: 560px) {
-      .admin-header-inner {
-        align-items: flex-start;
-        flex-direction: column;
+    @media (max-width: 900px) {
+
+      :root {
+        --sidebar: 270px;
       }
 
-      .admin-header-actions {
-        width: 100%;
+      .sidebar {
+        transform: translateX(-100%);
+
+        transition:
+          transform .25s ease;
+
+        box-shadow:
+          20px 0 70px rgba(0,0,0,.35);
       }
 
-      .admin-header-actions .admin-button {
-        flex: 1;
+      .sidebar.open {
+        transform: translateX(0);
       }
 
-      .admin-container {
-        padding: 18px 11px 35px;
+      .main {
+        margin-left: 0;
       }
 
-      .admin-title-row h1 {
-        font-size: 24px;
+      .mobile-menu {
+        display: inline-flex;
       }
 
-      .admin-stats {
-        grid-template-columns:
-          1fr 1fr;
-
-        gap: 8px;
+      .content {
+        padding: 20px;
       }
 
-      .admin-stat {
-        padding: 13px;
+      .topbar {
+        padding: 12px 18px;
       }
 
-      .admin-stat-value {
-        font-size: 21px;
+    }
+
+    @media (max-width: 650px) {
+
+      .stats-grid {
+        grid-template-columns: 1fr;
       }
 
-      .admin-section-header,
-      .admin-content {
+      .content {
         padding: 14px;
       }
 
-      .publication-stat-grid {
-        grid-template-columns:
-          1fr 1fr;
+      .topbar {
+        min-height: 68px;
+        padding: 10px 12px;
       }
 
-      .counter-grid {
-        grid-template-columns:
-          1fr 1fr;
+      .page-title {
+        font-size: 17px;
       }
 
-      .admin-search {
+      .page-description {
+        display: none;
+      }
+
+      .top-button span {
+        display: none;
+      }
+
+      .top-button {
+        width: 40px;
+        padding: 0;
+
+        justify-content: center;
+      }
+
+      .hero {
+        padding: 22px 18px;
+        border-radius: 19px;
+      }
+
+      .hero h2 {
+        font-size: 24px;
+      }
+
+      .panel-header,
+      .panel-body {
+        padding-left: 14px;
+        padding-right: 14px;
+      }
+
+      .quick-grid {
         grid-template-columns: 1fr;
       }
 
-      .admin-button {
-        min-height: 40px;
-      }
-    }
-
-    @media (max-width: 390px) {
-      .counter-grid,
-      .publication-stat-grid {
-        grid-template-columns: 1fr;
+      .search {
+        width: 100%;
+        min-width: 0;
       }
 
-      .admin-stats {
-        grid-template-columns: 1fr 1fr;
+      .toolbar {
+        align-items: stretch;
       }
+
+      .toolbar-spacer {
+        display: none;
+      }
+
+      #toast {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        max-width: none;
+      }
+
     }
   </style>
 </head>
 
 <body>
 
-<div class="admin-page">
-
-  <!-- =====================================================
-       HEADER
+  <!-- ======================================================
+       LOADING
   ====================================================== -->
 
-  <header class="admin-header">
+  <div id="adminLoading">
 
-    <div class="admin-header-inner">
+    <div class="loading-box">
 
-      <div class="admin-brand">
-
-        <img
-          class="admin-logo"
-          src="/images/logo.png"
-          alt="Tajik Opportunities"
-          onerror="this.style.display='none'"
-        >
-
-        <div>
-          <h1 class="admin-brand-title">
-            🇹🇯 Tajik Opportunities
-          </h1>
-
-          <p class="admin-brand-subtitle">
-            Центр полного управления платформой
-          </p>
-        </div>
-
+      <div class="loading-logo">
+        🇹🇯
       </div>
 
-      <div class="admin-header-actions">
-
-        <a
-          href="/"
-          class="admin-button admin-button-light"
-          style="text-decoration:none;"
-        >
-          🌐 На сайт
-        </a>
-
-        <button
-          id="adminRefresh"
-          type="button"
-          class="admin-button admin-button-primary"
-        >
-          🔄 Обновить
-        </button>
-
-        <button
-          id="adminLogout"
-          type="button"
-          class="admin-button admin-button-dark"
-        >
-          🚪 Выйти
-        </button>
-
+      <div
+        style="
+          font-size:18px;
+          font-weight:850;
+        "
+      >
+        Tajik Opportunities
       </div>
+
+      <div
+        style="
+          margin-top:6px;
+          color:#8391a7;
+          font-size:11px;
+        "
+      >
+        Загрузка административной панели…
+      </div>
+
+      <div class="spinner"></div>
 
     </div>
 
-  </header>
+  </div>
 
 
-  <main class="admin-container">
+  <!-- ======================================================
+       APPLICATION
+  ====================================================== -->
 
-    <!-- =====================================================
-         LOGIN
-    ====================================================== -->
+  <div id="adminApp">
 
-    <section id="adminLogin" class="admin-login">
+    <!-- SIDEBAR OVERLAY -->
 
-      <h1>
-        🔐 Вход администратора
-      </h1>
-
-      <p>
-        Панель администратора Tajik Opportunities.
-        После входа доступны управление участниками,
-        публикациями, статистикой, заявками, сообщениями,
-        комментариями и другими разделами.
-      </p>
-
-      <div class="admin-form-group">
-
-        <label for="adminPassword">
-          Пароль администратора
-        </label>
-
-        <input
-          id="adminPassword"
-          class="admin-input"
-          type="password"
-          autocomplete="current-password"
-          placeholder="Введите пароль"
-        >
-
-      </div>
-
-      <button
-        id="adminLoginButton"
-        type="button"
-        class="admin-button admin-button-primary"
-        style="width:100%;"
-      >
-        🔑 Войти в панель
-      </button>
-
-      <div
-        id="adminLoginMessage"
-        class="admin-message"
-      ></div>
-
-    </section>
+    <div
+      class="sidebar-overlay"
+      id="sidebarOverlay"
+    ></div>
 
 
-    <!-- =====================================================
-         DASHBOARD
-    ====================================================== -->
+    <!-- ====================================================
+         SIDEBAR
+    ==================================================== -->
 
-    <section
-      id="adminDashboard"
-      class="admin-dashboard"
+    <aside
+      class="sidebar"
+      id="sidebar"
     >
 
-      <!-- TITLE -->
+      <div class="brand">
 
-      <div class="admin-title-row">
-
-        <div>
-
-          <h1>
-            Панель управления
-          </h1>
-
-          <p>
-            Управляйте участниками, публикациями,
-            статистикой, заявками, комментариями,
-            сообщениями и другими данными платформы.
-          </p>
-
+        <div class="brand-logo">
+          🇹🇯
         </div>
 
-        <div class="admin-actions">
+        <div class="brand-text">
 
-          <button
-            id="adminDashboardRefresh"
-            type="button"
-            class="admin-button admin-button-primary"
-          >
-            🔄 Обновить всё
-          </button>
+          <div class="brand-title">
+            Tajik Opportunities
+          </div>
+
+          <div class="brand-subtitle">
+            Центр управления платформой
+          </div>
 
         </div>
 
       </div>
 
 
-      <!-- ===================================================
-           MAIN STATS
-      ==================================================== -->
-
-      <div class="admin-stats">
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            👥 Участники
-          </div>
-          <div
-            id="usersCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            📝 Публикации
-          </div>
-          <div
-            id="totalCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            ⏳ Модерация
-          </div>
-          <div
-            id="pendingCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            ✅ Опубликовано
-          </div>
-          <div
-            id="approvedCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            ❌ Отклонено
-          </div>
-          <div
-            id="rejectedCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            👁️ Просмотры
-          </div>
-          <div
-            id="viewsCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            ❤️ Реакции
-          </div>
-          <div
-            id="likesCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
-        <div class="admin-stat">
-          <div class="admin-stat-label">
-            🗑️ Корзина
-          </div>
-          <div
-            id="trashCount"
-            class="admin-stat-value"
-          >
-            0
-          </div>
-        </div>
-
+      <div class="sidebar-label">
+        Управление
       </div>
 
 
-      <!-- ===================================================
-           NAVIGATION
-      ==================================================== -->
-
-      <div class="admin-navigation">
+      <nav class="nav">
 
         <button
-          type="button"
-          class="active"
-          data-admin-section="overview"
+          class="nav-button active"
+          data-section="overview"
         >
-          📊 Обзор
+          <span class="nav-icon">◈</span>
+          <span class="nav-text">Обзор</span>
         </button>
+
 
         <button
-          type="button"
-          data-admin-section="users"
+          class="nav-button"
+          data-section="publications"
         >
-          👥 Участники
+          <span class="nav-icon">▤</span>
+          <span class="nav-text">Публикации</span>
+          <span
+            class="nav-badge"
+            id="pendingBadge"
+            style="display:none;"
+          >
+            0
+          </span>
         </button>
+
 
         <button
-          type="button"
-          data-admin-section="publications"
+          class="nav-button"
+          data-section="users"
         >
-          📰 Публикации
+          <span class="nav-icon">♙</span>
+          <span class="nav-text">Пользователи</span>
         </button>
+
 
         <button
-          type="button"
-          data-admin-section="submissions"
+          class="nav-button"
+          data-section="chat"
         >
-          📥 Заявки
+          <span class="nav-icon">◌</span>
+          <span class="nav-text">Чат</span>
+          <span
+            class="nav-badge"
+            id="chatBadge"
+            style="display:none;"
+          >
+            0
+          </span>
         </button>
+
 
         <button
-          type="button"
-          data-admin-section="chats"
+          class="nav-button"
+          data-section="notifications"
         >
-          💬 Сообщения
+          <span class="nav-icon">♢</span>
+          <span class="nav-text">Уведомления</span>
         </button>
 
-        <button
-          type="button"
-          data-admin-section="comments"
-        >
-          💬 Комментарии
-        </button>
 
-        <button
-          type="button"
-          data-admin-section="trash"
-        >
-          🗑️ Корзина
-        </button>
-
-        <button
-          type="button"
-          data-admin-section="tools"
-        >
-          🛠️ Инструменты
-        </button>
-
-      </div>
-
-
-      <!-- ===================================================
-           OVERVIEW
-      ==================================================== -->
-
-      <section
-        id="adminOverviewSection"
-        class="admin-section"
-      >
-
-        <div class="admin-section-header">
-
-          <div>
-
-            <h2>
-              📊 Центр управления
-            </h2>
-
-            <p>
-              Быстрый доступ к основным функциям администратора.
-            </p>
-
-          </div>
-
+        <div class="sidebar-label">
+          Аналитика
         </div>
 
-        <div class="admin-content">
 
-          <div class="admin-list">
+        <button
+          class="nav-button"
+          data-section="stats"
+        >
+          <span class="nav-icon">◒</span>
+          <span class="nav-text">Статистика</span>
+        </button>
 
-            <div class="admin-card">
 
-              <div class="admin-card-top">
+        <button
+          class="nav-button"
+          data-section="audit"
+        >
+          <span class="nav-icon">◫</span>
+          <span class="nav-text">Журнал действий</span>
+        </button>
 
-                <div>
+      </nav>
 
-                  <h3 class="admin-card-title">
-                    👥 Управление участниками
-                  </h3>
 
-                  <p class="admin-card-preview">
-                    Просматривайте профили участников,
-                    идентификаторы, usernames, статусы,
-                    статистику и выполняйте действия управления.
-                  </p>
+      <div class="sidebar-bottom">
 
-                </div>
+        <div class="admin-card">
 
-                <button
-                  type="button"
-                  class="admin-button admin-button-primary"
-                  data-admin-section-jump="users"
-                >
-                  Открыть
-                </button>
+          <div class="admin-card-top">
 
-              </div>
-
+            <div class="admin-avatar">
+              ♛
             </div>
-
-
-            <div class="admin-card">
-
-              <div class="admin-card-top">
-
-                <div>
-
-                  <h3 class="admin-card-title">
-                    📰 Управление публикациями
-                  </h3>
-
-                  <p class="admin-card-preview">
-                    Открывайте публикации, редактируйте содержимое,
-                    меняйте категорию, автора, статус и вручную
-                    корректируйте показатели.
-                  </p>
-
-                </div>
-
-                <button
-                  type="button"
-                  class="admin-button admin-button-primary"
-                  data-admin-section-jump="publications"
-                >
-                  Открыть
-                </button>
-
-              </div>
-
-            </div>
-
-
-            <div class="admin-card">
-
-              <div class="admin-card-top">
-
-                <div>
-
-                  <h3 class="admin-card-title">
-                    📥 Модерация заявок
-                  </h3>
-
-                  <p class="admin-card-preview">
-                    Проверяйте новые публикации и принимайте,
-                    отклоняйте, скрывайте или публикуйте их.
-                  </p>
-
-                </div>
-
-                <button
-                  type="button"
-                  class="admin-button admin-button-primary"
-                  data-admin-section-jump="submissions"
-                >
-                  Открыть
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </section>
-
-
-      <!-- ===================================================
-           USERS
-      ==================================================== -->
-
-      <section
-        id="adminUsersSection"
-        class="admin-section admin-hidden"
-      >
-
-        <div class="admin-section-header">
-
-          <div>
-
-            <h2>
-              👥 Участники
-            </h2>
-
-            <p>
-              Поиск, просмотр и управление пользователями.
-            </p>
-
-          </div>
-
-          <button
-            id="adminUsersRefresh"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            🔄 Обновить
-          </button>
-
-        </div>
-
-        <div class="admin-content">
-
-          <div class="admin-search">
-
-            <input
-              id="usersSearch"
-              class="admin-input"
-              type="search"
-              placeholder="Имя, @username или ID..."
-            >
-
-            <button
-              id="usersSearchButton"
-              type="button"
-              class="admin-button admin-button-primary"
-            >
-              🔎 Найти
-            </button>
-
-          </div>
-
-          <div
-            id="usersLoading"
-            class="admin-loading"
-          >
-            ⏳ Загружаем участников...
-          </div>
-
-          <div
-            id="usersError"
-            class="admin-error admin-hidden"
-          ></div>
-
-          <div
-            id="usersEmpty"
-            class="admin-empty admin-hidden"
-          >
-            👥 Участники не найдены.
-          </div>
-
-          <div
-            id="usersList"
-            class="admin-list"
-          ></div>
-
-        </div>
-
-      </section>
-
-
-      <!-- ===================================================
-           PUBLICATIONS
-      ==================================================== -->
-
-      <section
-        id="adminPublicationsSection"
-        class="admin-section admin-hidden"
-      >
-
-        <div class="admin-section-header">
-
-          <div>
-
-            <h2>
-              📰 Все публикации
-            </h2>
-
-            <p>
-              Полный контроль над публикациями и их статистикой.
-            </p>
-
-          </div>
-
-          <div class="admin-actions">
-
-            <button
-              id="adminPostsRefresh"
-              type="button"
-              class="admin-button admin-button-light"
-            >
-              🔄 Обновить
-            </button>
-
-            <button
-              id="trashAllPostsButton"
-              type="button"
-              class="admin-button admin-button-warning"
-            >
-              🗑️ В корзину
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <div class="admin-filters">
-
-          <button
-            type="button"
-            class="admin-filter active"
-            data-post-filter="all"
-          >
-            📋 Все
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-post-filter="published"
-          >
-            🟢 Опубликованные
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-post-filter="pending"
-          >
-            ⏳ Модерация
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-post-filter="waiting_payment"
-          >
-            💳 Ожидают оплаты
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-post-filter="paid"
-          >
-            💰 Оплаченные
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-post-filter="rejected"
-          >
-            ❌ Отклонённые
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-post-filter="hidden"
-          >
-            👁️ Скрытые
-          </button>
-
-        </div>
-
-
-        <div class="admin-content">
-
-          <div
-            id="adminPostsLoading"
-            class="admin-loading"
-          >
-            ⏳ Загружаем публикации...
-          </div>
-
-          <div
-            id="adminPostsError"
-            class="admin-error admin-hidden"
-          ></div>
-
-          <div
-            id="adminPostsEmpty"
-            class="admin-empty admin-hidden"
-          >
-            📰 Публикаций пока нет.
-          </div>
-
-          <div
-            id="adminPostsList"
-            class="admin-list"
-          ></div>
-
-        </div>
-
-      </section>
-
-
-      <!-- ===================================================
-           SUBMISSIONS
-      ==================================================== -->
-
-      <section
-        id="adminSubmissionsSection"
-        class="admin-section admin-hidden"
-      >
-
-        <div class="admin-section-header">
-
-          <div>
-
-            <h2>
-              📥 Заявки
-            </h2>
-
-            <p>
-              Управление заявками перед публикацией.
-            </p>
-
-          </div>
-
-          <button
-            id="adminSubmissionsRefresh"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            🔄 Обновить
-          </button>
-
-        </div>
-
-
-        <div class="admin-filters">
-
-          <button
-            type="button"
-            class="admin-filter active"
-            data-admin-filter="pending"
-          >
-            ⏳ На модерации
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-admin-filter="waiting_payment"
-          >
-            💳 Оплата
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-admin-filter="paid"
-          >
-            💰 Оплачено
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-admin-filter="published"
-          >
-            ✅ Опубликовано
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-admin-filter="rejected"
-          >
-            ❌ Отклонено
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-admin-filter="all"
-          >
-            📋 Все
-          </button>
-
-        </div>
-
-
-        <div class="admin-content">
-
-          <div
-            id="submissionsLoading"
-            class="admin-loading"
-          >
-            ⏳ Загружаем заявки...
-          </div>
-
-          <div
-            id="submissionsError"
-            class="admin-error admin-hidden"
-          ></div>
-
-          <div
-            id="submissionsEmpty"
-            class="admin-empty admin-hidden"
-          >
-            📭 Заявок нет.
-          </div>
-
-          <div
-            id="submissionsList"
-            class="admin-list"
-          ></div>
-
-        </div>
-
-      </section>
-
-
-      <!-- ===================================================
-           CHATS
-      ==================================================== -->
-
-      <section
-        id="adminChatsSection"
-        class="admin-section admin-hidden"
-      >
-
-        <div class="admin-section-header">
-
-          <div>
-
-            <h2>
-              💬 Сообщения
-            </h2>
-
-            <p>
-              Просмотр диалогов пользователей и ответы от
-              официального аккаунта Tajik Opportunities.
-            </p>
-
-          </div>
-
-          <button
-            id="adminChatsRefresh"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            🔄 Обновить
-          </button>
-
-        </div>
-
-
-        <div class="admin-content">
-
-          <div class="admin-search">
-
-            <input
-              id="chatSearch"
-              class="admin-input"
-              type="search"
-              placeholder="Поиск диалога или пользователя..."
-            >
-
-            <button
-              id="chatSearchButton"
-              type="button"
-              class="admin-button admin-button-primary"
-            >
-              🔎 Найти
-            </button>
-
-          </div>
-
-          <div
-            id="adminChatsLoading"
-            class="admin-loading"
-          >
-            ⏳ Загружаем диалоги...
-          </div>
-
-          <div
-            id="adminChatsError"
-            class="admin-error admin-hidden"
-          ></div>
-
-          <div
-            id="adminChatsEmpty"
-            class="admin-empty admin-hidden"
-          >
-            💬 Диалогов нет.
-          </div>
-
-          <div
-            id="adminChatsList"
-            class="admin-list"
-          ></div>
-
-        </div>
-
-      </section>
-
-
-      <!-- ===================================================
-           COMMENTS
-      ==================================================== -->
-
-      <section
-        id="adminCommentsSection"
-        class="admin-section admin-hidden"
-      >
-
-        <div class="admin-section-header">
-
-          <div>
-
-            <h2>
-              💬 Комментарии
-            </h2>
-
-            <p>
-              Просмотр и управление комментариями.
-            </p>
-
-          </div>
-
-          <button
-            id="adminCommentsRefresh"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            🔄 Обновить
-          </button>
-
-        </div>
-
-        <div class="admin-content">
-
-          <div
-            id="adminCommentsLoading"
-            class="admin-loading"
-          >
-            ⏳ Загружаем комментарии...
-          </div>
-
-          <div
-            id="adminCommentsError"
-            class="admin-error admin-hidden"
-          ></div>
-
-          <div
-            id="adminCommentsEmpty"
-            class="admin-empty admin-hidden"
-          >
-            💬 Комментариев нет.
-          </div>
-
-          <div
-            id="adminCommentsList"
-            class="admin-list"
-          ></div>
-
-        </div>
-
-      </section>
-
-
-      <!-- ===================================================
-           TRASH
-      ==================================================== -->
-
-      <section
-        id="adminTrashSection"
-        class="admin-section admin-hidden"
-      >
-
-        <div class="admin-section-header">
-
-          <div>
-
-            <h2>
-              🗑️ Корзина
-            </h2>
-
-            <p>
-              Удалённые и скрытые объекты.
-            </p>
-
-          </div>
-
-          <div class="admin-actions">
-
-            <button
-              id="adminTrashRefresh"
-              type="button"
-              class="admin-button admin-button-light"
-            >
-              🔄 Обновить
-            </button>
-
-            <button
-              id="trashEmptyButton"
-              type="button"
-              class="admin-button admin-button-danger"
-            >
-              🧹 Очистить всё
-            </button>
-
-          </div>
-
-        </div>
-
-
-        <div class="admin-filters">
-
-          <button
-            type="button"
-            class="admin-filter active"
-            data-trash-filter="all"
-          >
-            📋 Всё
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-trash-filter="posts"
-          >
-            📰 Публикации
-          </button>
-
-          <button
-            type="button"
-            class="admin-filter"
-            data-trash-filter="submissions"
-          >
-            📥 Заявки
-          </button>
-
-        </div>
-
-
-        <div class="admin-content">
-
-          <div class="admin-danger-zone">
 
             <div>
 
-              <strong>
-                ⚠️ Осторожно:
-              </strong>
+              <div class="admin-name">
+                Главный администратор
+              </div>
 
-              окончательное удаление нельзя отменить.
+              <div class="admin-role">
+                ● SUPER ADMIN
+              </div>
 
             </div>
 
           </div>
 
-          <div
-            id="trashLoading"
-            class="admin-loading"
-          >
-            ⏳ Загружаем корзину...
-          </div>
-
-          <div
-            id="trashError"
-            class="admin-error admin-hidden"
-          ></div>
-
-          <div
-            id="trashEmpty"
-            class="admin-empty admin-hidden"
-          >
-            🗑️ Корзина пуста.
-          </div>
-
-          <div
-            id="trashList"
-            class="admin-list"
-          ></div>
-
         </div>
 
-      </section>
+      </div>
+
+    </aside>
 
 
-      <!-- ===================================================
-           TOOLS
-      ==================================================== -->
+    <!-- ====================================================
+         MAIN
+    ==================================================== -->
 
-      <section
-        id="adminToolsSection"
-        class="admin-section admin-hidden"
-      >
+    <main class="main">
 
-        <div class="admin-section-header">
 
-          <div>
+      <!-- TOPBAR -->
 
-            <h2>
-              🛠️ Инструменты администратора
-            </h2>
+      <header class="topbar">
 
-            <p>
-              Дополнительные инструменты управления платформой.
-            </p>
+        <button
+          class="mobile-menu"
+          id="mobileMenu"
+          aria-label="Меню"
+        >
+          ☰
+        </button>
 
+
+        <div class="page-heading">
+
+          <h1
+            class="page-title"
+            id="pageTitle"
+          >
+            Обзор
+          </h1>
+
+          <div
+            class="page-description"
+            id="pageDescription"
+          >
+            Общее состояние платформы
           </div>
 
         </div>
 
-        <div class="admin-content">
 
-          <div class="admin-list">
+        <div class="top-actions">
 
-            <div class="admin-card">
+          <button
+            class="top-button"
+            id="adminRefresh"
+            title="Обновить данные"
+          >
+            ↻
+            <span>Обновить</span>
+          </button>
 
-              <h3 class="admin-card-title">
-                📊 Ручное управление статистикой
-              </h3>
 
-              <p class="admin-card-preview">
-                Позволяет вручную установить количество просмотров,
-                реакций, комментариев, сохранений и других показателей
-                публикации.
+          <a
+            class="top-button primary"
+            href="/"
+            title="Открыть сайт"
+          >
+            ↗
+            <span>На сайт</span>
+          </a>
+
+        </div>
+
+      </header>
+
+
+      <!-- ==================================================
+           CONTENT
+      ================================================== -->
+
+      <div class="content">
+
+
+        <!-- =================================================
+             OVERVIEW
+        ================================================= -->
+
+        <section
+          class="section active"
+          id="section-overview"
+        >
+
+          <div class="hero">
+
+            <div class="hero-content">
+
+              <div class="eyebrow">
+                ✦ Административный центр
+              </div>
+
+              <h2>
+                Добро пожаловать в управление
+                Tajik Opportunities
+              </h2>
+
+              <p>
+                Здесь собраны основные инструменты
+                управления платформой: публикации,
+                пользователи, обращения, уведомления,
+                статистика и журнал действий.
+                Авторизация администратора отключена —
+                панель доступна напрямую.
               </p>
 
-              <button
-                type="button"
-                class="admin-button admin-button-purple"
-                id="openCounterManager"
+            </div>
+
+          </div>
+
+
+          <div class="stats-grid">
+
+            <div class="stat-card">
+
+              <div class="stat-glow"></div>
+
+              <div class="stat-icon gold">
+                ▤
+              </div>
+
+              <div class="stat-label">
+                Всего публикаций
+              </div>
+
+              <div
+                class="stat-value"
+                id="statPublications"
               >
-                📊 Открыть управление счётчиками
+                —
+              </div>
+
+              <div class="stat-note">
+                Все записи платформы
+              </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+              <div class="stat-glow"></div>
+
+              <div class="stat-icon green">
+                ✓
+              </div>
+
+              <div class="stat-label">
+                Опубликовано
+              </div>
+
+              <div
+                class="stat-value"
+                id="statPublished"
+              >
+                —
+              </div>
+
+              <div class="stat-note">
+                Активные публикации
+              </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+              <div class="stat-glow"></div>
+
+              <div class="stat-icon orange">
+                ◷
+              </div>
+
+              <div class="stat-label">
+                На проверке
+              </div>
+
+              <div
+                class="stat-value"
+                id="statPending"
+              >
+                —
+              </div>
+
+              <div class="stat-note">
+                Ожидают решения
+              </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+              <div class="stat-glow"></div>
+
+              <div class="stat-icon blue">
+                ♙
+              </div>
+
+              <div class="stat-label">
+                Пользователи
+              </div>
+
+              <div
+                class="stat-value"
+                id="statUsers"
+              >
+                —
+              </div>
+
+              <div class="stat-note">
+                Отправители публикаций
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="grid-2">
+
+
+            <!-- SYSTEM STATUS -->
+
+            <div class="panel">
+
+              <div class="panel-header">
+
+                <div class="panel-title-wrap">
+
+                  <h3 class="panel-title">
+                    Состояние системы
+                  </h3>
+
+                  <div class="panel-subtitle">
+                    Проверка основных компонентов
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div
+                class="panel-body"
+                id="systemStatus"
+              >
+
+                <div class="status-row">
+
+                  <span
+                    class="status-dot online"
+                  ></span>
+
+                  <span class="status-name">
+                    Cloudflare Worker
+                  </span>
+
+                  <span class="status-value">
+                    Проверяется…
+                  </span>
+
+                </div>
+
+
+                <div class="status-row">
+
+                  <span
+                    class="status-dot online"
+                  ></span>
+
+                  <span class="status-name">
+                    API
+                  </span>
+
+                  <span class="status-value">
+                    v1
+                  </span>
+
+                </div>
+
+
+                <div class="status-row">
+
+                  <span
+                    class="status-dot online"
+                  ></span>
+
+                  <span class="status-name">
+                    D1 Database
+                  </span>
+
+                  <span class="status-value">
+                    Подключение через API
+                  </span>
+
+                </div>
+
+
+                <div class="status-row">
+
+                  <span
+                    class="status-dot online"
+                  ></span>
+
+                  <span class="status-name">
+                    Административный доступ
+                  </span>
+
+                  <span class="status-value">
+                    Без входа
+                  </span>
+
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <!-- QUICK ACTIONS -->
+
+            <div class="panel">
+
+              <div class="panel-header">
+
+                <div class="panel-title-wrap">
+
+                  <h3 class="panel-title">
+                    Быстрые действия
+                  </h3>
+
+                  <div class="panel-subtitle">
+                    Часто используемые разделы
+                  </div>
+
+                </div>
+
+              </div>
+
+
+              <div class="panel-body">
+
+                <div class="quick-grid">
+
+                  <button
+                    class="quick"
+                    data-go="publications"
+                  >
+
+                    <div class="quick-icon">
+                      ▤
+                    </div>
+
+                    <div class="quick-title">
+                      Публикации
+                    </div>
+
+                    <div class="quick-text">
+                      Проверить и управлять публикациями
+                    </div>
+
+                  </button>
+
+
+                  <button
+                    class="quick"
+                    data-go="chat"
+                  >
+
+                    <div class="quick-icon">
+                      ◌
+                    </div>
+
+                    <div class="quick-title">
+                      Чат
+                    </div>
+
+                    <div class="quick-text">
+                      Просмотреть обращения пользователей
+                    </div>
+
+                  </button>
+
+
+                  <button
+                    class="quick"
+                    data-go="stats"
+                  >
+
+                    <div class="quick-icon">
+                      ◒
+                    </div>
+
+                    <div class="quick-title">
+                      Статистика
+                    </div>
+
+                    <div class="quick-text">
+                      Открыть показатели платформы
+                    </div>
+
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PUBLICATIONS
+        ================================================= -->
+
+        <section
+          class="section"
+          id="section-publications"
+        >
+
+          <div class="toolbar">
+
+            <input
+              class="search"
+              id="publicationSearch"
+              type="search"
+              placeholder="Поиск публикации…"
+            >
+
+            <div class="toolbar-spacer"></div>
+
+            <button
+              class="action-button"
+              id="loadPublications"
+            >
+              ↻ Обновить
+            </button>
+
+          </div>
+
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title-wrap">
+
+                <h3 class="panel-title">
+                  Управление публикациями
+                </h3>
+
+                <div class="panel-subtitle">
+                  Просмотр, модерация и управление
+                  материалами платформы
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div
+              class="table-wrap"
+              id="publicationsContainer"
+            >
+
+              <div class="empty">
+
+                <div class="empty-icon">
+                  ▤
+                </div>
+
+                <div class="empty-title">
+                  Загрузка публикаций
+                </div>
+
+                <div class="empty-text">
+                  Получаем данные с сервера…
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             USERS
+        ================================================= -->
+
+        <section
+          class="section"
+          id="section-users"
+        >
+
+          <div class="toolbar">
+
+            <input
+              class="search"
+              id="userSearch"
+              type="search"
+              placeholder="Поиск пользователя…"
+            >
+
+            <div class="toolbar-spacer"></div>
+
+            <button
+              class="action-button"
+              id="loadUsers"
+            >
+              ↻ Обновить
+            </button>
+
+          </div>
+
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title-wrap">
+
+                <h3 class="panel-title">
+                  Пользователи и отправители
+                </h3>
+
+                <div class="panel-subtitle">
+                  Управление данными отправителей
+                  публикаций
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div
+              class="table-wrap"
+              id="usersContainer"
+            >
+
+              <div class="empty">
+
+                <div class="empty-icon">
+                  ♙
+                </div>
+
+                <div class="empty-title">
+                  Загрузка пользователей
+                </div>
+
+                <div class="empty-text">
+                  Получаем данные с сервера…
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             CHAT
+        ================================================= -->
+
+        <section
+          class="section"
+          id="section-chat"
+        >
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title-wrap">
+
+                <h3 class="panel-title">
+                  Административный чат
+                </h3>
+
+                <div class="panel-subtitle">
+                  Обращения пользователей и диалоги
+                </div>
+
+              </div>
+
+              <button
+                class="action-button"
+                id="loadChat"
+              >
+                ↻ Обновить
               </button>
 
             </div>
 
 
-            <div class="admin-card">
+            <div
+              class="table-wrap"
+              id="chatContainer"
+            >
 
-              <h3 class="admin-card-title">
-                🔄 Обновить данные
-              </h3>
+              <div class="empty">
 
-              <p class="admin-card-preview">
-                Повторно загружает данные панели администратора.
-              </p>
+                <div class="empty-icon">
+                  ◌
+                </div>
+
+                <div class="empty-title">
+                  Загрузка чатов
+                </div>
+
+                <div class="empty-text">
+                  Получаем обращения пользователей…
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             NOTIFICATIONS
+        ================================================= -->
+
+        <section
+          class="section"
+          id="section-notifications"
+        >
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title-wrap">
+
+                <h3 class="panel-title">
+                  Уведомления
+                </h3>
+
+                <div class="panel-subtitle">
+                  Системные и административные уведомления
+                </div>
+
+              </div>
 
               <button
-                type="button"
-                class="admin-button admin-button-primary"
-                id="adminToolsRefresh"
+                class="action-button"
+                id="loadNotifications"
               >
-                🔄 Обновить всё
+                ↻ Обновить
               </button>
 
             </div>
 
 
-            <div class="admin-card">
+            <div
+              class="panel-body"
+              id="notificationsContainer"
+            >
 
-              <h3 class="admin-card-title">
-                🧪 Тестирование
-              </h3>
+              <div class="empty">
 
-              <p class="admin-card-preview">
-                Здесь можно проверять работу административных
-                функций и отображение данных.
-              </p>
+                <div class="empty-icon">
+                  ♢
+                </div>
+
+                <div class="empty-title">
+                  Загрузка уведомлений
+                </div>
+
+                <div class="empty-text">
+                  Получаем данные с сервера…
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             STATS
+        ================================================= -->
+
+        <section
+          class="section"
+          id="section-stats"
+        >
+
+          <div class="stats-grid">
+
+            <div class="stat-card">
+
+              <div class="stat-icon gold">
+                ▤
+              </div>
+
+              <div class="stat-label">
+                Публикации
+              </div>
+
+              <div
+                class="stat-value"
+                id="statsTotalPublications"
+              >
+                —
+              </div>
+
+              <div class="stat-note">
+                Всего записей
+              </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+              <div class="stat-icon green">
+                ✓
+              </div>
+
+              <div class="stat-label">
+                Опубликовано
+              </div>
+
+              <div
+                class="stat-value"
+                id="statsPublished"
+              >
+                —
+              </div>
+
+              <div class="stat-note">
+                Активные материалы
+              </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+              <div class="stat-icon purple">
+                ♡
+              </div>
+
+              <div class="stat-label">
+                Просмотры
+              </div>
+
+              <div
+                class="stat-value"
+                id="statsViews"
+              >
+                —
+              </div>
+
+              <div class="stat-note">
+                Совокупные просмотры
+              </div>
+
+            </div>
+
+
+            <div class="stat-card">
+
+              <div class="stat-icon blue">
+                ♙
+              </div>
+
+              <div class="stat-label">
+                Пользователи
+              </div>
+
+              <div
+                class="stat-value"
+                id="statsUsers"
+              >
+                —
+              </div>
+
+              <div class="stat-note">
+                Отправители
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title-wrap">
+
+                <h3 class="panel-title">
+                  Расширенная статистика
+                </h3>
+
+                <div class="panel-subtitle">
+                  Данные API в реальном времени
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div
+              class="panel-body"
+              id="statsContainer"
+            >
+
+              <div class="empty">
+
+                <div class="empty-icon">
+                  ◒
+                </div>
+
+                <div class="empty-title">
+                  Загрузка статистики
+                </div>
+
+                <div class="empty-text">
+                  Получаем данные с сервера…
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             AUDIT
+        ================================================= -->
+
+        <section
+          class="section"
+          id="section-audit"
+        >
+
+          <div class="panel">
+
+            <div class="panel-header">
+
+              <div class="panel-title-wrap">
+
+                <h3 class="panel-title">
+                  Журнал действий
+                </h3>
+
+                <div class="panel-subtitle">
+                  История административных операций
+                </div>
+
+              </div>
 
               <button
-                type="button"
-                class="admin-button admin-button-dark"
-                id="adminTestButton"
+                class="action-button"
+                id="loadAudit"
               >
-                🧪 Проверить систему
+                ↻ Обновить
               </button>
 
             </div>
 
+
+            <div
+              class="table-wrap"
+              id="auditContainer"
+            >
+
+              <div class="empty">
+
+                <div class="empty-icon">
+                  ◫
+                </div>
+
+                <div class="empty-title">
+                  Загрузка журнала
+                </div>
+
+                <div class="empty-text">
+                  Получаем историю действий…
+                </div>
+
+              </div>
+
+            </div>
+
           </div>
 
-        </div>
+        </section>
 
-      </section>
-
-    </section>
-
-  </main>
-
-
-  <!-- =====================================================
-       PUBLICATION VIEW MODAL
-  ====================================================== -->
-
-  <div
-    id="postModal"
-    class="admin-modal"
-    aria-hidden="true"
-  >
-
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          📰 Публикация
-        </h2>
-
-        <button
-          id="postModalClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
 
       </div>
 
-      <div
-        id="postModalBody"
-        class="admin-modal-body"
-      ></div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="postModalCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
-
-      </div>
-
-    </div>
+    </main>
 
   </div>
 
 
-  <!-- =====================================================
-       PUBLICATION EDIT MODAL
+  <!-- ======================================================
+       TOAST
   ====================================================== -->
 
-  <div
-    id="postEditModal"
-    class="admin-modal"
-    aria-hidden="true"
-  >
-
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          ✏️ Редактирование публикации
-        </h2>
-
-        <button
-          id="postEditClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <form id="postEditForm">
-
-        <div class="admin-modal-body">
-
-          <div class="admin-edit-grid">
-
-            <div class="admin-form-group admin-edit-full">
-
-              <label for="editPostTitle">
-                Заголовок
-              </label>
-
-              <input
-                id="editPostTitle"
-                class="admin-input"
-                type="text"
-                maxlength="300"
-              >
-
-            </div>
-
-
-            <div class="admin-form-group">
-
-              <label for="editPostCategory">
-                Категория
-              </label>
-
-              <input
-                id="editPostCategory"
-                class="admin-input"
-                type="text"
-                maxlength="100"
-              >
-
-            </div>
-
-
-            <div class="admin-form-group">
-
-              <label for="editPostAuthor">
-                Автор
-              </label>
-
-              <input
-                id="editPostAuthor"
-                class="admin-input"
-                type="text"
-                maxlength="200"
-              >
-
-            </div>
-
-
-            <div class="admin-form-group admin-edit-full">
-
-              <label for="editPostContent">
-                Текст публикации
-              </label>
-
-              <textarea
-                id="editPostContent"
-                class="admin-textarea"
-                maxlength="100000"
-              ></textarea>
-
-            </div>
-
-
-            <div class="admin-form-group">
-
-              <label for="editPostImage">
-                Изображение
-              </label>
-
-              <input
-                id="editPostImage"
-                class="admin-input"
-                type="url"
-                placeholder="https://..."
-              >
-
-            </div>
-
-
-            <div class="admin-form-group">
-
-              <label for="editPostLink">
-                Ссылка
-              </label>
-
-              <input
-                id="editPostLink"
-                class="admin-input"
-                type="url"
-                placeholder="https://..."
-              >
-
-            </div>
-
-
-            <div class="admin-form-group admin-edit-full">
-
-              <label for="editPostContact">
-                Контакт
-              </label>
-
-              <input
-                id="editPostContact"
-                class="admin-input"
-                type="text"
-                maxlength="1000"
-              >
-
-            </div>
-
-
-            <div class="admin-form-group">
-
-              <label for="editPostStatus">
-                Статус
-              </label>
-
-              <select
-                id="editPostStatus"
-                class="admin-select"
-              >
-
-                <option value="pending">
-                  ⏳ На модерации
-                </option>
-
-                <option value="waiting_payment">
-                  💳 Ожидает оплаты
-                </option>
-
-                <option value="paid">
-                  💰 Оплачено
-                </option>
-
-                <option value="published">
-                  🟢 Опубликовано
-                </option>
-
-                <option value="rejected">
-                  ❌ Отклонено
-                </option>
-
-                <option value="hidden">
-                  👁️ Скрыто
-                </option>
-
-                <option value="deleted">
-                  🗑️ Удалено
-                </option>
-
-              </select>
-
-            </div>
-
-            <div class="admin-form-group">
-
-              <label for="editPostPrice">
-                Цена публикации
-              </label>
-
-              <input
-                id="editPostPrice"
-                class="admin-input"
-                type="number"
-                min="0"
-                step="1"
-              >
-
-            </div>
-
-          </div>
-
-        </div>
-
-
-        <div class="admin-modal-footer">
-
-          <button
-            id="postEditCancel"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            Отмена
-          </button>
-
-          <button
-            type="submit"
-            id="postEditSave"
-            class="admin-button admin-button-success"
-          >
-            💾 Сохранить изменения
-          </button>
-
-        </div>
-
-      </form>
-
-    </div>
-
+  <div id="toast">
+    <span id="toastIcon">✓</span>
+    <span id="toastText"></span>
   </div>
 
 
-  <!-- =====================================================
-       COUNTERS MODAL
-  ====================================================== -->
+  <script>
+    /* =========================================================
+       TAJIK OPPORTUNITIES
+       ADMIN FRONTEND
+       No admin login
+    ========================================================= */
 
-  <div
-    id="counterModal"
-    class="admin-modal"
-    aria-hidden="true"
-  >
+    (() => {
 
-    <div class="admin-modal-box counter-confirm-box">
+      "use strict";
 
-      <div class="admin-modal-header">
 
-        <h2>
-          📊 Изменение статистики
-        </h2>
+      /* ======================================================
+         CONFIG
+      ====================================================== */
 
-        <button
-          id="counterModalClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
+      const API = "/api";
 
-      </div>
+      const sectionTitles = {
 
+        overview: [
+          "Обзор",
+          "Общее состояние платформы"
+        ],
 
-      <div class="admin-modal-body">
+        publications: [
+          "Публикации",
+          "Управление публикациями и модерация"
+        ],
 
-        <div class="admin-form-group">
+        users: [
+          "Пользователи",
+          "Управление отправителями"
+        ],
 
-          <label for="counterPublicationId">
-            ID публикации
-          </label>
+        chat: [
+          "Чат",
+          "Обращения пользователей"
+        ],
 
-          <input
-            id="counterPublicationId"
-            class="admin-input"
-            type="text"
-            placeholder="Введите ID публикации"
-          >
+        notifications: [
+          "Уведомления",
+          "Системные уведомления"
+        ],
 
-        </div>
+        stats: [
+          "Статистика",
+          "Показатели и аналитика платформы"
+        ],
 
+        audit: [
+          "Журнал действий",
+          "История административных операций"
+        ]
 
-        <div class="counter-grid">
+      };
 
-          <div class="counter-field">
 
-            <label for="counterViews">
-              👁️ Просмотры
-            </label>
+      let currentSection = "overview";
 
-            <input
-              id="counterViews"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
+      let publicationsCache = [];
+      let usersCache = [];
 
-          </div>
 
+      /* ======================================================
+         HELPERS
+      ====================================================== */
 
-          <div class="counter-field">
+      const $ = (selector, root = document) =>
+        root.querySelector(selector);
 
-            <label for="counterLikes">
-              ❤️ Лайки
-            </label>
 
-            <input
-              id="counterLikes"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
+      const $$ = (selector, root = document) =>
+        Array.from(root.querySelectorAll(selector));
 
-          </div>
 
+      function escapeHTML(value) {
 
-          <div class="counter-field">
+        if (
+          value === null ||
+          value === undefined
+        ) {
+          return "";
+        }
 
-            <label for="counterComments">
-              💬 Комментарии
-            </label>
-
-            <input
-              id="counterComments"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
-
-          </div>
-
-
-          <div class="counter-field">
-
-            <label for="counterSaves">
-              🔖 Сохранения
-            </label>
-
-            <input
-              id="counterSaves"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
-
-          </div>
-
-
-          <div class="counter-field">
-
-            <label for="counterShares">
-              📤 Репосты
-            </label>
-
-            <input
-              id="counterShares"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
-
-          </div>
-
-
-          <div class="counter-field">
-
-            <label for="counterLove">
-              💕 Love
-            </label>
-
-            <input
-              id="counterLove"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
-
-          </div>
-
-
-          <div class="counter-field">
-
-            <label for="counterSupport">
-              🤝 Support
-            </label>
-
-            <input
-              id="counterSupport"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
-
-          </div>
-
-
-          <div class="counter-field">
-
-            <label for="counterWow">
-              😮 Wow
-            </label>
-
-            <input
-              id="counterWow"
-              type="number"
-              min="0"
-              step="1"
-              value="0"
-            >
-
-          </div>
-
-        </div>
-
-
-        <div class="counter-actions">
-
-          <button
-            id="loadPublicationCounters"
-            type="button"
-            class="admin-button admin-button-light"
-          >
-            🔎 Загрузить текущие
-          </button>
-
-          <button
-            id="counterSaveButton"
-            type="button"
-            class="admin-button admin-button-success"
-          >
-            💾 Сохранить цифры
-          </button>
-
-        </div>
-
-
-        <div class="counter-warning">
-          ⚠️ После сохранения новые значения будут переданы серверу.
-          Перед подтверждением внимательно проверьте цифры.
-        </div>
-
-
-        <div
-          id="counterMessage"
-          class="admin-message"
-        ></div>
-
-      </div>
-
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="counterCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       COUNTER CONFIRM MODAL
-  ====================================================== -->
-
-  <div
-    id="counterConfirmModal"
-    class="admin-modal"
-    aria-hidden="true"
-  >
-
-    <div class="admin-modal-box counter-confirm-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          ⚠️ Подтверждение
-        </h2>
-
-        <button
-          id="counterConfirmClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-
-      <div class="admin-modal-body">
-
-        <p>
-          Вы собираетесь вручную изменить статистику публикации.
-        </p>
-
-        <div
-          id="counterConfirmSummary"
-          class="confirm-summary"
-        ></div>
-
-        <div
-          id="counterConfirmMessage"
-          class="admin-message"
-        ></div>
-
-      </div>
-
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="counterConfirmCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Отмена
-        </button>
-
-        <button
-          id="counterConfirmSave"
-          type="button"
-          class="admin-button admin-button-danger"
-        >
-          ✅ Да, подтвердить изменения
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       SUBMISSION MODAL
-  ====================================================== -->
-
-  <div
-    id="submissionModal"
-    class="admin-modal"
-    aria-hidden="true"
-  >
-
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          📄 Заявка
-        </h2>
-
-        <button
-          id="submissionClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div
-        id="submissionModalBody"
-        class="admin-modal-body"
-      ></div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="submissionCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
-
-        <button
-          id="submissionReject"
-          type="button"
-          class="admin-button admin-button-danger"
-        >
-          ❌ Отклонить
-        </button>
-
-        <button
-          id="submissionApprove"
-          type="button"
-          class="admin-button admin-button-success"
-        >
-          ✅ Одобрить
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       USER MODAL
-  ====================================================== -->
-
-  <div
-    id="userModal"
-    class="admin-modal"
-    aria-hidden="true"
-  >
-
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          👤 Участник
-        </h2>
-
-        <button
-          id="userModalClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div
-        id="userModalBody"
-        class="admin-modal-body"
-      ></div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="userModalCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Закрыть
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       CHAT MODAL
-  ====================================================== -->
-
-  <div
-    id="adminChatModal"
-    class="admin-modal"
-    aria-hidden="true"
-  >
-
-    <div class="admin-modal-box">
-
-      <div class="admin-modal-header">
-
-        <h2>
-          💬 Диалог
-        </h2>
-
-        <button
-          id="adminChatClose"
-          type="button"
-          class="admin-modal-close"
-        >
-          ×
-        </button>
-
-      </div>
-
-      <div
-        id="adminChatBody"
-        class="admin-modal-body"
-      ></div>
-
-      <div class="admin-modal-footer">
-
-        <textarea
-          id="adminChatMessage"
-          class="admin-textarea"
-          style="min-height:80px;"
-          placeholder="Ответить от имени 🇹🇯 Tajik Opportunities..."
-        ></textarea>
-
-        <button
-          id="adminChatSend"
-          type="button"
-          class="admin-button admin-button-primary"
-        >
-          📤 Отправить
-        </button>
-
-      </div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       FOOTER
-  ====================================================== -->
-
-  <footer class="admin-footer">
-
-    🇹🇯 Tajik Opportunities ·
-    Панель полного управления платформой
-
-  </footer>
-
-</div>
-
-
-<!-- =====================================================
-     SCRIPTS
-====================================================== -->
-
-<script src="/js/app.js"></script>
-<script src="/js/admin.js"></script>
-
-<script>
-(function () {
-
-  "use strict";
-
-  /*
-   * -------------------------------------------------------
-   * ADMIN PANEL UI
-   * -------------------------------------------------------
-   *
-   * Основная серверная логика остаётся в /js/admin.js.
-   * Этот блок управляет навигацией и дополнительным
-   * интерфейсом ручного изменения счётчиков.
-   */
-
-  const $ = (selector) => {
-    return document.querySelector(selector);
-  };
-
-  const $$ = (selector) => {
-    return Array.from(document.querySelectorAll(selector));
-  };
-
-
-  /* ======================================================
-     NAVIGATION
-  ====================================================== */
-
-  const sections = {
-    overview: $("#adminOverviewSection"),
-    users: $("#adminUsersSection"),
-    publications: $("#adminPublicationsSection"),
-    submissions: $("#adminSubmissionsSection"),
-    chats: $("#adminChatsSection"),
-    comments: $("#adminCommentsSection"),
-    trash: $("#adminTrashSection"),
-    tools: $("#adminToolsSection")
-  };
-
-
-  function openAdminSection(name) {
-
-    Object.keys(sections).forEach(function (key) {
-
-      const section = sections[key];
-
-      if (!section) return;
-
-      if (key === name) {
-
-        section.classList.remove("admin-hidden");
-
-      } else {
-
-        section.classList.add("admin-hidden");
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
 
       }
 
-    });
 
+      function formatNumber(value) {
 
-    $$("[data-admin-section]").forEach(function (button) {
+        const number =
+          Number(value || 0);
 
-      button.classList.toggle(
-        "active",
-        button.dataset.adminSection === name
-      );
-
-    });
-
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth"
-    });
-
-  }
-
-
-  $$("[data-admin-section]").forEach(function (button) {
-
-    button.addEventListener("click", function () {
-
-      openAdminSection(
-        button.dataset.adminSection
-      );
-
-    });
-
-  });
-
-
-  $$("[data-admin-section-jump]").forEach(function (button) {
-
-    button.addEventListener("click", function () {
-
-      openAdminSection(
-        button.dataset.adminSectionJump
-      );
-
-    });
-
-  });
-
-
-  /* ======================================================
-     MODALS
-  ====================================================== */
-
-  function openModal(id) {
-
-    const modal = document.getElementById(id);
-
-    if (!modal) return;
-
-    modal.classList.add("active");
-    modal.setAttribute("aria-hidden", "false");
-
-  }
-
-
-  function closeModal(id) {
-
-    const modal = document.getElementById(id);
-
-    if (!modal) return;
-
-    modal.classList.remove("active");
-    modal.setAttribute("aria-hidden", "true");
-
-  }
-
-
-  $("#postModalClose")?.addEventListener(
-    "click",
-    () => closeModal("postModal")
-  );
-
-  $("#postModalCancel")?.addEventListener(
-    "click",
-    () => closeModal("postModal")
-  );
-
-
-  $("#postEditClose")?.addEventListener(
-    "click",
-    () => closeModal("postEditModal")
-  );
-
-  $("#postEditCancel")?.addEventListener(
-    "click",
-    () => closeModal("postEditModal")
-  );
-
-
-  $("#submissionClose")?.addEventListener(
-    "click",
-    () => closeModal("submissionModal")
-  );
-
-  $("#submissionCancel")?.addEventListener(
-    "click",
-    () => closeModal("submissionModal")
-  );
-
-
-  $("#userModalClose")?.addEventListener(
-    "click",
-    () => closeModal("userModal")
-  );
-
-  $("#userModalCancel")?.addEventListener(
-    "click",
-    () => closeModal("userModal")
-  );
-
-
-  $("#adminChatClose")?.addEventListener(
-    "click",
-    () => closeModal("adminChatModal")
-  );
-
-
-  $("#counterModalClose")?.addEventListener(
-    "click",
-    () => closeModal("counterModal")
-  );
-
-  $("#counterCancel")?.addEventListener(
-    "click",
-    () => closeModal("counterModal")
-  );
-
-
-  $("#counterConfirmClose")?.addEventListener(
-    "click",
-    () => closeModal("counterConfirmModal")
-  );
-
-  $("#counterConfirmCancel")?.addEventListener(
-    "click",
-    () => closeModal("counterConfirmModal")
-  );
-
-
-  $$(".admin-modal").forEach(function (modal) {
-
-    modal.addEventListener("click", function (event) {
-
-      if (event.target === modal) {
-
-        modal.classList.remove("active");
+        return new Intl.NumberFormat(
+          "ru-RU"
+        ).format(number);
 
       }
 
-    });
 
-  });
+      function formatDate(value) {
+
+        if (!value) {
+          return "—";
+        }
+
+        try {
+
+          return new Intl.DateTimeFormat(
+            "ru-RU",
+            {
+              dateStyle: "medium",
+              timeStyle: "short"
+            }
+          ).format(
+            new Date(value)
+          );
+
+        } catch (_) {
+
+          return String(value);
+
+        }
+
+      }
 
 
-  document.addEventListener(
-    "keydown",
-    function (event) {
+      function showToast(
+        message,
+        type = "success"
+      ) {
 
-      if (event.key === "Escape") {
+        const toast = $("#toast");
+        const text = $("#toastText");
+        const icon = $("#toastIcon");
 
-        $$(".admin-modal.active").forEach(
-          function (modal) {
-            modal.classList.remove("active");
-          }
+        if (!toast || !text) {
+          return;
+        }
+
+        text.textContent = message;
+
+        icon.textContent =
+          type === "error"
+            ? "!"
+            : type === "warning"
+              ? "!"
+              : "✓";
+
+        toast.classList.add("show");
+
+        clearTimeout(
+          window.__toastTimer
         );
 
-      }
+        window.__toastTimer =
+          setTimeout(() => {
 
-    }
-  );
+            toast.classList.remove("show");
 
-
-  /* ======================================================
-     COUNTER MANAGER
-  ====================================================== */
-
-  let pendingCounterData = null;
-
-
-  function numberValue(id) {
-
-    const input = document.getElementById(id);
-
-    if (!input) return 0;
-
-    const value = input.value.trim();
-
-    if (value === "") return 0;
-
-    const parsed = Number(value);
-
-    if (!Number.isFinite(parsed)) {
-      return 0;
-    }
-
-    return Math.max(0, Math.floor(parsed));
-
-  }
-
-
-  function getCounterData() {
-
-    return {
-
-      publication_id:
-        $("#counterPublicationId")?.value.trim() || "",
-
-      views:
-        numberValue("counterViews"),
-
-      likes:
-        numberValue("counterLikes"),
-
-      comments:
-        numberValue("counterComments"),
-
-      saves:
-        numberValue("counterSaves"),
-
-      shares:
-        numberValue("counterShares"),
-
-      love:
-        numberValue("counterLove"),
-
-      support:
-        numberValue("counterSupport"),
-
-      wow:
-        numberValue("counterWow")
-
-    };
-
-  }
-
-
-  function setCounterData(data) {
-
-    if (!data) return;
-
-    if (data.id != null) {
-
-      $("#counterPublicationId").value =
-        String(data.id);
-
-    }
-
-    if (data.publication_id != null) {
-
-      $("#counterPublicationId").value =
-        String(data.publication_id);
-
-    }
-
-    const fields = [
-      "views",
-      "likes",
-      "comments",
-      "saves",
-      "shares",
-      "love",
-      "support",
-      "wow"
-    ];
-
-    fields.forEach(function (field) {
-
-      const input =
-        document.getElementById(
-          "counter" +
-          field.charAt(0).toUpperCase() +
-          field.slice(1)
-        );
-
-      if (!input) return;
-
-      if (data[field] != null) {
-
-        input.value =
-          String(data[field]);
+          }, 3200);
 
       }
 
-    });
 
-  }
+      function setLoading(
+        element,
+        title = "Загрузка"
+      ) {
 
+        if (!element) {
+          return;
+        }
 
-  function showCounterMessage(
-    text,
-    type
-  ) {
+        element.innerHTML = `
 
-    const box =
-      $("#counterMessage");
+          <div class="empty">
 
-    if (!box) return;
+            <div class="empty-icon">
+              ◌
+            </div>
 
-    box.textContent = text;
+            <div class="empty-title">
+              ${escapeHTML(title)}
+            </div>
 
-    box.className =
-      "admin-message show " +
-      (type || "success");
+            <div class="empty-text">
+              Получаем данные с сервера…
+            </div>
 
-  }
+          </div>
 
-
-  function showConfirmMessage(
-    text,
-    type
-  ) {
-
-    const box =
-      $("#counterConfirmMessage");
-
-    if (!box) return;
-
-    box.textContent = text;
-
-    box.className =
-      "admin-message show " +
-      (type || "success");
-
-  }
-
-
-  $("#openCounterManager")?.addEventListener(
-    "click",
-    function () {
-
-      openModal("counterModal");
-
-    }
-  );
-
-
-  /*
-   * Если admin.js уже предоставляет функцию
-   * открытия счётчиков для конкретной публикации,
-   * используем её.
-   */
-
-  window.openAdminCounterEditor =
-    function (publication) {
-
-      if (!publication) return;
-
-      setCounterData(publication);
-
-      openModal("counterModal");
-
-    };
-
-
-  $("#counterSaveButton")?.addEventListener(
-    "click",
-    function () {
-
-      const data =
-        getCounterData();
-
-      if (!data.publication_id) {
-
-        showCounterMessage(
-          "Введите ID публикации.",
-          "error"
-        );
-
-        return;
+        `;
 
       }
 
-      pendingCounterData =
-        data;
 
-      const summary =
-        $("#counterConfirmSummary");
+      function setError(
+        element,
+        message
+      ) {
 
-      if (summary) {
+        if (!element) {
+          return;
+        }
 
-        summary.innerHTML =
+        element.innerHTML = `
 
-          "<strong>ID публикации:</strong> " +
-          escapeHtml(data.publication_id) +
+          <div style="padding:18px;">
 
-          "<br><strong>👁️ Просмотры:</strong> " +
-          formatNumber(data.views) +
+            <div class="error-box">
+              ${escapeHTML(message)}
+            </div>
 
-          "<br><strong>❤️ Лайки:</strong> " +
-          formatNumber(data.likes) +
+          </div>
 
-          "<br><strong>💬 Комментарии:</strong> " +
-          formatNumber(data.comments) +
-
-          "<br><strong>🔖 Сохранения:</strong> " +
-          formatNumber(data.saves) +
-
-          "<br><strong>📤 Репосты:</strong> " +
-          formatNumber(data.shares) +
-
-          "<br><strong>💕 Love:</strong> " +
-          formatNumber(data.love) +
-
-          "<br><strong>🤝 Support:</strong> " +
-          formatNumber(data.support) +
-
-          "<br><strong>😮 Wow:</strong> " +
-          formatNumber(data.wow);
+        `;
 
       }
 
-      openModal("counterConfirmModal");
 
-    }
-  );
+      /* ======================================================
+         API REQUEST
+      ====================================================== */
 
-
-  $("#counterConfirmSave")?.addEventListener(
-    "click",
-    async function () {
-
-      if (!pendingCounterData) {
-        return;
-      }
-
-      const button =
-        $("#counterConfirmSave");
-
-      button.disabled = true;
-
-      button.textContent =
-        "⏳ Сохраняем...";
-
-      try {
-
-        /*
-         * Используем существующий endpoint:
-         *
-         * POST /api/admin/publication/counters
-         *
-         * Передаются все значения счётчиков.
-         */
+      async function api(
+        path,
+        options = {}
+      ) {
 
         const response =
           await fetch(
-            "/api/admin/publication/counters",
+            `${API}${path}`,
             {
-              method: "POST",
-
-              credentials: "include",
+              ...options,
 
               headers: {
-                "Content-Type":
-                  "application/json"
+                "Accept":
+                  "application/json",
+
+                ...(options.body
+                  ? {
+                      "Content-Type":
+                        "application/json"
+                    }
+                  : {}),
+
+                ...(options.headers || {})
               },
 
-              body:
-                JSON.stringify(
-                  pendingCounterData
-                )
+              credentials: "include"
             }
           );
 
 
-        let result = null;
+        let data = null;
 
         try {
 
-          result =
+          data =
             await response.json();
 
-        } catch (_) {}
+        } catch (_) {
+
+          data = null;
+
+        }
 
 
         if (!response.ok) {
 
-          throw new Error(
-            result?.error ||
-            result?.message ||
-            "Сервер не подтвердил изменение статистики."
+          const message =
+            data?.error ||
+            data?.message ||
+            `HTTP ${response.status}`;
+
+          throw new Error(message);
+
+        }
+
+
+        return data;
+
+      }
+
+
+      /* ======================================================
+         NAVIGATION
+      ====================================================== */
+
+      function openAdminSection(
+        section,
+        updateHash = true
+      ) {
+
+        if (
+          !sectionTitles[section]
+        ) {
+
+          section = "overview";
+
+        }
+
+
+        currentSection = section;
+
+
+        $$(".section").forEach(
+          element => {
+
+            element.classList.toggle(
+              "active",
+              element.id ===
+              `section-${section}`
+            );
+
+          }
+        );
+
+
+        $$(".nav-button").forEach(
+          button => {
+
+            button.classList.toggle(
+              "active",
+              button.dataset.section ===
+              section
+            );
+
+          }
+        );
+
+
+        const title =
+          sectionTitles[section];
+
+        $("#pageTitle").textContent =
+          title[0];
+
+        $("#pageDescription").textContent =
+          title[1];
+
+
+        if (updateHash) {
+
+          history.replaceState(
+            null,
+            "",
+            `#${section}`
           );
 
         }
 
 
-        showConfirmMessage(
-          "Статистика успешно изменена.",
-          "success"
+        closeSidebar();
+
+
+        if (section === "publications") {
+          loadPublications();
+        }
+
+        if (section === "users") {
+          loadUsers();
+        }
+
+        if (section === "chat") {
+          loadChat();
+        }
+
+        if (section === "notifications") {
+          loadNotifications();
+        }
+
+        if (section === "stats") {
+          loadStats();
+        }
+
+        if (section === "audit") {
+          loadAudit();
+        }
+
+      }
+
+
+      function handleHash() {
+
+        const hash =
+          location.hash
+            .replace(/^#/, "");
+
+        if (
+          hash &&
+          sectionTitles[hash]
+        ) {
+
+          openAdminSection(
+            hash,
+            false
+          );
+
+        }
+
+      }
+
+
+      /* ======================================================
+         MOBILE SIDEBAR
+      ====================================================== */
+
+      function openSidebar() {
+
+        $("#sidebar")
+          ?.classList.add("open");
+
+        $("#sidebarOverlay")
+          ?.classList.add("active");
+
+      }
+
+
+      function closeSidebar() {
+
+        $("#sidebar")
+          ?.classList.remove("open");
+
+        $("#sidebarOverlay")
+          ?.classList.remove("active");
+
+      }
+
+
+      $("#mobileMenu")
+        ?.addEventListener(
+          "click",
+          openSidebar
         );
 
 
-        showCounterMessage(
-          "Изменения подтверждены и отправлены серверу.",
-          "success"
+      $("#sidebarOverlay")
+        ?.addEventListener(
+          "click",
+          closeSidebar
         );
 
 
-        setTimeout(
-          function () {
+      /* ======================================================
+         ADMIN CHECK
+      ====================================================== */
 
-            closeModal(
-              "counterConfirmModal"
-            );
-
-            button.disabled = false;
-
-            button.textContent =
-              "✅ Да, подтвердить изменения";
-
-          },
-          700
-        );
-
+      async function verifyAdminAccess() {
 
         /*
-         * После изменения просим существующий
-         * admin.js обновить данные панели.
+         * Новый Worker больше не требует:
+         * - пароль
+         * - cookie
+         * - login
+         * - admin key
+         *
+         * Просто проверяем /api/admin/me.
          */
-
-        if (
-          typeof window.loadAdminDashboard ===
-          "function"
-        ) {
-
-          try {
-            await window.loadAdminDashboard();
-          } catch (_) {}
-
-        }
-
-
-        if (
-          typeof window.refreshAdminData ===
-          "function"
-        ) {
-
-          try {
-            await window.refreshAdminData();
-          } catch (_) {}
-
-        }
-
-      } catch (error) {
-
-        showConfirmMessage(
-          error.message ||
-          "Не удалось изменить статистику.",
-          "error"
-        );
-
-        button.disabled = false;
-
-        button.textContent =
-          "✅ Да, подтвердить изменения";
-
-      }
-
-    }
-  );
-
-
-  /* ======================================================
-     LOAD CURRENT COUNTERS
-  ====================================================== */
-
-  $("#loadPublicationCounters")?.addEventListener(
-    "click",
-    async function () {
-
-      const id =
-        $("#counterPublicationId")?.value.trim();
-
-      if (!id) {
-
-        showCounterMessage(
-          "Введите ID публикации.",
-          "error"
-        );
-
-        return;
-
-      }
-
-
-      /*
-       * Сначала пробуем использовать функцию
-       * admin.js, если она существует.
-       */
-
-      if (
-        typeof window.getAdminPublication ===
-        "function"
-      ) {
 
         try {
 
-          const publication =
-            await window.getAdminPublication(id);
+          const data =
+            await api("/admin/me");
 
-          if (publication) {
 
-            setCounterData(publication);
+          if (
+            data &&
+            (
+              data.ok === true ||
+              data.admin
+            )
+          ) {
 
-            showCounterMessage(
-              "Текущие значения загружены.",
-              "success"
+            return true;
+
+          }
+
+
+          throw new Error(
+            "Административный API не подтвердил доступ."
+          );
+
+        } catch (error) {
+
+          console.error(
+            "Admin access error:",
+            error
+          );
+
+          /*
+           * Не показываем форму логина.
+           * Если endpoint временно недоступен,
+           * панель всё равно остаётся доступной,
+           * но пользователь увидит сообщение.
+           */
+
+          showToast(
+            "Не удалось проверить API администратора.",
+            "warning"
+          );
+
+          return true;
+
+        }
+
+      }
+
+
+      /* ======================================================
+         OVERVIEW
+      ====================================================== */
+
+      async function loadOverview() {
+
+        try {
+
+          const [
+            publications,
+            users,
+            stats
+          ] =
+            await Promise.allSettled([
+
+              api(
+                "/admin/publications"
+              ),
+
+              api(
+                "/admin/users"
+              ),
+
+              api(
+                "/admin/stats"
+              )
+
+            ]);
+
+
+          if (
+            publications.status ===
+            "fulfilled"
+          ) {
+
+            const data =
+              publications.value;
+
+            const list =
+              Array.isArray(data)
+                ? data
+                : (
+                    data.publications ||
+                    data.items ||
+                    []
+                  );
+
+            const total =
+              data.total ??
+              list.length;
+
+            const published =
+              list.filter(
+                item =>
+                  item.status ===
+                  "published"
+              ).length;
+
+            const pending =
+              list.filter(
+                item =>
+                  item.status ===
+                  "pending"
+              ).length;
+
+
+            $("#statPublications")
+              .textContent =
+              formatNumber(total);
+
+            $("#statPublished")
+              .textContent =
+              formatNumber(
+                data.published ??
+                published
+              );
+
+            $("#statPending")
+              .textContent =
+              formatNumber(
+                data.pending ??
+                pending
+              );
+
+
+            updatePendingBadge(
+              data.pending ??
+              pending
             );
+
+          }
+
+
+          if (
+            users.status ===
+            "fulfilled"
+          ) {
+
+            const data =
+              users.value;
+
+            const list =
+              Array.isArray(data)
+                ? data
+                : (
+                    data.users ||
+                    data.items ||
+                    []
+                  );
+
+            const total =
+              data.total ??
+              list.length;
+
+            $("#statUsers")
+              .textContent =
+              formatNumber(total);
+
+          }
+
+
+          if (
+            stats.status ===
+            "fulfilled"
+          ) {
+
+            renderOverviewStats(
+              stats.value
+            );
+
+          }
+
+
+          updateSystemStatus();
+
+        } catch (error) {
+
+          console.error(
+            "Overview error:",
+            error
+          );
+
+        }
+
+      }
+
+
+      function updatePendingBadge(
+        count
+      ) {
+
+        const badge =
+          $("#pendingBadge");
+
+        if (!badge) {
+          return;
+        }
+
+        const number =
+          Number(count || 0);
+
+        if (number <= 0) {
+
+          badge.style.display =
+            "none";
+
+          return;
+
+        }
+
+        badge.style.display =
+          "inline-flex";
+
+        badge.textContent =
+          number > 99
+            ? "99+"
+            : number;
+
+      }
+
+
+      function renderOverviewStats(
+        data
+      ) {
+
+        if (!data) {
+          return;
+        }
+
+        const total =
+          data.total_publications ??
+          data.publications ??
+          data.total ??
+          null;
+
+        const published =
+          data.published ??
+          data.published_publications ??
+          null;
+
+        const users =
+          data.users ??
+          data.total_users ??
+          null;
+
+        const views =
+          data.views ??
+          data.total_views ??
+          null;
+
+
+        if (
+          total !== null
+        ) {
+
+          $("#statPublications")
+            .textContent =
+            formatNumber(total);
+
+          $("#statsTotalPublications")
+            .textContent =
+            formatNumber(total);
+
+        }
+
+
+        if (
+          published !== null
+        ) {
+
+          $("#statPublished")
+            .textContent =
+            formatNumber(published);
+
+          $("#statsPublished")
+            .textContent =
+            formatNumber(published);
+
+        }
+
+
+        if (
+          users !== null
+        ) {
+
+          $("#statUsers")
+            .textContent =
+            formatNumber(users);
+
+          $("#statsUsers")
+            .textContent =
+            formatNumber(users);
+
+        }
+
+
+        if (
+          views !== null
+        ) {
+
+          $("#statsViews")
+            .textContent =
+            formatNumber(views);
+
+        }
+
+      }
+
+
+      async function updateSystemStatus() {
+
+        const container =
+          $("#systemStatus");
+
+        if (!container) {
+          return;
+        }
+
+
+        try {
+
+          const data =
+            await api("/health");
+
+
+          const status =
+            data?.ok
+              ? "Работает"
+              : "Проверить";
+
+
+          const rows =
+            container.querySelectorAll(
+              ".status-row"
+            );
+
+
+          if (rows[0]) {
+
+            const value =
+              rows[0].querySelector(
+                ".status-value"
+              );
+
+            if (value) {
+              value.textContent =
+                status;
+            }
+
+          }
+
+
+          if (data?.version) {
+
+            const value =
+              rows[1]?.querySelector(
+                ".status-value"
+              );
+
+            if (value) {
+
+              value.textContent =
+                `v${data.version}`;
+
+            }
+
+          }
+
+        } catch (error) {
+
+          const value =
+            container.querySelector(
+              ".status-value"
+            );
+
+          if (value) {
+
+            value.textContent =
+              "Ошибка";
+
+          }
+
+        }
+
+      }
+
+
+      /* ======================================================
+         PUBLICATIONS
+      ====================================================== */
+
+      async function loadPublications() {
+
+        const container =
+          $("#publicationsContainer");
+
+        setLoading(
+          container,
+          "Загрузка публикаций"
+        );
+
+
+        try {
+
+          const data =
+            await api(
+              "/admin/publications"
+            );
+
+
+          const list =
+            Array.isArray(data)
+              ? data
+              : (
+                  data.publications ||
+                  data.items ||
+                  []
+                );
+
+
+          publicationsCache =
+            list;
+
+
+          renderPublications(
+            list
+          );
+
+
+          const pending =
+            data.pending ??
+            list.filter(
+              item =>
+                item.status ===
+                "pending"
+            ).length;
+
+
+          updatePendingBadge(
+            pending
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            "Publications:",
+            error
+          );
+
+          setError(
+            container,
+            `Не удалось загрузить публикации: ${error.message}`
+          );
+
+        }
+
+      }
+
+
+      function renderPublications(
+        list
+      ) {
+
+        const container =
+          $("#publicationsContainer");
+
+        if (!container) {
+          return;
+        }
+
+
+        if (!list.length) {
+
+          container.innerHTML = `
+
+            <div class="empty">
+
+              <div class="empty-icon">
+                ▤
+              </div>
+
+              <div class="empty-title">
+                Публикаций пока нет
+              </div>
+
+              <div class="empty-text">
+                Здесь появятся материалы,
+                отправленные пользователями.
+              </div>
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        container.innerHTML = `
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>ID</th>
+                <th>Публикация</th>
+                <th>Категория</th>
+                <th>Статус</th>
+                <th>Просмотры</th>
+                <th>Дата</th>
+                <th>Действия</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              ${list.map(
+                item => {
+
+                  const status =
+                    item.status ||
+                    "unknown";
+
+
+                  let badge =
+                    "gold";
+
+                  if (
+                    status ===
+                    "published"
+                  ) {
+                    badge = "green";
+                  }
+
+                  if (
+                    status ===
+                    "rejected"
+                  ) {
+                    badge = "red";
+                  }
+
+                  if (
+                    status ===
+                    "pending"
+                  ) {
+                    badge = "orange";
+                  }
+
+                  if (
+                    status ===
+                    "draft"
+                  ) {
+                    badge = "blue";
+                  }
+
+
+                  return `
+
+                    <tr>
+
+                      <td>
+                        #${escapeHTML(
+                          item.id ??
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+
+                        <div
+                          style="
+                            color:#fff;
+                            font-weight:750;
+                            max-width:260px;
+                          "
+                        >
+                          ${escapeHTML(
+                            item.title ||
+                            "Без названия"
+                          )}
+                        </div>
+
+                        <div
+                          style="
+                            margin-top:4px;
+                            color:#718098;
+                            font-size:9px;
+                          "
+                        >
+                          ${escapeHTML(
+                            item.city ||
+                            item.location ||
+                            "Место не указано"
+                          )}
+                        </div>
+
+                      </td>
+
+                      <td>
+                        ${escapeHTML(
+                          item.category ||
+                          item.subcategory ||
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+
+                        <span
+                          class="badge ${badge}"
+                        >
+                          ${escapeHTML(
+                            status
+                          )}
+                        </span>
+
+                      </td>
+
+                      <td>
+                        ${formatNumber(
+                          item.views
+                        )}
+                      </td>
+
+                      <td>
+                        ${formatDate(
+                          item.created_at ||
+                          item.published_at
+                        )}
+                      </td>
+
+                      <td>
+
+                        <div class="actions">
+
+                          ${
+                            status ===
+                            "pending"
+                              ? `
+                                <button
+                                  class="action-button green"
+                                  data-action="approve"
+                                  data-id="${escapeHTML(item.id)}"
+                                >
+                                  ✓ Одобрить
+                                </button>
+
+                                <button
+                                  class="action-button red"
+                                  data-action="reject"
+                                  data-id="${escapeHTML(item.id)}"
+                                >
+                                  × Отклонить
+                                </button>
+                              `
+                              : ""
+                          }
+
+                          ${
+                            status ===
+                            "published"
+                              ? `
+                                <button
+                                  class="action-button gold"
+                                  data-action="pin"
+                                  data-id="${escapeHTML(item.id)}"
+                                >
+                                  ⌖ Закрепить
+                                </button>
+                              `
+                              : ""
+                          }
+
+                          <button
+                            class="action-button"
+                            data-action="delete"
+                            data-id="${escapeHTML(item.id)}"
+                          >
+                            Удалить
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  `;
+
+                }
+              ).join("")}
+
+            </tbody>
+
+          </table>
+
+        `;
+
+
+        bindPublicationActions();
+
+      }
+
+
+      function bindPublicationActions() {
+
+        $$("#publicationsContainer [data-action]")
+          .forEach(
+            button => {
+
+              button.addEventListener(
+                "click",
+                async () => {
+
+                  const action =
+                    button.dataset.action;
+
+                  const id =
+                    button.dataset.id;
+
+
+                  await publicationAction(
+                    action,
+                    id
+                  );
+
+                }
+              );
+
+            }
+          );
+
+      }
+
+
+      async function publicationAction(
+        action,
+        id
+      ) {
+
+        if (!id) {
+          return;
+        }
+
+
+        let endpoint = "";
+        let method = "POST";
+
+
+        if (
+          action ===
+          "approve"
+        ) {
+
+          endpoint =
+            `/admin/publications/${encodeURIComponent(id)}/approve`;
+
+        }
+
+
+        if (
+          action ===
+          "reject"
+        ) {
+
+          endpoint =
+            `/admin/publications/${encodeURIComponent(id)}/reject`;
+
+        }
+
+
+        if (
+          action ===
+          "pin"
+        ) {
+
+          endpoint =
+            `/admin/publications/${encodeURIComponent(id)}/pin`;
+
+        }
+
+
+        if (
+          action ===
+          "delete"
+        ) {
+
+          endpoint =
+            `/admin/publications/${encodeURIComponent(id)}`;
+
+          method = "DELETE";
+
+        }
+
+
+        if (!endpoint) {
+          return;
+        }
+
+
+        if (
+          action ===
+          "delete"
+        ) {
+
+          if (
+            !confirm(
+              "Удалить эту публикацию?"
+            )
+          ) {
+            return;
+          }
+
+        }
+
+
+        try {
+
+          await api(
+            endpoint,
+            {
+              method
+            }
+          );
+
+
+          showToast(
+            "Действие выполнено."
+          );
+
+
+          await loadPublications();
+
+          await loadOverview();
+
+        } catch (error) {
+
+          showToast(
+            `Ошибка: ${error.message}`,
+            "error"
+          );
+
+        }
+
+      }
+
+
+      /* ======================================================
+         USERS
+      ====================================================== */
+
+      async function loadUsers() {
+
+        const container =
+          $("#usersContainer");
+
+        setLoading(
+          container,
+          "Загрузка пользователей"
+        );
+
+
+        try {
+
+          const data =
+            await api(
+              "/admin/users"
+            );
+
+
+          const list =
+            Array.isArray(data)
+              ? data
+              : (
+                  data.users ||
+                  data.items ||
+                  []
+                );
+
+
+          usersCache =
+            list;
+
+
+          renderUsers(
+            list
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            "Users:",
+            error
+          );
+
+          setError(
+            container,
+            `Не удалось загрузить пользователей: ${error.message}`
+          );
+
+        }
+
+      }
+
+
+      function renderUsers(
+        list
+      ) {
+
+        const container =
+          $("#usersContainer");
+
+        if (!container) {
+          return;
+        }
+
+
+        if (!list.length) {
+
+          container.innerHTML = `
+
+            <div class="empty">
+
+              <div class="empty-icon">
+                ♙
+              </div>
+
+              <div class="empty-title">
+                Пользователей пока нет
+              </div>
+
+              <div class="empty-text">
+                Список отправителей появится
+                после создания публикаций.
+              </div>
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        container.innerHTML = `
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>ID</th>
+                <th>Имя</th>
+                <th>Публикации</th>
+                <th>Статус</th>
+                <th>Дата</th>
+                <th>Действия</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              ${list.map(
+                user => {
+
+                  const blocked =
+                    user.banned ||
+                    user.is_banned ||
+                    user.status ===
+                    "banned";
+
+
+                  return `
+
+                    <tr>
+
+                      <td>
+                        #${escapeHTML(
+                          user.id ??
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+
+                        <div
+                          style="
+                            color:#fff;
+                            font-weight:750;
+                          "
+                        >
+                          ${escapeHTML(
+                            user.name ||
+                            user.contact_name ||
+                            "Без имени"
+                          )}
+                        </div>
+
+                      </td>
+
+                      <td>
+                        ${formatNumber(
+                          user.publications_count ??
+                          user.publications ??
+                          0
+                        )}
+                      </td>
+
+                      <td>
+
+                        <span
+                          class="badge ${
+                            blocked
+                              ? "red"
+                              : "green"
+                          }"
+                        >
+                          ${
+                            blocked
+                              ? "Заблокирован"
+                              : "Активен"
+                          }
+                        </span>
+
+                      </td>
+
+                      <td>
+                        ${formatDate(
+                          user.created_at
+                        )}
+                      </td>
+
+                      <td>
+
+                        <div class="actions">
+
+                          <button
+                            class="action-button ${
+                              blocked
+                                ? "green"
+                                : "red"
+                            }"
+                            data-user-action="${
+                              blocked
+                                ? "unban"
+                                : "ban"
+                            }"
+                            data-id="${escapeHTML(
+                              user.id
+                            )}"
+                          >
+                            ${
+                              blocked
+                                ? "Разблокировать"
+                                : "Заблокировать"
+                            }
+                          </button>
+
+                          <button
+                            class="action-button"
+                            data-user-action="delete"
+                            data-id="${escapeHTML(
+                              user.id
+                            )}"
+                          >
+                            Удалить
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  `;
+
+                }
+              ).join("")}
+
+            </tbody>
+
+          </table>
+
+        `;
+
+
+        bindUserActions();
+
+      }
+
+
+      function bindUserActions() {
+
+        $$("#usersContainer [data-user-action]")
+          .forEach(
+            button => {
+
+              button.addEventListener(
+                "click",
+                async () => {
+
+                  await userAction(
+                    button.dataset.userAction,
+                    button.dataset.id
+                  );
+
+                }
+              );
+
+            }
+          );
+
+      }
+
+
+      async function userAction(
+        action,
+        id
+      ) {
+
+        if (!id) {
+          return;
+        }
+
+
+        if (
+          action ===
+          "delete"
+        ) {
+
+          if (
+            !confirm(
+              "Удалить пользователя?"
+            )
+          ) {
+            return;
+          }
+
+        }
+
+
+        try {
+
+          await api(
+            `/admin/users/${encodeURIComponent(id)}/${action}`,
+            {
+              method: "POST"
+            }
+          );
+
+
+          showToast(
+            "Действие выполнено."
+          );
+
+
+          await loadUsers();
+          await loadOverview();
+
+        } catch (error) {
+
+          showToast(
+            `Ошибка: ${error.message}`,
+            "error"
+          );
+
+        }
+
+      }
+
+
+      /* ======================================================
+         CHAT
+      ====================================================== */
+
+      async function loadChat() {
+
+        const container =
+          $("#chatContainer");
+
+        setLoading(
+          container,
+          "Загрузка чатов"
+        );
+
+
+        try {
+
+          const data =
+            await api(
+              "/admin/chat"
+            );
+
+
+          const list =
+            Array.isArray(data)
+              ? data
+              : (
+                  data.chats ||
+                  data.messages ||
+                  data.items ||
+                  []
+                );
+
+
+          renderChat(
+            list
+          );
+
+
+        } catch (error) {
+
+          console.error(
+            "Chat:",
+            error
+          );
+
+          setError(
+            container,
+            `Не удалось загрузить чаты: ${error.message}`
+          );
+
+        }
+
+      }
+
+
+      function renderChat(
+        list
+      ) {
+
+        const container =
+          $("#chatContainer");
+
+        if (!container) {
+          return;
+        }
+
+
+        if (!list.length) {
+
+          container.innerHTML = `
+
+            <div class="empty">
+
+              <div class="empty-icon">
+                ◌
+              </div>
+
+              <div class="empty-title">
+                Новых обращений нет
+              </div>
+
+              <div class="empty-text">
+                Сообщения пользователей будут
+                отображаться здесь.
+              </div>
+
+            </div>
+
+          `;
+
+          return;
+
+        }
+
+
+        container.innerHTML = `
+
+          <table>
+
+            <thead>
+
+              <tr>
+
+                <th>Диалог</th>
+                <th>Пользователь</th>
+                <th>Последнее сообщение</th>
+                <th>Дата</th>
+                <th>Статус</th>
+                <th>Действия</th>
+
+              </tr>
+
+            </thead>
+
+            <tbody>
+
+              ${list.map(
+                chat => {
+
+                  const unread =
+                    chat.unread ||
+                    chat.unread_count ||
+                    0;
+
+
+                  return `
+
+                    <tr>
+
+                      <td>
+                        #${escapeHTML(
+                          chat.id ??
+                          chat.chat_id ??
+                          "—"
+                        )}
+                      </td>
+
+                      <td>
+
+                        <div
+                          style="
+                            color:#fff;
+                            font-weight:750;
+                          "
+                        >
+                          ${escapeHTML(
+                            chat.name ||
+                            chat.user_name ||
+                            chat.contact_name ||
+                            "Аноним"
+                          )}
+                        </div>
+
+                      </td>
+
+                      <td>
+
+                        <div
+                          style="
+                            max-width:320px;
+                            overflow:hidden;
+                            text-overflow:ellipsis;
+                            white-space:nowrap;
+                          "
+                        >
+                          ${escapeHTML(
+                            chat.last_message ||
+                            chat.message ||
+                            "—"
+                          )}
+                        </div>
+
+                      </td>
+
+                      <td>
+                        ${formatDate(
+                          chat.updated_at ||
+                          chat.created_at
+                        )}
+                      </td>
+
+                      <td>
+
+                        ${
+                          unread
+                            ? `
+                              <span class="badge red">
+                                ${formatNumber(unread)}
+                                новых
+                              </span>
+                            `
+                            : `
+                              <span class="badge green">
+                                Прочитано
+                              </span>
+                            `
+                        }
+
+                      </td>
+
+                      <td>
+
+                        <div class="actions">
+
+                          <button
+                            class="action-button gold"
+                            data-chat-id="${escapeHTML(
+                              chat.id ??
+                              chat.chat_id ??
+                              ""
+                            )}"
+                          >
+                            Открыть
+                          </button>
+
+                        </div>
+
+                      </td>
+
+                    </tr>
+
+                  `;
+
+                }
+              ).join("")}
+
+            </tbody>
+
+          </table>
+
+        `;
+
+
+        const unreadTotal =
+          list.reduce(
+            (
+              total,
+              item
+            ) =>
+              total +
+              Number(
+                item.unread ||
+                item.unread_count ||
+                0
+              ),
+            0
+          );
+
+
+        updateChatBadge(
+          unreadTotal
+        );
+
+      }
+
+
+      function updateChatBadge(
+        count
+      ) {
+
+        const badge =
+          $("#chatBadge");
+
+        if (!badge) {
+          return;
+        }
+
+
+        if (
+          Number(count || 0) <= 0
+        ) {
+
+          badge.style.display =
+            "none";
+
+          return;
+
+        }
+
+
+        badge.style.display =
+          "inline-flex";
+
+        badge.textContent =
+          Number(count) > 99
+            ? "99+"
+            : count;
+
+      }
+
+
+      /* ======================================================
+         NOTIFICATIONS
+      ====================================================== */
+
+      async function loadNotifications() {
+
+        const container =
+          $("#notificationsContainer");
+
+        setLoading(
+          container,
+          "Загрузка уведомлений"
+        );
+
+
+        try {
+
+          const data =
+            await api(
+              "/admin/notifications"
+            );
+
+
+          const list =
+            Array.isArray(data)
+              ? data
+              : (
+                  data.notifications ||
+                  data.items ||
+                  []
+                );
+
+
+          if (!list.length) {
+
+            container.innerHTML = `
+
+              <div class="empty">
+
+                <div class="empty-icon">
+                  ♢
+                </div>
+
+                <div class="empty-title">
+                  Уведомлений нет
+                </div>
+
+                <div class="empty-text">
+                  Новые системные уведомления
+                  появятся здесь.
+                </div>
+
+              </div>
+
+            `;
 
             return;
 
           }
 
-        } catch (_) {}
 
-      }
+          container.innerHTML =
+            list.map(
+              notification => `
+
+                <div
+                  style="
+                    padding:15px 0;
+                    border-bottom:
+                      1px solid
+                      rgba(255,255,255,.05);
+                  "
+                >
+
+                  <div
+                    style="
+                      color:#fff;
+                      font-weight:800;
+                      font-size:12px;
+                    "
+                  >
+                    ${escapeHTML(
+                      notification.title ||
+                      "Уведомление"
+                    )}
+                  </div>
+
+                  <div
+                    style="
+                      margin-top:6px;
+                      color:#9ba8bb;
+                      font-size:11px;
+                      line-height:1.55;
+                    "
+                  >
+                    ${escapeHTML(
+                      notification.message ||
+                      notification.text ||
+                      ""
+                    )}
+                  </div>
+
+                  <div
+                    style="
+                      margin-top:7px;
+                      color:#66758d;
+                      font-size:9px;
+                    "
+                  >
+                    ${formatDate(
+                      notification.created_at
+                    )}
+                  </div>
+
+                </div>
+
+              `
+            ).join("");
 
 
-      /*
-       * Если admin.js не предоставил функцию,
-       * пробуем получить публикацию через существующий
-       * административный endpoint.
-       */
+        } catch (error) {
 
-      try {
-
-        const response =
-          await fetch(
-            "/api/admin/publications",
-            {
-              method: "GET",
-              credentials: "include"
-            }
+          console.error(
+            "Notifications:",
+            error
           );
 
-
-        if (!response.ok) {
-
-          throw new Error(
-            "Не удалось загрузить публикации."
+          setError(
+            container,
+            `Не удалось загрузить уведомления: ${error.message}`
           );
 
         }
 
-
-        const result =
-          await response.json();
-
-
-        const list =
-          Array.isArray(result)
-            ? result
-            : (
-                result.publications ||
-                result.posts ||
-                result.items ||
-                []
-              );
-
-
-        const publication =
-          list.find(function (item) {
-
-            return String(
-              item.id ??
-              item.publication_id
-            ) === String(id);
-
-          });
-
-
-        if (!publication) {
-
-          throw new Error(
-            "Публикация с таким ID не найдена."
-          );
-
-        }
-
-
-        setCounterData(publication);
-
-
-        showCounterMessage(
-          "Текущие значения загружены.",
-          "success"
-        );
-
-
-      } catch (error) {
-
-        showCounterMessage(
-          error.message ||
-          "Не удалось загрузить статистику.",
-          "error"
-        );
-
       }
 
-    }
-  );
 
+      /* ======================================================
+         STATS
+      ====================================================== */
 
-  /* ======================================================
-     FORMAT
-  ====================================================== */
+      async function loadStats() {
 
-  function formatNumber(value) {
+        const container =
+          $("#statsContainer");
 
-    const number =
-      Number(value) || 0;
-
-    return new Intl.NumberFormat(
-      "ru-RU"
-    ).format(number);
-
-  }
-
-
-  function escapeHtml(value) {
-
-    return String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-
-  }
-
-
-  /* ======================================================
-     KEYBOARD CONTROL
-  ====================================================== */
-
-  document.addEventListener(
-    "keydown",
-    function (event) {
-
-      /*
-       * В полях счётчиков можно вводить
-       * любые большие числа с клавиатуры.
-       */
-
-      const target =
-        event.target;
-
-      if (
-        target &&
-        target.matches &&
-        target.matches(
-          "#counterModal input[type='number']"
-        )
-      ) {
-
-        /*
-         * Ничего дополнительно не блокируем.
-         */
-
-      }
-
-    }
-  );
-
-
-  /* ======================================================
-     OPEN COUNTERS FROM PUBLICATION CARDS
-  ====================================================== */
-
-  document.addEventListener(
-    "click",
-    function (event) {
-
-      const button =
-        event.target.closest(
-          "[data-edit-counters]"
+        setLoading(
+          container,
+          "Загрузка статистики"
         );
 
-      if (!button) return;
-
-      const id =
-        button.dataset.editCounters;
-
-      const publication = {
-
-        publication_id: id,
-
-        views:
-          button.dataset.views || 0,
-
-        likes:
-          button.dataset.likes || 0,
-
-        comments:
-          button.dataset.comments || 0,
-
-        saves:
-          button.dataset.saves || 0,
-
-        shares:
-          button.dataset.shares || 0,
-
-        love:
-          button.dataset.love || 0,
-
-        support:
-          button.dataset.support || 0,
-
-        wow:
-          button.dataset.wow || 0
-
-      };
-
-
-      setCounterData(
-        publication
-      );
-
-      openModal(
-        "counterModal"
-      );
-
-    }
-  );
-
-
-  /* ======================================================
-     TEST BUTTON
-  ====================================================== */
-
-  $("#adminTestButton")?.addEventListener(
-    "click",
-    async function () {
-
-      try {
-
-        const response =
-          await fetch(
-            "/api/admin/me",
-            {
-              credentials: "include"
-            }
-          );
-
-
-        if (!response.ok) {
-
-          alert(
-            "⚠️ Сервер не подтвердил авторизацию администратора."
-          );
-
-          return;
-
-        }
-
-
-        alert(
-          "✅ Соединение с административным API работает."
-        );
-
-      } catch (error) {
-
-        alert(
-          "❌ Ошибка соединения с сервером."
-        );
-
-      }
-
-    }
-  );
-
-
-  /* ======================================================
-     TOOLS REFRESH
-  ====================================================== */
-
-  $("#adminToolsRefresh")?.addEventListener(
-    "click",
-    async function () {
-
-      if (
-        typeof window.refreshAdminData ===
-        "function"
-      ) {
 
         try {
 
-          await window.refreshAdminData();
+          const data =
+            await api(
+              "/admin/stats"
+            );
 
-          alert(
-            "✅ Данные обновлены."
+
+          renderOverviewStats(
+            data
           );
 
-          return;
 
-        } catch (_) {}
+          const entries =
+            Object.entries(
+              data || {}
+            );
+
+
+          if (!entries.length) {
+
+            container.innerHTML = `
+
+              <div class="empty">
+
+                <div class="empty-icon">
+                  ◒
+                </div>
+
+                <div class="empty-title">
+                  Статистика пока недоступна
+                </div>
+
+              </div>
+
+            `;
+
+            return;
+
+          }
+
+
+          container.innerHTML = `
+
+            <div
+              style="
+                display:grid;
+                grid-template-columns:
+                  repeat(auto-fit,minmax(180px,1fr));
+                gap:10px;
+              "
+            >
+
+              ${entries.map(
+                ([key, value]) => `
+
+                  <div
+                    style="
+                      padding:15px;
+                      border:1px solid var(--border);
+                      border-radius:13px;
+                      background:rgba(255,255,255,.025);
+                    "
+                  >
+
+                    <div
+                      style="
+                        color:#718098;
+                        font-size:9px;
+                        font-weight:800;
+                        text-transform:uppercase;
+                        letter-spacing:.6px;
+                      "
+                    >
+                      ${escapeHTML(
+                        key
+                      )}
+                    </div>
+
+                    <div
+                      style="
+                        margin-top:7px;
+                        color:#fff;
+                        font-size:20px;
+                        font-weight:850;
+                      "
+                    >
+                      ${
+                        typeof value ===
+                        "number"
+                          ? formatNumber(value)
+                          : escapeHTML(
+                              value
+                            )
+                      }
+                    </div>
+
+                  </div>
+
+                `
+              ).join("")}
+
+            </div>
+
+          `;
+
+        } catch (error) {
+
+          console.error(
+            "Stats:",
+            error
+          );
+
+          setError(
+            container,
+            `Не удалось загрузить статистику: ${error.message}`
+          );
+
+        }
 
       }
 
 
-      location.reload();
+      /* ======================================================
+         AUDIT
+      ====================================================== */
 
-    }
-  );
+      async function loadAudit() {
 
+        const container =
+          $("#auditContainer");
 
-  /* ======================================================
-     AUTO NAVIGATION AFTER HASH
-  ====================================================== */
-
-  function handleHash() {
-
-    const hash =
-      location.hash.replace("#", "");
-
-    if (
-      hash &&
-      sections[hash]
-    ) {
-
-      openAdminSection(hash);
-
-    }
-
-  }
+        setLoading(
+          container,
+          "Загрузка журнала"
+        );
 
 
-  window.addEventListener(
-    "hashchange",
-    handleHash
-  );
+        try {
+
+          const data =
+            await api(
+              "/admin/audit"
+            );
 
 
-  handleHash();
+          const list =
+            Array.isArray(data)
+              ? data
+              : (
+                  data.audit ||
+                  data.logs ||
+                  data.items ||
+                  []
+                );
 
 
-  /*
-   * Начальное состояние:
-   * открываем обзор.
-   */
+          if (!list.length) {
 
-  openAdminSection("overview");
+            container.innerHTML = `
 
-})();
-</script>
+              <div class="empty">
+
+                <div class="empty-icon">
+                  ◫
+                </div>
+
+                <div class="empty-title">
+                  Журнал пока пуст
+                </div>
+
+                <div class="empty-text">
+                  Административные действия будут
+                  фиксироваться здесь.
+                </div>
+
+              </div>
+
+            `;
+
+            return;
+
+          }
+
+
+          container.innerHTML = `
+
+            <table>
+
+              <thead>
+
+                <tr>
+
+                  <th>Дата</th>
+                  <th>Администратор</th>
+                  <th>Действие</th>
+                  <th>Объект</th>
+                  <th>Детали</th>
+
+                </tr>
+
+              </thead>
+
+              <tbody>
+
+                ${list.map(
+                  item => `
+
+                    <tr>
+
+                      <td>
+                        ${formatDate(
+                          item.created_at ||
+                          item.timestamp
+                        )}
+                      </td>
+
+                      <td>
+                        ${escapeHTML(
+                          item.admin_name ||
+                          item.username ||
+                          "Главный администратор"
+                        )}
+                      </td>
+
+                      <td>
+
+                        <span class="badge gold">
+                          ${escapeHTML(
+                            item.action ||
+                            "—"
+                          )}
+                        </span>
+
+                      </td>
+
+                      <td>
+                        ${escapeHTML(
+                          item.entity_type ||
+                          item.object_type ||
+                          "—"
+                        )}
+                        ${
+                          item.entity_id ||
+                          item.object_id
+                            ? ` #${escapeHTML(
+                                item.entity_id ||
+                                item.object_id
+                              )}`
+                            : ""
+                        }
+                      </td>
+
+                      <td>
+                        ${escapeHTML(
+                          item.details ||
+                          item.description ||
+                          "—"
+                        )}
+                      </td>
+
+                    </tr>
+
+                  `
+                ).join("")}
+
+              </tbody>
+
+            </table>
+
+          `;
+
+        } catch (error) {
+
+          console.error(
+            "Audit:",
+            error
+          );
+
+          setError(
+            container,
+            `Не удалось загрузить журнал: ${error.message}`
+          );
+
+        }
+
+      }
+
+
+      /* ======================================================
+         SEARCH — PUBLICATIONS
+      ====================================================== */
+
+      $("#publicationSearch")
+        ?.addEventListener(
+          "input",
+          function () {
+
+            const query =
+              this.value
+                .trim()
+                .toLowerCase();
+
+
+            if (!query) {
+
+              renderPublications(
+                publicationsCache
+              );
+
+              return;
+
+            }
+
+
+            const filtered =
+              publicationsCache.filter(
+                item => {
+
+                  const text =
+                    [
+                      item.id,
+                      item.title,
+                      item.text,
+                      item.category,
+                      item.city,
+                      item.location,
+                      item.status
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                      .toLowerCase();
+
+
+                  return text.includes(
+                    query
+                  );
+
+                }
+              );
+
+
+            renderPublications(
+              filtered
+            );
+
+          }
+        );
+
+
+      /* ======================================================
+         SEARCH — USERS
+      ====================================================== */
+
+      $("#userSearch")
+        ?.addEventListener(
+          "input",
+          function () {
+
+            const query =
+              this.value
+                .trim()
+                .toLowerCase();
+
+
+            if (!query) {
+
+              renderUsers(
+                usersCache
+              );
+
+              return;
+
+            }
+
+
+            const filtered =
+              usersCache.filter(
+                user => {
+
+                  const text =
+                    [
+                      user.id,
+                      user.name,
+                      user.contact_name,
+                      user.username,
+                      user.email,
+                      user.phone
+                    ]
+                      .filter(Boolean)
+                      .join(" ")
+                      .toLowerCase();
+
+
+                  return text.includes(
+                    query
+                  );
+
+                }
+              );
+
+
+            renderUsers(
+              filtered
+            );
+
+          }
+        );
+
+
+      /* ======================================================
+         NAV BUTTONS
+      ====================================================== */
+
+      $$(".nav-button")
+        .forEach(
+          button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                openAdminSection(
+                  button.dataset.section
+                );
+
+              }
+            );
+
+          }
+        );
+
+
+      /* ======================================================
+         QUICK ACTIONS
+      ====================================================== */
+
+      $$("[data-go]")
+        .forEach(
+          button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                openAdminSection(
+                  button.dataset.go
+                );
+
+              }
+            );
+
+          }
+        );
+
+
+      /* ======================================================
+         REFRESH
+      ====================================================== */
+
+      $("#adminRefresh")
+        ?.addEventListener(
+          "click",
+          async function () {
+
+            const button =
+              this;
+
+            const original =
+              button.innerHTML;
+
+            button.disabled =
+              true;
+
+            button.innerHTML =
+              "⟳ <span>Обновление…</span>";
+
+
+            try {
+
+              await loadOverview();
+
+
+              if (
+                currentSection ===
+                "publications"
+              ) {
+
+                await loadPublications();
+
+              }
+
+              if (
+                currentSection ===
+                "users"
+              ) {
+
+                await loadUsers();
+
+              }
+
+              if (
+                currentSection ===
+                "chat"
+              ) {
+
+                await loadChat();
+
+              }
+
+              if (
+                currentSection ===
+                "notifications"
+              ) {
+
+                await loadNotifications();
+
+              }
+
+              if (
+                currentSection ===
+                "stats"
+              ) {
+
+                await loadStats();
+
+              }
+
+              if (
+                currentSection ===
+                "audit"
+              ) {
+
+                await loadAudit();
+
+              }
+
+
+              showToast(
+                "Данные обновлены."
+              );
+
+            } catch (error) {
+
+              showToast(
+                "Не удалось обновить данные.",
+                "error"
+              );
+
+            } finally {
+
+              button.disabled =
+                false;
+
+              button.innerHTML =
+                original;
+
+            }
+
+          }
+        );
+
+
+      /* ======================================================
+         INDIVIDUAL REFRESH BUTTONS
+      ====================================================== */
+
+      $("#loadPublications")
+        ?.addEventListener(
+          "click",
+          loadPublications
+        );
+
+
+      $("#loadUsers")
+        ?.addEventListener(
+          "click",
+          loadUsers
+        );
+
+
+      $("#loadChat")
+        ?.addEventListener(
+          "click",
+          loadChat
+        );
+
+
+      $("#loadNotifications")
+        ?.addEventListener(
+          "click",
+          loadNotifications
+        );
+
+
+      $("#loadAudit")
+        ?.addEventListener(
+          "click",
+          loadAudit
+        );
+
+
+      /* ======================================================
+         HASH
+      ====================================================== */
+
+      window.addEventListener(
+        "hashchange",
+        handleHash
+      );
+
+
+      /* ======================================================
+         START
+      ====================================================== */
+
+      async function startAdmin() {
+
+        try {
+
+          await verifyAdminAccess();
+
+
+          $("#adminLoading")
+            ?.remove();
+
+
+          $("#adminApp")
+            ?.classList.add(
+              "ready"
+            );
+
+
+          handleHash();
+
+
+          if (
+            !location.hash
+          ) {
+
+            openAdminSection(
+              "overview"
+            );
+
+          }
+
+
+          await loadOverview();
+
+
+        } catch (error) {
+
+          console.error(
+            "Admin startup:",
+            error
+          );
+
+
+          $("#adminLoading")
+            ?.remove();
+
+
+          $("#adminApp")
+            ?.classList.add(
+              "ready"
+            );
+
+
+          openAdminSection(
+            "overview"
+          );
+
+
+          showToast(
+            "Панель открыта, но API временно недоступен.",
+            "warning"
+          );
+
+        }
+
+      }
+
+
+      startAdmin();
+
+    })();
+  </script>
 
 </body>
   </html>
