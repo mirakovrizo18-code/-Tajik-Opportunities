@@ -1,3271 +1,1450 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0"
-  >
-
-  <title>Tajik Opportunities — Админ-панель</title>
-
-  <meta
-    name="description"
-    content="Полная административная панель Tajik Opportunities"
-  >
-
-  <style>
-    * {
-      box-sizing: border-box;
-    }
-
-    :root {
-      --bg: #070b14;
-      --bg2: #0c1220;
-      --panel: rgba(18, 25, 40, .88);
-      --panel2: rgba(24, 33, 52, .94);
-      --border: rgba(255,255,255,.09);
-
-      --text: #f5f7fb;
-      --muted: #8995aa;
-
-      --primary: #7c5cff;
-      --primary2: #a98cff;
-
-      --green: #28d17c;
-      --red: #ff5574;
-      --yellow: #ffca5c;
-      --blue: #4ca8ff;
-      --cyan: #35d5e5;
-
-      --radius: 18px;
-      --sidebar: 270px;
-    }
-
-    html,
-    body {
-      margin: 0;
-      min-height: 100%;
-      background:
-        radial-gradient(
-          circle at 20% 0%,
-          rgba(124,92,255,.14),
-          transparent 32%
-        ),
-        radial-gradient(
-          circle at 100% 20%,
-          rgba(53,213,229,.08),
-          transparent 30%
-        ),
-        var(--bg);
-
-      color: var(--text);
-
-      font-family:
-        Inter,
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        "Segoe UI",
-        sans-serif;
-    }
-
-    body {
-      overflow-x: hidden;
-    }
-
-    button,
-    input,
-    textarea,
-    select {
-      font: inherit;
-    }
-
-    button {
-      cursor: pointer;
-    }
-
-    a {
-      color: inherit;
-      text-decoration: none;
-    }
-
-    /* =====================================================
-       LOGIN
-       ===================================================== */
-
-    #loginScreen {
-      min-height: 100vh;
-
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      padding: 24px;
-    }
-
-    .login-box {
-      width: min(450px, 100%);
-
-      padding: 34px;
-
-      background:
-        linear-gradient(
-          145deg,
-          rgba(25,34,55,.96),
-          rgba(10,15,26,.96)
-        );
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 28px;
-
-      box-shadow:
-        0 30px 100px rgba(0,0,0,.45);
-    }
-
-    .brand-logo {
-      width: 72px;
-      height: 72px;
-
-      display: grid;
-      place-items: center;
-
-      margin-bottom: 20px;
-
-      border-radius: 22px;
-
-      background:
-        linear-gradient(
-          135deg,
-          var(--primary),
-          var(--cyan)
-        );
-
-      font-size: 32px;
-      font-weight: 900;
-    }
-
-    .login-box h1 {
-      margin: 0 0 8px;
-      font-size: 28px;
-    }
-
-    .login-box p {
-      color: var(--muted);
-      margin: 0 0 28px;
-      line-height: 1.6;
-    }
-
-    .field {
-      margin-bottom: 16px;
-    }
-
-    .field label {
-      display: block;
-
-      margin-bottom: 8px;
-
-      font-size: 13px;
-      color: var(--muted);
-    }
-
-    input,
-    textarea,
-    select {
-      width: 100%;
-
-      color: var(--text);
-
-      background:
-        rgba(255,255,255,.045);
-
-      border:
-        1px solid var(--border);
-
-      border-radius: 12px;
-
-      padding:
-        13px 14px;
-
-      outline: none;
-
-      transition: .2s;
-    }
-
-    input:focus,
-    textarea:focus,
-    select:focus {
-      border-color:
-        rgba(124,92,255,.8);
-
-      box-shadow:
-        0 0 0 3px
-        rgba(124,92,255,.12);
-    }
-
-    textarea {
-      min-height: 120px;
-      resize: vertical;
-    }
-
-    .btn {
-      border: 0;
-
-      border-radius: 12px;
-
-      padding:
-        11px 15px;
-
-      color: white;
-
-      background:
-        rgba(255,255,255,.07);
-
-      transition: .2s;
-
-      font-weight: 700;
-    }
-
-    .btn:hover {
-      transform: translateY(-1px);
-
-      background:
-        rgba(255,255,255,.12);
-    }
-
-    .btn.primary {
-      background:
-        linear-gradient(
-          135deg,
-          var(--primary),
-          #5f8cff
-        );
-    }
-
-    .btn.green {
-      background:
-        rgba(40,209,124,.14);
-
-      color:
-        #64efaa;
-
-      border:
-        1px solid rgba(40,209,124,.2);
-    }
-
-    .btn.red {
-      background:
-        rgba(255,85,116,.13);
-
-      color:
-        #ff8298;
-
-      border:
-        1px solid rgba(255,85,116,.2);
-    }
-
-    .btn.yellow {
-      background:
-        rgba(255,202,92,.12);
-
-      color:
-        #ffd978;
-    }
-
-    .login-error {
-      display: none;
-
-      margin-top: 14px;
-
-      padding: 12px;
-
-      border-radius: 12px;
-
-      background:
-        rgba(255,85,116,.1);
-
-      border:
-        1px solid rgba(255,85,116,.25);
-
-      color:
-        #ff91a5;
-
-      font-size: 13px;
-    }
-
-    /* =====================================================
-       APP
-       ===================================================== */
-
-    #app {
-      display: none;
-      min-height: 100vh;
-    }
-
-    .layout {
-      display: flex;
-      min-height: 100vh;
-    }
-
-    /* =====================================================
-       SIDEBAR
-       ===================================================== */
-
-    .sidebar {
-      width: var(--sidebar);
-
-      position: fixed;
-
-      inset:
-        0 auto 0 0;
-
-      z-index: 100;
-
-      display: flex;
-      flex-direction: column;
-
-      padding: 18px;
-
-      background:
-        rgba(8,13,23,.96);
-
-      border-right:
-        1px solid var(--border);
-
-      backdrop-filter:
-        blur(20px);
-
-      overflow-y: auto;
-    }
-
-    .sidebar-brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      padding:
-        10px 8px 20px;
-    }
-
-    .sidebar-brand-icon {
-      width: 42px;
-      height: 42px;
-
-      display: grid;
-      place-items: center;
-
-      border-radius: 13px;
-
-      background:
-        linear-gradient(
-          135deg,
-          var(--primary),
-          var(--cyan)
-        );
-
-      font-size: 20px;
-    }
-
-    .sidebar-brand strong {
-      display: block;
-      font-size: 14px;
-    }
-
-    .sidebar-brand span {
-      color: var(--muted);
-      font-size: 11px;
-    }
-
-    .nav-title {
-      margin:
-        15px 9px 7px;
-
-      font-size: 10px;
-
-      color:
-        #657186;
-
-      text-transform:
-        uppercase;
-
-      letter-spacing:
-        .12em;
-    }
-
-    .nav-btn {
-      width: 100%;
-
-      display: flex;
-      align-items: center;
-      gap: 11px;
-
-      margin-bottom: 4px;
-
-      padding:
-        11px 12px;
-
-      border: 0;
-
-      border-radius: 12px;
-
-      background:
-        transparent;
-
-      color:
-        #aeb8c9;
-
-      text-align: left;
-
-      transition: .2s;
-    }
-
-    .nav-btn:hover {
-      background:
-        rgba(255,255,255,.055);
-
-      color:
-        white;
-    }
-
-    .nav-btn.active {
-      color: white;
-
-      background:
-        linear-gradient(
-          135deg,
-          rgba(124,92,255,.28),
-          rgba(76,168,255,.13)
-        );
-
-      box-shadow:
-        inset 0 0 0 1px
-        rgba(124,92,255,.16);
-    }
-
-    .nav-icon {
-      width: 25px;
-      text-align: center;
-      font-size: 17px;
-    }
-
-    .nav-badge {
-      margin-left: auto;
-
-      min-width: 22px;
-
-      padding:
-        2px 6px;
-
-      border-radius: 20px;
-
-      background:
-        var(--red);
-
-      color: white;
-
-      font-size: 10px;
-
-      text-align: center;
-    }
-
-    .sidebar-bottom {
-      margin-top: auto;
-
-      padding-top: 16px;
-    }
-
-    .admin-card {
-      padding: 14px;
-
-      border-radius: 16px;
-
-      background:
-        rgba(255,255,255,.04);
-
-      border:
-        1px solid var(--border);
-    }
-
-    .admin-card-name {
-      font-weight: 800;
-      font-size: 13px;
-    }
-
-    .admin-card-role {
-      color:
-        #73e8a8;
-
-      font-size: 11px;
-
-      margin-top: 4px;
-    }
-
-    /* =====================================================
-       MAIN
-       ===================================================== */
-
-    .main {
-      width: calc(100% - var(--sidebar));
-
-      margin-left:
-        var(--sidebar);
-
-      min-width: 0;
-    }
-
-    .topbar {
-      position: sticky;
-      top: 0;
-
-      z-index: 80;
-
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 15px;
-
-      padding:
-        16px 24px;
-
-      background:
-        rgba(7,11,20,.83);
-
-      border-bottom:
-        1px solid var(--border);
-
-      backdrop-filter:
-        blur(18px);
-    }
-
-    .page-heading h1 {
-      margin: 0;
-      font-size: 21px;
-    }
-
-    .page-heading p {
-      margin:
-        4px 0 0;
-
-      color:
-        var(--muted);
-
-      font-size: 12px;
-    }
-
-    .top-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .content {
-      padding:
-        24px;
-
-      max-width:
-        1700px;
-
-      margin:
-        0 auto;
-    }
-
-    /* =====================================================
-       SECTIONS
-       ===================================================== */
-
-    .section {
-      display: none;
-      animation:
-        fadeIn .22s ease;
-    }
-
-    .section.active {
-      display: block;
-    }
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform:
-          translateY(5px);
-      }
-
-      to {
-        opacity: 1;
-        transform:
-          translateY(0);
-      }
-    }
-
-    /* =====================================================
-       CARDS
-       ===================================================== */
-
-    .grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(
-          auto-fit,
-          minmax(190px, 1fr)
-        );
-
-      gap: 14px;
-    }
-
-    .stat-card {
-      padding: 18px;
-
-      border:
-        1px solid var(--border);
-
-      border-radius:
-        var(--radius);
-
-      background:
-        linear-gradient(
-          145deg,
-          rgba(22,30,48,.94),
-          rgba(12,17,29,.94)
-        );
-    }
-
-    .stat-top {
-      display: flex;
-      justify-content: space-between;
-
-      color:
-        var(--muted);
-
-      font-size: 12px;
-    }
-
-    .stat-icon {
-      width: 35px;
-      height: 35px;
-
-      display: grid;
-      place-items: center;
-
-      border-radius: 11px;
-
-      background:
-        rgba(124,92,255,.13);
-    }
-
-    .stat-value {
-      margin-top: 16px;
-
-      font-size: 27px;
-
-      font-weight: 900;
-    }
-
-    .stat-label {
-      margin-top: 4px;
-
-      color:
-        var(--muted);
-
-      font-size: 11px;
-    }
-
-    .panel {
-      margin-top: 16px;
-
-      border:
-        1px solid var(--border);
-
-      border-radius:
-        var(--radius);
-
-      background:
-        rgba(14,21,34,.83);
-
-      overflow:
-        hidden;
-    }
-
-    .panel-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 12px;
-
-      padding:
-        16px 18px;
-
-      border-bottom:
-        1px solid var(--border);
-    }
-
-    .panel-header h2 {
-      margin: 0;
-
-      font-size: 15px;
-    }
-
-    .panel-header p {
-      margin: 4px 0 0;
-
-      color:
-        var(--muted);
-
-      font-size: 11px;
-    }
-
-    .panel-body {
-      padding: 18px;
-    }
-
-    /* =====================================================
-       TOOLBAR
-       ===================================================== */
-
-    .toolbar {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 9px;
-
-      margin-bottom: 14px;
-    }
-
-    .toolbar .search {
-      flex:
-        1 1 260px;
-    }
-
-    /* =====================================================
-       TABLE
-       ===================================================== */
-
-    .table-wrap {
-      width: 100%;
-      overflow-x: auto;
-    }
-
-    table {
-      width: 100%;
-
-      border-collapse:
-        collapse;
-
-      min-width:
-        900px;
-    }
-
-    th,
-    td {
-      padding:
-        13px 12px;
-
-      border-bottom:
-        1px solid
-        rgba(255,255,255,.055);
-
-      text-align: left;
-
-      font-size: 12px;
-
-      vertical-align: top;
-    }
-
-    th {
-      color:
-        #7f8ba0;
-
-      font-size: 10px;
-
-      text-transform:
-        uppercase;
-
-      letter-spacing:
-        .06em;
-    }
-
-    td {
-      color:
-        #d7deea;
-    }
-
-    tr:hover td {
-      background:
-        rgba(255,255,255,.018);
-    }
-
-    .title-cell {
-      max-width: 330px;
-
-      font-weight: 750;
-
-      color:
-        white;
-    }
-
-    .sub {
-      display: block;
-
-      margin-top: 4px;
-
-      color:
-        var(--muted);
-
-      font-size: 10px;
-
-      font-weight: 400;
-    }
-
-    /* =====================================================
-       STATUS
-       ===================================================== */
-
-    .status {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
-
-      padding:
-        5px 8px;
-
-      border-radius:
-        20px;
-
-      font-size: 10px;
-
-      font-weight: 800;
-
-      white-space: nowrap;
-    }
-
-    .status.pending {
-      background:
-        rgba(255,202,92,.12);
-
-      color:
-        #ffd66d;
-    }
-
-    .status.published,
-    .status.active {
-      background:
-        rgba(40,209,124,.11);
-
-      color:
-        #66eaa7;
-    }
-
-    .status.rejected,
-    .status.blocked,
-    .status.deleted {
-      background:
-        rgba(255,85,116,.11);
-
-      color:
-        #ff8298;
-    }
-
-    .status.draft {
-      background:
-        rgba(76,168,255,.11);
-
-      color:
-        #72bbff;
-    }
-
-    .status.archived {
-      background:
-        rgba(150,160,180,.11);
-
-      color:
-        #aeb7c7;
-    }
-
-    /* =====================================================
-       ACTIONS
-       ===================================================== */
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-    }
-
-    .small-btn {
-      border:
-        1px solid var(--border);
-
-      background:
-        rgba(255,255,255,.045);
-
-      color:
-        #c8d1df;
-
-      border-radius:
-        8px;
-
-      padding:
-        6px 8px;
-
-      font-size: 10px;
-    }
-
-    .small-btn:hover {
-      background:
-        rgba(255,255,255,.09);
-
-      color:
-        white;
-    }
-
-    .small-btn.green {
-      color:
-        #65e9a4;
-    }
-
-    .small-btn.red {
-      color:
-        #ff8298;
-    }
-
-    .small-btn.blue {
-      color:
-        #76bcff;
-    }
-
-    /* =====================================================
-       EMPTY
-       ===================================================== */
-
-    .empty {
-      padding:
-        50px 20px;
-
-      text-align:
-        center;
-
-      color:
-        var(--muted);
-    }
-
-    .empty-icon {
-      font-size: 40px;
-      margin-bottom: 10px;
-    }
-
-    /* =====================================================
-       MODAL
-       ===================================================== */
-
-    .modal {
-      position: fixed;
-
-      inset: 0;
-
-      z-index: 500;
-
-      display: none;
-
-      align-items: center;
-      justify-content: center;
-
-      padding: 20px;
-
-      background:
-        rgba(0,0,0,.68);
-
-      backdrop-filter:
-        blur(8px);
-    }
-
-    .modal.show {
-      display: flex;
-    }
-
-    .modal-box {
-      width:
-        min(900px, 100%);
-
-      max-height:
-        90vh;
-
-      overflow-y:
-        auto;
-
-      border:
-        1px solid var(--border);
-
-      border-radius:
-        22px;
-
-      background:
-        #101827;
-
-      box-shadow:
-        0 40px 120px rgba(0,0,0,.55);
-    }
-
-    .modal-header {
-      position: sticky;
-      top: 0;
-
-      z-index: 2;
-
-      display: flex;
-      justify-content: space-between;
-
-      padding:
-        17px 20px;
-
-      background:
-        rgba(16,24,39,.96);
-
-      border-bottom:
-        1px solid var(--border);
-    }
-
-    .modal-header h3 {
-      margin: 0;
-      font-size: 16px;
-    }
-
-    .modal-close {
-      width: 34px;
-      height: 34px;
-
-      border: 0;
-
-      border-radius: 10px;
-
-      background:
-        rgba(255,255,255,.06);
-
-      color:
-        white;
-    }
-
-    .modal-body {
-      padding:
-        20px;
-    }
-
-    /* =====================================================
-       FORM GRID
-       ===================================================== */
-
-    .form-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(
-          2,
-          minmax(0,1fr)
-        );
-
-      gap: 13px;
-    }
-
-    .full {
-      grid-column:
-        1 / -1;
-    }
-
-    /* =====================================================
-       CHAT
-       ===================================================== */
-
-    .chat-layout {
-      display: grid;
-
-      grid-template-columns:
-        300px minmax(0,1fr);
-
-      min-height:
-        610px;
-    }
-
-    .chat-list {
-      border-right:
-        1px solid var(--border);
-
-      overflow-y:
-        auto;
-    }
-
-    .chat-item {
-      width: 100%;
-
-      border: 0;
-
-      border-bottom:
-        1px solid
-        rgba(255,255,255,.05);
-
-      background:
-        transparent;
-
-      color:
-        white;
-
-      padding:
-        13px;
-
-      text-align:
-        left;
-    }
-
-    .chat-item:hover,
-    .chat-item.active {
-      background:
-        rgba(124,92,255,.09);
-    }
-
-    .chat-item strong {
-      display: block;
-      font-size: 12px;
-    }
-
-    .chat-item span {
-      color:
-        var(--muted);
-
-      font-size: 10px;
-    }
-
-    .chat-main {
-      display: flex;
-      flex-direction: column;
-
-      min-width: 0;
-    }
-
-    .chat-header {
-      padding:
-        14px 16px;
-
-      border-bottom:
-        1px solid var(--border);
-    }
-
-    .messages {
-      flex: 1;
-
-      padding:
-        18px;
-
-      overflow-y:
-        auto;
-
-      min-height:
-        400px;
-    }
-
-    .message {
-      max-width:
-        75%;
-
-      padding:
-        10px 12px;
-
-      margin-bottom:
-        10px;
-
-      border-radius:
-        13px;
-
-      background:
-        rgba(255,255,255,.055);
-
-      font-size:
-        12px;
-
-      line-height:
-        1.5;
-    }
-
-    .message.official {
-      margin-left:
-        auto;
-
-      background:
-        rgba(124,92,255,.16);
-    }
-
-    .message-time {
-      display: block;
-
-      margin-top: 5px;
-
-      color:
-        var(--muted);
-
-      font-size: 9px;
-    }
-
-    .chat-compose {
-      display: flex;
-      gap: 8px;
-
-      padding:
-        12px;
-
-      border-top:
-        1px solid var(--border);
-    }
-
-    .chat-compose textarea {
-      min-height:
-        45px;
-
-      max-height:
-        100px;
-    }
-
-    /* =====================================================
-       NOTIFICATION
-       ===================================================== */
-
-    .notification-grid {
-      display: grid;
-
-      grid-template-columns:
-        repeat(
-          auto-fit,
-          minmax(220px,1fr)
-        );
-
-      gap: 13px;
-    }
-
-    .notification-box {
-      padding:
-        18px;
-
-      border:
-        1px solid var(--border);
-
-      border-radius:
-        16px;
-
-      background:
-        rgba(255,255,255,.035);
-    }
-
-    .notification-box h3 {
-      margin: 0;
-
-      font-size: 13px;
-    }
-
-    .notification-box .number {
-      margin-top:
-        14px;
-
-      font-size: 29px;
-
-      font-weight:
-        900;
-    }
-
-    /* =====================================================
-       TOAST
-       ===================================================== */
-
-    #toast {
-      position: fixed;
-
-      right: 20px;
-      bottom: 20px;
-
-      z-index: 1000;
-
-      display: none;
-
-      max-width:
-        360px;
-
-      padding:
-        13px 16px;
-
-      border:
-        1px solid var(--border);
-
-      border-radius:
-        13px;
-
-      background:
-        #182237;
-
-      box-shadow:
-        0 20px 50px rgba(0,0,0,.4);
-
-      font-size:
-        12px;
-    }
-
-    #toast.show {
-      display: block;
-
-      animation:
-        toastIn .2s ease;
-    }
-
-    @keyframes toastIn {
-      from {
-        opacity: 0;
-        transform:
-          translateY(10px);
-      }
-
-      to {
-        opacity: 1;
-        transform:
-          translateY(0);
-      }
-    }
-
-    /* =====================================================
-       RESPONSIVE
-       ===================================================== */
-
-    @media (max-width: 900px) {
-      :root {
-        --sidebar: 76px;
-      }
-
-      .sidebar {
-        padding: 10px;
-      }
-
-      .sidebar-brand strong,
-      .sidebar-brand span,
-      .nav-title,
-      .nav-btn span:not(.nav-icon),
-      .admin-card {
-        display: none;
-      }
-
-      .sidebar-brand {
-        justify-content: center;
-      }
-
-      .nav-btn {
-        justify-content: center;
-        padding: 12px 8px;
-      }
-
-      .nav-icon {
-        font-size: 19px;
-      }
-
-      .content {
-        padding: 16px;
-      }
-
-      .topbar {
-        padding: 13px 16px;
-      }
-
-      .chat-layout {
-        grid-template-columns:
-          1fr;
-      }
-
-      .chat-list {
-        max-height:
-          210px;
-
-        border-right: 0;
-
-        border-bottom:
-          1px solid var(--border);
-      }
-    }
-
-    @media (max-width: 600px) {
-      .form-grid {
-        grid-template-columns:
-          1fr;
-      }
-
-      .full {
-        grid-column:
-          auto;
-      }
-
-      .top-actions .btn:not(.primary) {
-        display: none;
-      }
-
-      .content {
-        padding: 11px;
-      }
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Tajik Opportunities — Админ-панель</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+:root{
+  --bg:#f4f7fb;
+  --panel:#ffffff;
+  --panel2:#f8fafc;
+  --text:#172033;
+  --muted:#6b7280;
+  --border:#e5e7eb;
+  --primary:#2563eb;
+  --primary2:#1d4ed8;
+  --success:#16a34a;
+  --warning:#d97706;
+  --danger:#dc2626;
+  --purple:#7c3aed;
+  --shadow:0 12px 35px rgba(15,23,42,.08);
+  --radius:18px;
+}
+
+html,body{
+  margin:0;
+  padding:0;
+  width:100%;
+  min-height:100%;
+  font-family:Inter,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+}
+
+button,input,textarea,select{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+.app{
+  min-height:100vh;
+  display:flex;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+  width:270px;
+  position:fixed;
+  left:0;
+  top:0;
+  bottom:0;
+  background:#111827;
+  color:#fff;
+  z-index:1000;
+  overflow-y:auto;
+  transition:.25s;
+}
+
+.brand{
+  padding:24px 20px;
+  border-bottom:1px solid rgba(255,255,255,.08);
+}
+
+.brand-title{
+  font-size:21px;
+  font-weight:900;
+}
+
+.brand-sub{
+  margin-top:5px;
+  font-size:12px;
+  color:#9ca3af;
+}
+
+.nav{
+  padding:14px 10px 30px;
+}
+
+.nav-section{
+  padding:16px 10px 7px;
+  font-size:10px;
+  color:#6b7280;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+}
+
+.nav button{
+  width:100%;
+  border:0;
+  background:transparent;
+  color:#d1d5db;
+  padding:12px 13px;
+  border-radius:12px;
+  text-align:left;
+  margin:2px 0;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  transition:.2s;
+}
+
+.nav button:hover{
+  background:rgba(255,255,255,.08);
+  color:#fff;
+}
+
+.nav button.active{
+  background:#2563eb;
+  color:#fff;
+  box-shadow:0 8px 20px rgba(37,99,235,.25);
+}
+
+.nav-icon{
+  width:23px;
+  text-align:center;
+  font-size:17px;
+}
+
+.nav-label{
+  flex:1;
+}
+
+.badge{
+  min-width:21px;
+  height:21px;
+  padding:0 6px;
+  display:inline-flex;
+  justify-content:center;
+  align-items:center;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:800;
+  background:#ef4444;
+  color:white;
+}
+
+/* MAIN */
+
+.main{
+  width:calc(100% - 270px);
+  margin-left:270px;
+  min-height:100vh;
+}
+
+.topbar{
+  height:72px;
+  background:rgba(255,255,255,.92);
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  padding:0 25px;
+  position:sticky;
+  top:0;
+  z-index:900;
+  backdrop-filter:blur(14px);
+}
+
+.mobile-menu{
+  display:none;
+  border:0;
+  background:var(--panel2);
+  border-radius:10px;
+  padding:10px 12px;
+  margin-right:12px;
+}
+
+.top-title{
+  font-size:20px;
+  font-weight:900;
+}
+
+.top-spacer{
+  flex:1;
+}
+
+.status{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:13px;
+  color:var(--success);
+  font-weight:700;
+}
+
+.status-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--success);
+}
+
+.admin-chip{
+  margin-left:18px;
+  padding:9px 13px;
+  border-radius:12px;
+  background:#eef2ff;
+  color:#3730a3;
+  font-size:13px;
+  font-weight:800;
+}
+
+.content{
+  padding:25px;
+}
+
+/* SECTIONS */
+
+.page{
+  display:none;
+}
+
+.page.active{
+  display:block;
+}
+
+.page-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-bottom:22px;
+}
+
+.page-title{
+  margin:0;
+  font-size:28px;
+  font-weight:900;
+}
+
+.page-description{
+  margin:6px 0 0;
+  color:var(--muted);
+  font-size:14px;
+}
+
+/* CARDS */
+
+.grid{
+  display:grid;
+  gap:18px;
+}
+
+.grid-4{
+  grid-template-columns:repeat(4,1fr);
+}
+
+.grid-3{
+  grid-template-columns:repeat(3,1fr);
+}
+
+.grid-2{
+  grid-template-columns:repeat(2,1fr);
+}
+
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+}
+
+.stat-card{
+  padding:21px;
+  position:relative;
+  overflow:hidden;
+}
+
+.stat-label{
+  color:var(--muted);
+  font-size:13px;
+  font-weight:700;
+}
+
+.stat-value{
+  margin-top:8px;
+  font-size:30px;
+  font-weight:950;
+}
+
+.stat-icon{
+  position:absolute;
+  right:18px;
+  top:18px;
+  width:43px;
+  height:43px;
+  border-radius:13px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:#eff6ff;
+  font-size:20px;
+}
+
+.card-head{
+  padding:18px 20px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+
+.card-title{
+  font-size:16px;
+  font-weight:900;
+}
+
+.card-body{
+  padding:20px;
+}
+
+/* BUTTONS */
+
+.btn{
+  border:0;
+  border-radius:11px;
+  padding:10px 14px;
+  font-weight:800;
+  font-size:13px;
+  transition:.18s;
+}
+
+.btn:hover{
+  transform:translateY(-1px);
+}
+
+.btn-primary{
+  background:var(--primary);
+  color:white;
+}
+
+.btn-primary:hover{
+  background:var(--primary2);
+}
+
+.btn-success{
+  background:#dcfce7;
+  color:#166534;
+}
+
+.btn-warning{
+  background:#fef3c7;
+  color:#92400e;
+}
+
+.btn-danger{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.btn-secondary{
+  background:#f1f5f9;
+  color:#334155;
+}
+
+.btn-purple{
+  background:#ede9fe;
+  color:#5b21b6;
+}
+
+.btn-dark{
+  background:#111827;
+  color:#fff;
+}
+
+.btn-small{
+  padding:7px 10px;
+  font-size:12px;
+}
+
+.actions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+/* FILTERS */
+
+.filters{
+  background:white;
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:15px;
+  margin-bottom:18px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.input,
+.select,
+.textarea{
+  border:1px solid var(--border);
+  background:#fff;
+  color:var(--text);
+  border-radius:11px;
+  padding:10px 12px;
+  outline:none;
+  width:100%;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus{
+  border-color:var(--primary);
+  box-shadow:0 0 0 3px rgba(37,99,235,.1);
+}
+
+.filter-input{
+  min-width:210px;
+  flex:1;
+}
+
+.filter-select{
+  width:auto;
+  min-width:160px;
+}
+
+/* TABLE */
+
+.table-wrap{
+  overflow:auto;
+}
+
+table{
+  width:100%;
+  border-collapse:collapse;
+  min-width:900px;
+}
+
+th{
+  text-align:left;
+  padding:13px 15px;
+  background:#f8fafc;
+  border-bottom:1px solid var(--border);
+  color:#64748b;
+  font-size:11px;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+td{
+  padding:14px 15px;
+  border-bottom:1px solid #edf0f3;
+  vertical-align:top;
+  font-size:13px;
+}
+
+tr:hover td{
+  background:#fafcff;
+}
+
+.title-cell{
+  font-weight:800;
+  max-width:330px;
+}
+
+.muted{
+  color:var(--muted);
+}
+
+.small{
+  font-size:11px;
+}
+
+.status-pill{
+  display:inline-flex;
+  padding:5px 9px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+}
+
+.status-pending{
+  background:#fef3c7;
+  color:#92400e;
+}
+
+.status-published{
+  background:#dcfce7;
+  color:#166534;
+}
+
+.status-rejected{
+  background:#fee2e2;
+  color:#991b1b;
+}
+
+.status-draft{
+  background:#e0e7ff;
+  color:#3730a3;
+}
+
+.status-hidden{
+  background:#e5e7eb;
+  color:#374151;
+}
+
+.status-archived{
+  background:#ede9fe;
+  color:#5b21b6;
+}
+
+/* MODAL */
+
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(15,23,42,.55);
+  z-index:3000;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  backdrop-filter:blur(5px);
+}
+
+.modal.open{
+  display:flex;
+}
+
+.modal-box{
+  width:min(900px,100%);
+  max-height:92vh;
+  overflow:auto;
+  background:white;
+  border-radius:22px;
+  box-shadow:0 30px 90px rgba(0,0,0,.25);
+}
+
+.modal-head{
+  padding:20px 22px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.modal-title{
+  font-size:19px;
+  font-weight:900;
+}
+
+.close{
+  border:0;
+  background:#f1f5f9;
+  width:36px;
+  height:36px;
+  border-radius:10px;
+  font-size:20px;
+}
+
+.modal-body{
+  padding:22px;
+}
+
+.modal-footer{
+  padding:16px 22px;
+  border-top:1px solid var(--border);
+  display:flex;
+  justify-content:flex-end;
+  gap:9px;
+}
+
+/* FORM */
+
+.form-grid{
+  display:grid;
+  grid-template-columns:repeat(2,1fr);
+  gap:15px;
+}
+
+.form-group{
+  margin-bottom:15px;
+}
+
+.form-group.full{
+  grid-column:1/-1;
+}
+
+.form-label{
+  display:block;
+  margin-bottom:7px;
+  font-size:12px;
+  font-weight:800;
+  color:#475569;
+}
+
+.textarea{
+  min-height:150px;
+  resize:vertical;
+}
+
+/* ACTIVITY */
+
+.activity{
+  display:flex;
+  flex-direction:column;
+}
+
+.activity-item{
+  display:flex;
+  gap:12px;
+  padding:13px 0;
+  border-bottom:1px solid var(--border);
+}
+
+.activity-icon{
+  width:35px;
+  height:35px;
+  border-radius:10px;
+  background:#eff6ff;
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-shrink:0;
+}
+
+.activity-text{
+  font-size:13px;
+  line-height:1.5;
+}
+
+.activity-time{
+  margin-top:3px;
+  color:var(--muted);
+  font-size:11px;
+}
+
+/* TOAST */
+
+.toast-wrap{
+  position:fixed;
+  right:20px;
+  bottom:20px;
+  z-index:5000;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.toast{
+  min-width:280px;
+  max-width:420px;
+  background:#111827;
+  color:white;
+  padding:14px 16px;
+  border-radius:13px;
+  box-shadow:0 15px 35px rgba(0,0,0,.2);
+  font-size:13px;
+  font-weight:700;
+  animation:toastIn .2s ease;
+}
+
+.toast.success{
+  background:#166534;
+}
+
+.toast.error{
+  background:#991b1b;
+}
+
+@keyframes toastIn{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1;transform:none}
+}
+
+/* LOADING */
+
+.loading{
+  padding:40px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.spinner{
+  width:30px;
+  height:30px;
+  border:3px solid #e5e7eb;
+  border-top-color:var(--primary);
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+  margin:0 auto 10px;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg)}
+}
+
+/* CHAT */
+
+.chat-layout{
+  display:grid;
+  grid-template-columns:300px 1fr;
+  min-height:620px;
+  overflow:hidden;
+}
+
+.chat-list{
+  border-right:1px solid var(--border);
+  overflow:auto;
+}
+
+.chat-user{
+  padding:15px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer;
+}
+
+.chat-user:hover,
+.chat-user.active{
+  background:#eff6ff;
+}
+
+.chat-name{
+  font-weight:800;
+}
+
+.chat-preview{
+  margin-top:4px;
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.chat-window{
+  display:flex;
+  flex-direction:column;
+}
+
+.chat-messages{
+  flex:1;
+  padding:18px;
+  overflow:auto;
+  background:#f8fafc;
+}
+
+.message{
+  max-width:75%;
+  margin-bottom:10px;
+  padding:10px 13px;
+  border-radius:14px;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.message.visitor{
+  background:white;
+  border:1px solid var(--border);
+}
+
+.message.admin{
+  background:#2563eb;
+  color:white;
+  margin-left:auto;
+}
+
+.chat-send{
+  border-top:1px solid var(--border);
+  padding:12px;
+  display:flex;
+  gap:8px;
+}
+
+.chat-send textarea{
+  flex:1;
+  min-height:45px;
+  max-height:120px;
+}
+
+/* EMPTY */
+
+.empty{
+  padding:45px 20px;
+  text-align:center;
+  color:var(--muted);
+}
+
+.empty-icon{
+  font-size:40px;
+  margin-bottom:10px;
+}
+
+/* MOBILE */
+
+@media(max-width:1050px){
+  .grid-4{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media(max-width:800px){
+  .sidebar{
+    transform:translateX(-100%);
+  }
+
+  .sidebar.open{
+    transform:translateX(0);
+  }
+
+  .main{
+    width:100%;
+    margin-left:0;
+  }
+
+  .mobile-menu{
+    display:block;
+  }
+
+  .grid-3,
+  .grid-2,
+  .grid-4{
+    grid-template-columns:1fr;
+  }
+
+  .content{
+    padding:15px;
+  }
+
+  .page-title{
+    font-size:22px;
+  }
+
+  .chat-layout{
+    grid-template-columns:1fr;
+  }
+
+  .chat-list{
+    max-height:220px;
+    border-right:0;
+    border-bottom:1px solid var(--border);
+  }
+
+  .form-grid{
+    grid-template-columns:1fr;
+  }
+
+  .form-group.full{
+    grid-column:auto;
+  }
+}
+</style>
 </head>
 
 <body>
 
-<!-- =======================================================
-     LOGIN
-     ======================================================= -->
+<div class="app">
 
-<div id="loginScreen">
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
 
-  <div class="login-box">
+  <div class="brand">
+    <div class="brand-title">🇹🇯 Tajik Opportunities</div>
+    <div class="brand-sub">Центр управления платформой</div>
+  </div>
 
-    <div class="brand-logo">
-      🇹🇯
+  <nav class="nav">
+
+    <div class="nav-section">Основное</div>
+
+    <button class="nav-btn active" data-page="dashboard">
+      <span class="nav-icon">📊</span>
+      <span class="nav-label">Главная</span>
+    </button>
+
+    <button class="nav-btn" data-page="publications">
+      <span class="nav-icon">📰</span>
+      <span class="nav-label">Публикации</span>
+      <span class="badge" id="navPubBadge">0</span>
+    </button>
+
+    <button class="nav-btn" data-page="pending">
+      <span class="nav-icon">⏳</span>
+      <span class="nav-label">Модерация</span>
+      <span class="badge" id="navPendingBadge">0</span>
+    </button>
+
+    <div class="nav-section">Участники</div>
+
+    <button class="nav-btn" data-page="participants">
+      <span class="nav-icon">👥</span>
+      <span class="nav-label">Участники</span>
+    </button>
+
+    <button class="nav-btn" data-page="chats">
+      <span class="nav-icon">💬</span>
+      <span class="nav-label">Чаты</span>
+    </button>
+
+    <button class="nav-btn" data-page="comments">
+      <span class="nav-icon">💭</span>
+      <span class="nav-label">Комментарии</span>
+    </button>
+
+    <button class="nav-btn" data-page="reports">
+      <span class="nav-icon">🚨</span>
+      <span class="nav-label">Жалобы</span>
+      <span class="badge" id="navReportBadge">0</span>
+    </button>
+
+    <div class="nav-section">Контент и сервисы</div>
+
+    <button class="nav-btn" data-page="notifications">
+      <span class="nav-icon">🔔</span>
+      <span class="nav-label">Уведомления</span>
+    </button>
+
+    <button class="nav-btn" data-page="ads">
+      <span class="nav-icon">📢</span>
+      <span class="nav-label">Реклама</span>
+    </button>
+
+    <button class="nav-btn" data-page="support">
+      <span class="nav-icon">🆘</span>
+      <span class="nav-label">Поддержка</span>
+    </button>
+
+    <div class="nav-section">Система</div>
+
+    <button class="nav-btn" data-page="analytics">
+      <span class="nav-icon">📈</span>
+      <span class="nav-label">Аналитика</span>
+    </button>
+
+    <button class="nav-btn" data-page="settings">
+      <span class="nav-icon">⚙️</span>
+      <span class="nav-label">Настройки</span>
+    </button>
+
+    <button class="nav-btn" data-page="audit">
+      <span class="nav-icon">📜</span>
+      <span class="nav-label">Журнал действий</span>
+    </button>
+
+    <button class="nav-btn" data-page="system">
+      <span class="nav-icon">🛠️</span>
+      <span class="nav-label">Система</span>
+    </button>
+
+  </nav>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+
+<header class="topbar">
+
+  <button class="mobile-menu" id="mobileMenu">☰</button>
+
+  <div class="top-title" id="topTitle">Главная</div>
+
+  <div class="top-spacer"></div>
+
+  <div class="status">
+    <span class="status-dot"></span>
+    Система работает
+  </div>
+
+  <div class="admin-chip">
+    👑 Администратор
+  </div>
+
+</header>
+
+<div class="content">
+
+<!-- DASHBOARD -->
+<section class="page active" id="page-dashboard">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Панель управления</h1>
+      <p class="page-description">
+        Полный контроль Tajik Opportunities
+      </p>
     </div>
 
-    <h1>
-      Tajik Opportunities
-    </h1>
+    <button class="btn btn-primary" onclick="loadDashboard()">
+      🔄 Обновить
+    </button>
+  </div>
 
-    <p>
-      Защищённая административная панель.
-      Только главный администратор получает полный
-      доступ к управлению платформой.
-    </p>
+  <div class="grid grid-4">
 
-    <form id="loginForm">
+    <div class="card stat-card">
+      <div class="stat-label">Всего публикаций</div>
+      <div class="stat-value" id="statPublications">0</div>
+      <div class="stat-icon">📰</div>
+    </div>
 
-      <div class="field">
-        <label>
-          Логин администратора
-        </label>
+    <div class="card stat-card">
+      <div class="stat-label">На модерации</div>
+      <div class="stat-value" id="statPending">0</div>
+      <div class="stat-icon">⏳</div>
+    </div>
 
-        <input
-          id="loginUsername"
-          value="admin"
-          autocomplete="username"
-          required
-        >
-      </div>
+    <div class="card stat-card">
+      <div class="stat-label">Участники</div>
+      <div class="stat-value" id="statParticipants">0</div>
+      <div class="stat-icon">👥</div>
+    </div>
 
-      <div class="field">
-        <label>
-          Пароль
-        </label>
-
-        <input
-          id="loginPassword"
-          type="password"
-          autocomplete="current-password"
-          required
-        >
-      </div>
-
-      <button
-        class="btn primary"
-        type="submit"
-        style="width:100%;padding:14px"
-      >
-        🔐 Войти в панель
-      </button>
-
-      <div
-        id="loginError"
-        class="login-error"
-      ></div>
-
-    </form>
+    <div class="card stat-card">
+      <div class="stat-label">Жалобы</div>
+      <div class="stat-value" id="statReports">0</div>
+      <div class="stat-icon">🚨</div>
+    </div>
 
   </div>
 
-</div>
+  <br>
 
+  <div class="grid grid-2">
 
-<!-- =======================================================
-     APPLICATION
-     ======================================================= -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Быстрые действия</div>
+      </div>
 
-<div id="app">
+      <div class="card-body">
 
-  <div class="layout">
+        <div class="actions">
+          <button class="btn btn-primary"
+                  onclick="openPage('pending')">
+            ⏳ Проверить модерацию
+          </button>
 
-    <!-- SIDEBAR -->
+          <button class="btn btn-secondary"
+                  onclick="openPage('publications')">
+            📰 Публикации
+          </button>
 
-    <aside class="sidebar">
+          <button class="btn btn-secondary"
+                  onclick="openPage('participants')">
+            👥 Участники
+          </button>
 
-      <div class="sidebar-brand">
+          <button class="btn btn-secondary"
+                  onclick="openPage('reports')">
+            🚨 Жалобы
+          </button>
 
-        <div class="sidebar-brand-icon">
-          🇹🇯
+          <button class="btn btn-secondary"
+                  onclick="openPage('chats')">
+            💬 Чаты
+          </button>
+
         </div>
 
-        <div>
-          <strong>
-            Tajik Opportunities
-          </strong>
+      </div>
+    </div>
 
-          <span>
-            SUPER ADMIN
-          </span>
-        </div>
-
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title">Последние действия</div>
       </div>
 
-
-      <div class="nav-title">
-        Управление
-      </div>
-
-      <button
-        class="nav-btn active"
-        data-section="dashboard"
-      >
-        <span class="nav-icon">📊</span>
-        <span>Панель управления</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        data-section="publications"
-      >
-        <span class="nav-icon">📰</span>
-        <span>Публикации</span>
-        <span
-          class="nav-badge"
-          id="pendingBadge"
-          style="display:none"
-        >0</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        data-section="participants"
-      >
-        <span class="nav-icon">👥</span>
-        <span>Участники</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        data-section="chats"
-      >
-        <span class="nav-icon">💬</span>
-        <span>Чаты</span>
-        <span
-          class="nav-badge"
-          id="chatBadge"
-          style="display:none"
-        >0</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        data-section="comments"
-      >
-        <span class="nav-icon">💭</span>
-        <span>Комментарии</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        data-section="reports"
-      >
-        <span class="nav-icon">🚨</span>
-        <span>Жалобы</span>
-        <span
-          class="nav-badge"
-          id="reportBadge"
-          style="display:none"
-        >0</span>
-      </button>
-
-
-      <div class="nav-title">
-        Аналитика
-      </div>
-
-      <button
-        class="nav-btn"
-        data-section="notifications"
-      >
-        <span class="nav-icon">🔔</span>
-        <span>Уведомления</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        data-section="statistics"
-      >
-        <span class="nav-icon">📈</span>
-        <span>Статистика</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        data-section="audit"
-      >
-        <span class="nav-icon">🛡️</span>
-        <span>Журнал действий</span>
-      </button>
-
-
-      <div class="nav-title">
-        Система
-      </div>
-
-      <button
-        class="nav-btn"
-        data-section="settings"
-      >
-        <span class="nav-icon">⚙️</span>
-        <span>Настройки</span>
-      </button>
-
-      <button
-        class="nav-btn"
-        onclick="openPublicSite()"
-      >
-        <span class="nav-icon">🌐</span>
-        <span>Открыть сайт</span>
-      </button>
-
-
-      <div class="sidebar-bottom">
-
-        <div class="admin-card">
-
-          <div class="admin-card-name">
-            👑 Главный администратор
+      <div class="card-body">
+        <div id="dashboardActivity" class="activity">
+          <div class="loading">
+            <div class="spinner"></div>
+            Загрузка...
           </div>
-
-          <div class="admin-card-role">
-            ● Полный доступ
-          </div>
-
         </div>
+      </div>
+    </div>
 
-        <button
-          class="btn red"
-          onclick="logout()"
-          style="width:100%;margin-top:10px"
-        >
-          🚪 Выйти
+  </div>
+
+</section>
+
+<!-- PUBLICATIONS -->
+<section class="page" id="page-publications">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Публикации</h1>
+      <p class="page-description">
+        Полное управление всеми публикациями
+      </p>
+    </div>
+
+    <button class="btn btn-primary" onclick="loadPublications()">
+      🔄 Обновить
+    </button>
+  </div>
+
+  <div class="filters">
+
+    <input
+      id="publicationSearch"
+      class="input filter-input"
+      placeholder="🔎 Поиск по заголовку и тексту..."
+      oninput="filterPublications()"
+    >
+
+    <select id="publicationStatus"
+            class="select filter-select"
+            onchange="loadPublications()">
+
+      <option value="">Все статусы</option>
+      <option value="pending">На модерации</option>
+      <option value="published">Опубликовано</option>
+      <option value="rejected">Отклонено</option>
+      <option value="draft">Черновик</option>
+      <option value="hidden">Скрыто</option>
+      <option value="archived">Архив</option>
+
+    </select>
+
+  </div>
+
+  <div class="card">
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Публикация</th>
+            <th>Статус</th>
+            <th>Просмотры</th>
+            <th>Лайки</th>
+            <th>Комментарии</th>
+            <th>Дата</th>
+            <th>Управление</th>
+          </tr>
+        </thead>
+
+        <tbody id="publicationsTable">
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- PENDING -->
+<section class="page" id="page-pending">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Модерация</h1>
+      <p class="page-description">
+        Новые публикации участников ожидают проверки
+      </p>
+    </div>
+
+    <button class="btn btn-primary"
+            onclick="loadPending()">
+      🔄 Обновить
+    </button>
+  </div>
+
+  <div class="card">
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Заголовок</th>
+            <th>Текст</th>
+            <th>Участник</th>
+            <th>Дата</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+
+        <tbody id="pendingTable">
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- PARTICIPANTS -->
+<section class="page" id="page-participants">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Участники</h1>
+      <p class="page-description">
+        Анонимные технические участники без регистрации
+      </p>
+    </div>
+
+    <button class="btn btn-primary"
+            onclick="loadParticipants()">
+      🔄 Обновить
+    </button>
+  </div>
+
+  <div class="card">
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Публикации</th>
+            <th>Сообщения</th>
+            <th>Последняя активность</th>
+            <th>Статус</th>
+            <th>Управление</th>
+          </tr>
+        </thead>
+
+        <tbody id="participantsTable">
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- CHATS -->
+<section class="page" id="page-chats">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Чаты</h1>
+      <p class="page-description">
+        Личные сообщения администратора с участниками
+      </p>
+    </div>
+
+    <button class="btn btn-primary"
+            onclick="loadChats()">
+      🔄 Обновить
+    </button>
+  </div>
+
+  <div class="card chat-layout">
+
+    <div class="chat-list" id="chatList">
+      <div class="empty">
+        <div class="empty-icon">💬</div>
+        Выберите чат
+      </div>
+    </div>
+
+    <div class="chat-window">
+
+      <div class="card-head">
+        <div class="card-title" id="chatTitle">
+          Чат не выбран
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="empty">
+          <div class="empty-icon">💬</div>
+          Выберите участника слева
+        </div>
+      </div>
+
+      <div class="chat-send">
+
+        <textarea
+          id="chatInput"
+          class="textarea"
+          placeholder="Написать сообщение участнику..."
+        ></textarea>
+
+        <button class="btn btn-primary"
+                onclick="sendChatMessage()">
+          Отправить
         </button>
 
       </div>
 
-    </aside>
-
-
-    <!-- MAIN -->
-
-    <main class="main">
-
-      <header class="topbar">
-
-        <div class="page-heading">
-
-          <h1 id="pageTitle">
-            Панель управления
-          </h1>
-
-          <p id="pageSubtitle">
-            Полный контроль платформы
-          </p>
-
-        </div>
-
-        <div class="top-actions">
-
-          <button
-            class="btn"
-            onclick="refreshCurrent()"
-          >
-            🔄 Обновить
-          </button>
-
-          <button
-            class="btn primary"
-            onclick="openCreatePublication()"
-          >
-            ＋ Создать публикацию
-          </button>
-
-        </div>
-
-      </header>
-
-
-      <div class="content">
-
-
-        <!-- =================================================
-             DASHBOARD
-             ================================================= -->
-
-        <section
-          id="section-dashboard"
-          class="section active"
-        >
-
-          <div
-            id="dashboardStats"
-            class="grid"
-          ></div>
-
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  ⚡ Быстрые действия
-                </h2>
-
-                <p>
-                  Основные административные операции
-                </p>
-              </div>
-
-            </div>
-
-            <div class="panel-body">
-
-              <div class="actions">
-
-                <button
-                  class="btn primary"
-                  onclick="showSection('publications');setTimeout(()=>loadPublications('pending'),100)"
-                >
-                  ⏳ Проверить ожидающие
-                </button>
-
-                <button
-                  class="btn"
-                  onclick="showSection('participants')"
-                >
-                  👥 Все участники
-                </button>
-
-                <button
-                  class="btn"
-                  onclick="showSection('chats')"
-                >
-                  💬 Открыть чаты
-                </button>
-
-                <button
-                  class="btn"
-                  onclick="showSection('reports')"
-                >
-                  🚨 Проверить жалобы
-                </button>
-
-                <button
-                  class="btn"
-                  onclick="showSection('statistics')"
-                >
-                  📈 Открыть статистику
-                </button>
-
-              </div>
-
-            </div>
-
-          </div>
-
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  📰 Последние публикации
-                </h2>
-
-                <p>
-                  Последние материалы платформы
-                </p>
-              </div>
-
-              <button
-                class="btn"
-                onclick="showSection('publications')"
-              >
-                Все публикации →
-              </button>
-
-            </div>
-
-            <div
-              id="dashboardRecent"
-              class="panel-body"
-            >
-              Загрузка...
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             PUBLICATIONS
-             ================================================= -->
-
-        <section
-          id="section-publications"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  📰 Полное управление публикациями
-                </h2>
-
-                <p>
-                  Одобрение, редактирование, удаление,
-                  публикация, счётчики, медиа и другое
-                </p>
-              </div>
-
-              <button
-                class="btn primary"
-                onclick="openCreatePublication()"
-              >
-                ＋ Новая
-              </button>
-
-            </div>
-
-            <div class="panel-body">
-
-              <div class="toolbar">
-
-                <input
-                  id="publicationSearch"
-                  class="search"
-                  placeholder="🔎 Поиск по заголовку, тексту, автору, username..."
-                  oninput="debouncedLoadPublications()"
-                >
-
-                <select
-                  id="publicationStatus"
-                  onchange="loadPublications()"
-                >
-                  <option value="">
-                    Все статусы
-                  </option>
-
-                  <option value="pending">
-                    ⏳ Ожидают
-                  </option>
-
-                  <option value="published">
-                    🟢 Опубликованы
-                  </option>
-
-                  <option value="rejected">
-                    🔴 Отклонены
-                  </option>
-
-                  <option value="draft">
-                    📝 Черновики
-                  </option>
-
-                  <option value="archived">
-                    📦 Архив
-                  </option>
-
-                  <option value="deleted">
-                    🗑️ Удалённые
-                  </option>
-                </select>
-
-                <button
-                  class="btn"
-                  onclick="loadPublications()"
-                >
-                  🔄
-                </button>
-
-              </div>
-
-              <div
-                id="publicationsTable"
-                class="table-wrap"
-              >
-                Загрузка...
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             PARTICIPANTS
-             ================================================= -->
-
-        <section
-          id="section-participants"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  👥 Все участники
-                </h2>
-
-                <p>
-                  Участники создаются технически автоматически —
-                  регистрации и входа нет
-                </p>
-              </div>
-
-            </div>
-
-            <div class="panel-body">
-
-              <div class="toolbar">
-
-                <input
-                  id="participantSearch"
-                  class="search"
-                  placeholder="🔎 Имя, @username, email, телефон..."
-                  oninput="debouncedLoadParticipants()"
-                >
-
-                <select
-                  id="participantStatus"
-                  onchange="loadParticipants()"
-                >
-                  <option value="">
-                    Все
-                  </option>
-
-                  <option value="active">
-                    🟢 Активные
-                  </option>
-
-                  <option value="blocked">
-                    🔴 Заблокированные
-                  </option>
-
-                  <option value="suspended">
-                    🟡 Приостановленные
-                  </option>
-
-                  <option value="deleted">
-                    🗑️ Удалённые
-                  </option>
-                </select>
-
-              </div>
-
-              <div
-                id="participantsTable"
-                class="table-wrap"
-              >
-                Загрузка...
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             CHATS
-             ================================================= -->
-
-        <section
-          id="section-chats"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  💬 Официальные чаты
-                </h2>
-
-                <p>
-                  Личные разговоры Tajik Opportunities
-                  с каждым участником
-                </p>
-              </div>
-
-            </div>
-
-            <div
-              class="chat-layout"
-            >
-
-              <div
-                id="chatList"
-                class="chat-list"
-              >
-                Загрузка...
-              </div>
-
-              <div class="chat-main">
-
-                <div
-                  id="chatHeader"
-                  class="chat-header"
-                >
-                  Выберите участника
-                </div>
-
-                <div
-                  id="messages"
-                  class="messages"
-                >
-                  <div class="empty">
-                    <div class="empty-icon">
-                      💬
-                    </div>
-
-                    Выберите чат слева
-                  </div>
-                </div>
-
-                <div class="chat-compose">
-
-                  <textarea
-                    id="chatMessage"
-                    placeholder="Написать официальное сообщение..."
-                  ></textarea>
-
-                  <button
-                    class="btn primary"
-                    onclick="sendAdminMessage()"
-                  >
-                    ➤
-                  </button>
-
-                </div>
-
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             COMMENTS
-             ================================================= -->
-
-        <section
-          id="section-comments"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  💭 Управление комментариями
-                </h2>
-
-                <p>
-                  Редактирование, модерация и удаление
-                </p>
-              </div>
-
-              <button
-                class="btn"
-                onclick="loadComments()"
-              >
-                🔄 Обновить
-              </button>
-
-            </div>
-
-            <div
-              id="commentsTable"
-              class="panel-body"
-            >
-              Загрузка...
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             REPORTS
-             ================================================= -->
-
-        <section
-          id="section-reports"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  🚨 Жалобы и модерация
-                </h2>
-
-                <p>
-                  Полный контроль жалоб пользователей
-                </p>
-              </div>
-
-              <button
-                class="btn"
-                onclick="loadReports()"
-              >
-                🔄
-              </button>
-
-            </div>
-
-            <div
-              id="reportsTable"
-              class="panel-body"
-            >
-              Загрузка...
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             NOTIFICATIONS
-             ================================================= -->
-
-        <section
-          id="section-notifications"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  🔔 Центр уведомлений
-                </h2>
-
-                <p>
-                  Состояние платформы и события, требующие внимания
-                </p>
-              </div>
-
-            </div>
-
-            <div class="panel-body">
-
-              <div
-                id="notificationGrid"
-                class="notification-grid"
-              ></div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             STATISTICS
-             ================================================= -->
-
-        <section
-          id="section-statistics"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  📈 Статистика
-                </h2>
-
-                <p>
-                  Общие показатели платформы
-                </p>
-              </div>
-
-              <button
-                class="btn"
-                onclick="loadStatistics()"
-              >
-                🔄 Обновить
-              </button>
-
-            </div>
-
-            <div
-              id="statisticsGrid"
-              class="panel-body"
-            ></div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             AUDIT
-             ================================================= -->
-
-        <section
-          id="section-audit"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  🛡️ Журнал действий
-                </h2>
-
-                <p>
-                  История административных операций
-                </p>
-              </div>
-
-              <button
-                class="btn"
-                onclick="loadAudit()"
-              >
-                🔄
-              </button>
-
-            </div>
-
-            <div
-              id="auditTable"
-              class="panel-body"
-            >
-              Загрузка...
-            </div>
-
-          </div>
-
-        </section>
-
-
-        <!-- =================================================
-             SETTINGS
-             ================================================= -->
-
-        <section
-          id="section-settings"
-          class="section"
-        >
-
-          <div class="panel">
-
-            <div class="panel-header">
-
-              <div>
-                <h2>
-                  ⚙️ Настройки системы
-                </h2>
-
-                <p>
-                  Управление системными параметрами
-                </p>
-              </div>
-
-              <button
-                class="btn primary"
-                onclick="saveSettings()"
-              >
-                💾 Сохранить
-              </button>
-
-            </div>
-
-            <div class="panel-body">
-
-              <div
-                id="settingsForm"
-                class="form-grid"
-              >
-                Загрузка...
-              </div>
-
-            </div>
-
-          </div>
-
-        </section>
-
-
-      </div>
-
-    </main>
+    </div>
 
   </div>
 
-</div>
+</section>
 
+<!-- COMMENTS -->
+<section class="page" id="page-comments">
 
-<!-- =======================================================
-     MODAL
-     ======================================================= -->
-
-<div
-  id="modal"
-  class="modal"
->
-
-  <div class="modal-box">
-
-    <div class="modal-header">
-
-      <h3 id="modalTitle">
-        Управление
-      </h3>
-
-      <button
-        class="modal-close"
-        onclick="closeModal()"
-      >
-        ✕
-      </button>
-
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Комментарии</h1>
+      <p class="page-description">
+        Управление комментариями и ответами
+      </p>
     </div>
 
-    <div
-      id="modalBody"
-      class="modal-body"
-    ></div>
-
+    <button class="btn btn-primary"
+            onclick="loadComments()">
+      🔄 Обновить
+    </button>
   </div>
 
-</div>
+  <div class="card">
 
+    <div class="table-wrap">
 
-<div id="toast"></div>
+      <table>
 
-
-<script>
-"use strict";
-
-/* =========================================================
-   GLOBAL
-   ========================================================= */
-
-const API = "/api";
-
-let adminToken =
-  localStorage.getItem(
-    "tajik_admin_token"
-  ) || "";
-
-let currentSection =
-  "dashboard";
-
-let currentChatParticipant =
-  null;
-
-let debounceTimer =
-  null;
-
-const sectionTitles = {
-
-  dashboard: [
-    "Панель управления",
-    "Полный контроль платформы"
-  ],
-
-  publications: [
-    "Публикации",
-    "Управление всем контентом"
-  ],
-
-  participants: [
-    "Участники",
-    "Все участники платформы"
-  ],
-
-  chats: [
-    "Чаты",
-    "Официальные личные сообщения"
-  ],
-
-  comments: [
-    "Комментарии",
-    "Модерация комментариев"
-  ],
-
-  reports: [
-    "Жалобы",
-    "Центр модерации"
-  ],
-
-  notifications: [
-    "Уведомления",
-    "События платформы"
-  ],
-
-  statistics: [
-    "Статистика",
-    "Показатели платформы"
-  ],
-
-  audit: [
-    "Журнал действий",
-    "История административных операций"
-  ],
-
-  settings: [
-    "Настройки",
-    "Системное управление"
-  ]
-};
-
-
-/* =========================================================
-   INIT
-   ========================================================= */
-
-document.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-
-    setupNavigation();
-
-    document
-      .getElementById("loginForm")
-      .addEventListener(
-        "submit",
-        login
-      );
-
-    if (adminToken) {
-      const valid =
-        await verifyAdmin();
-
-      if (valid) {
-        showApp();
-      } else {
-        localStorage.removeItem(
-          "tajik_admin_token"
-        );
-
-        adminToken = "";
-      }
-    }
-  }
-);
-
-
-/* =========================================================
-   NAVIGATION
-   ========================================================= */
-
-function setupNavigation() {
-
-  document
-    .querySelectorAll(".nav-btn[data-section]")
-    .forEach(btn => {
-
-      btn.addEventListener(
-        "click",
-        () => {
-          showSection(
-            btn.dataset.section
-          );
-        }
-      );
-    });
-}
-
-
-function showSection(section) {
-
-  currentSection =
-    section;
-
-  document
-    .querySelectorAll(".nav-btn[data-section]")
-    .forEach(btn => {
-
-      btn.classList.toggle(
-        "active",
-        btn.dataset.section === section
-      );
-
-    });
-
-
-  document
-    .querySelectorAll(".section")
-    .forEach(el => {
-
-      el.classList.toggle(
-        "active",
-        el.id ===
-          "section-" +
-          section
-      );
-
-    });
-
-
-  const title =
-    sectionTitles[section] ||
-    ["Админ-панель", ""];
-
-  document
-    .getElementById("pageTitle")
-    .textContent =
-    title[0];
-
-  document
-    .getElementById("pageSubtitle")
-    .textContent =
-    title[1];
-
-
-  loadSection(section);
-}
-
-
-/* =========================================================
-   LOAD SECTION
-   ========================================================= */
-
-function loadSection(section) {
-
-  if (section === "dashboard")
-    loadDashboard();
-
-  if (section === "publications")
-    loadPublications();
-
-  if (section === "participants")
-    loadParticipants();
-
-  if (section === "chats")
-    loadChats();
-
-  if (section === "comments")
-    loadComments();
-
-  if (section === "reports")
-    loadReports();
-
-  if (section === "notifications")
-    loadNotifications();
-
-  if (section === "statistics")
-    loadStatistics();
-
-  if (section === "audit")
-    loadAudit();
-
-  if (section === "settings")
-    loadSettings();
-}
-
-
-/* =========================================================
-   API
-   ========================================================= */
-
-async function api(
-  path,
-  options = {}
-) {
-
-  const headers = {
-    "Content-Type":
-      "application/json",
-
-    ...(options.headers || {})
-  };
-
-  if (adminToken) {
-    headers.Authorization =
-      "Bearer " +
-      adminToken;
-  }
-
-  const response =
-    await fetch(
-      API + path,
-      {
-        ...options,
-        headers
-      }
-    );
-
-  let data;
-
-  try {
-    data =
-      await response.json();
-  } catch {
-    data = {};
-  }
-
-  if (
-    response.status === 401
-  ) {
-
-    localStorage.removeItem(
-      "tajik_admin_token"
-    );
-
-    adminToken = "";
-
-    showLogin();
-
-    throw new Error(
-      "Сессия администратора истекла"
-    );
-  }
-
-  if (!response.ok) {
-
-    throw new Error(
-      data.message ||
-      data.error ||
-      "Ошибка запроса"
-    );
-  }
-
-  return data;
-}
-
-
-/* =========================================================
-   LOGIN
-   ========================================================= */
-
-async function login(event) {
-
-  event.preventDefault();
-
-  const username =
-    document
-      .getElementById(
-        "loginUsername"
-      )
-      .value
-      .trim();
-
-  const password =
-    document
-      .getElementById(
-        "loginPassword"
-      )
-      .value;
-
-  const error =
-    document
-      .getElementById(
-        "loginError"
-      );
-
-  error.style.display =
-    "none";
-
-  try {
-
-    const data =
-      await fetch(
-        API + "/admin/login",
-        {
-          method:
-            "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-              username,
-              password
-            })
-        }
-      );
-
-    const result =
-      await data.json();
-
-    if (!data.ok) {
-      throw new Error(
-        result.message ||
-        result.error ||
-        "Неверный логин или пароль"
-      );
-    }
-
-    adminToken =
-      result.token;
-
-    localStorage.setItem(
-      "tajik_admin_token",
-      adminToken
-    );
-
-    showApp();
-
-    toast(
-      "✅ Вы вошли как главный администратор"
-    );
-
-  } catch (err) {
-
-    error.textContent =
-      "❌ " +
-      err.message;
-
-    error.style.display =
-      "block";
-  }
-}
-
-
-async function verifyAdmin() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/me"
-      );
-
-    return !!data.ok;
-
-  } catch {
-    return false;
-  }
-}
-
-
-function showApp() {
-
-  document
-    .getElementById(
-      "loginScreen"
-    )
-    .style.display =
-    "none";
-
-  document
-    .getElementById(
-      "app"
-    )
-    .style.display =
-    "block";
-
-  showSection(
-    "dashboard"
-  );
-}
-
-
-function showLogin() {
-
-  document
-    .getElementById(
-      "app"
-    )
-    .style.display =
-    "none";
-
-  document
-    .getElementById(
-      "loginScreen"
-    )
-    .style.display =
-    "flex";
-}
-
-
-async function logout() {
-
-  try {
-    await api(
-      "/admin/logout",
-      {
-        method:
-          "POST"
-      }
-    );
-  } catch {}
-
-  localStorage.removeItem(
-    "tajik_admin_token"
-  );
-
-  adminToken = "";
-
-  showLogin();
-
-  toast(
-    "Вы вышли из панели"
-  );
-}
-
-
-/* =========================================================
-   DASHBOARD
-   ========================================================= */
-
-async function loadDashboard() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/dashboard"
-      );
-
-    const p =
-      data.publications ||
-      {};
-
-    const u =
-      data.participants ||
-      {};
-
-    const m =
-      data.moderation ||
-      {};
-
-    document
-      .getElementById(
-        "dashboardStats"
-      )
-      .innerHTML = [
-
-      stat(
-        "📰",
-        "Публикации",
-        p.total
-      ),
-
-      stat(
-        "⏳",
-        "Ожидают одобрения",
-        p.pending
-      ),
-
-      stat(
-        "🟢",
-        "Опубликовано",
-        p.published
-      ),
-
-      stat(
-        "👥",
-        "Всего участников",
-        u.total
-      ),
-
-      stat(
-        "🟢",
-        "Активные участники",
-        u.active
-      ),
-
-      stat(
-        "🚨",
-        "Открытые жалобы",
-        m.open_reports
-      ),
-
-      stat(
-        "💬",
-        "Непрочитанные сообщения",
-        m.unread_messages
-      ),
-
-      stat(
-        "💭",
-        "Комментарии",
-        data.comments
-      )
-
-    ].join("");
-
-    updateBadges(
-      p.pending,
-      m.open_reports,
-      m.unread_messages
-    );
-
-
-    const publications =
-      await api(
-        "/admin/publications"
-      );
-
-    const recent =
-      (
-        publications.publications ||
-        []
-      ).slice(0, 8);
-
-    document
-      .getElementById(
-        "dashboardRecent"
-      )
-      .innerHTML =
-      renderPublicationMiniTable(
-        recent
-      );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-function stat(
-  icon,
-  label,
-  value
-) {
-
-  return `
-    <div class="stat-card">
-
-      <div class="stat-top">
-
-        <span>${escapeHtml(label)}</span>
-
-        <span class="stat-icon">
-          ${icon}
-        </span>
-
-      </div>
-
-      <div class="stat-value">
-        ${formatNumber(value)}
-      </div>
-
-      <div class="stat-label">
-        ${escapeHtml(label)}
-      </div>
-
-    </div>
-  `;
-}
-
-
-/* =========================================================
-   PUBLICATIONS
-   ========================================================= */
-
-async function loadPublications(
-  forcedStatus = null
-) {
-
-  const search =
-    document
-      .getElementById(
-        "publicationSearch"
-      )
-      ?.value
-      .trim() || "";
-
-  const status =
-    forcedStatus !== null
-      ? forcedStatus
-      : (
-          document
-            .getElementById(
-              "publicationStatus"
-            )
-            ?.value || ""
-        );
-
-  const params =
-    new URLSearchParams();
-
-  if (search)
-    params.set(
-      "q",
-      search
-    );
-
-  if (status)
-    params.set(
-      "status",
-      status
-    );
-
-  try {
-
-    const data =
-      await api(
-        "/admin/publications?" +
-        params.toString()
-      );
-
-    const publications =
-      data.publications ||
-      [];
-
-    document
-      .getElementById(
-        "publicationsTable"
-      )
-      .innerHTML =
-      renderPublications(
-        publications
-      );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-function renderPublications(
-  items
-) {
-
-  if (!items.length) {
-
-    return empty(
-      "📰",
-      "Публикаций не найдено"
-    );
-  }
-
-  return `
-    <table>
-
-      <thead>
-        <tr>
-          <th>Публикация</th>
-          <th>Автор</th>
-          <th>Категория</th>
-          <th>Статус</th>
-          <th>Показатели</th>
-          <th>Действия</th>
-        </tr>
-      </thead>
-
-      <tbody>
-
-        ${items.map(p => `
-
+        <thead>
           <tr>
-
-            <td class="title-cell">
-
-              ${escapeHtml(
-                p.title
-              )}
-
-              <span class="sub">
-                ID: ${escapeHtml(
-                  p.id
-                )}
-              </span>
-
-              <span class="sub">
-                Код:
-                ${escapeHtml(
-                  p.tracking_code ||
-                  "—"
-                )}
-              </span>
-
-            </td>
-
-
-            <td>
-
-              ${escapeHtml(
-                p.author_name ||
-                "Участник"
-              )}
-
-              <span class="sub">
-                @${escapeHtml(
-                  String(
-                    p.author_username ||
-                    ""
-                  ).replace(/^@/, "")
-                )}
-              </span>
-
-            </td>
-
-
-            <td>
-              ${escapeHtml(
-                p.category ||
-                "Другое"
-              )}
-            </td>
-
-
-            <td>
-              ${statusBadge(
-                p.status
-              )}
-            </td>
-
-
-            <td>
-
-              👁️
-              ${formatNumber(
-                p.views_count
-              )}
-
-              <br>
-
-              ❤️
-              ${formatNumber(
-                p.likes_count
-              )}
-
-              · 💬
-              ${formatNumber(
-                p.comments_count
-              )}
-
-              <br>
-
-              🔁
-              ${formatNumber(
-                p.shares_count
-              )}
-
-              · 🔖
-              ${formatNumber(
-                p.saves_count
-              )}
-
-            </td>
-
-
-            <td>
-
-              <div class="actions">
-
-                <button
-                  class="small-btn blue"
-                  onclick="openPublication('${safeId(p.id)}')"
-                >
-                  👁️ Открыть
-                </button>
-
-                <button
-                  class="small-btn"
-                  onclick="editPublication('${safeId(p.id)}')"
-                >
-                  ✏️ Изменить
-                </button>
-
-                ${
-                  p.status === "pending"
-                    ? `
-                      <button
-                        class="small-btn green"
-                        onclick="publicationAction('${safeId(p.id)}','approve')"
-                      >
-                        ✓ Одобрить
-                      </button>
-
-                      <button
-                        class="small-btn red"
-                        onclick="rejectPublication('${safeId(p.id)}')"
-                      >
-                        ✕ Отклонить
-                      </button>
-                    `
-                    : ""
-                }
-
-                <button
-                  class="small-btn"
-                  onclick="editCounters('${safeId(p.id)}')"
-                >
-                  🔢 Счётчики
-                </button>
-
-                <button
-                  class="small-btn red"
-                  onclick="deletePublication('${safeId(p.id)}')"
-                >
-                  🗑️
-                </button>
-
-              </div>
-
-            </td>
-
+            <th>Комментарий</th>
+            <th>Публикация</th>
+            <th>Участник</th>
+            <th>Дата</th>
+            <th>Статус</th>
+            <th>Действия</th>
           </tr>
+        </thead>
 
-        `).join("")}
+        <tbody id="commentsTable">
+        </tbody>
 
-      </tbody>
+      </table>
 
-    </table>
-  `;
-}
+    </div>
 
+  </div>
 
-function renderPublicationMiniTable(
-  items
-) {
+</section>
 
-  if (!items.length) {
+<!-- REPORTS -->
+<section class="page" id="page-reports">
 
-    return empty(
-      "📰",
-      "Пока нет публикаций"
-    );
-  }
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Жалобы</h1>
+      <p class="page-description">
+        Жалобы пользователей и модерация нарушений
+      </p>
+    </div>
 
-  return `
+    <button class="btn btn-primary"
+            onclick="loadReports()">
+      🔄 Обновить
+    </button>
+  </div>
+
+  <div class="card">
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Причина</th>
+            <th>Объект</th>
+            <th>Участник</th>
+            <th>Дата</th>
+            <th>Статус</th>
+            <th>Действия</th>
+          </tr>
+        </thead>
+
+        <tbody id="reportsTable">
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- NOTIFICATIONS -->
+<section class="page" id="page-notifications">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Уведомления</h1>
+      <p class="page-description">
+        Системные уведомления администратора
+      </p>
+    </div>
+
+    <button class="btn btn-primary"
+            onclick="loadNotifications()">
+      🔄 Обновить
+    </button>
+  </div>
+
+  <div class="card">
+
+    <div class="card-body">
+
+      <div id="notificationsList">
+        <div class="loading">
+          <div class="spinner"></div>
+          Загрузка...
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- ADS -->
+<section class="page" id="page-ads">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Реклама</h1>
+      <p class="page-description">
+        Управление рекламными размещениями
+      </p>
+    </div>
+
+    <button class="btn btn-primary"
+            onclick="openAdModal()">
+      ➕ Добавить рекламу
+    </button>
+  </div>
+
+  <div class="card">
+
     <div class="table-wrap">
 
       <table>
@@ -3273,3387 +1452,3130 @@ function renderPublicationMiniTable(
         <thead>
           <tr>
             <th>Название</th>
-            <th>Автор</th>
+            <th>Ссылка</th>
+            <th>Показы</th>
+            <th>Клики</th>
             <th>Статус</th>
-            <th>Дата</th>
-            <th></th>
+            <th>Действия</th>
           </tr>
         </thead>
 
-        <tbody>
-
-          ${items.map(p => `
-
-            <tr>
-
-              <td class="title-cell">
-                ${escapeHtml(
-                  p.title
-                )}
-              </td>
-
-              <td>
-                ${escapeHtml(
-                  p.author_name ||
-                  "Участник"
-                )}
-
-                <span class="sub">
-                  @${escapeHtml(
-                    String(
-                      p.author_username ||
-                      ""
-                    ).replace(/^@/, "")
-                  )}
-                </span>
-              </td>
-
-              <td>
-                ${statusBadge(
-                  p.status
-                )}
-              </td>
-
-              <td>
-                ${formatDate(
-                  p.created_at
-                )}
-              </td>
-
-              <td>
-                <button
-                  class="small-btn blue"
-                  onclick="openPublication('${safeId(p.id)}')"
-                >
-                  Открыть
-                </button>
-              </td>
-
-            </tr>
-
-          `).join("")}
-
+        <tbody id="adsTable">
         </tbody>
 
       </table>
 
     </div>
-  `;
-}
 
+  </div>
 
-/* =========================================================
-   PUBLICATION OPEN
-   ========================================================= */
+</section>
 
-async function openPublication(
-  id
-) {
+<!-- SUPPORT -->
+<section class="page" id="page-support">
 
-  try {
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Поддержка</h1>
+      <p class="page-description">
+        Обращения участников
+      </p>
+    </div>
 
-    const data =
-      await api(
-        "/admin/publications/" +
-        encodeURIComponent(id)
-      );
+    <button class="btn btn-primary"
+            onclick="loadSupport()">
+      🔄 Обновить
+    </button>
+  </div>
 
-    const p =
-      data.publication;
+  <div class="card">
 
-    openModal(
-      "📰 Публикация",
-      `
-        <div class="form-grid">
+    <div class="table-wrap">
 
-          <div>
-            <strong>Название</strong>
-            <p>
-              ${escapeHtml(
-                p.title
-              )}
-            </p>
-          </div>
+      <table>
 
-          <div>
-            <strong>Статус</strong>
-            <p>
-              ${statusBadge(
-                p.status
-              )}
-            </p>
-          </div>
-
-          <div>
-            <strong>Автор</strong>
-            <p>
-              ${escapeHtml(
-                p.author_name ||
-                "Участник"
-              )}
-
-              <br>
-
-              <span class="sub">
-                @${escapeHtml(
-                  String(
-                    p.author_username ||
-                    ""
-                  ).replace(/^@/,"")
-                )}
-              </span>
-            </p>
-          </div>
-
-          <div>
-            <strong>Категория</strong>
-            <p>
-              ${escapeHtml(
-                p.category ||
-                "Другое"
-              )}
-            </p>
-          </div>
-
-          <div class="full">
-
-            <strong>Текст</strong>
-
-            <div
-              style="
-                margin-top:8px;
-                white-space:pre-wrap;
-                line-height:1.7;
-                color:#cfd7e5
-              "
-            >
-              ${escapeHtml(
-                p.text
-              )}
-            </div>
-
-          </div>
-
-          <div>
-            <strong>Просмотры</strong>
-            <p>
-              ${formatNumber(
-                p.views_count
-              )}
-            </p>
-          </div>
-
-          <div>
-            <strong>Реакции</strong>
-            <p>
-              ❤️ ${formatNumber(p.likes_count)}
-              · 💕 ${formatNumber(p.love_count)}
-              · 👍 ${formatNumber(p.support_count)}
-            </p>
-          </div>
-
-          <div>
-            <strong>Комментарии</strong>
-            <p>
-              ${formatNumber(
-                p.comments_count
-              )}
-            </p>
-          </div>
-
-          <div>
-            <strong>Поделились</strong>
-            <p>
-              ${formatNumber(
-                p.shares_count
-              )}
-            </p>
-          </div>
-
-          <div>
-            <strong>Сохранения</strong>
-            <p>
-              ${formatNumber(
-                p.saves_count
-              )}
-            </p>
-          </div>
-
-          <div>
-            <strong>Жалобы</strong>
-            <p>
-              ${formatNumber(
-                p.reports_count
-              )}
-            </p>
-          </div>
-
-        </div>
-
-
-        <div
-          style="
-            margin-top:22px;
-            display:flex;
-            flex-wrap:wrap;
-            gap:8px
-          "
-        >
-
-          ${
-            p.status === "pending"
-              ? `
-                <button
-                  class="btn green"
-                  onclick="publicationAction('${safeId(p.id)}','approve');closeModal()"
-                >
-                  ✓ Одобрить и опубликовать
-                </button>
-              `
-              : ""
-          }
-
-          <button
-            class="btn"
-            onclick="editPublication('${safeId(p.id)}')"
-          >
-            ✏️ Полностью изменить
-          </button>
-
-          <button
-            class="btn"
-            onclick="editCounters('${safeId(p.id)}')"
-          >
-            🔢 Изменить показатели
-          </button>
-
-          <button
-            class="btn red"
-            onclick="deletePublication('${safeId(p.id)}')"
-          >
-            🗑️ Удалить
-          </button>
-
-        </div>
-      `
-    );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   EDIT PUBLICATION
-   ========================================================= */
-
-async function editPublication(
-  id
-) {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/publications/" +
-        encodeURIComponent(id)
-      );
-
-    const p =
-      data.publication;
-
-    openModal(
-      "✏️ Полное редактирование публикации",
-      `
-        <form
-          id="editPublicationForm"
-          onsubmit="savePublication(event,'${safeId(p.id)}')"
-        >
-
-          <div class="form-grid">
-
-            ${inputField(
-              "title",
-              "Заголовок",
-              p.title,
-              true
-            )}
-
-            ${inputField(
-              "category",
-              "Категория",
-              p.category
-            )}
-
-            ${inputField(
-              "country",
-              "Страна",
-              p.country
-            )}
-
-            ${inputField(
-              "city",
-              "Город",
-              p.city
-            )}
-
-            ${inputField(
-              "location",
-              "Место",
-              p.location
-            )}
-
-            ${inputField(
-              "scope",
-              "Охват",
-              p.scope
-            )}
-
-            ${inputField(
-              "deadline",
-              "Дедлайн",
-              p.deadline
-            )}
-
-            ${inputField(
-              "event_start",
-              "Начало мероприятия",
-              p.event_start
-            )}
-
-            ${inputField(
-              "event_end",
-              "Конец мероприятия",
-              p.event_end
-            )}
-
-            ${inputField(
-              "price",
-              "Цена",
-              p.price
-            )}
-
-            ${inputField(
-              "currency",
-              "Валюта",
-              p.currency
-            )}
-
-            ${inputField(
-              "salary",
-              "Зарплата",
-              p.salary
-            )}
-
-            ${inputField(
-              "employment_type",
-              "Тип занятости",
-              p.employment_type
-            )}
-
-            ${inputField(
-              "work_format",
-              "Формат работы",
-              p.work_format
-            )}
-
-            ${inputField(
-              "experience",
-              "Опыт",
-              p.experience
-            )}
-
-            ${inputField(
-              "education",
-              "Образование",
-              p.education
-            )}
-
-            ${inputField(
-              "languages",
-              "Языки",
-              p.languages
-            )}
-
-            ${inputField(
-              "tags",
-              "Теги",
-              p.tags
-            )}
-
-            ${inputField(
-              "links",
-              "Ссылки",
-              p.links
-            )}
-
-            ${inputField(
-              "status",
-              "Статус",
-              p.status
-            )}
-
-            ${inputField(
-              "visibility",
-              "Видимость",
-              p.visibility
-            )}
-
-            ${textareaField(
-              "text",
-              "Текст публикации",
-              p.text
-            )}
-
-            ${textareaField(
-              "admin_note",
-              "Заметка администратора",
-              p.admin_note
-            )}
-
-            ${textareaField(
-              "rejection_reason",
-              "Причина отклонения",
-              p.rejection_reason
-            )}
-
-          </div>
-
-          <div
-            style="
-              margin-top:18px;
-              display:flex;
-              justify-content:flex-end;
-              gap:8px
-            "
-          >
-
-            <button
-              type="button"
-              class="btn"
-              onclick="closeModal()"
-            >
-              Отмена
-            </button>
-
-            <button
-              type="submit"
-              class="btn primary"
-            >
-              💾 Сохранить изменения
-            </button>
-
-          </div>
-
-        </form>
-      `
-    );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function savePublication(
-  event,
-  id
-) {
-
-  event.preventDefault();
-
-  const form =
-    document.getElementById(
-      "editPublicationForm"
-    );
-
-  const data = {};
-
-  form
-    .querySelectorAll(
-      "input, textarea"
-    )
-    .forEach(input => {
-
-      data[input.name] =
-        input.value;
-
-    });
-
-  try {
-
-    await api(
-      "/admin/publications/" +
-      encodeURIComponent(id),
-      {
-        method:
-          "PUT",
-
-        body:
-          JSON.stringify(data)
-      }
-    );
-
-    closeModal();
-
-    toast(
-      "✅ Публикация обновлена"
-    );
-
-    loadPublications();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   CREATE PUBLICATION
-   ========================================================= */
-
-function openCreatePublication() {
-
-  openModal(
-    "＋ Создать публикацию",
-    `
-      <form
-        id="createPublicationForm"
-        onsubmit="createAdminPublication(event)"
-      >
-
-        <div class="form-grid">
-
-          ${inputField(
-            "title",
-            "Заголовок",
-            "",
-            true
-          )}
-
-          ${inputField(
-            "category",
-            "Категория",
-            "Другое"
-          )}
-
-          ${inputField(
-            "name",
-            "Имя автора",
-            "Tajik Opportunities"
-          )}
-
-          ${inputField(
-            "username",
-            "Username",
-            "@tajikopportunities"
-          )}
-
-          ${inputField(
-            "country",
-            "Страна",
-            "Таджикистан"
-          )}
-
-          ${inputField(
-            "city",
-            "Город",
-            ""
-          )}
-
-          ${inputField(
-            "location",
-            "Место",
-            ""
-          )}
-
-          ${inputField(
-            "scope",
-            "Охват",
-            "national"
-          )}
-
-          ${textareaField(
-            "text",
-            "Текст публикации",
-            ""
-          )}
-
-        </div>
-
-        <div
-          style="
-            margin-top:18px;
-            display:flex;
-            justify-content:flex-end
-          "
-        >
-
-          <button
-            class="btn primary"
-            type="submit"
-          >
-            🚀 Создать
-          </button>
-
-        </div>
-
-      </form>
-    `
-  );
-}
-
-
-async function createAdminPublication(
-  event
-) {
-
-  event.preventDefault();
-
-  const form =
-    document.getElementById(
-      "createPublicationForm"
-    );
-
-  const data = {};
-
-  form
-    .querySelectorAll(
-      "input, textarea"
-    )
-    .forEach(el => {
-
-      data[el.name] =
-        el.value;
-
-    });
-
-  try {
-
-    const result =
-      await api(
-        "/publications",
-        {
-          method:
-            "POST",
-
-          body:
-            JSON.stringify(
-              data
-            )
-        }
-      );
-
-    closeModal();
-
-    toast(
-      "✅ Публикация создана"
-    );
-
-    loadPublications();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   PUBLICATION ACTION
-   ========================================================= */
-
-async function publicationAction(
-  id,
-  action,
-  extra = {}
-) {
-
-  try {
-
-    await api(
-      "/admin/publications/" +
-      encodeURIComponent(id) +
-      "/action",
-      {
-        method:
-          "POST",
-
-        body:
-          JSON.stringify({
-            action,
-            ...extra
-          })
-      }
-    );
-
-    toast(
-      "✅ Действие выполнено"
-    );
-
-    loadPublications();
-
-    if (
-      currentSection ===
-      "dashboard"
-    ) {
-      loadDashboard();
-    }
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-function rejectPublication(
-  id
-) {
-
-  const reason =
-    prompt(
-      "Причина отклонения:"
-    );
-
-  if (
-    reason === null
-  ) {
-    return;
-  }
-
-  publicationAction(
-    id,
-    "reject",
-    {
-      reason
-    }
-  );
-}
-
-
-async function deletePublication(
-  id
-) {
-
-  if (
-    !confirm(
-      "Удалить эту публикацию?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-
-    await api(
-      "/admin/publications/" +
-      encodeURIComponent(id),
-      {
-        method:
-          "DELETE"
-      }
-    );
-
-    toast(
-      "🗑️ Публикация удалена"
-    );
-
-    loadPublications();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   COUNTERS
-   ========================================================= */
-
-async function editCounters(
-  id
-) {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/publications/" +
-        encodeURIComponent(id)
-      );
-
-    const p =
-      data.publication;
-
-    openModal(
-      "🔢 Управление показателями",
-      `
-        <p
-          style="
-            color:var(--muted);
-            font-size:12px;
-            line-height:1.6
-          "
-        >
-          Главный администратор может вручную
-          установить любое неотрицательное значение.
-        </p>
-
-        <form
-          onsubmit="saveCounters(event,'${safeId(p.id)}')"
-        >
-
-          <div class="form-grid">
-
-            ${numberField(
-              "views_count",
-              "👁️ Просмотры",
-              p.views_count
-            )}
-
-            ${numberField(
-              "likes_count",
-              "👍 Лайки",
-              p.likes_count
-            )}
-
-            ${numberField(
-              "love_count",
-              "❤️ Love",
-              p.love_count
-            )}
-
-            ${numberField(
-              "support_count",
-              "🤝 Support",
-              p.support_count
-            )}
-
-            ${numberField(
-              "funny_count",
-              "😂 Funny",
-              p.funny_count
-            )}
-
-            ${numberField(
-              "wow_count",
-              "😮 Wow",
-              p.wow_count
-            )}
-
-            ${numberField(
-              "sad_count",
-              "😢 Sad",
-              p.sad_count
-            )}
-
-            ${numberField(
-              "angry_count",
-              "😡 Angry",
-              p.angry_count
-            )}
-
-            ${numberField(
-              "comments_count",
-              "💬 Комментарии",
-              p.comments_count
-            )}
-
-            ${numberField(
-              "shares_count",
-              "🔁 Поделились",
-              p.shares_count
-            )}
-
-            ${numberField(
-              "saves_count",
-              "🔖 Сохранения",
-              p.saves_count
-            )}
-
-            ${numberField(
-              "reports_count",
-              "🚨 Жалобы",
-              p.reports_count
-            )}
-
-          </div>
-
-          <div
-            style="
-              margin-top:18px;
-              display:flex;
-              justify-content:flex-end
-            "
-          >
-
-            <button
-              class="btn primary"
-              type="submit"
-            >
-              💾 Сохранить показатели
-            </button>
-
-          </div>
-
-        </form>
-      `
-    );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function saveCounters(
-  event,
-  id
-) {
-
-  event.preventDefault();
-
-  const form =
-    event.target;
-
-  const data = {};
-
-  form
-    .querySelectorAll(
-      "input"
-    )
-    .forEach(el => {
-
-      data[el.name] =
-        Number(el.value);
-
-    });
-
-  try {
-
-    await api(
-      "/admin/publications/" +
-      encodeURIComponent(id) +
-      "/counters",
-      {
-        method:
-          "PUT",
-
-        body:
-          JSON.stringify(data)
-      }
-    );
-
-    closeModal();
-
-    toast(
-      "✅ Показатели изменены"
-    );
-
-    loadPublications();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   PARTICIPANTS
-   ========================================================= */
-
-async function loadParticipants() {
-
-  const search =
-    document
-      .getElementById(
-        "participantSearch"
-      )
-      ?.value
-      .trim() || "";
-
-  const status =
-    document
-      .getElementById(
-        "participantStatus"
-      )
-      ?.value || "";
-
-  const params =
-    new URLSearchParams();
-
-  if (search)
-    params.set(
-      "q",
-      search
-    );
-
-  if (status)
-    params.set(
-      "status",
-      status
-    );
-
-  try {
-
-    const data =
-      await api(
-        "/admin/participants?" +
-        params.toString()
-      );
-
-    document
-      .getElementById(
-        "participantsTable"
-      )
-      .innerHTML =
-      renderParticipants(
-        data.participants ||
-        []
-      );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-function renderParticipants(
-  items
-) {
-
-  if (!items.length) {
-
-    return empty(
-      "👥",
-      "Участников не найдено"
-    );
-  }
-
-  return `
-    <table>
-
-      <thead>
-
-        <tr>
-          <th>Участник</th>
-          <th>Контакты</th>
-          <th>Местоположение</th>
-          <th>Статус</th>
-          <th>Показатели</th>
-          <th>Действия</th>
-        </tr>
-
-      </thead>
-
-      <tbody>
-
-        ${items.map(u => `
-
+        <thead>
           <tr>
-
-            <td class="title-cell">
-
-              ${
-                u.verified
-                  ? "✅ "
-                  : ""
-              }
-
-              ${escapeHtml(
-                u.name ||
-                "Участник"
-              )}
-
-              <span class="sub">
-                @${escapeHtml(
-                  String(
-                    u.username ||
-                    ""
-                  ).replace(/^@/,"")
-                )}
-              </span>
-
-              <span class="sub">
-                ID:
-                ${escapeHtml(
-                  u.id
-                )}
-              </span>
-
-            </td>
-
-            <td>
-
-              ${escapeHtml(
-                u.email ||
-                "—"
-              )}
-
-              <br>
-
-              ${escapeHtml(
-                u.phone ||
-                ""
-              )}
-
-            </td>
-
-            <td>
-
-              ${escapeHtml(
-                u.country ||
-                "—"
-              )}
-
-              <br>
-
-              ${escapeHtml(
-                u.city ||
-                ""
-              )}
-
-            </td>
-
-            <td>
-              ${statusBadge(
-                u.status
-              )}
-            </td>
-
-            <td>
-
-              👥
-              ${formatNumber(
-                u.followers_count
-              )}
-
-              <br>
-
-              📰
-              ${formatNumber(
-                u.publications_count
-              )}
-
-            </td>
-
-            <td>
-
-              <div class="actions">
-
-                <button
-                  class="small-btn blue"
-                  onclick="openParticipant('${safeId(u.id)}')"
-                >
-                  👁️ Профиль
-                </button>
-
-                <button
-                  class="small-btn"
-                  onclick="editParticipant('${safeId(u.id)}')"
-                >
-                  ✏️ Изменить
-                </button>
-
-                <button
-                  class="small-btn"
-                  onclick="openParticipantChat('${safeId(u.id)}')"
-                >
-                  💬 Чат
-                </button>
-
-                ${
-                  u.status === "blocked"
-                    ? `
-                      <button
-                        class="small-btn green"
-                        onclick="changeParticipantStatus('${safeId(u.id)}','active')"
-                      >
-                        Разблокировать
-                      </button>
-                    `
-                    : `
-                      <button
-                        class="small-btn red"
-                        onclick="changeParticipantStatus('${safeId(u.id)}','blocked')"
-                      >
-                        Заблокировать
-                      </button>
-                    `
-                }
-
-                <button
-                  class="small-btn red"
-                  onclick="deleteParticipant('${safeId(u.id)}')"
-                >
-                  🗑️
-                </button>
-
-              </div>
-
-            </td>
-
+            <th>Тема</th>
+            <th>Сообщение</th>
+            <th>Участник</th>
+            <th>Дата</th>
+            <th>Статус</th>
+            <th>Действия</th>
           </tr>
+        </thead>
 
-        `).join("")}
+        <tbody id="supportTable">
+        </tbody>
 
-      </tbody>
+      </table>
 
-    </table>
-  `;
-}
+    </div>
 
+  </div>
 
-/* =========================================================
-   PARTICIPANT OPEN
-   ========================================================= */
+</section>
 
-async function openParticipant(
-  id
-) {
+<!-- ANALYTICS -->
+<section class="page" id="page-analytics">
 
-  try {
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Аналитика</h1>
+      <p class="page-description">
+        Статистика активности платформы
+      </p>
+    </div>
 
-    const data =
-      await api(
-        "/admin/participants/" +
-        encodeURIComponent(id)
-      );
+    <button class="btn btn-primary"
+            onclick="loadAnalytics()">
+      🔄 Обновить
+    </button>
+  </div>
 
-    const u =
-      data.participant;
+  <div class="grid grid-4">
 
-    openModal(
-      "👤 Участник",
-      `
-        <div class="form-grid">
+    <div class="card stat-card">
+      <div class="stat-label">Просмотры</div>
+      <div class="stat-value" id="analyticsViews">0</div>
+      <div class="stat-icon">👁️</div>
+    </div>
 
-          <div>
-            <strong>Имя</strong>
-            <p>
-              ${escapeHtml(
-                u.name
-              )}
-            </p>
-          </div>
+    <div class="card stat-card">
+      <div class="stat-label">Лайки</div>
+      <div class="stat-value" id="analyticsLikes">0</div>
+      <div class="stat-icon">❤️</div>
+    </div>
 
-          <div>
-            <strong>Username</strong>
-            <p>
-              @${escapeHtml(
-                String(
-                  u.username ||
-                  ""
-                ).replace(/^@/,"")
-              )}
-            </p>
-          </div>
+    <div class="card stat-card">
+      <div class="stat-label">Сохранения</div>
+      <div class="stat-value" id="analyticsSaves">0</div>
+      <div class="stat-icon">🔖</div>
+    </div>
 
-          <div>
-            <strong>Статус</strong>
-            <p>
-              ${statusBadge(
-                u.status
-              )}
-            </p>
-          </div>
+    <div class="card stat-card">
+      <div class="stat-label">Поделились</div>
+      <div class="stat-value" id="analyticsShares">0</div>
+      <div class="stat-icon">↗️</div>
+    </div>
 
-          <div>
-            <strong>Проверка</strong>
-            <p>
-              ${
-                u.verified
-                  ? "✅ Проверенный"
-                  : "— Не проверен"
-              }
-            </p>
-          </div>
+  </div>
 
-          <div>
-            <strong>Email</strong>
-            <p>
-              ${escapeHtml(
-                u.email ||
-                "Не указан"
-              )}
-            </p>
-          </div>
+  <br>
 
-          <div>
-            <strong>Телефон</strong>
-            <p>
-              ${escapeHtml(
-                u.phone ||
-                "Не указан"
-              )}
-            </p>
-          </div>
+  <div class="card">
 
-          <div>
-            <strong>Страна</strong>
-            <p>
-              ${escapeHtml(
-                u.country ||
-                "—"
-              )}
-            </p>
-          </div>
+    <div class="card-head">
+      <div class="card-title">Статистика</div>
+    </div>
 
-          <div>
-            <strong>Город</strong>
-            <p>
-              ${escapeHtml(
-                u.city ||
-                "—"
-              )}
-            </p>
-          </div>
+    <div class="card-body">
 
-          <div class="full">
-            <strong>О себе</strong>
-            <p>
-              ${escapeHtml(
-                u.bio ||
-                "Не заполнено"
-              )}
-            </p>
-          </div>
-
-          <div>
-            <strong>Профессия</strong>
-            <p>
-              ${escapeHtml(
-                u.profession ||
-                "—"
-              )}
-            </p>
-          </div>
-
-          <div>
-            <strong>Образование</strong>
-            <p>
-              ${escapeHtml(
-                u.education ||
-                "—"
-              )}
-            </p>
-          </div>
-
-        </div>
-
-        <div
-          style="
-            margin-top:20px;
-            display:flex;
-            flex-wrap:wrap;
-            gap:8px
-          "
-        >
-
-          <button
-            class="btn"
-            onclick="editParticipant('${safeId(u.id)}')"
-          >
-            ✏️ Редактировать
-          </button>
-
-          <button
-            class="btn primary"
-            onclick="openParticipantChat('${safeId(u.id)}')"
-          >
-            💬 Открыть чат
-          </button>
-
-        </div>
-      `
-    );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   EDIT PARTICIPANT
-   ========================================================= */
-
-async function editParticipant(
-  id
-) {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/participants/" +
-        encodeURIComponent(id)
-      );
-
-    const u =
-      data.participant;
-
-    openModal(
-      "✏️ Редактирование участника",
-      `
-        <form
-          onsubmit="saveParticipant(event,'${safeId(u.id)}')"
-        >
-
-          <div class="form-grid">
-
-            ${inputField(
-              "name",
-              "Имя",
-              u.name,
-              true
-            )}
-
-            ${inputField(
-              "username",
-              "Username",
-              u.username,
-              true
-            )}
-
-            ${inputField(
-              "email",
-              "Email",
-              u.email
-            )}
-
-            ${inputField(
-              "phone",
-              "Телефон",
-              u.phone
-            )}
-
-            ${inputField(
-              "country",
-              "Страна",
-              u.country
-            )}
-
-            ${inputField(
-              "city",
-              "Город",
-              u.city
-            )}
-
-            ${inputField(
-              "profession",
-              "Профессия",
-              u.profession
-            )}
-
-            ${inputField(
-              "education",
-              "Образование",
-              u.education
-            )}
-
-            ${inputField(
-              "languages",
-              "Языки",
-              u.languages
-            )}
-
-            ${inputField(
-              "skills",
-              "Навыки",
-              u.skills
-            )}
-
-            ${inputField(
-              "website",
-              "Сайт",
-              u.website
-            )}
-
-            ${inputField(
-              "role",
-              "Роль",
-              u.role
-            )}
-
-            ${inputField(
-              "status",
-              "Статус",
-              u.status
-            )}
-
-            ${inputField(
-              "avatar_url",
-              "Avatar URL",
-              u.avatar_url
-            )}
-
-            ${inputField(
-              "social_links",
-              "Социальные ссылки",
-              u.social_links
-            )}
-
-            ${textareaField(
-              "bio",
-              "О себе",
-              u.bio
-            )}
-
-            ${numberField(
-              "verified",
-              "Проверен",
-              u.verified
-            )}
-
-            ${numberField(
-              "profile_visible",
-              "Профиль виден",
-              u.profile_visible
-            )}
-
-          </div>
-
-          <div
-            style="
-              margin-top:18px;
-              display:flex;
-              justify-content:flex-end
-            "
-          >
-
-            <button
-              class="btn primary"
-              type="submit"
-            >
-              💾 Сохранить
-            </button>
-
-          </div>
-
-        </form>
-      `
-    );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function saveParticipant(
-  event,
-  id
-) {
-
-  event.preventDefault();
-
-  const data = {};
-
-  event.target
-    .querySelectorAll(
-      "input, textarea"
-    )
-    .forEach(el => {
-
-      data[el.name] =
-        el.type === "number"
-          ? Number(el.value)
-          : el.value;
-
-    });
-
-  try {
-
-    await api(
-      "/admin/participants/" +
-      encodeURIComponent(id),
-      {
-        method:
-          "PUT",
-
-        body:
-          JSON.stringify(data)
-      }
-    );
-
-    closeModal();
-
-    toast(
-      "✅ Профиль участника изменён"
-    );
-
-    loadParticipants();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   PARTICIPANT STATUS
-   ========================================================= */
-
-async function changeParticipantStatus(
-  id,
-  status
-) {
-
-  try {
-
-    await api(
-      "/admin/participants/" +
-      encodeURIComponent(id) +
-      "/status",
-      {
-        method:
-          "POST",
-
-        body:
-          JSON.stringify({
-            status
-          })
-      }
-    );
-
-    toast(
-      "✅ Статус участника изменён"
-    );
-
-    loadParticipants();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function deleteParticipant(
-  id
-) {
-
-  if (
-    !confirm(
-      "Удалить участника?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-
-    await api(
-      "/admin/participants/" +
-      encodeURIComponent(id),
-      {
-        method:
-          "DELETE"
-      }
-    );
-
-    toast(
-      "🗑️ Участник удалён"
-    );
-
-    loadParticipants();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   CHATS
-   ========================================================= */
-
-async function loadChats() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/chats"
-      );
-
-    const chats =
-      data.chats ||
-      [];
-
-    document
-      .getElementById(
-        "chatList"
-      )
-      .innerHTML =
-      chats.length
-        ? chats.map(chat => `
-
-            <button
-              class="chat-item ${
-                currentChatParticipant ===
-                chat.participant_id
-                  ? "active"
-                  : ""
-              }"
-              onclick="openParticipantChat('${safeId(chat.participant_id)}')"
-            >
-
-              <strong>
-                ${
-                  chat.participant_name ||
-                  "Участник"
-                }
-              </strong>
-
-              <span>
-                @${escapeHtml(
-                  String(
-                    chat.participant_username ||
-                    ""
-                  ).replace(/^@/,"")
-                )}
-              </span>
-
-              ${
-                Number(
-                  chat.unread_count ||
-                  0
-                ) > 0
-                  ? `
-                    <span
-                      class="nav-badge"
-                      style="
-                        float:right;
-                        margin-top:-16px
-                      "
-                    >
-                      ${chat.unread_count}
-                    </span>
-                  `
-                  : ""
-              }
-
-            </button>
-
-          `).join("")
-        : empty(
-            "💬",
-            "Пока нет сообщений"
-          );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function openParticipantChat(
-  participantId
-) {
-
-  currentChatParticipant =
-    participantId;
-
-  showSection(
-    "chats"
-  );
-
-  await loadChats();
-
-  try {
-
-    const [
-      participantData,
-      chatData
-    ] = await Promise.all([
-
-      api(
-        "/admin/participants/" +
-        encodeURIComponent(
-          participantId
-        )
-      ),
-
-      api(
-        "/admin/chats/" +
-        encodeURIComponent(
-          participantId
-        )
-      )
-
-    ]);
-
-    const u =
-      participantData.participant;
-
-    document
-      .getElementById(
-        "chatHeader"
-      )
-      .innerHTML = `
-
-        <strong>
-          ${escapeHtml(
-            u?.name ||
-            "Участник"
-          )}
-        </strong>
-
-        <span
-          style="
-            color:var(--muted);
-            font-size:11px;
-            margin-left:8px
-          "
-        >
-          @${escapeHtml(
-            String(
-              u?.username ||
-              ""
-            ).replace(/^@/,"")
-          )}
-        </span>
-
-        <span
-          style="
-            color:#6ceaa6;
-            font-size:10px;
-            margin-left:10px
-          "
-        >
-          🇹🇯 Tajik Opportunities
-        </span>
-      `;
-
-    const messages =
-      chatData.messages ||
-      [];
-
-    document
-      .getElementById(
-        "messages"
-      )
-      .innerHTML =
-      messages.length
-        ? messages.map(m => `
-
-            <div
-              class="message ${
-                m.sender_type ===
-                "official"
-                  ? "official"
-                  : ""
-              }"
-            >
-
-              ${escapeHtml(
-                m.text
-              )}
-
-              <span class="message-time">
-                ${
-                  m.sender_type ===
-                  "official"
-                    ? "🇹🇯 Tajik Opportunities"
-                    : "Участник"
-                }
-                ·
-                ${formatDate(
-                  m.created_at
-                )}
-              </span>
-
-            </div>
-
-          `).join("")
-        : `
-          <div class="empty">
-            <div class="empty-icon">
-              💬
-            </div>
-            Начните официальный разговор
-          </div>
-        `;
-
-    const box =
-      document.getElementById(
-        "messages"
-      );
-
-    box.scrollTop =
-      box.scrollHeight;
-
-    await api(
-      "/admin/chats/" +
-      encodeURIComponent(
-        participantId
-      ) +
-      "/read",
-      {
-        method:
-          "POST"
-      }
-    );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function sendAdminMessage() {
-
-  if (
-    !currentChatParticipant
-  ) {
-
-    toast(
-      "Сначала выберите участника"
-    );
-
-    return;
-  }
-
-  const input =
-    document.getElementById(
-      "chatMessage"
-    );
-
-  const text =
-    input.value.trim();
-
-  if (!text) {
-    return;
-  }
-
-  try {
-
-    await api(
-      "/admin/chats/" +
-      encodeURIComponent(
-        currentChatParticipant
-      ),
-      {
-        method:
-          "POST",
-
-        body:
-          JSON.stringify({
-            text
-          })
-      }
-    );
-
-    input.value =
-      "";
-
-    await openParticipantChat(
-      currentChatParticipant
-    );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   COMMENTS
-   ========================================================= */
-
-async function loadComments() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/comments"
-      );
-
-    const comments =
-      data.comments ||
-      [];
-
-    document
-      .getElementById(
-        "commentsTable"
-      )
-      .innerHTML =
-      comments.length
-        ? `
-          <div class="table-wrap">
-
-            <table>
-
-              <thead>
-
-                <tr>
-                  <th>Автор</th>
-                  <th>Комментарий</th>
-                  <th>Публикация</th>
-                  <th>Статус</th>
-                  <th>Действия</th>
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                ${comments.map(c => `
-
-                  <tr>
-
-                    <td>
-                      ${escapeHtml(
-                        c.author_name ||
-                        "Участник"
-                      )}
-
-                      <span class="sub">
-                        @${escapeHtml(
-                          String(
-                            c.author_username ||
-                            ""
-                          ).replace(/^@/,"")
-                        )}
-                      </span>
-                    </td>
-
-                    <td
-                      style="
-                        max-width:350px;
-                        white-space:pre-wrap
-                      "
-                    >
-                      ${escapeHtml(
-                        c.text
-                      )}
-                    </td>
-
-                    <td>
-                      ${escapeHtml(
-                        c.publication_title ||
-                        c.publication_id
-                      )}
-                    </td>
-
-                    <td>
-                      ${statusBadge(
-                        c.status
-                      )}
-                    </td>
-
-                    <td>
-
-                      <div class="actions">
-
-                        <button
-                          class="small-btn"
-                          onclick="editComment('${safeId(c.id)}')"
-                        >
-                          ✏️
-                        </button>
-
-                        <button
-                          class="small-btn red"
-                          onclick="deleteComment('${safeId(c.id)}')"
-                        >
-                          🗑️
-                        </button>
-
-                      </div>
-
-                    </td>
-
-                  </tr>
-
-                `).join("")}
-
-              </tbody>
-
-            </table>
-
-          </div>
-        `
-        : empty(
-            "💭",
-            "Комментариев пока нет"
-          );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function editComment(
-  id
-) {
-
-  const text =
-    prompt(
-      "Новый текст комментария:"
-    );
-
-  if (
-    text === null
-  ) {
-    return;
-  }
-
-  try {
-
-    await api(
-      "/admin/comments/" +
-      encodeURIComponent(id),
-      {
-        method:
-          "PUT",
-
-        body:
-          JSON.stringify({
-            text
-          })
-      }
-    );
-
-    toast(
-      "✅ Комментарий изменён"
-    );
-
-    loadComments();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function deleteComment(
-  id
-) {
-
-  if (
-    !confirm(
-      "Удалить комментарий?"
-    )
-  ) {
-    return;
-  }
-
-  try {
-
-    await api(
-      "/admin/comments/" +
-      encodeURIComponent(id),
-      {
-        method:
-          "DELETE"
-      }
-    );
-
-    toast(
-      "🗑️ Комментарий удалён"
-    );
-
-    loadComments();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   REPORTS
-   ========================================================= */
-
-async function loadReports() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/reports"
-      );
-
-    const reports =
-      data.reports ||
-      [];
-
-    document
-      .getElementById(
-        "reportsTable"
-      )
-      .innerHTML =
-      reports.length
-        ? `
-          <div class="table-wrap">
-
-            <table>
-
-              <thead>
-
-                <tr>
-                  <th>Дата</th>
-                  <th>Тип</th>
-                  <th>Причина</th>
-                  <th>Публикация</th>
-                  <th>Участник</th>
-                  <th>Статус</th>
-                  <th>Действия</th>
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                ${reports.map(r => `
-
-                  <tr>
-
-                    <td>
-                      ${formatDate(
-                        r.created_at
-                      )}
-                    </td>
-
-                    <td>
-                      ${escapeHtml(
-                        r.type ||
-                        "other"
-                      )}
-                    </td>
-
-                    <td>
-                      ${escapeHtml(
-                        r.reason ||
-                        "—"
-                      )}
-                    </td>
-
-                    <td>
-                      ${escapeHtml(
-                        r.publication_title ||
-                        r.publication_id ||
-                        "—"
-                      )}
-                    </td>
-
-                    <td>
-                      ${escapeHtml(
-                        r.participant_name ||
-                        "—"
-                      )}
-
-                      <span class="sub">
-                        @${escapeHtml(
-                          String(
-                            r.participant_username ||
-                            ""
-                          ).replace(/^@/,"")
-                        )}
-                      </span>
-                    </td>
-
-                    <td>
-                      ${statusBadge(
-                        r.status
-                      )}
-                    </td>
-
-                    <td>
-
-                      <div class="actions">
-
-                        <button
-                          class="small-btn green"
-                          onclick="updateReport('${safeId(r.id)}','resolved')"
-                        >
-                          ✓ Решено
-                        </button>
-
-                        <button
-                          class="small-btn"
-                          onclick="updateReport('${safeId(r.id)}','reviewing')"
-                        >
-                          👁️ Проверяется
-                        </button>
-
-                        <button
-                          class="small-btn red"
-                          onclick="updateReport('${safeId(r.id)}','rejected')"
-                        >
-                          ✕ Отклонить
-                        </button>
-
-                      </div>
-
-                    </td>
-
-                  </tr>
-
-                `).join("")}
-
-              </tbody>
-
-            </table>
-
-          </div>
-        `
-        : empty(
-            "🚨",
-            "Жалоб нет"
-          );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-async function updateReport(
-  id,
-  status
-) {
-
-  const note =
-    prompt(
-      "Комментарий администратора (необязательно):"
-    );
-
-  try {
-
-    await api(
-      "/admin/reports/" +
-      encodeURIComponent(id),
-      {
-        method:
-          "PUT",
-
-        body:
-          JSON.stringify({
-            status,
-            admin_note:
-              note || ""
-          })
-      }
-    );
-
-    toast(
-      "✅ Жалоба обновлена"
-    );
-
-    loadReports();
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   NOTIFICATIONS
-   ========================================================= */
-
-async function loadNotifications() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/notifications"
-      );
-
-    const s =
-      data.sections ||
-      {};
-
-    document
-      .getElementById(
-        "notificationGrid"
-      )
-      .innerHTML = `
-
-        ${notificationBox(
-          "⏳",
-          "Посты ждут разрешения",
-          s.pending_posts?.count
-        )}
-
-        ${notificationBox(
-          "👥",
-          "Всего участников",
-          s.participants?.total
-        )}
-
-        ${notificationBox(
-          "🟢",
-          "Активных участников",
-          s.participants?.active
-        )}
-
-        ${notificationBox(
-          "🚪",
-          "Удалённых участников",
-          s.participants?.deleted
-        )}
-
-        ${notificationBox(
-          "🔴",
-          "Заблокированных",
-          s.participants?.blocked
-        )}
-
-        ${notificationBox(
-          "📰",
-          "Всего публикаций",
-          s.publications?.total
-        )}
-
-        ${notificationBox(
-          "🟢",
-          "Опубликовано",
-          s.publications?.published
-        )}
-
-        ${notificationBox(
-          "🚨",
-          "Открытых жалоб",
-          s.moderation?.reports
-        )}
-
-        ${notificationBox(
-          "💬",
-          "Непрочитанных чатов",
-          s.moderation?.unread_chats
-        )}
-
-      `;
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-function notificationBox(
-  icon,
-  title,
-  value
-) {
-
-  return `
-    <div class="notification-box">
-
-      <div style="font-size:25px">
-        ${icon}
-      </div>
-
-      <h3>
-        ${escapeHtml(title)}
-      </h3>
-
-      <div class="number">
-        ${formatNumber(value)}
+      <div id="analyticsDetails">
+        Загрузка...
       </div>
 
     </div>
-  `;
-}
 
+  </div>
 
-/* =========================================================
-   STATISTICS
-   ========================================================= */
+</section>
 
-async function loadStatistics() {
+<!-- SETTINGS -->
+<section class="page" id="page-settings">
 
-  try {
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Настройки</h1>
+      <p class="page-description">
+        Глобальные настройки Tajik Opportunities
+      </p>
+    </div>
 
-    const data =
-      await api(
-        "/admin/stats"
-      );
+    <button class="btn btn-primary"
+            onclick="saveSettings()">
+      💾 Сохранить
+    </button>
+  </div>
 
-    const s =
-      data.statistics ||
-      {};
+  <div class="card">
 
-    const r =
-      s.reactions ||
-      {};
+    <div class="card-body">
 
-    document
-      .getElementById(
-        "statisticsGrid"
-      )
-      .innerHTML = `
+      <div class="form-grid">
 
-        <div class="grid">
+        <div class="form-group">
+          <label class="form-label">
+            Название сайта
+          </label>
 
-          ${stat(
-            "👁️",
-            "Просмотры",
-            s.views
-          )}
+          <input
+            id="settingSiteName"
+            class="input"
+            value="Tajik Opportunities"
+          >
+        </div>
 
-          ${stat(
-            "👍",
-            "Лайки",
-            s.likes
-          )}
+        <div class="form-group">
+          <label class="form-label">
+            Язык по умолчанию
+          </label>
 
-          ${stat(
-            "❤️",
-            "Love",
-            r.love
-          )}
+          <select id="settingLanguage"
+                  class="select">
 
-          ${stat(
-            "🤝",
-            "Support",
-            r.support
-          )}
+            <option value="ru">Русский</option>
+            <option value="tg">Тоҷикӣ</option>
+            <option value="en">English</option>
 
-          ${stat(
-            "😂",
-            "Funny",
-            r.funny
-          )}
-
-          ${stat(
-            "😮",
-            "Wow",
-            r.wow
-          )}
-
-          ${stat(
-            "😢",
-            "Sad",
-            r.sad
-          )}
-
-          ${stat(
-            "😡",
-            "Angry",
-            r.angry
-          )}
-
-          ${stat(
-            "💬",
-            "Комментарии",
-            s.comments
-          )}
-
-          ${stat(
-            "🔁",
-            "Поделились",
-            s.shares
-          )}
-
-          ${stat(
-            "🔖",
-            "Сохранения",
-            s.saves
-          )}
-
-          ${stat(
-            "🚨",
-            "Жалобы",
-            s.reports
-          )}
+          </select>
 
         </div>
-      `;
 
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   AUDIT
-   ========================================================= */
-
-async function loadAudit() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/audit"
-      );
-
-    const rows =
-      data.audit ||
-      [];
-
-    document
-      .getElementById(
-        "auditTable"
-      )
-      .innerHTML =
-      rows.length
-        ? `
-          <div class="table-wrap">
-
-            <table>
-
-              <thead>
-
-                <tr>
-                  <th>Дата</th>
-                  <th>Действие</th>
-                  <th>Тип</th>
-                  <th>ID</th>
-                  <th>Детали</th>
-                </tr>
-
-              </thead>
-
-              <tbody>
-
-                ${rows.map(a => `
-
-                  <tr>
-
-                    <td>
-                      ${formatDate(
-                        a.created_at
-                      )}
-                    </td>
-
-                    <td>
-                      <strong>
-                        ${escapeHtml(
-                          a.action
-                        )}
-                      </strong>
-                    </td>
-
-                    <td>
-                      ${escapeHtml(
-                        a.entity_type ||
-                        "—"
-                      )}
-                    </td>
-
-                    <td>
-                      ${escapeHtml(
-                        a.entity_id ||
-                        "—"
-                      )}
-                    </td>
-
-                    <td>
-                      <code
-                        style="
-                          white-space:pre-wrap;
-                          color:#9eabc0;
-                          font-size:10px
-                        "
-                      >
-                        ${escapeHtml(
-                          a.details ||
-                          "{}"
-                        )}
-                      </code>
-                    </td>
-
-                  </tr>
-
-                `).join("")}
-
-              </tbody>
-
-            </table>
-
-          </div>
-        `
-        : empty(
-            "🛡️",
-            "Журнал пуст"
-          );
-
-  } catch (err) {
-
-    handleError(err);
-  }
-}
-
-
-/* =========================================================
-   SETTINGS
-   ========================================================= */
-
-async function loadSettings() {
-
-  try {
-
-    const data =
-      await api(
-        "/admin/settings"
-      );
-
-    const settings =
-      data.settings ||
-      {};
-
-    const keys =
-      Object.keys(
-        settings
-      );
-
-    if (!keys.length) {
-
-      document
-        .getElementById(
-          "settingsForm"
-        )
-        .innerHTML = `
-
-          <div class="full">
-
-            <div class="empty">
-
-              <div class="empty-icon">
-                ⚙️
-              </div>
-
-              Системные настройки пока
-              не созданы.
-
-            </div>
-
-          </div>
-
-        `;
-
-      return;
-    }
-
-    document
-      .getElementById(
-        "settingsForm"
-      )
-      .innerHTML =
-      keys.map(key => `
-
-        <div class="field">
-
-          <label>
-            ${escapeHtml(key)}
+        <div class="form-group full">
+          <label class="form-label">
+            Описание сайта
           </label>
 
           <textarea
-            data-setting="${escapeAttr(key)}"
-          >${escapeHtml(
-            typeof settings[key] ===
-            "object"
-              ? JSON.stringify(
-                  settings[key],
-                  null,
-                  2
-                )
-              : String(
-                  settings[key]
-                )
-          )}</textarea>
+            id="settingDescription"
+            class="textarea"
+          ></textarea>
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- AUDIT -->
+<section class="page" id="page-audit">
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Журнал действий</h1>
+      <p class="page-description">
+        История административных изменений
+      </p>
+    </div>
+
+    <button class="btn btn-primary"
+            onclick="loadAudit()">
+      🔄 Обновить
+    </button>
+  </div>
+
+  <div class="card">
+
+    <div class="table-wrap">
+
+      <table>
+
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Действие</th>
+            <th>Объект</th>
+            <th>ID</th>
+            <th>Данные</th>
+          </tr>
+        </thead>
+
+        <tbody id="auditTable">
+        </tbody>
+
+      </table>
+
+    </div>
+
+  </div>
+
+</section>
+
+<!-- SYSTEM -->
+<section class="page" id="page-system">
+
+  <div class="page-head">
+
+    <div>
+      <h1 class="page-title">Система</h1>
+      <p class="page-description">
+        Состояние Worker и базы данных
+      </p>
+    </div>
+
+    <button class="btn btn-primary"
+            onclick="checkSystem()">
+      🔄 Проверить
+    </button>
+
+  </div>
+
+  <div class="grid grid-3">
+
+    <div class="card stat-card">
+      <div class="stat-label">Worker API</div>
+      <div class="stat-value" id="systemWorker">—</div>
+      <div class="stat-icon">☁️</div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="stat-label">D1 Database</div>
+      <div class="stat-value" id="systemDB">—</div>
+      <div class="stat-icon">🗄️</div>
+    </div>
+
+    <div class="card stat-card">
+      <div class="stat-label">Администратор</div>
+      <div class="stat-value">АКТИВЕН</div>
+      <div class="stat-icon">👑</div>
+    </div>
+
+  </div>
+
+  <br>
+
+  <div class="card">
+
+    <div class="card-head">
+      <div class="card-title">Информация</div>
+    </div>
+
+    <div class="card-body" id="systemInfo">
+      Проверка системы...
+    </div>
+
+  </div>
+
+</section>
+
+</div>
+</main>
+
+</div>
+
+<!-- PUBLICATION MODAL -->
+
+<div class="modal" id="publicationModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <div class="modal-title">
+        Управление публикацией
+      </div>
+
+      <button class="close"
+              onclick="closeModal('publicationModal')">
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <input type="hidden" id="editPublicationId">
+
+      <div class="form-group">
+
+        <label class="form-label">
+          Заголовок
+        </label>
+
+        <input id="editTitle"
+               class="input">
+
+      </div>
+
+      <div class="form-group">
+
+        <label class="form-label">
+          Текст
+        </label>
+
+        <textarea id="editContent"
+                  class="textarea"
+                  style="min-height:250px"></textarea>
+
+      </div>
+
+      <div class="form-grid">
+
+        <div class="form-group">
+
+          <label class="form-label">
+            Статус
+          </label>
+
+          <select id="editStatus"
+                  class="select">
+
+            <option value="pending">pending</option>
+            <option value="published">published</option>
+            <option value="rejected">rejected</option>
+            <option value="draft">draft</option>
+            <option value="hidden">hidden</option>
+            <option value="archived">archived</option>
+
+          </select>
 
         </div>
 
-      `).join("");
+        <div class="form-group">
 
-  } catch (err) {
+          <label class="form-label">
+            Видимость
+          </label>
 
-    handleError(err);
-  }
-}
+          <select id="editVisibility"
+                  class="select">
 
+            <option value="public">public</option>
+            <option value="private">private</option>
 
-async function saveSettings() {
+          </select>
 
-  const form =
-    document.getElementById(
-      "settingsForm"
-    );
+        </div>
 
-  const data = {};
+      </div>
 
-  form
-    .querySelectorAll(
-      "[data-setting]"
-    )
-    .forEach(el => {
+    </div>
 
-      const key =
-        el.dataset.setting;
+    <div class="modal-footer">
 
-      const value =
-        el.value.trim();
+      <button class="btn btn-secondary"
+              onclick="closeModal('publicationModal')">
+        Отмена
+      </button>
 
-      try {
-        data[key] =
-          JSON.parse(value);
-      } catch {
-        data[key] =
-          value;
-      }
+      <button class="btn btn-primary"
+              onclick="savePublication()">
+        💾 Сохранить
+      </button>
 
-    });
+    </div>
 
-  try {
+  </div>
 
-    await api(
-      "/admin/settings",
-      {
-        method:
-          "PUT",
+</div>
 
-        body:
-          JSON.stringify(data)
-      }
-    );
+<!-- COUNTERS MODAL -->
 
-    toast(
-      "✅ Настройки сохранены"
-    );
+<div class="modal" id="countersModal">
 
-  } catch (err) {
+  <div class="modal-box">
 
-    handleError(err);
-  }
-}
+    <div class="modal-head">
 
+      <div class="modal-title">
+        Управление счётчиками
+      </div>
+
+      <button class="close"
+              onclick="closeModal('countersModal')">
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <input type="hidden"
+             id="counterPublicationId">
+
+      <div class="form-grid">
+
+        <div class="form-group">
+          <label class="form-label">Просмотры</label>
+          <input id="counterViews"
+                 class="input"
+                 type="number"
+                 min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Лайки</label>
+          <input id="counterLikes"
+                 class="input"
+                 type="number"
+                 min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Комментарии</label>
+          <input id="counterComments"
+                 class="input"
+                 type="number"
+                 min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Поделились</label>
+          <input id="counterShares"
+                 class="input"
+                 type="number"
+                 min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Сохранения</label>
+          <input id="counterSaves"
+                 class="input"
+                 type="number"
+                 min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Реакции</label>
+          <input id="counterReactions"
+                 class="input"
+                 type="number"
+                 min="0">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Жалобы</label>
+          <input id="counterReports"
+                 class="input"
+                 type="number"
+                 min="0">
+        </div>
+
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+
+      <button class="btn btn-secondary"
+              onclick="closeModal('countersModal')">
+        Отмена
+      </button>
+
+      <button class="btn btn-primary"
+              onclick="saveCounters()">
+        💾 Сохранить
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- AD MODAL -->
+
+<div class="modal" id="adModal">
+
+  <div class="modal-box">
+
+    <div class="modal-head">
+
+      <div class="modal-title">
+        Рекламное размещение
+      </div>
+
+      <button class="close"
+              onclick="closeModal('adModal')">
+        ×
+      </button>
+
+    </div>
+
+    <div class="modal-body">
+
+      <input type="hidden" id="adId">
+
+      <div class="form-group">
+        <label class="form-label">Название</label>
+        <input id="adTitle"
+               class="input">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Ссылка</label>
+        <input id="adUrl"
+               class="input">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Описание</label>
+        <textarea id="adDescription"
+                  class="textarea"></textarea>
+      </div>
+
+    </div>
+
+    <div class="modal-footer">
+
+      <button class="btn btn-secondary"
+              onclick="closeModal('adModal')">
+        Отмена
+      </button>
+
+      <button class="btn btn-primary"
+              onclick="saveAd()">
+        💾 Сохранить
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- TOAST -->
+
+<div class="toast-wrap"
+     id="toastWrap"></div>
+
+<script>
 
 /* =========================================================
-   MODAL
-   ========================================================= */
+   TAJIK OPPORTUNITIES
+   ADMIN PANEL
+========================================================= */
 
-function openModal(
-  title,
-  html
-) {
+const API = "/api";
 
-  document
-    .getElementById(
-      "modalTitle"
-    )
-    .textContent =
-    title;
-
-  document
-    .getElementById(
-      "modalBody"
-    )
-    .innerHTML =
-    html;
-
-  document
-    .getElementById(
-      "modal"
-    )
-    .classList.add(
-      "show"
-    );
-}
-
-
-function closeModal() {
-
-  document
-    .getElementById(
-      "modal"
-    )
-    .classList.remove(
-      "show"
-    );
-}
-
-
-document
-  .getElementById("modal")
-  .addEventListener(
-    "click",
-    e => {
-
-      if (
-        e.target.id ===
-        "modal"
-      ) {
-        closeModal();
-      }
-
-    }
-  );
+let publications = [];
+let participants = [];
+let chats = [];
+let currentChatParticipant = null;
 
 
 /* =========================================================
    HELPERS
-   ========================================================= */
+========================================================= */
 
-function inputField(
-  name,
-  label,
-  value = "",
-  required = false
-) {
-
-  return `
-    <div class="field">
-
-      <label>
-        ${escapeHtml(label)}
-      </label>
-
-      <input
-        name="${escapeAttr(name)}"
-        value="${escapeAttr(
-          value ?? ""
-        )}"
-        ${required ? "required" : ""}
-      >
-
-    </div>
-  `;
+function $(id){
+  return document.getElementById(id);
 }
 
-
-function textareaField(
-  name,
-  label,
-  value = ""
-) {
-
-  return `
-    <div class="field full">
-
-      <label>
-        ${escapeHtml(label)}
-      </label>
-
-      <textarea
-        name="${escapeAttr(name)}"
-      >${escapeHtml(
-        value ?? ""
-      )}</textarea>
-
-    </div>
-  `;
+function esc(value){
+  if(value === null || value === undefined) return "";
+  return String(value)
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
 }
 
+function formatDate(value){
 
-function numberField(
-  name,
-  label,
-  value = 0
-) {
+  if(!value) return "—";
 
-  return `
-    <div class="field">
+  try{
+    return new Date(value).toLocaleString("ru-RU");
+  }catch{
+    return value;
+  }
 
-      <label>
-        ${escapeHtml(label)}
-      </label>
-
-      <input
-        type="number"
-        min="0"
-        step="1"
-        name="${escapeAttr(name)}"
-        value="${Number(
-          value || 0
-        )}"
-      >
-
-    </div>
-  `;
 }
 
+function number(value){
+  return Number(value || 0).toLocaleString("ru-RU");
+}
 
-function statusBadge(
-  status
-) {
+function toast(message,type=""){
+  const el=document.createElement("div");
+  el.className="toast "+type;
+  el.textContent=message;
 
-  const labels = {
+  $("toastWrap").appendChild(el);
 
-    pending:
-      "⏳ Ожидает",
+  setTimeout(()=>{
+    el.remove();
+  },3500);
+}
 
-    published:
-      "🟢 Опубликовано",
+function statusPill(status){
 
-    rejected:
-      "🔴 Отклонено",
-
-    draft:
-      "📝 Черновик",
-
-    archived:
-      "📦 Архив",
-
-    deleted:
-      "🗑️ Удалено",
-
-    active:
-      "🟢 Активен",
-
-    blocked:
-      "🔴 Заблокирован",
-
-    suspended:
-      "🟡 Приостановлен",
-
-    reviewing:
-      "👁️ Проверяется",
-
-    resolved:
-      "✅ Решено",
-
-    open:
-      "🚨 Открыто"
-
+  const labels={
+    pending:"На модерации",
+    published:"Опубликовано",
+    rejected:"Отклонено",
+    draft:"Черновик",
+    hidden:"Скрыто",
+    archived:"Архив"
   };
 
   return `
-    <span class="status ${
-      escapeAttr(
-        status ||
-        "unknown"
-      )
-    }">
-
-      ${escapeHtml(
-        labels[status] ||
-        status ||
-        "Неизвестно"
-      )}
-
+    <span class="status-pill status-${esc(status || "hidden")}">
+      ${esc(labels[status] || status || "—")}
     </span>
   `;
 }
 
 
-function empty(
-  icon,
-  text
-) {
+/* =========================================================
+   API
+========================================================= */
 
-  return `
-    <div class="empty">
+async function api(path,options={}){
 
-      <div class="empty-icon">
-        ${icon}
-      </div>
+  try{
 
-      ${escapeHtml(text)}
+    const response=await fetch(API+path,{
+      ...options,
+      headers:{
+        "Content-Type":"application/json",
+        ...(options.headers || {})
+      }
+    });
 
-    </div>
-  `;
-}
+    const text=await response.text();
 
+    let data={};
 
-function formatNumber(
-  value
-) {
+    try{
+      data=text ? JSON.parse(text) : {};
+    }catch{
+      data={
+        ok:false,
+        error:text || "Сервер вернул неправильный ответ"
+      };
+    }
 
-  const n =
-    Number(value || 0);
+    if(!response.ok){
 
-  return n.toLocaleString(
-    "ru-RU"
-  );
-}
+      throw new Error(
+        data.error ||
+        data.message ||
+        `Ошибка сервера: ${response.status}`
+      );
 
+    }
 
-function formatDate(
-  value
-) {
+    return data;
 
-  if (!value) {
-    return "—";
+  }catch(error){
+
+    console.error(error);
+
+    toast(
+      error.message || "Ошибка соединения с сервером",
+      "error"
+    );
+
+    throw error;
+
   }
 
-  try {
+}
 
-    return new Date(
-      value
-    ).toLocaleString(
-      "ru-RU",
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
+const pageTitles={
+  dashboard:"Главная",
+  publications:"Публикации",
+  pending:"Модерация",
+  participants:"Участники",
+  chats:"Чаты",
+  comments:"Комментарии",
+  reports:"Жалобы",
+  notifications:"Уведомления",
+  ads:"Реклама",
+  support:"Поддержка",
+  analytics:"Аналитика",
+  settings:"Настройки",
+  audit:"Журнал действий",
+  system:"Система"
+};
+
+document.querySelectorAll(".nav-btn").forEach(btn=>{
+
+  btn.addEventListener("click",()=>{
+
+    openPage(btn.dataset.page);
+
+  });
+
+});
+
+
+function openPage(name){
+
+  document.querySelectorAll(".page")
+    .forEach(p=>p.classList.remove("active"));
+
+  const page=$("page-"+name);
+
+  if(page){
+    page.classList.add("active");
+  }
+
+  document.querySelectorAll(".nav-btn")
+    .forEach(btn=>{
+      btn.classList.toggle(
+        "active",
+        btn.dataset.page===name
+      );
+    });
+
+  $("topTitle").textContent=
+    pageTitles[name] || "Админ-панель";
+
+  $("sidebar").classList.remove("open");
+
+  loadPage(name);
+
+}
+
+
+function loadPage(name){
+
+  if(name==="dashboard") loadDashboard();
+  if(name==="publications") loadPublications();
+  if(name==="pending") loadPending();
+  if(name==="participants") loadParticipants();
+  if(name==="chats") loadChats();
+  if(name==="comments") loadComments();
+  if(name==="reports") loadReports();
+  if(name==="notifications") loadNotifications();
+  if(name==="ads") loadAds();
+  if(name==="support") loadSupport();
+  if(name==="analytics") loadAnalytics();
+  if(name==="settings") loadSettings();
+  if(name==="audit") loadAudit();
+  if(name==="system") checkSystem();
+
+}
+
+
+/* =========================================================
+   DASHBOARD
+========================================================= */
+
+async function loadDashboard(){
+
+  try{
+
+    const data=await api("/admin/stats");
+
+    const stats=data.stats || data;
+
+    $("statPublications").textContent=
+      number(
+        stats.publications ??
+        stats.total_publications ??
+        0
+      );
+
+    $("statPending").textContent=
+      number(
+        stats.pending ??
+        stats.pending_publications ??
+        0
+      );
+
+    $("statParticipants").textContent=
+      number(
+        stats.participants ??
+        stats.total_participants ??
+        0
+      );
+
+    $("statReports").textContent=
+      number(
+        stats.reports ??
+        stats.open_reports ??
+        0
+      );
+
+    $("navPubBadge").textContent=
+      number(
+        stats.publications ??
+        stats.total_publications ??
+        0
+      );
+
+    $("navPendingBadge").textContent=
+      number(
+        stats.pending ??
+        stats.pending_publications ??
+        0
+      );
+
+    $("navReportBadge").textContent=
+      number(
+        stats.reports ??
+        stats.open_reports ??
+        0
+      );
+
+  }catch(error){
+    console.error(error);
+  }
+
+
+  try{
+
+    const data=await api("/admin/audit");
+
+    const rows=
+      data.items ||
+      data.audit ||
+      data.rows ||
+      [];
+
+    if(!rows.length){
+
+      $("dashboardActivity").innerHTML=`
+        <div class="empty">
+          Пока нет действий
+        </div>
+      `;
+
+      return;
+    }
+
+    $("dashboardActivity").innerHTML=
+      rows.slice(0,7).map(item=>`
+
+        <div class="activity-item">
+
+          <div class="activity-icon">⚙️</div>
+
+          <div>
+
+            <div class="activity-text">
+              <strong>${esc(item.action || "Действие")}</strong>
+              ${item.object_type ? " — "+esc(item.object_type) : ""}
+            </div>
+
+            <div class="activity-time">
+              ${formatDate(item.created_at)}
+            </div>
+
+          </div>
+
+        </div>
+
+      `).join("");
+
+  }catch(error){
+
+    $("dashboardActivity").innerHTML=`
+      <div class="empty">
+        Не удалось загрузить журнал
+      </div>
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   PUBLICATIONS
+========================================================= */
+
+async function loadPublications(){
+
+  const status=$("publicationStatus").value;
+
+  const query=status
+    ? `?status=${encodeURIComponent(status)}`
+    : "";
+
+  $("publicationsTable").innerHTML=`
+    <tr>
+      <td colspan="7">
+        <div class="loading">
+          <div class="spinner"></div>
+          Загрузка публикаций...
+        </div>
+      </td>
+    </tr>
+  `;
+
+  try{
+
+    const data=await api(
+      "/admin/publications"+query
+    );
+
+    publications=
+      data.items ||
+      data.publications ||
+      data.rows ||
+      [];
+
+    renderPublications();
+
+  }catch(error){
+
+    $("publicationsTable").innerHTML=`
+      <tr>
+        <td colspan="7">
+          <div class="empty">
+            Не удалось загрузить публикации
+          </div>
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
+
+
+function renderPublications(){
+
+  const search=
+    ($("publicationSearch").value || "")
+      .trim()
+      .toLowerCase();
+
+  let rows=publications;
+
+  if(search){
+
+    rows=rows.filter(item=>
+
+      String(item.title || "")
+        .toLowerCase()
+        .includes(search)
+
+      ||
+
+      String(item.content || "")
+        .toLowerCase()
+        .includes(search)
+
+    );
+
+  }
+
+  if(!rows.length){
+
+    $("publicationsTable").innerHTML=`
+      <tr>
+        <td colspan="7">
+          <div class="empty">
+            <div class="empty-icon">📰</div>
+            Публикаций нет
+          </div>
+        </td>
+      </tr>
+    `;
+
+    return;
+  }
+
+  $("publicationsTable").innerHTML=
+    rows.map(publicationRow).join("");
+
+}
+
+
+function publicationRow(p){
+
+  return `
+
+    <tr>
+
+      <td>
+
+        <div class="title-cell">
+          ${esc(p.title || "Без заголовка")}
+        </div>
+
+        <div class="muted small">
+          ID: ${esc(p.id)}
+        </div>
+
+      </td>
+
+      <td>
+        ${statusPill(p.status)}
+      </td>
+
+      <td>
+        ${number(p.views)}
+      </td>
+
+      <td>
+        ${number(p.likes)}
+      </td>
+
+      <td>
+        ${number(p.comments_count)}
+      </td>
+
+      <td>
+        ${formatDate(p.created_at)}
+      </td>
+
+      <td>
+
+        <div class="actions">
+
+          <button class="btn btn-small btn-primary"
+                  onclick="editPublication('${esc(p.id)}')">
+            ✏️
+          </button>
+
+          <button class="btn btn-small btn-purple"
+                  onclick="openCounters('${esc(p.id)}')">
+            🔢
+          </button>
+
+          ${
+            p.status==="pending"
+            ?
+            `
+            <button
+              class="btn btn-small btn-success"
+              onclick="publicationAction('${esc(p.id)}','approve')">
+              ✓
+            </button>
+
+            <button
+              class="btn btn-small btn-danger"
+              onclick="publicationAction('${esc(p.id)}','reject')">
+              ✕
+            </button>
+            `
+            :
+            `
+            <button
+              class="btn btn-small btn-secondary"
+              onclick="publicationAction('${esc(p.id)}','hide')">
+              👁
+            </button>
+            `
+          }
+
+          <button
+            class="btn btn-small btn-danger"
+            onclick="deletePublication('${esc(p.id)}')">
+            🗑
+          </button>
+
+        </div>
+
+      </td>
+
+    </tr>
+
+  `;
+
+}
+
+
+function filterPublications(){
+  renderPublications();
+}
+
+
+/* =========================================================
+   PENDING
+========================================================= */
+
+async function loadPending(){
+
+  $("pendingTable").innerHTML=`
+    <tr>
+      <td colspan="5">
+        <div class="loading">
+          <div class="spinner"></div>
+          Загрузка...
+        </div>
+      </td>
+    </tr>
+  `;
+
+  try{
+
+    const data=await api(
+      "/admin/publications?status=pending"
+    );
+
+    const rows=
+      data.items ||
+      data.publications ||
+      [];
+
+    $("pendingTable").innerHTML=
+      rows.length
+      ?
+      rows.map(p=>`
+
+        <tr>
+
+          <td>
+
+            <div class="title-cell">
+              ${esc(p.title || "Без заголовка")}
+            </div>
+
+            <div class="muted small">
+              ID: ${esc(p.id)}
+            </div>
+
+          </td>
+
+          <td style="max-width:350px">
+            ${esc(
+              String(p.content || "")
+                .slice(0,300)
+            )}
+            ${
+              String(p.content || "").length>300
+              ? "..."
+              : ""
+            }
+          </td>
+
+          <td>
+            ${esc(
+              p.participant_id ||
+              p.visitor_id ||
+              "Анонимный участник"
+            )}
+          </td>
+
+          <td>
+            ${formatDate(p.created_at)}
+          </td>
+
+          <td>
+
+            <div class="actions">
+
+              <button
+                class="btn btn-small btn-primary"
+                onclick="editPublication('${esc(p.id)}')">
+                Открыть
+              </button>
+
+              <button
+                class="btn btn-small btn-success"
+                onclick="publicationAction('${esc(p.id)}','approve')">
+                ✓ Опубликовать
+              </button>
+
+              <button
+                class="btn btn-small btn-danger"
+                onclick="publicationAction('${esc(p.id)}','reject')">
+                ✕ Отклонить
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      `).join("")
+      :
+      `
+      <tr>
+        <td colspan="5">
+          <div class="empty">
+            <div class="empty-icon">✅</div>
+            Новых публикаций на модерации нет
+          </div>
+        </td>
+      </tr>
+      `;
+
+  }catch(error){
+
+    $("pendingTable").innerHTML=`
+      <tr>
+        <td colspan="5">
+          <div class="empty">
+            Ошибка загрузки
+          </div>
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   EDIT PUBLICATION
+========================================================= */
+
+async function editPublication(id){
+
+  try{
+
+    const data=
+      await api(
+        "/admin/publications/"+encodeURIComponent(id)
+      );
+
+    const p=
+      data.publication ||
+      data.item ||
+      data;
+
+    $("editPublicationId").value=p.id;
+    $("editTitle").value=p.title || "";
+    $("editContent").value=p.content || "";
+    $("editStatus").value=p.status || "pending";
+    $("editVisibility").value=
+      p.visibility || "private";
+
+    openModal("publicationModal");
+
+  }catch(error){}
+
+}
+
+
+async function savePublication(){
+
+  const id=$("editPublicationId").value;
+
+  if(!id){
+    toast("Не найден ID публикации","error");
+    return;
+  }
+
+  try{
+
+    await api(
+      "/admin/publications/"+encodeURIComponent(id),
       {
-        dateStyle:
-          "short",
-        timeStyle:
-          "short"
+        method:"PATCH",
+        body:JSON.stringify({
+
+          title:$("editTitle").value,
+          content:$("editContent").value,
+          status:$("editStatus").value,
+          visibility:$("editVisibility").value
+
+        })
       }
     );
 
-  } catch {
+    closeModal("publicationModal");
 
-    return String(value);
+    toast(
+      "Публикация сохранена",
+      "success"
+    );
+
+    await loadPublications();
+    await loadPending();
+    await loadDashboard();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   PUBLICATION ACTIONS
+========================================================= */
+
+async function publicationAction(id,action){
+
+  const names={
+    approve:"опубликовать",
+    publish:"опубликовать",
+    reject:"отклонить",
+    pending:"вернуть на модерацию",
+    hide:"скрыть",
+    show:"показать",
+    archive:"архивировать",
+    restore:"восстановить",
+    draft:"перевести в черновик",
+    pin:"закрепить",
+    unpin:"открепить",
+    feature:"сделать рекомендуемой",
+    unfeature:"убрать из рекомендуемых"
+  };
+
+  const name=
+    names[action] || action;
+
+  if(!confirm(
+    `Вы уверены, что хотите: ${name}?`
+  )){
+    return;
   }
-}
 
+  try{
 
-function escapeHtml(
-  value
-) {
-
-  return String(
-    value ??
-    ""
-  )
-    .replaceAll(
-      "&",
-      "&amp;"
-    )
-    .replaceAll(
-      "<",
-      "&lt;"
-    )
-    .replaceAll(
-      ">",
-      "&gt;"
-    )
-    .replaceAll(
-      '"',
-      "&quot;"
-    )
-    .replaceAll(
-      "'",
-      "&#039;"
-    );
-}
-
-
-function escapeAttr(
-  value
-) {
-
-  return escapeHtml(
-    value
-  );
-}
-
-
-function safeId(
-  value
-) {
-
-  return String(
-    value || ""
-  )
-    .replaceAll(
-      "\\",
-      "\\\\"
-    )
-    .replaceAll(
-      "'",
-      "\\'"
-    );
-}
-
-
-function updateBadges(
-  pending,
-  reports,
-  chats
-) {
-
-  setBadge(
-    "pendingBadge",
-    pending
-  );
-
-  setBadge(
-    "reportBadge",
-    reports
-  );
-
-  setBadge(
-    "chatBadge",
-    chats
-  );
-}
-
-
-function setBadge(
-  id,
-  value
-) {
-
-  const el =
-    document.getElementById(
-      id
+    await api(
+      "/admin/publications/"+
+      encodeURIComponent(id)+
+      "/action",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          action
+        })
+      }
     );
 
-  const n =
-    Number(value || 0);
+    toast(
+      "Действие выполнено",
+      "success"
+    );
 
-  el.textContent =
-    formatNumber(n);
+    await loadPublications();
+    await loadPending();
+    await loadDashboard();
 
-  el.style.display =
-    n > 0
-      ? "inline-block"
-      : "none";
+  }catch(error){}
+
+}
+
+
+async function deletePublication(id){
+
+  if(!confirm(
+    "Удалить публикацию полностью?\n\nЭто действие может быть необратимым."
+  )){
+    return;
+  }
+
+  try{
+
+    await api(
+      "/admin/publications/"+
+      encodeURIComponent(id),
+      {
+        method:"DELETE"
+      }
+    );
+
+    toast(
+      "Публикация удалена",
+      "success"
+    );
+
+    await loadPublications();
+    await loadPending();
+    await loadDashboard();
+
+  }catch(error){}
+
 }
 
 
 /* =========================================================
-   REFRESH
-   ========================================================= */
+   COUNTERS
+========================================================= */
 
-function refreshCurrent() {
+async function openCounters(id){
 
-  loadSection(
-    currentSection
-  );
+  try{
 
-  toast(
-    "🔄 Обновлено"
-  );
+    const data=
+      await api(
+        "/admin/publications/"+
+        encodeURIComponent(id)
+      );
+
+    const p=
+      data.publication ||
+      data.item ||
+      data;
+
+    $("counterPublicationId").value=id;
+
+    $("counterViews").value=
+      p.views ?? 0;
+
+    $("counterLikes").value=
+      p.likes ?? 0;
+
+    $("counterComments").value=
+      p.comments_count ?? 0;
+
+    $("counterShares").value=
+      p.shares ?? 0;
+
+    $("counterSaves").value=
+      p.saves ?? 0;
+
+    $("counterReactions").value=
+      p.reactions_count ?? 0;
+
+    $("counterReports").value=
+      p.reports_count ?? 0;
+
+    openModal("countersModal");
+
+  }catch(error){}
+
 }
 
 
-function debouncedLoadPublications() {
+async function saveCounters(){
 
-  clearTimeout(
-    debounceTimer
-  );
+  const id=
+    $("counterPublicationId").value;
 
-  debounceTimer =
-    setTimeout(
-      () => loadPublications(),
-      350
+  try{
+
+    await api(
+      "/admin/publications/"+
+      encodeURIComponent(id)+
+      "/counters",
+      {
+        method:"POST",
+        body:JSON.stringify({
+
+          views:Number($("counterViews").value || 0),
+          likes:Number($("counterLikes").value || 0),
+          comments_count:Number(
+            $("counterComments").value || 0
+          ),
+          shares:Number(
+            $("counterShares").value || 0
+          ),
+          saves:Number(
+            $("counterSaves").value || 0
+          ),
+          reactions_count:Number(
+            $("counterReactions").value || 0
+          ),
+          reports_count:Number(
+            $("counterReports").value || 0
+          )
+
+        })
+      }
     );
-}
 
+    closeModal("countersModal");
 
-function debouncedLoadParticipants() {
-
-  clearTimeout(
-    debounceTimer
-  );
-
-  debounceTimer =
-    setTimeout(
-      () => loadParticipants(),
-      350
+    toast(
+      "Счётчики изменены",
+      "success"
     );
+
+    await loadPublications();
+
+  }catch(error){}
+
 }
 
 
 /* =========================================================
-   PUBLIC SITE
-   ========================================================= */
+   PARTICIPANTS
+========================================================= */
 
-function openPublicSite() {
+async function loadParticipants(){
 
-  window.open(
-    "/",
-    "_blank"
-  );
-}
+  $("participantsTable").innerHTML=`
+    <tr>
+      <td colspan="6">
+        <div class="loading">
+          <div class="spinner"></div>
+          Загрузка...
+        </div>
+      </td>
+    </tr>
+  `;
 
+  try{
 
-/* =========================================================
-   TOAST
-   ========================================================= */
+    const data=
+      await api("/admin/participants");
 
-let toastTimer = null;
+    participants=
+      data.items ||
+      data.participants ||
+      data.rows ||
+      [];
 
-function toast(
-  message
-) {
+    if(!participants.length){
 
-  const el =
-    document.getElementById(
-      "toast"
-    );
+      $("participantsTable").innerHTML=`
+        <tr>
+          <td colspan="6">
+            <div class="empty">
+              Участников пока нет
+            </div>
+          </td>
+        </tr>
+      `;
 
-  el.textContent =
-    message;
-
-  el.classList.add(
-    "show"
-  );
-
-  clearTimeout(
-    toastTimer
-  );
-
-  toastTimer =
-    setTimeout(
-      () => {
-        el.classList.remove(
-          "show"
-        );
-      },
-      3000
-    );
-}
-
-
-function handleError(
-  error
-) {
-
-  console.error(error);
-
-  toast(
-    "❌ " +
-    (
-      error?.message ||
-      "Произошла ошибка"
-    )
-  );
-}
-
-
-/* =========================================================
-   GLOBAL ESC
-   ========================================================= */
-
-document.addEventListener(
-  "keydown",
-  e => {
-
-    if (
-      e.key === "Escape"
-    ) {
-      closeModal();
+      return;
     }
 
+    $("participantsTable").innerHTML=
+      participants.map(p=>`
+
+        <tr>
+
+          <td>
+            <div class="title-cell">
+              ${esc(
+                p.id ||
+                p.visitor_id ||
+                "—"
+              )}
+            </div>
+          </td>
+
+          <td>
+            ${number(
+              p.publications_count ||
+              p.posts_count ||
+              0
+            )}
+          </td>
+
+          <td>
+            ${number(
+              p.messages_count ||
+              0
+            )}
+          </td>
+
+          <td>
+            ${formatDate(
+              p.last_seen_at ||
+              p.updated_at ||
+              p.created_at
+            )}
+          </td>
+
+          <td>
+
+            ${
+              p.blocked
+              ?
+              `<span class="status-pill status-rejected">
+                Заблокирован
+              </span>`
+              :
+              `<span class="status-pill status-published">
+                Активен
+              </span>`
+            }
+
+          </td>
+
+          <td>
+
+            <div class="actions">
+
+              <button
+                class="btn btn-small btn-primary"
+                onclick="openParticipant('${esc(
+                  p.id || p.visitor_id
+                )}')">
+                Открыть
+              </button>
+
+              <button
+                class="btn btn-small ${
+                  p.blocked
+                  ? "btn-success"
+                  : "btn-danger"
+                }"
+                onclick="toggleParticipant('${esc(
+                  p.id || p.visitor_id
+                )}',${p.blocked ? "false":"true"})">
+
+                ${
+                  p.blocked
+                  ? "Разблокировать"
+                  : "Заблокировать"
+                }
+
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      `).join("");
+
+  }catch(error){
+
+    $("participantsTable").innerHTML=`
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            Не удалось загрузить участников
+          </div>
+        </td>
+      </tr>
+    `;
+
   }
-);
+
+}
+
+
+async function openParticipant(id){
+
+  try{
+
+    const data=
+      await api(
+        "/admin/participants/"+
+        encodeURIComponent(id)
+      );
+
+    const p=
+      data.participant ||
+      data.item ||
+      data;
+
+    alert(
+      "ID участника:\n"+
+      (p.id || id)+
+      "\n\n"+
+      "Публикаций: "+
+      (p.publications_count || 0)+
+      "\n"+
+      "Сообщений: "+
+      (p.messages_count || 0)+
+      "\n"+
+      "Последняя активность: "+
+      formatDate(p.last_seen_at)
+    );
+
+  }catch(error){}
+
+}
+
+
+async function toggleParticipant(id,blocked){
+
+  try{
+
+    await api(
+      "/admin/participants/"+
+      encodeURIComponent(id),
+      {
+        method:"PATCH",
+        body:JSON.stringify({
+          blocked
+        })
+      }
+    );
+
+    toast(
+      blocked
+      ? "Участник заблокирован"
+      : "Участник разблокирован",
+      "success"
+    );
+
+    loadParticipants();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   CHATS
+========================================================= */
+
+async function loadChats(){
+
+  try{
+
+    const data=
+      await api("/admin/chat");
+
+    chats=
+      data.items ||
+      data.chats ||
+      data.rows ||
+      [];
+
+    if(!chats.length){
+
+      $("chatList").innerHTML=`
+        <div class="empty">
+          <div class="empty-icon">💬</div>
+          Чатов пока нет
+        </div>
+      `;
+
+      return;
+    }
+
+    $("chatList").innerHTML=
+      chats.map(chat=>{
+
+        const id=
+          chat.participant_id ||
+          chat.visitor_id ||
+          chat.id;
+
+        return `
+
+          <div class="chat-user"
+               onclick="openChat('${esc(id)}',this)">
+
+            <div class="chat-name">
+              🇹🇯 Участник
+            </div>
+
+            <div class="chat-preview">
+              ${esc(
+                chat.last_message ||
+                "Открыть переписку"
+              )}
+            </div>
+
+            <div class="small muted">
+              ${formatDate(
+                chat.last_message_at ||
+                chat.updated_at
+              )}
+            </div>
+
+          </div>
+
+        `;
+
+      }).join("");
+
+  }catch(error){
+
+    $("chatList").innerHTML=`
+      <div class="empty">
+        Ошибка загрузки чатов
+      </div>
+    `;
+
+  }
+
+}
+
+
+async function openChat(id,element){
+
+  currentChatParticipant=id;
+
+  document.querySelectorAll(".chat-user")
+    .forEach(el=>el.classList.remove("active"));
+
+  if(element){
+    element.classList.add("active");
+  }
+
+  $("chatTitle").textContent=
+    "🇹🇯 Чат с участником";
+
+  $("chatMessages").innerHTML=`
+    <div class="loading">
+      <div class="spinner"></div>
+      Загрузка сообщений...
+    </div>
+  `;
+
+  try{
+
+    const data=
+      await api(
+        "/admin/chat/"+
+        encodeURIComponent(id)+
+        "/messages"
+      );
+
+    const messages=
+      data.items ||
+      data.messages ||
+      data.rows ||
+      [];
+
+    if(!messages.length){
+
+      $("chatMessages").innerHTML=`
+        <div class="empty">
+          Сообщений пока нет
+        </div>
+      `;
+
+      return;
+    }
+
+    $("chatMessages").innerHTML=
+      messages.map(m=>`
+
+        <div class="message ${
+          m.sender==="admin" ||
+          m.sender_type==="admin"
+          ? "admin"
+          : "visitor"
+        }">
+
+          <div>
+            ${esc(
+              m.content ||
+              m.message ||
+              ""
+            )}
+          </div>
+
+          <div class="small"
+               style="opacity:.65;margin-top:5px">
+            ${formatDate(m.created_at)}
+          </div>
+
+        </div>
+
+      `).join("");
+
+    $("chatMessages").scrollTop=
+      $("chatMessages").scrollHeight;
+
+  }catch(error){}
+
+}
+
+
+async function sendChatMessage(){
+
+  if(!currentChatParticipant){
+
+    toast(
+      "Сначала выберите чат",
+      "error"
+    );
+
+    return;
+  }
+
+  const input=$("chatInput");
+
+  const message=
+    input.value.trim();
+
+  if(!message){
+
+    toast(
+      "Введите сообщение",
+      "error"
+    );
+
+    return;
+  }
+
+  try{
+
+    await api(
+      "/admin/chat/"+
+      encodeURIComponent(
+        currentChatParticipant
+      )+
+      "/send",
+      {
+        method:"POST",
+        body:JSON.stringify({
+          content:message,
+          message
+        })
+      }
+    );
+
+    input.value="";
+
+    await openChat(
+      currentChatParticipant
+    );
+
+    toast(
+      "Сообщение отправлено",
+      "success"
+    );
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   COMMENTS
+========================================================= */
+
+async function loadComments(){
+
+  $("commentsTable").innerHTML=`
+    <tr>
+      <td colspan="6">
+        <div class="loading">
+          <div class="spinner"></div>
+          Загрузка...
+        </div>
+      </td>
+    </tr>
+  `;
+
+  try{
+
+    const data=
+      await api("/admin/comments");
+
+    const rows=
+      data.items ||
+      data.comments ||
+      data.rows ||
+      [];
+
+    $("commentsTable").innerHTML=
+      rows.length
+      ?
+      rows.map(c=>`
+
+        <tr>
+
+          <td style="max-width:350px">
+            ${esc(c.content || c.text || "")}
+          </td>
+
+          <td>
+            ${esc(
+              c.publication_id || "—"
+            )}
+          </td>
+
+          <td>
+            ${esc(
+              c.participant_id ||
+              c.visitor_id ||
+              "Аноним"
+            )}
+          </td>
+
+          <td>
+            ${formatDate(c.created_at)}
+          </td>
+
+          <td>
+            ${c.hidden
+              ?
+              `<span class="status-pill status-hidden">
+                Скрыт
+              </span>`
+              :
+              `<span class="status-pill status-published">
+                Видим
+              </span>`
+            }
+          </td>
+
+          <td>
+
+            <div class="actions">
+
+              <button
+                class="btn btn-small btn-secondary"
+                onclick="toggleComment('${esc(c.id)}',${c.hidden ? "false":"true"})">
+                ${c.hidden ? "Показать" : "Скрыть"}
+              </button>
+
+              <button
+                class="btn btn-small btn-danger"
+                onclick="deleteComment('${esc(c.id)}')">
+                🗑
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      `).join("")
+      :
+      `
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            Комментариев нет
+          </div>
+        </td>
+      </tr>
+      `;
+
+  }catch(error){
+
+    $("commentsTable").innerHTML=`
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            Не удалось загрузить комментарии
+          </div>
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
+
+
+async function toggleComment(id,hidden){
+
+  try{
+
+    await api(
+      "/admin/comments/"+encodeURIComponent(id),
+      {
+        method:"PATCH",
+        body:JSON.stringify({
+          hidden
+        })
+      }
+    );
+
+    toast(
+      "Комментарий обновлён",
+      "success"
+    );
+
+    loadComments();
+
+  }catch(error){}
+
+}
+
+
+async function deleteComment(id){
+
+  if(!confirm("Удалить комментарий?")){
+    return;
+  }
+
+  try{
+
+    await api(
+      "/admin/comments/"+encodeURIComponent(id),
+      {
+        method:"DELETE"
+      }
+    );
+
+    toast(
+      "Комментарий удалён",
+      "success"
+    );
+
+    loadComments();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   REPORTS
+========================================================= */
+
+async function loadReports(){
+
+  $("reportsTable").innerHTML=`
+    <tr>
+      <td colspan="6">
+        <div class="loading">
+          <div class="spinner"></div>
+          Загрузка...
+        </div>
+      </td>
+    </tr>
+  `;
+
+  try{
+
+    const data=
+      await api("/admin/reports");
+
+    const rows=
+      data.items ||
+      data.reports ||
+      data.rows ||
+      [];
+
+    $("reportsTable").innerHTML=
+      rows.length
+      ?
+      rows.map(r=>`
+
+        <tr>
+
+          <td>
+            <strong>
+              ${esc(
+                r.reason ||
+                r.type ||
+                "Жалоба"
+              )}
+            </strong>
+
+            ${
+              r.description
+              ?
+              `<div class="muted small">
+                ${esc(r.description)}
+              </div>`
+              :
+              ""
+            }
+
+          </td>
+
+          <td>
+            ${esc(
+              r.publication_id ||
+              r.comment_id ||
+              r.object_id ||
+              "—"
+            )}
+          </td>
+
+          <td>
+            ${esc(
+              r.participant_id ||
+              r.visitor_id ||
+              "Аноним"
+            )}
+          </td>
+
+          <td>
+            ${formatDate(r.created_at)}
+          </td>
+
+          <td>
+            <span class="status-pill ${
+              r.status==="resolved"
+              ? "status-published"
+              : "status-pending"
+            }">
+              ${esc(r.status || "open")}
+            </span>
+          </td>
+
+          <td>
+
+            <div class="actions">
+
+              <button
+                class="btn btn-small btn-success"
+                onclick="resolveReport('${esc(r.id)}')">
+                ✓ Решить
+              </button>
+
+              <button
+                class="btn btn-small btn-danger"
+                onclick="deleteReport('${esc(r.id)}')">
+                🗑
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      `).join("")
+      :
+      `
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            <div class="empty-icon">✅</div>
+            Жалоб нет
+          </div>
+        </td>
+      </tr>
+      `;
+
+  }catch(error){}
+
+}
+
+
+async function resolveReport(id){
+
+  try{
+
+    await api(
+      "/admin/reports/"+encodeURIComponent(id),
+      {
+        method:"PATCH",
+        body:JSON.stringify({
+          status:"resolved"
+        })
+      }
+    );
+
+    toast(
+      "Жалоба закрыта",
+      "success"
+    );
+
+    loadReports();
+
+  }catch(error){}
+
+}
+
+
+async function deleteReport(id){
+
+  if(!confirm("Удалить жалобу?")){
+    return;
+  }
+
+  try{
+
+    await api(
+      "/admin/reports/"+encodeURIComponent(id),
+      {
+        method:"DELETE"
+      }
+    );
+
+    toast(
+      "Жалоба удалена",
+      "success"
+    );
+
+    loadReports();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   NOTIFICATIONS
+========================================================= */
+
+async function loadNotifications(){
+
+  try{
+
+    const data=
+      await api("/admin/notifications");
+
+    const rows=
+      data.items ||
+      data.notifications ||
+      data.rows ||
+      [];
+
+    if(!rows.length){
+
+      $("notificationsList").innerHTML=`
+        <div class="empty">
+          Уведомлений нет
+        </div>
+      `;
+
+      return;
+    }
+
+    $("notificationsList").innerHTML=
+      rows.map(n=>`
+
+        <div class="activity-item">
+
+          <div class="activity-icon">
+            🔔
+          </div>
+
+          <div>
+
+            <div class="activity-text">
+              <strong>
+                ${esc(n.title || "Уведомление")}
+              </strong>
+
+              <br>
+
+              ${esc(
+                n.content ||
+                n.message ||
+                ""
+              )}
+
+            </div>
+
+            <div class="activity-time">
+              ${formatDate(n.created_at)}
+            </div>
+
+          </div>
+
+        </div>
+
+      `).join("");
+
+  }catch(error){
+
+    $("notificationsList").innerHTML=`
+      <div class="empty">
+        Ошибка загрузки уведомлений
+      </div>
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   ADS
+========================================================= */
+
+async function loadAds(){
+
+  try{
+
+    const data=
+      await api("/admin/ads");
+
+    const rows=
+      data.items ||
+      data.ads ||
+      data.rows ||
+      [];
+
+    $("adsTable").innerHTML=
+      rows.length
+      ?
+      rows.map(a=>`
+
+        <tr>
+
+          <td>
+            <strong>
+              ${esc(a.title || a.name || "—")}
+            </strong>
+          </td>
+
+          <td>
+            ${esc(a.url || a.link || "—")}
+          </td>
+
+          <td>
+            ${number(a.impressions)}
+          </td>
+
+          <td>
+            ${number(a.clicks)}
+          </td>
+
+          <td>
+            ${a.active
+              ?
+              `<span class="status-pill status-published">
+                Активна
+              </span>`
+              :
+              `<span class="status-pill status-hidden">
+                Выключена
+              </span>`
+            }
+          </td>
+
+          <td>
+
+            <div class="actions">
+
+              <button
+                class="btn btn-small btn-primary"
+                onclick="editAd('${esc(a.id)}')">
+                ✏️
+              </button>
+
+              <button
+                class="btn btn-small btn-danger"
+                onclick="deleteAd('${esc(a.id)}')">
+                🗑
+              </button>
+
+            </div>
+
+          </td>
+
+        </tr>
+
+      `).join("")
+      :
+      `
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            Рекламных размещений нет
+          </div>
+        </td>
+      </tr>
+      `;
+
+  }catch(error){}
+
+}
+
+
+function openAdModal(){
+
+  $("adId").value="";
+  $("adTitle").value="";
+  $("adUrl").value="";
+  $("adDescription").value="";
+
+  openModal("adModal");
+
+}
+
+
+async function editAd(id){
+
+  try{
+
+    const data=
+      await api(
+        "/admin/ads/"+encodeURIComponent(id)
+      );
+
+    const a=
+      data.ad ||
+      data.item ||
+      data;
+
+    $("adId").value=a.id;
+    $("adTitle").value=
+      a.title || a.name || "";
+    $("adUrl").value=
+      a.url || a.link || "";
+    $("adDescription").value=
+      a.description || "";
+
+    openModal("adModal");
+
+  }catch(error){}
+
+}
+
+
+async function saveAd(){
+
+  const id=$("adId").value;
+
+  const body={
+    title:$("adTitle").value,
+    url:$("adUrl").value,
+    description:$("adDescription").value,
+    active:true
+  };
+
+  try{
+
+    await api(
+      id
+      ? "/admin/ads/"+encodeURIComponent(id)
+      : "/admin/ads",
+      {
+        method:id ? "PATCH" : "POST",
+        body:JSON.stringify(body)
+      }
+    );
+
+    closeModal("adModal");
+
+    toast(
+      "Реклама сохранена",
+      "success"
+    );
+
+    loadAds();
+
+  }catch(error){}
+
+}
+
+
+async function deleteAd(id){
+
+  if(!confirm("Удалить рекламное размещение?")){
+    return;
+  }
+
+  try{
+
+    await api(
+      "/admin/ads/"+encodeURIComponent(id),
+      {
+        method:"DELETE"
+      }
+    );
+
+    toast(
+      "Реклама удалена",
+      "success"
+    );
+
+    loadAds();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   SUPPORT
+========================================================= */
+
+async function loadSupport(){
+
+  try{
+
+    const data=
+      await api("/admin/support");
+
+    const rows=
+      data.items ||
+      data.tickets ||
+      data.rows ||
+      [];
+
+    $("supportTable").innerHTML=
+      rows.length
+      ?
+      rows.map(s=>`
+
+        <tr>
+
+          <td>
+            <strong>
+              ${esc(s.subject || "Обращение")}
+            </strong>
+          </td>
+
+          <td style="max-width:330px">
+            ${esc(
+              String(
+                s.message ||
+                s.content ||
+                ""
+              ).slice(0,250)
+            )}
+          </td>
+
+          <td>
+            ${esc(
+              s.participant_id ||
+              s.visitor_id ||
+              "Аноним"
+            )}
+          </td>
+
+          <td>
+            ${formatDate(s.created_at)}
+          </td>
+
+          <td>
+            <span class="status-pill ${
+              s.status==="closed"
+              ? "status-published"
+              : "status-pending"
+            }">
+              ${esc(s.status || "open")}
+            </span>
+          </td>
+
+          <td>
+
+            <button
+              class="btn btn-small btn-success"
+              onclick="closeSupport('${esc(s.id)}')">
+              ✓ Закрыть
+            </button>
+
+          </td>
+
+        </tr>
+
+      `).join("")
+      :
+      `
+      <tr>
+        <td colspan="6">
+          <div class="empty">
+            Обращений нет
+          </div>
+        </td>
+      </tr>
+      `;
+
+  }catch(error){}
+
+}
+
+
+async function closeSupport(id){
+
+  try{
+
+    await api(
+      "/admin/support/"+encodeURIComponent(id),
+      {
+        method:"PATCH",
+        body:JSON.stringify({
+          status:"closed"
+        })
+      }
+    );
+
+    toast(
+      "Обращение закрыто",
+      "success"
+    );
+
+    loadSupport();
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   ANALYTICS
+========================================================= */
+
+async function loadAnalytics(){
+
+  try{
+
+    const data=
+      await api("/admin/analytics");
+
+    const a=
+      data.analytics ||
+      data.stats ||
+      data;
+
+    $("analyticsViews").textContent=
+      number(
+        a.views ||
+        a.total_views ||
+        0
+      );
+
+    $("analyticsLikes").textContent=
+      number(
+        a.likes ||
+        a.total_likes ||
+        0
+      );
+
+    $("analyticsSaves").textContent=
+      number(
+        a.saves ||
+        a.total_saves ||
+        0
+      );
+
+    $("analyticsShares").textContent=
+      number(
+        a.shares ||
+        a.total_shares ||
+        0
+      );
+
+    $("analyticsDetails").innerHTML=`
+
+      <div class="grid grid-2">
+
+        <div>
+          <strong>Просмотры:</strong>
+          ${number(a.views || a.total_views || 0)}
+        </div>
+
+        <div>
+          <strong>Лайки:</strong>
+          ${number(a.likes || a.total_likes || 0)}
+        </div>
+
+        <div>
+          <strong>Сохранения:</strong>
+          ${number(a.saves || a.total_saves || 0)}
+        </div>
+
+        <div>
+          <strong>Поделились:</strong>
+          ${number(a.shares || a.total_shares || 0)}
+        </div>
+
+      </div>
+
+    `;
+
+  }catch(error){
+
+    $("analyticsDetails").innerHTML=
+      "Не удалось загрузить аналитику.";
+
+  }
+
+}
+
+
+/* =========================================================
+   SETTINGS
+========================================================= */
+
+async function loadSettings(){
+
+  try{
+
+    const data=
+      await api("/admin/settings");
+
+    const settings=
+      data.settings ||
+      data;
+
+    $("settingSiteName").value=
+      settings.site_name ||
+      settings.SITE_NAME ||
+      "Tajik Opportunities";
+
+    $("settingLanguage").value=
+      settings.default_language ||
+      settings.DEFAULT_LANGUAGE ||
+      "ru";
+
+    $("settingDescription").value=
+      settings.description ||
+      "";
+
+  }catch(error){}
+
+}
+
+
+async function saveSettings(){
+
+  try{
+
+    await api(
+      "/admin/settings",
+      {
+        method:"PATCH",
+        body:JSON.stringify({
+
+          site_name:
+            $("settingSiteName").value,
+
+          default_language:
+            $("settingLanguage").value,
+
+          description:
+            $("settingDescription").value
+
+        })
+      }
+    );
+
+    toast(
+      "Настройки сохранены",
+      "success"
+    );
+
+  }catch(error){}
+
+}
+
+
+/* =========================================================
+   AUDIT
+========================================================= */
+
+async function loadAudit(){
+
+  $("auditTable").innerHTML=`
+    <tr>
+      <td colspan="5">
+        <div class="loading">
+          <div class="spinner"></div>
+          Загрузка...
+        </div>
+      </td>
+    </tr>
+  `;
+
+  try{
+
+    const data=
+      await api("/admin/audit");
+
+    const rows=
+      data.items ||
+      data.audit ||
+      data.rows ||
+      [];
+
+    $("auditTable").innerHTML=
+      rows.length
+      ?
+      rows.map(a=>`
+
+        <tr>
+
+          <td>
+            ${formatDate(a.created_at)}
+          </td>
+
+          <td>
+            <strong>
+              ${esc(a.action || "—")}
+            </strong>
+          </td>
+
+          <td>
+            ${esc(
+              a.object_type ||
+              a.entity_type ||
+              "—"
+            )}
+          </td>
+
+          <td>
+            ${esc(
+              a.object_id ||
+              a.entity_id ||
+              "—"
+            )}
+          </td>
+
+          <td style="max-width:350px">
+
+            <code class="small">
+              ${esc(
+                typeof a.data==="string"
+                ? a.data
+                : JSON.stringify(a.data || {})
+              )}
+            </code>
+
+          </td>
+
+        </tr>
+
+      `).join("")
+      :
+      `
+      <tr>
+        <td colspan="5">
+          <div class="empty">
+            Журнал пуст
+          </div>
+        </td>
+      </tr>
+      `;
+
+  }catch(error){
+
+    $("auditTable").innerHTML=`
+      <tr>
+        <td colspan="5">
+          <div class="empty">
+            Ошибка загрузки журнала
+          </div>
+        </td>
+      </tr>
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   SYSTEM
+========================================================= */
+
+async function checkSystem(){
+
+  $("systemWorker").textContent="...";
+  $("systemDB").textContent="...";
+
+  try{
+
+    const data=
+      await api("/health");
+
+    $("systemWorker").textContent="OK";
+    $("systemDB").textContent=
+      data.database ||
+      data.db ||
+      "OK";
+
+    $("systemInfo").innerHTML=`
+
+      <div class="activity">
+
+        <div class="activity-item">
+
+          <div class="activity-icon">☁️</div>
+
+          <div>
+            <strong>Cloudflare Worker</strong>
+            <div class="muted small">
+              API доступен и отвечает
+            </div>
+          </div>
+
+        </div>
+
+        <div class="activity-item">
+
+          <div class="activity-icon">🗄️</div>
+
+          <div>
+            <strong>Cloudflare D1</strong>
+            <div class="muted small">
+              База данных отвечает
+            </div>
+          </div>
+
+        </div>
+
+        <div class="activity-item">
+
+          <div class="activity-icon">🌐</div>
+
+          <div>
+            <strong>Админ-панель</strong>
+            <div class="muted small">
+              Работа без отдельной страницы входа
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    `;
+
+    toast(
+      "Система работает нормально",
+      "success"
+    );
+
+  }catch(error){
+
+    $("systemWorker").textContent="ERROR";
+    $("systemDB").textContent="ERROR";
+
+    $("systemInfo").innerHTML=`
+      <div class="empty">
+        Не удалось связаться с Worker API.
+      </div>
+    `;
+
+  }
+
+}
+
+
+/* =========================================================
+   MODALS
+========================================================= */
+
+function openModal(id){
+  $(id).classList.add("open");
+}
+
+function closeModal(id){
+  $(id).classList.remove("open");
+}
+
+document.querySelectorAll(".modal").forEach(modal=>{
+
+  modal.addEventListener("click",event=>{
+
+    if(event.target===modal){
+      modal.classList.remove("open");
+    }
+
+  });
+
+});
+
+
+/* =========================================================
+   MOBILE
+========================================================= */
+
+$("mobileMenu").addEventListener("click",()=>{
+
+  $("sidebar").classList.toggle("open");
+
+});
+
+
+/* =========================================================
+   ESC CLOSE
+========================================================= */
+
+document.addEventListener("keydown",event=>{
+
+  if(event.key==="Escape"){
+
+    document.querySelectorAll(".modal.open")
+      .forEach(modal=>{
+        modal.classList.remove("open");
+      });
+
+  }
+
+});
+
+
+/* =========================================================
+   INITIALIZATION
+========================================================= */
+
+async function init(){
+
+  try{
+
+    await api("/admin/me");
+
+  }catch(error){
+
+    /*
+      Авторизация специально не используется.
+      Если endpoint /admin/me существует,
+      он просто подтверждает доступ к API.
+    */
+
+  }
+
+  await loadDashboard();
+  await checkSystem();
+
+}
+
+init();
 
 </script>
 
