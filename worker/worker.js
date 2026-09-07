@@ -1,5721 +1,5759 @@
-/* ============================================================
-   🇹🇯 TAJIK OPPORTUNITIES
+/* =========================================================
+   TAJIK OPPORTUNITIES
    CLOUDFLARE WORKER
-   Version: 2026.09.07 POWER ADMIN
-
-   USER SYSTEM
-   ------------------------------------------------------------
-   • Нет регистрации
-   • Нет обычного логина
-   • Нет пароля пользователя
-   • Нет обычного профиля
-   • Пользователь указывает имя при публикации
-   • Все отправленные данные сохраняются
-
-   ADMIN SYSTEM
-   ------------------------------------------------------------
-   • Один главный администратор
-   • Role: super_admin
-   • Permissions: *
-   • Вход администратора НЕ требуется
-   • Полный доступ к API
-   • Публикации
-   • Участники
-   • Чат
-   • Уведомления
-   • Статистика
-   • Журнал действий
-
-   PUBLICATION FLOW
-   ------------------------------------------------------------
-   Участник
-      ↓
-   POST /api/publications
-      ↓
-   D1
-      ↓
-   status = pending
-      ↓
-   Админ-панель
-      ↓
-   approve / reject / edit / delete
-      ↓
-   published
-      ↓
-   Сайт
-============================================================ */
-
-const VERSION = "2026.09.07";
+   PUBLIC PLATFORM + ADMIN CONTROL
+   ========================================================= */
 
 const SITE_NAME = "Tajik Opportunities";
+const OFFICIAL_USERNAME = "@tajikopportunities";
+const ADMIN_USERNAME = "admin";
 
-const ALLOWED_METHODS = [
-  "GET",
-  "POST",
-  "PUT",
-  "PATCH",
-  "DELETE",
-  "OPTIONS"
+const CATEGORIES = [
+  "Новости",
+  "Образование",
+  "Работа",
+  "Возможности",
+  "Объявления",
+  "Услуги",
+  "Идеи и проекты",
+  "Стартапы и проекты",
+  "Мероприятия",
+  "Конкурсы",
+  "Гранты",
+  "Полезное",
+  "Волонтёрство",
+  "Товары и предложения",
+  "Специалисты",
+  "Другое"
 ];
 
-const PUBLICATION_STATUSES = [
-  "pending",
-  "published",
-  "rejected",
-  "draft",
-  "archived"
+const REACTIONS = [
+  "like",
+  "love",
+  "support",
+  "funny",
+  "wow",
+  "sad",
+  "angry"
 ];
 
-const ADMIN = {
-  id: "key-admin",
-  name: "Главный администратор",
-  username: "admin",
-  role: "super_admin",
-  permissions: ["*"],
-  is_active: true
-};
+const MEDIA_TYPES = [
+  "image",
+  "gallery",
+  "video",
+  "music",
+  "audio",
+  "link",
+  "document",
+  "other"
+];
 
+let dbReady = false;
+let dbPromise = null;
 
-/* ============================================================
-   ENTRY
-============================================================ */
+/* =========================================================
+   MAIN
+   ========================================================= */
 
 export default {
   async fetch(request, env, ctx) {
     try {
-      return await handleRequest(request, env, ctx);
-    } catch (error) {
-      console.error("WORKER_ERROR", error);
+      await ensureDatabase(env);
 
-      return json(
-        {
-          ok: false,
-          error: "INTERNAL_SERVER_ERROR",
-          message: error?.message || "Internal server error",
-          version: VERSION
-        },
-        500,
-        request
-      );
+      const url = new URL(request.url);
+      const path = normalizePath(url.pathname);
+
+      if (request.method === "OPTIONS") {
+        return new Response("", {
+          status: 204,
+          headers: corsHeaders(request)
+        });
+      }
+
+      if (path === "/health") {
+        return json({
+          ok: true,
+          site: SITE_NAME,
+          time: now()
+        }, 200, request);
+      }
+
+      if (!path.startsWith("/api/")) {
+        return env.ASSETS.fetch(request);
+      }
+
+      return await router(request, env, path);
+
+    } catch (error) {
+      console.error(error);
+
+      return json({
+        ok: false,
+        error: "SERVER_ERROR",
+        message: error?.message || "Server error"
+      }, 500, request);
     }
   }
 };
 
+/* =========================================================
+   ROUTER
+   ========================================================= */
 
-/* ============================================================
-   MAIN REQUEST
-============================================================ */
+async function router(request, env, path) {
 
-async function handleRequest(request, env, ctx) {
-  const url = new URL(request.url);
-  const path = normalizePath(url.pathname);
+  /* =======================================================
+     PUBLIC
+     ======================================================= */
 
-  if (!ALLOWED_METHODS.includes(request.method)) {
-    return json(
-      {
-        ok: false,
-        error: "METHOD_NOT_ALLOWED"
-      },
-      405,
-      request
-    );
-  }
-
-  if (request.method === "OPTIONS") {
-    return corsResponse(request);
+  if (
+    path === "/api/publications" &&
+    request.method === "GET"
+  ) {
+    return getPublications(request, env);
   }
 
   if (
-    path === "/health" ||
-    path === "/api/health"
+    path === "/api/publications" &&
+    request.method === "POST"
   ) {
-    return json(
-      {
-        ok: true,
-        service: SITE_NAME,
-        version: VERSION,
-        status: "healthy",
-        environment:
-          env.ENVIRONMENT || "production",
-        database: !!env.DB,
-        assets: !!env.ASSETS,
-        time: new Date().toISOString()
-      },
-      200,
-      request
-    );
+    return createPublication(request, env);
   }
 
-  if (path.startsWith("/api")) {
-    const response = await handleApi(
-      request,
-      env,
-      ctx
-    );
-
-    return withSecurity(
-      response,
-      request
-    );
+  if (
+    /^\/api\/publications\/[^/]+$/.test(path) &&
+    request.method === "GET"
+  ) {
+    return getPublicPublication(request, env, path);
   }
 
-  if (env.ASSETS) {
-    const assetResponse =
-      await env.ASSETS.fetch(request);
-
-    if (assetResponse.status !== 404) {
-      return assetResponse;
-    }
-
-    if (
-      request.method === "GET" &&
-      !path.includes(".")
-    ) {
-      const fallbackRequest =
-        new Request(
-          new URL(
-            "/index.html",
-            request.url
-          ),
-          request
-        );
-
-      const fallback =
-        await env.ASSETS.fetch(
-          fallbackRequest
-        );
-
-      if (fallback.status !== 404) {
-        return fallback;
-      }
-    }
+  if (
+    /^\/api\/publications\/[^/]+\/react$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return reactPublication(request, env, path);
   }
 
-  return json(
-    {
-      ok: false,
-      error: "NOT_FOUND"
-    },
-    404,
-    request
-  );
+  if (
+    /^\/api\/publications\/[^/]+\/save$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return savePublication(request, env, path);
+  }
+
+  if (
+    /^\/api\/publications\/[^/]+\/share$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return sharePublication(request, env, path);
+  }
+
+  if (
+    /^\/api\/publications\/[^/]+\/comments$/.test(path) &&
+    request.method === "GET"
+  ) {
+    return getComments(request, env, path);
+  }
+
+  if (
+    /^\/api\/publications\/[^/]+\/comments$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return createComment(request, env, path);
+  }
+
+  if (
+    path === "/api/reports" &&
+    request.method === "POST"
+  ) {
+    return createReport(request, env);
+  }
+
+  /* =======================================================
+     GUEST / PARTICIPANT
+     НЕТ РЕГИСТРАЦИИ
+     НЕТ ВХОДА
+     ======================================================= */
+
+  if (
+    path === "/api/me" &&
+    request.method === "GET"
+  ) {
+    return getAnonymousParticipant(request, env);
+  }
+
+  if (
+    path === "/api/me" &&
+    request.method === "PUT"
+  ) {
+    return updateAnonymousParticipant(request, env);
+  }
+
+  if (
+    path === "/api/my-publications" &&
+    request.method === "GET"
+  ) {
+    return myPublications(request, env);
+  }
+
+  if (
+    path === "/api/my-chat" &&
+    request.method === "GET"
+  ) {
+    return participantChat(request, env);
+  }
+
+  if (
+    path === "/api/my-chat" &&
+    request.method === "POST"
+  ) {
+    return participantSendChat(request, env);
+  }
+
+  if (
+    path === "/api/my-notifications" &&
+    request.method === "GET"
+  ) {
+    return participantNotifications(request, env);
+  }
+
+  /* =======================================================
+     ADMIN AUTH
+     ======================================================= */
+
+  if (
+    path === "/api/admin/login" &&
+    request.method === "POST"
+  ) {
+    return adminLogin(request, env);
+  }
+
+  if (
+    path === "/api/admin/logout" &&
+    request.method === "POST"
+  ) {
+    return adminLogout(request, env);
+  }
+
+  if (
+    path === "/api/admin/me" &&
+    request.method === "GET"
+  ) {
+    return adminMe(request, env);
+  }
+
+  /* =======================================================
+     ADMIN DASHBOARD
+     ======================================================= */
+
+  if (
+    path === "/api/admin/dashboard" &&
+    request.method === "GET"
+  ) {
+    return adminDashboard(request, env);
+  }
+
+  if (
+    path === "/api/admin/stats" &&
+    request.method === "GET"
+  ) {
+    return adminStats(request, env);
+  }
+
+  if (
+    path === "/api/admin/notifications" &&
+    request.method === "GET"
+  ) {
+    return adminNotifications(request, env);
+  }
+
+  if (
+    path === "/api/admin/audit" &&
+    request.method === "GET"
+  ) {
+    return adminAudit(request, env);
+  }
+
+  /* =======================================================
+     ADMIN PUBLICATIONS
+     ======================================================= */
+
+  if (
+    path === "/api/admin/publications" &&
+    request.method === "GET"
+  ) {
+    return adminPublications(request, env);
+  }
+
+  if (
+    /^\/api\/admin\/publications\/[^/]+$/.test(path) &&
+    request.method === "GET"
+  ) {
+    return adminPublication(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/publications\/[^/]+$/.test(path) &&
+    request.method === "PUT"
+  ) {
+    return adminUpdatePublication(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/publications\/[^/]+$/.test(path) &&
+    request.method === "DELETE"
+  ) {
+    return adminDeletePublication(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/publications\/[^/]+\/action$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return adminPublicationAction(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/publications\/[^/]+\/counters$/.test(path) &&
+    request.method === "PUT"
+  ) {
+    return adminCounters(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/publications\/[^/]+\/media$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return adminAddMedia(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/publications\/[^/]+\/media\/[^/]+$/.test(path) &&
+    request.method === "DELETE"
+  ) {
+    return adminDeleteMedia(request, env, path);
+  }
+
+  /* =======================================================
+     ADMIN PARTICIPANTS
+     ======================================================= */
+
+  if (
+    path === "/api/admin/participants" &&
+    request.method === "GET"
+  ) {
+    return adminParticipants(request, env);
+  }
+
+  if (
+    /^\/api\/admin\/participants\/[^/]+$/.test(path) &&
+    request.method === "GET"
+  ) {
+    return adminParticipant(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/participants\/[^/]+$/.test(path) &&
+    request.method === "PUT"
+  ) {
+    return adminUpdateParticipant(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/participants\/[^/]+$/.test(path) &&
+    request.method === "DELETE"
+  ) {
+    return adminDeleteParticipant(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/participants\/[^/]+\/status$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return adminParticipantStatus(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/participants\/[^/]+\/counters$/.test(path) &&
+    request.method === "PUT"
+  ) {
+    return adminParticipantCounters(request, env, path);
+  }
+
+  /* =======================================================
+     ADMIN CHATS
+     ======================================================= */
+
+  if (
+    path === "/api/admin/chats" &&
+    request.method === "GET"
+  ) {
+    return adminChats(request, env);
+  }
+
+  if (
+    /^\/api\/admin\/chats\/[^/]+$/.test(path) &&
+    request.method === "GET"
+  ) {
+    return adminChatMessages(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/chats\/[^/]+$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return adminSendChat(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/chats\/[^/]+\/read$/.test(path) &&
+    request.method === "POST"
+  ) {
+    return adminMarkChatRead(request, env, path);
+  }
+
+  /* =======================================================
+     ADMIN COMMENTS
+     ======================================================= */
+
+  if (
+    path === "/api/admin/comments" &&
+    request.method === "GET"
+  ) {
+    return adminComments(request, env);
+  }
+
+  if (
+    /^\/api\/admin\/comments\/[^/]+$/.test(path) &&
+    request.method === "PUT"
+  ) {
+    return adminUpdateComment(request, env, path);
+  }
+
+  if (
+    /^\/api\/admin\/comments\/[^/]+$/.test(path) &&
+    request.method === "DELETE"
+  ) {
+    return adminDeleteComment(request, env, path);
+  }
+
+  /* =======================================================
+     ADMIN REPORTS
+     ======================================================= */
+
+  if (
+    path === "/api/admin/reports" &&
+    request.method === "GET"
+  ) {
+    return adminReports(request, env);
+  }
+
+  if (
+    /^\/api\/admin\/reports\/[^/]+$/.test(path) &&
+    request.method === "PUT"
+  ) {
+    return adminUpdateReport(request, env, path);
+  }
+
+  /* =======================================================
+     ADMIN SETTINGS
+     ======================================================= */
+
+  if (
+    path === "/api/admin/settings" &&
+    request.method === "GET"
+  ) {
+    return adminSettings(request, env);
+  }
+
+  if (
+    path === "/api/admin/settings" &&
+    request.method === "PUT"
+  ) {
+    return adminUpdateSettings(request, env);
+  }
+
+  /* =======================================================
+     ADMIN SYSTEM
+     ======================================================= */
+
+  if (
+    path === "/api/admin/system" &&
+    request.method === "GET"
+  ) {
+    return adminSystem(request, env);
+  }
+
+  return json({
+    ok: false,
+    error: "API_ROUTE_NOT_FOUND"
+  }, 404, request);
 }
 
+/* =========================================================
+   DATABASE
+   ========================================================= */
 
-/* ============================================================
-   API ROUTER
-============================================================ */
+async function ensureDatabase(env) {
+  if (dbReady) return;
 
-async function handleApi(
-  request,
-  env,
-  ctx
-) {
-  const url = new URL(request.url);
-  const path = normalizePath(url.pathname);
-
-
-  /* ==========================================================
-     API ROOT
-  ========================================================== */
-
-  if (
-    path === "/api" ||
-    path === "/api/"
-  ) {
-    return json(
-      {
-        ok: true,
-
-        service: SITE_NAME,
-        version: VERSION,
-        api: "v1",
-
-        user_mode: "name_only",
-
-        authentication: {
-          users: false,
-          registration: false,
-          login: false,
-          password: false,
-          profile: false
-        },
-
-        admin: {
-          enabled: true,
-          login_required: false,
-          password_required: false,
-          session_required: false,
-          role: ADMIN.role,
-          permissions: ADMIN.permissions
-        },
-
-        features: {
-          publications: true,
-          moderation: true,
-          participants: true,
-          chat: true,
-          notifications: true,
-          statistics: true,
-          audit_log: true
-        }
-      },
-      200,
-      request
-    );
+  if (dbPromise) {
+    await dbPromise;
+    return;
   }
 
+  dbPromise = (async () => {
 
-  /* ==========================================================
-     ADMIN
-  ========================================================== */
+    await env.DB.batch([
 
-  if (
-    path === "/api/admin" ||
-    path.startsWith("/api/admin/")
-  ) {
-    return handleAdminApi(
-      request,
-      env,
-      ctx
-    );
-  }
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS participants (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          username TEXT NOT NULL UNIQUE,
 
+          email TEXT,
+          phone TEXT,
 
-  /* ==========================================================
-     PUBLICATIONS
-  ========================================================== */
+          avatar_url TEXT,
+          bio TEXT,
 
-  if (
-    path === "/api/publications"
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return handlePublicationsList(
-        request,
-        env
-      );
-    }
+          country TEXT,
+          city TEXT,
 
-    if (
-      request.method === "POST"
-    ) {
-      return handleCreatePublication(
-        request,
-        env
-      );
-    }
+          profession TEXT,
+          education TEXT,
+          languages TEXT,
+          skills TEXT,
 
-    return methodNotAllowed(
-      request
-    );
-  }
+          website TEXT,
+          social_links TEXT,
 
+          role TEXT DEFAULT 'participant',
+          status TEXT DEFAULT 'active',
 
-  const publicationMatch =
-    path.match(
-      /^\/api\/publications\/([^/]+)$/
-    );
+          verified INTEGER DEFAULT 0,
+          profile_visible INTEGER DEFAULT 1,
 
-  if (publicationMatch) {
-    const id =
-      decodeURIComponent(
-        publicationMatch[1]
-      );
+          followers_count INTEGER DEFAULT 0,
+          following_count INTEGER DEFAULT 0,
+          publications_count INTEGER DEFAULT 0,
 
-    if (
-      request.method === "GET"
-    ) {
-      return handlePublicationById(
-        request,
-        env,
-        id
-      );
-    }
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `),
 
-    return methodNotAllowed(
-      request
-    );
-  }
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS publications (
+          id TEXT PRIMARY KEY,
 
+          participant_id TEXT,
+          tracking_code TEXT UNIQUE,
 
-  /* ==========================================================
-     PUBLIC CHAT
-  ========================================================== */
+          title TEXT NOT NULL,
+          text TEXT NOT NULL,
 
-  if (
-    path === "/api/admin-chat" ||
-    path.startsWith("/api/admin-chat/")
-  ) {
-    return handlePublicChat(
-      request,
-      env,
-      ctx
-    );
-  }
+          category TEXT,
 
+          country TEXT,
+          city TEXT,
+          location TEXT,
+          scope TEXT,
 
-  /* ==========================================================
-     NOTIFICATIONS
-  ========================================================== */
+          event_start TEXT,
+          event_end TEXT,
+          deadline TEXT,
 
-  if (
-    path === "/api/notifications"
-  ) {
-    return handleNotifications(
-      request,
-      env
-    );
-  }
+          price REAL DEFAULT 0,
+          currency TEXT,
 
+          salary REAL DEFAULT 0,
 
-  /* ==========================================================
-     LEGACY
-  ========================================================== */
+          employment_type TEXT,
+          work_format TEXT,
 
-  if (
-    path === "/api/opportunities" ||
-    path.startsWith(
-      "/api/opportunities/"
-    )
-  ) {
-    return handleLegacyOpportunities(
-      request,
-      env
-    );
-  }
+          experience TEXT,
+          education TEXT,
+          languages TEXT,
 
+          tags TEXT,
+          links TEXT,
 
-  if (
-    path === "/api/messages" ||
-    path.startsWith(
-      "/api/messages/"
-    )
-  ) {
-    return handleLegacyMessages(
-      request,
-      env
-    );
-  }
+          status TEXT DEFAULT 'pending',
+          visibility TEXT DEFAULT 'public',
 
+          is_pinned INTEGER DEFAULT 0,
+          is_featured INTEGER DEFAULT 0,
 
-  return json(
-    {
-      ok: false,
-      error: "API_ROUTE_NOT_FOUND",
-      path
-    },
-    404,
-    request
-  );
+          views_count INTEGER DEFAULT 0,
+
+          likes_count INTEGER DEFAULT 0,
+          love_count INTEGER DEFAULT 0,
+          support_count INTEGER DEFAULT 0,
+          funny_count INTEGER DEFAULT 0,
+          wow_count INTEGER DEFAULT 0,
+          sad_count INTEGER DEFAULT 0,
+          angry_count INTEGER DEFAULT 0,
+
+          comments_count INTEGER DEFAULT 0,
+          shares_count INTEGER DEFAULT 0,
+          saves_count INTEGER DEFAULT 0,
+          reports_count INTEGER DEFAULT 0,
+
+          admin_note TEXT,
+          rejection_reason TEXT,
+
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+
+          published_at TEXT,
+          deleted_at TEXT
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS publication_media (
+          id TEXT PRIMARY KEY,
+          publication_id TEXT NOT NULL,
+
+          type TEXT NOT NULL,
+          url TEXT NOT NULL,
+          title TEXT,
+
+          sort_order INTEGER DEFAULT 0,
+
+          created_at TEXT NOT NULL
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS reactions (
+          id TEXT PRIMARY KEY,
+
+          publication_id TEXT NOT NULL,
+          participant_id TEXT NOT NULL,
+
+          reaction TEXT NOT NULL,
+
+          created_at TEXT NOT NULL,
+
+          UNIQUE(
+            publication_id,
+            participant_id
+          )
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS saves (
+          id TEXT PRIMARY KEY,
+
+          publication_id TEXT NOT NULL,
+          participant_id TEXT NOT NULL,
+
+          created_at TEXT NOT NULL,
+
+          UNIQUE(
+            publication_id,
+            participant_id
+          )
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS comments (
+          id TEXT PRIMARY KEY,
+
+          publication_id TEXT NOT NULL,
+          participant_id TEXT,
+
+          parent_id TEXT,
+
+          text TEXT NOT NULL,
+
+          status TEXT DEFAULT 'published',
+
+          likes_count INTEGER DEFAULT 0,
+
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL,
+
+          deleted_at TEXT
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS reports (
+          id TEXT PRIMARY KEY,
+
+          publication_id TEXT,
+          comment_id TEXT,
+
+          participant_id TEXT,
+
+          type TEXT,
+          reason TEXT,
+
+          status TEXT DEFAULT 'open',
+
+          admin_note TEXT,
+
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS chat_messages (
+          id TEXT PRIMARY KEY,
+
+          participant_id TEXT NOT NULL,
+
+          publication_id TEXT,
+
+          sender_type TEXT NOT NULL,
+          sender_id TEXT,
+
+          sender_name TEXT,
+
+          text TEXT NOT NULL,
+
+          is_read INTEGER DEFAULT 0,
+
+          created_at TEXT NOT NULL
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS notifications (
+          id TEXT PRIMARY KEY,
+
+          participant_id TEXT,
+
+          title TEXT NOT NULL,
+          message TEXT NOT NULL,
+
+          type TEXT,
+
+          is_read INTEGER DEFAULT 0,
+
+          created_at TEXT NOT NULL
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS audit_log (
+          id TEXT PRIMARY KEY,
+
+          admin_id TEXT,
+
+          action TEXT NOT NULL,
+
+          entity_type TEXT,
+          entity_id TEXT,
+
+          details TEXT,
+
+          created_at TEXT NOT NULL
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS admin_sessions (
+          id TEXT PRIMARY KEY,
+
+          token TEXT UNIQUE NOT NULL,
+
+          admin_username TEXT NOT NULL,
+
+          role TEXT DEFAULT 'super_admin',
+
+          expires_at TEXT NOT NULL,
+
+          created_at TEXT NOT NULL
+        )
+      `),
+
+      env.DB.prepare(`
+        CREATE TABLE IF NOT EXISTS system_settings (
+          key TEXT PRIMARY KEY,
+
+          value TEXT,
+
+          updated_at TEXT NOT NULL
+        )
+      `)
+    ]);
+
+    dbReady = true;
+  })();
+
+  await dbPromise;
 }
 
+/* =========================================================
+   ADMIN LOGIN
+   ========================================================= */
 
-/* ============================================================
-   ADMIN ACCESS
-============================================================ */
+async function adminLogin(request, env) {
+  const body = await readJSON(request);
 
-async function requireAdmin(
-  request,
-  env
-) {
-  return {
+  const username =
+    clean(body.username);
+
+  const password =
+    String(body.password || "");
+
+  if (
+    username !== ADMIN_USERNAME ||
+    !env.ADMIN_PASSWORD ||
+    !constantTimeEqual(
+      password,
+      env.ADMIN_PASSWORD
+    )
+  ) {
+    return json({
+      ok: false,
+      error: "INVALID_ADMIN_LOGIN"
+    }, 401, request);
+  }
+
+  await env.DB.prepare(`
+    DELETE FROM admin_sessions
+    WHERE expires_at <= ?
+  `).bind(now()).run();
+
+  const token =
+    crypto.randomUUID() +
+    "." +
+    crypto.randomUUID() +
+    "." +
+    crypto.randomUUID();
+
+  const expiresAt =
+    new Date(
+      Date.now() +
+      12 * 60 * 60 * 1000
+    ).toISOString();
+
+  await env.DB.prepare(`
+    INSERT INTO admin_sessions (
+      id,
+      token,
+      admin_username,
+      role,
+      expires_at,
+      created_at
+    )
+    VALUES (
+      ?, ?, ?, 'super_admin', ?, ?
+    )
+  `).bind(
+    uid("admin_session"),
+    token,
+    ADMIN_USERNAME,
+    expiresAt,
+    now()
+  ).run();
+
+  await audit(env, {
+    admin_id: ADMIN_USERNAME,
+    action: "admin_login",
+    entity_type: "system",
+    entity_id: null,
+    details: {
+      role: "super_admin"
+    }
+  });
+
+  return json({
     ok: true,
+
+    token,
+
+    expires_at:
+      expiresAt,
+
     admin: {
-      ...ADMIN
+      username:
+        ADMIN_USERNAME,
+
+      name:
+        SITE_NAME,
+
+      role:
+        "super_admin",
+
+      permissions:
+        ["*"]
     }
-  };
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN ME
+   ========================================================= */
 
-/* ============================================================
-   ADMIN ROUTER
-============================================================ */
-
-async function handleAdminApi(
-  request,
-  env,
-  ctx
-) {
-  const url = new URL(request.url);
-  const path = normalizePath(url.pathname);
-
-  const access =
+async function adminMe(request, env) {
+  const auth =
     await requireAdmin(
       request,
       env
     );
 
-  if (!access.ok) {
-    return json(
-      {
-        ok: false,
-        error: "ADMIN_ACCESS_DENIED"
-      },
-      401,
-      request
-    );
+  if (!auth.ok) {
+    return auth.response;
   }
 
+  return json({
+    ok: true,
+    admin: auth.admin
+  }, 200, request);
+}
 
-  /* ----------------------------------------------------------
-     ADMIN ROOT
-  ---------------------------------------------------------- */
+/* =========================================================
+   ADMIN LOGOUT
+   ========================================================= */
 
-  if (
-    path === "/api/admin" ||
-    path === "/api/admin/"
-  ) {
-    return json(
-      {
-        ok: true,
-        admin: access.admin,
+async function adminLogout(request, env) {
+  const token =
+    getAdminToken(request);
 
-        permissions: ["*"],
-
-        authentication: {
-          login_required: false,
-          password_required: false,
-          session_required: false
-        },
-
-        sections: [
-          "dashboard",
-          "publications",
-          "participants",
-          "users",
-          "chat",
-          "notifications",
-          "statistics",
-          "audit"
-        ]
-      },
-      200,
-      request
-    );
+  if (token) {
+    await env.DB.prepare(`
+      DELETE FROM admin_sessions
+      WHERE token = ?
+    `).bind(token).run();
   }
 
+  return json({
+    ok: true
+  }, 200, request);
+}
 
-  /* ----------------------------------------------------------
-     ME
-  ---------------------------------------------------------- */
+/* =========================================================
+   ADMIN AUTH
+   ========================================================= */
 
-  if (
-    path === "/api/admin/me"
-  ) {
-    return json(
-      {
-        ok: true,
-        authenticated: true,
-        login_required: false,
-        admin: access.admin,
-        permissions: ["*"]
-      },
-      200,
-      request
-    );
-  }
+async function requireAdmin(
+  request,
+  env
+) {
+  const token =
+    getAdminToken(request);
 
-
-  /* ----------------------------------------------------------
-     DASHBOARD
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/dashboard"
-  ) {
-    return handleAdminDashboard(
-      request,
-      env
-    );
-  }
-
-
-  /* ----------------------------------------------------------
-     STATS
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/stats"
-  ) {
-    return handleAdminStats(
-      request,
-      env
-    );
-  }
-
-
-  /* ----------------------------------------------------------
-     PUBLICATIONS
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/publications" ||
-    path.startsWith(
-      "/api/admin/publications/"
-    )
-  ) {
-    return handleAdminPublications(
-      request,
-      env,
-      ctx
-    );
-  }
-
-
-  /* ----------------------------------------------------------
-     PARTICIPANTS
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/participants" ||
-    path.startsWith(
-      "/api/admin/participants/"
-    )
-  ) {
-    return handleAdminParticipants(
-      request,
-      env,
-      ctx
-    );
-  }
-
-
-  /* ----------------------------------------------------------
-     USERS ALIAS
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/users" ||
-    path.startsWith(
-      "/api/admin/users/"
-    )
-  ) {
-    return handleAdminParticipants(
-      request,
-      env,
-      ctx
-    );
-  }
-
-
-  /* ----------------------------------------------------------
-     CHAT
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/chat" ||
-    path.startsWith(
-      "/api/admin/chat/"
-    )
-  ) {
-    return handleAdminChat(
-      request,
-      env,
-      ctx
-    );
-  }
-
-
-  /* ----------------------------------------------------------
-     NOTIFICATIONS
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/notifications" ||
-    path.startsWith(
-      "/api/admin/notifications/"
-    )
-  ) {
-    return handleAdminNotifications(
-      request,
-      env
-    );
-  }
-
-
-  /* ----------------------------------------------------------
-     AUDIT
-  ---------------------------------------------------------- */
-
-  if (
-    path === "/api/admin/audit"
-  ) {
-    return handleAdminAudit(
-      request,
-      env
-    );
-  }
-
-
-  return json(
-    {
+  if (!token) {
+    return {
       ok: false,
-      error: "ADMIN_ROUTE_NOT_FOUND",
-      path
-    },
-    404,
-    request
-  );
-}
+      response: json({
+        ok: false,
+        error: "ADMIN_AUTH_REQUIRED"
+      }, 401, request)
+    };
+  }
 
+  const session =
+    await env.DB.prepare(`
+      SELECT *
+      FROM admin_sessions
 
-/* ============================================================
-   DASHBOARD
-============================================================ */
+      WHERE token = ?
+        AND expires_at > ?
 
-async function handleAdminDashboard(
-  request,
-  env
-) {
-  const stats =
-    await collectDashboardStats(
-      env
-    );
+      LIMIT 1
+    `).bind(
+      token,
+      now()
+    ).first();
 
-  return json(
-    {
-      ok: true,
+  if (!session) {
+    return {
+      ok: false,
+      response: json({
+        ok: false,
+        error: "ADMIN_SESSION_EXPIRED"
+      }, 401, request)
+    };
+  }
 
-      admin: ADMIN,
+  return {
+    ok: true,
 
-      stats,
+    admin: {
+      username:
+        ADMIN_USERNAME,
 
-      moderation: {
-        pending_publications:
-          stats.publications.pending,
+      name:
+        SITE_NAME,
 
-        pending_participants:
-          stats.participants.total
-      }
-    },
-    200,
-    request
-  );
-}
+      role:
+        "super_admin",
 
-
-/* ============================================================
-   STATISTICS
-============================================================ */
-
-async function handleAdminStats(
-  request,
-  env
-) {
-  const stats =
-    await collectDashboardStats(
-      env
-    );
-
-  return json(
-    {
-      ok: true,
-      stats
-    },
-    200,
-    request
-  );
-}
-
-
-/* ============================================================
-   DASHBOARD STATISTICS
-============================================================ */
-
-async function collectDashboardStats(
-  env
-) {
-  const stats = {
-    publications: {
-      total: 0,
-      pending: 0,
-      published: 0,
-      rejected: 0,
-      draft: 0,
-      archived: 0
-    },
-
-    participants: {
-      total: 0,
-      active: 0,
-      banned: 0
-    },
-
-    chat: {
-      total: 0,
-      conversations: 0,
-      unread: 0
-    },
-
-    notifications: {
-      total: 0,
-      unread: 0
-    },
-
-    engagement: {
-      views: 0,
-      likes: 0,
-      comments: 0,
-      saves: 0,
-      shares: 0
+      permissions:
+        ["*"]
     }
   };
-
-
-  if (!env.DB) {
-    return stats;
-  }
-
-
-  /* PUBLICATIONS */
-
-  try {
-    const row =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM publications
-          `
-        )
-        .first();
-
-    stats.publications.total =
-      Number(row?.count || 0);
-  } catch {}
-
-
-  for (
-    const status
-    of PUBLICATION_STATUSES
-  ) {
-    try {
-      const row =
-        await env.DB
-          .prepare(
-            `
-            SELECT COUNT(*) AS count
-            FROM publications
-            WHERE status = ?
-            `
-          )
-          .bind(status)
-          .first();
-
-      stats.publications[status] =
-        Number(row?.count || 0);
-    } catch {}
-  }
-
-
-  /* ENGAGEMENT */
-
-  try {
-    const row =
-      await env.DB
-        .prepare(
-          `
-          SELECT
-            COALESCE(SUM(views), 0) AS views,
-            COALESCE(SUM(likes), 0) AS likes,
-            COALESCE(SUM(comments), 0) AS comments,
-            COALESCE(SUM(saves), 0) AS saves,
-            COALESCE(SUM(shares), 0) AS shares
-          FROM publications
-          `
-        )
-        .first();
-
-    stats.engagement = {
-      views: Number(row?.views || 0),
-      likes: Number(row?.likes || 0),
-      comments: Number(row?.comments || 0),
-      saves: Number(row?.saves || 0),
-      shares: Number(row?.shares || 0)
-    };
-  } catch {}
-
-
-  /* PARTICIPANTS */
-
-  try {
-    await ensureParticipantsTable(
-      env
-    );
-
-    const row =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM participants
-          `
-        )
-        .first();
-
-    stats.participants.total =
-      Number(row?.count || 0);
-
-    const active =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM participants
-          WHERE is_banned = 0
-          `
-        )
-        .first();
-
-    stats.participants.active =
-      Number(active?.count || 0);
-
-    const banned =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM participants
-          WHERE is_banned = 1
-          `
-        )
-        .first();
-
-    stats.participants.banned =
-      Number(banned?.count || 0);
-  } catch {}
-
-
-  /* CHAT */
-
-  try {
-    await ensureAdminChatTable(
-      env
-    );
-
-    const row =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM admin_chat
-          `
-        )
-        .first();
-
-    stats.chat.total =
-      Number(row?.count || 0);
-
-    const conversations =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(
-            DISTINCT conversation_id
-          ) AS count
-          FROM admin_chat
-          `
-        )
-        .first();
-
-    stats.chat.conversations =
-      Number(
-        conversations?.count || 0
-      );
-
-    const unread =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM admin_chat
-          WHERE sender_type = 'user'
-          AND (
-            read_at IS NULL
-            OR read_at = ''
-          )
-          `
-        )
-        .first();
-
-    stats.chat.unread =
-      Number(
-        unread?.count || 0
-      );
-  } catch {}
-
-
-  /* NOTIFICATIONS */
-
-  try {
-    await ensureNotificationsTable(
-      env
-    );
-
-    const total =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM notifications
-          `
-        )
-        .first();
-
-    stats.notifications.total =
-      Number(total?.count || 0);
-
-    const unread =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM notifications
-          WHERE is_read = 0
-          `
-        )
-        .first();
-
-    stats.notifications.unread =
-      Number(
-        unread?.count || 0
-      );
-  } catch {}
-
-
-  return stats;
 }
 
+/* =========================================================
+   PUBLICATIONS
+   ========================================================= */
 
-/* ============================================================
-   PUBLICATION LIST
-============================================================ */
-
-async function handlePublicationsList(
+async function getPublications(
   request,
   env
 ) {
-  if (!env.DB) {
-    return json(
-      {
-        ok: false,
-        error: "DATABASE_NOT_CONFIGURED"
-      },
-      500,
-      request
-    );
-  }
-
   const url =
     new URL(request.url);
 
-  const status =
-    url.searchParams.get(
-      "status"
-    ) || "published";
+  const q =
+    clean(
+      url.searchParams.get("q")
+    );
 
   const category =
-    url.searchParams.get(
-      "category"
+    clean(
+      url.searchParams.get("category")
+    );
+
+  const country =
+    clean(
+      url.searchParams.get("country")
     );
 
   const city =
-    url.searchParams.get(
-      "city"
+    clean(
+      url.searchParams.get("city")
     );
 
-  const search =
-    url.searchParams.get(
-      "search"
-    ) ||
-    url.searchParams.get(
-      "q"
-    );
+  const where = [
+    "p.status = 'published'",
+    "p.visibility = 'public'",
+    "p.deleted_at IS NULL"
+  ];
 
-  const page =
-    Math.max(
-      1,
-      Number(
-        url.searchParams.get(
-          "page"
-        ) || 1
+  const args = [];
+
+  if (q) {
+    const s = `%${q}%`;
+
+    where.push(`
+      (
+        p.title LIKE ?
+        OR p.text LIKE ?
+        OR p.tags LIKE ?
       )
-    );
+    `);
 
-  const limit =
-    Math.min(
-      100,
-      Math.max(
-        1,
-        Number(
-          url.searchParams.get(
-            "limit"
-          ) || 20
-        )
-      )
-    );
-
-  const offset =
-    (page - 1) * limit;
-
-  const conditions = [];
-  const bindings = [];
-
-  if (
-    status !== "all"
-  ) {
-    conditions.push(
-      "status = ?"
-    );
-
-    bindings.push(
-      status
+    args.push(
+      s,
+      s,
+      s
     );
   }
 
   if (category) {
-    conditions.push(
-      "category = ?"
+    where.push(
+      "p.category = ?"
     );
 
-    bindings.push(
-      category
+    args.push(category);
+  }
+
+  if (country) {
+    where.push(
+      "p.country = ?"
     );
+
+    args.push(country);
   }
 
   if (city) {
-    conditions.push(
-      "city = ?"
+    where.push(
+      "p.city = ?"
     );
 
-    bindings.push(
-      city
-    );
+    args.push(city);
   }
 
-  if (search) {
-    conditions.push(
-      `
-      (
-        title LIKE ?
-        OR text LIKE ?
-        OR category LIKE ?
-        OR city LIKE ?
-        OR contact_name LIKE ?
-      )
-      `
-    );
+  const result =
+    await env.DB.prepare(`
+      SELECT
 
-    const q =
-      `%${search}%`;
+        p.*,
 
-    bindings.push(
-      q,
-      q,
-      q,
-      q,
-      q
-    );
-  }
+        u.name AS author_name,
+        u.username AS author_username,
+        u.avatar_url AS author_avatar,
+        u.verified AS author_verified
 
-  const where =
-    conditions.length
-      ? `WHERE ${conditions.join(
-          " AND "
-        )}`
-      : "";
+      FROM publications p
 
-  try {
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-          FROM publications
-          ${where}
-          ORDER BY
-            pinned DESC,
-            featured DESC,
-            COALESCE(
-              published_at,
-              created_at
-            ) DESC
-          LIMIT ? OFFSET ?
-          `
-        )
-        .bind(
-          ...bindings,
-          limit,
-          offset
-        )
-        .all();
+      LEFT JOIN participants u
+        ON u.id = p.participant_id
 
-    const count =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-          FROM publications
-          ${where}
-          `
-        )
-        .bind(
-          ...bindings
-        )
-        .first();
+      WHERE ${where.join(" AND ")}
 
-    return json(
-      {
-        ok: true,
-        data:
-          result.results || [],
+      ORDER BY
+        p.is_pinned DESC,
+        p.is_featured DESC,
+        p.published_at DESC,
+        p.created_at DESC
 
-        pagination: {
-          page,
-          limit,
-          total:
-            Number(
-              count?.count || 0
-            ),
-          pages:
-            Math.ceil(
-              Number(
-                count?.count || 0
-              ) / limit
-            )
-        }
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATIONS_QUERY_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
+      LIMIT 100
+    `).bind(...args).all();
+
+  return json({
+    ok: true,
+
+    publications:
+      result.results || []
+  }, 200, request);
 }
 
-
-/* ============================================================
-   GET PUBLICATION
-============================================================ */
-
-async function handlePublicationById(
-  request,
-  env,
-  id
-) {
-  if (!env.DB) {
-    return json(
-      {
-        ok: false,
-        error: "DATABASE_NOT_CONFIGURED"
-      },
-      500,
-      request
-    );
-  }
-
-  try {
-    const publication =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-          FROM publications
-          WHERE id = ?
-          LIMIT 1
-          `
-        )
-        .bind(id)
-        .first();
-
-    if (!publication) {
-      return json(
-        {
-          ok: false,
-          error:
-            "PUBLICATION_NOT_FOUND"
-        },
-        404,
-        request
-      );
-    }
-
-
-    /* Increase views only for public
-       published content */
-
-    if (
-      publication.status ===
-      "published"
-    ) {
-      try {
-        await env.DB
-          .prepare(
-            `
-            UPDATE publications
-            SET views =
-              COALESCE(
-                views,
-                0
-              ) + 1
-            WHERE id = ?
-            `
-          )
-          .bind(id)
-          .run();
-
-        publication.views =
-          Number(
-            publication.views || 0
-          ) + 1;
-      } catch {}
-    }
-
-
-    let media = [];
-
-    try {
-      const result =
-        await env.DB
-          .prepare(
-            `
-            SELECT *
-            FROM publication_media
-            WHERE publication_id = ?
-            ORDER BY id ASC
-            `
-          )
-          .bind(id)
-          .all();
-
-      media =
-        result.results || [];
-    } catch {}
-
-
-    let participant = null;
-
-    if (
-      publication.user_id
-    ) {
-      participant =
-        await getParticipant(
-          env,
-          publication.user_id
-        );
-    }
-
-
-    return json(
-      {
-        ok: true,
-        publication,
-        media,
-        participant
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_QUERY_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
+/* =========================================================
    CREATE PUBLICATION
-============================================================ */
+   ========================================================= */
 
-async function handleCreatePublication(
+async function createPublication(
   request,
   env
 ) {
-  if (!env.DB) {
-    return json(
-      {
-        ok: false,
-        error:
-          "DATABASE_NOT_CONFIGURED"
-      },
-      500,
-      request
-    );
+  const body =
+    await readJSON(request);
+
+  const title =
+    clean(body.title);
+
+  const text =
+    clean(body.text);
+
+  if (!title || !text) {
+    return json({
+      ok: false,
+      error: "TITLE_AND_TEXT_REQUIRED"
+    }, 400, request);
   }
-
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error: "INVALID_JSON"
-      },
-      400,
-      request
-    );
-  }
-
-
-  const now =
-    new Date().toISOString();
-
-  const id =
-    cleanString(body.id) ||
-    crypto.randomUUID();
-
-  const trackingCode =
-    cleanString(
-      body.tracking_code
-    ) ||
-    createTrackingCode();
-
 
   /*
-    IMPORTANT:
-    Public user can never force
-    "published".
+   * НЕТ РЕГИСТРАЦИИ.
+   *
+   * Браузер может передать технический
+   * anonymous participant ID.
+   *
+   * Если его нет — создаём автоматически.
+   */
 
-    Every new publication starts
-    as pending unless it is an
-    internal/admin request.
-  */
+  let participantId =
+    getParticipantId(request);
 
-  const status =
-    "pending";
+  let participant = null;
 
+  if (participantId) {
+    participant =
+      await env.DB.prepare(`
+        SELECT *
+        FROM participants
+        WHERE id = ?
+        LIMIT 1
+      `).bind(
+        participantId
+      ).first();
+  }
 
-  const userId =
-    cleanString(
-      body.user_id
-    ) ||
-    crypto.randomUUID();
+  if (!participant) {
 
+    participantId =
+      uid("participant");
 
-  const participant =
-    await upsertParticipant(
-      env,
-      {
-        id: userId,
+    let username =
+      clean(body.username);
 
-        name:
-          cleanString(
-            body.contact_name ||
-            body.name ||
-            body.user_name
-          ) ||
-          "Пользователь",
+    if (!username) {
+      username =
+        "user_" +
+        crypto.randomUUID()
+          .replaceAll("-", "")
+          .slice(0, 10);
+    }
 
-        username:
-          cleanString(
-            body.username
-          ),
+    username =
+      username.replace(/^@/, "");
 
-        email:
-          cleanString(
-            body.contact_email ||
-            body.email
-          ),
+    let exists =
+      await env.DB.prepare(`
+        SELECT id
+        FROM participants
+        WHERE username = ?
+        LIMIT 1
+      `).bind(username).first();
 
-        phone:
-          cleanString(
-            body.contact_phone ||
-            body.phone
-          ),
+    if (exists) {
+      username +=
+        "_" +
+        Date.now()
+          .toString()
+          .slice(-6);
+    }
 
-        telegram:
-          cleanString(
-            body.contact_telegram ||
-            body.telegram
-          ),
+    await env.DB.prepare(`
+      INSERT INTO participants (
+        id,
+        name,
+        username,
+        email,
+        phone,
+        created_at,
+        updated_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).bind(
+      participantId,
 
-        city:
-          cleanString(
-            body.city
-          ),
+      clean(body.name) ||
+        "Участник",
 
-        country:
-          cleanString(
-            body.country
-          )
+      username,
+
+      clean(body.email) ||
+        null,
+
+      clean(body.phone) ||
+        null,
+
+      now(),
+      now()
+    ).run();
+  }
+
+  const publicationId =
+    uid("publication");
+
+  const trackingCode =
+    "TO-" +
+    Date.now()
+      .toString(36)
+      .toUpperCase() +
+    "-" +
+    crypto.randomUUID()
+      .replaceAll("-", "")
+      .slice(0, 7)
+      .toUpperCase();
+
+  await env.DB.prepare(`
+    INSERT INTO publications (
+      id,
+      participant_id,
+      tracking_code,
+
+      title,
+      text,
+
+      category,
+
+      country,
+      city,
+      location,
+      scope,
+
+      event_start,
+      event_end,
+      deadline,
+
+      price,
+      currency,
+      salary,
+
+      employment_type,
+      work_format,
+
+      experience,
+      education,
+      languages,
+
+      tags,
+      links,
+
+      status,
+      visibility,
+
+      created_at,
+      updated_at
+    )
+
+    VALUES (
+      ?, ?, ?,
+      ?, ?,
+      ?,
+      ?, ?, ?, ?,
+      ?, ?, ?,
+      ?, ?, ?,
+      ?, ?,
+      ?, ?, ?,
+      ?, ?,
+      'pending',
+      'public',
+      ?, ?
+    )
+  `).bind(
+    publicationId,
+    participantId,
+    trackingCode,
+
+    title,
+    text,
+
+    clean(body.category) ||
+      "Другое",
+
+    clean(body.country) ||
+      null,
+
+    clean(body.city) ||
+      null,
+
+    clean(body.location) ||
+      null,
+
+    clean(body.scope) ||
+      null,
+
+    clean(body.event_start) ||
+      null,
+
+    clean(body.event_end) ||
+      null,
+
+    clean(body.deadline) ||
+      null,
+
+    Number(body.price || 0),
+
+    clean(body.currency) ||
+      null,
+
+    Number(body.salary || 0),
+
+    clean(body.employment_type) ||
+      null,
+
+    clean(body.work_format) ||
+      null,
+
+    clean(body.experience) ||
+      null,
+
+    clean(body.education) ||
+      null,
+
+    clean(body.languages) ||
+      null,
+
+    clean(body.tags) ||
+      null,
+
+    clean(body.links) ||
+      null,
+
+    now(),
+    now()
+  ).run();
+
+  /* MEDIA */
+
+  if (Array.isArray(body.media)) {
+
+    for (
+      let i = 0;
+      i < body.media.length;
+      i++
+    ) {
+      const media =
+        body.media[i];
+
+      const mediaUrl =
+        typeof media === "string"
+          ? clean(media)
+          : clean(media?.url);
+
+      if (!mediaUrl) {
+        continue;
       }
-    );
 
+      const mediaType =
+        typeof media === "object"
+          ? clean(media.type)
+          : detectMediaType(mediaUrl);
 
-  const fields = {
-    id,
+      await env.DB.prepare(`
+        INSERT INTO publication_media (
+          id,
+          publication_id,
+          type,
+          url,
+          title,
+          sort_order,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).bind(
+        uid("media"),
+        publicationId,
+        MEDIA_TYPES.includes(mediaType)
+          ? mediaType
+          : "other",
+        mediaUrl,
+        typeof media === "object"
+          ? clean(media.title) || null
+          : null,
+        i,
+        now()
+      ).run();
+    }
+  }
 
-    user_id:
-      participant.id,
+  await audit(env, {
+    action:
+      "publication_created",
 
-    title:
-      cleanString(
-        body.title
-      ),
+    entity_type:
+      "publication",
 
-    text:
-      cleanString(
-        body.text
-      ),
+    entity_id:
+      publicationId,
 
-    category:
-      cleanString(
-        body.category
-      ),
+    details: {
+      participant_id:
+        participantId,
 
-    city:
-      cleanString(
-        body.city
-      ),
+      tracking_code:
+        trackingCode,
 
-    country:
-      cleanString(
-        body.country
-      ),
+      status:
+        "pending"
+    }
+  });
 
-    hashtags:
-      cleanString(
-        body.hashtags
-      ),
+  await notify(
+    env,
+    participantId,
 
-    media:
-      cleanString(
-        body.media
-      ),
+    "Публикация отправлена",
 
-    status,
+    "Ваша публикация отправлена на проверку администрации.",
 
-    views: 0,
-    likes: 0,
-    comments: 0,
-    saves: 0,
-    shares: 0,
+    "publication_pending"
+  );
 
-    love: 0,
-    support: 0,
-    funny: 0,
-    wow: 0,
-    sad: 0,
-    angry: 0,
+  return json({
+    ok: true,
 
-    price:
-      cleanString(
-        body.price
-      ),
+    publication_id:
+      publicationId,
 
-    pinned: 0,
-    featured: 0,
-
-    created_at:
-      body.created_at ||
-      now,
-
-    updated_at:
-      now,
+    participant_id:
+      participantId,
 
     tracking_code:
       trackingCode,
 
-    subcategory:
-      cleanString(
-        body.subcategory
-      ),
+    status:
+      "pending",
 
-    location:
-      cleanString(
-        body.location
-      ),
-
-    scope:
-      cleanString(
-        body.scope
-      ),
-
-    event_start:
-      cleanString(
-        body.event_start
-      ),
-
-    event_end:
-      cleanString(
-        body.event_end
-      ),
-
-    deadline:
-      cleanString(
-        body.deadline
-      ),
-
-    currency:
-      cleanString(
-        body.currency
-      ),
-
-    employment_type:
-      cleanString(
-        body.employment_type
-      ),
-
-    experience:
-      cleanString(
-        body.experience
-      ),
-
-    published_at:
-      null,
-
-    rejection_reason:
-      null,
-
-    translate_all:
-      body.translate_all
-        ? 1
-        : 0,
-
-    language:
-      cleanString(
-        body.language
-      ) || "ru",
-
-    contact_telegram:
-      cleanString(
-        body.contact_telegram
-      ),
-
-    contact_email:
-      cleanString(
-        body.contact_email
-      ),
-
-    contact_phone:
-      cleanString(
-        body.contact_phone
-      ),
-
-    contact_name:
-      cleanString(
-        body.contact_name ||
-        body.name ||
-        body.user_name
-      ),
-
-    education:
-      cleanString(
-        body.education
-      ),
-
-    work_format:
-      cleanString(
-        body.work_format
-      ),
-
-    external_url:
-      cleanString(
-        body.external_url
-      ),
-
-    languages:
-      cleanString(
-        body.languages
-      )
-  };
-
-
-  try {
-    const columns =
-      Object.keys(fields);
-
-    const placeholders =
-      columns
-        .map(() => "?")
-        .join(", ");
-
-    const values =
-      columns.map(
-        column =>
-          fields[column]
-      );
-
-    await env.DB
-      .prepare(
-        `
-        INSERT INTO publications
-        (
-          ${columns.join(", ")}
-        )
-        VALUES
-        (
-          ${placeholders}
-        )
-        `
-      )
-      .bind(...values)
-      .run();
-
-
-    await writeAuditLog(
-      env,
-      "publication_submitted",
-      id,
-      {
-        publication_id: id,
-        participant_id:
-          participant.id,
-        title:
-          fields.title,
-        status: "pending"
-      }
-    );
-
-
-    return json(
-      {
-        ok: true,
-
-        message:
-          "Публикация отправлена на проверку.",
-
-        publication: fields,
-
-        participant,
-
-        moderation: {
-          status: "pending",
-          requires_approval: true
-        },
-
-        tracking_code:
-          trackingCode
-      },
-      201,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_CREATE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
+    message:
+      "Публикация отправлена на модерацию."
+  }, 201, request);
 }
 
+/* =========================================================
+   PUBLIC SINGLE
+   ========================================================= */
 
-/* ============================================================
-   ADMIN PUBLICATIONS
-============================================================ */
-
-async function handleAdminPublications(
+async function getPublicPublication(
   request,
   env,
-  ctx
+  path
 ) {
-  const url =
-    new URL(request.url);
-
-  const path =
-    normalizePath(
-      url.pathname
-    );
-
-
-  /* ----------------------------------------------------------
-     LIST
-  ---------------------------------------------------------- */
-
-  if (
-    path ===
-    "/api/admin/publications"
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return handleAdminPublicationList(
-        request,
-        env
-      );
-    }
-
-    if (
-      request.method === "POST"
-    ) {
-      return handleCreatePublication(
-        request,
-        env
-      );
-    }
-
-    return methodNotAllowed(
-      request
-    );
-  }
-
-
-  const match =
-    path.match(
-      /^\/api\/admin\/publications\/([^/]+)(?:\/([^/]+))?$/
-    );
-
-
-  if (!match) {
-    return json(
-      {
-        ok: false,
-        error:
-          "INVALID_PUBLICATION_ROUTE"
-      },
-      400,
-      request
-    );
-  }
-
-
   const id =
     decodeURIComponent(
-      match[1]
+      path.split("/").pop()
     );
 
-  const action =
-    match[2]
-      ? decodeURIComponent(
-          match[2]
-        )
-      : null;
+  const publication =
+    await env.DB.prepare(`
+      SELECT
 
+        p.*,
 
-  if (action) {
-    return handlePublicationAction(
-      request,
-      env,
-      id,
-      action
-    );
-  }
+        u.name AS author_name,
+        u.username AS author_username,
+        u.avatar_url AS author_avatar,
+        u.bio AS author_bio,
+        u.verified AS author_verified
 
+      FROM publications p
 
-  if (
-    request.method === "GET"
-  ) {
-    return handlePublicationById(
-      request,
-      env,
-      id
-    );
-  }
+      LEFT JOIN participants u
+        ON u.id = p.participant_id
 
+      WHERE p.id = ?
+        AND p.status = 'published'
+        AND p.visibility = 'public'
+        AND p.deleted_at IS NULL
 
-  if (
-    request.method === "PUT" ||
-    request.method === "PATCH"
-  ) {
-    return handleAdminPublicationUpdate(
-      request,
-      env,
-      id
-    );
-  }
+      LIMIT 1
+    `).bind(id).first();
 
-
-  if (
-    request.method === "DELETE"
-  ) {
-    return handleAdminPublicationDelete(
-      request,
-      env,
-      id
-    );
-  }
-
-
-  return methodNotAllowed(
-    request
-  );
-}
-
-
-/* ============================================================
-   ADMIN PUBLICATION LIST
-   Includes participant information
-============================================================ */
-
-async function handleAdminPublicationList(
-  request,
-  env
-) {
-  if (!env.DB) {
-    return json(
-      {
-        ok: false,
-        error:
-          "DATABASE_NOT_CONFIGURED"
-      },
-      500,
-      request
-    );
-  }
-
-
-  const url =
-    new URL(request.url);
-
-
-  /*
-    Default = ALL.
-    This is important for admin.
-  */
-
-  const status =
-    url.searchParams.get(
-      "status"
-    ) || "all";
-
-
-  const search =
-    url.searchParams.get(
-      "search"
-    ) ||
-    url.searchParams.get(
-      "q"
-    );
-
-
-  const category =
-    url.searchParams.get(
-      "category"
-    );
-
-
-  const city =
-    url.searchParams.get(
-      "city"
-    );
-
-
-  const page =
-    Math.max(
-      1,
-      Number(
-        url.searchParams.get(
-          "page"
-        ) || 1
-      )
-    );
-
-
-  const limit =
-    Math.min(
-      200,
-      Math.max(
-        1,
-        Number(
-          url.searchParams.get(
-            "limit"
-          ) || 50
-        )
-      )
-    );
-
-
-  const offset =
-    (page - 1) * limit;
-
-
-  const conditions = [];
-  const bindings = [];
-
-
-  if (
-    status !== "all" &&
-    PUBLICATION_STATUSES.includes(
-      status
-    )
-  ) {
-    conditions.push(
-      "p.status = ?"
-    );
-
-    bindings.push(
-      status
-    );
-  }
-
-
-  if (category) {
-    conditions.push(
-      "p.category = ?"
-    );
-
-    bindings.push(
-      category
-    );
-  }
-
-
-  if (city) {
-    conditions.push(
-      "p.city = ?"
-    );
-
-    bindings.push(
-      city
-    );
-  }
-
-
-  if (search) {
-    conditions.push(
-      `
-      (
-        p.title LIKE ?
-        OR p.text LIKE ?
-        OR p.category LIKE ?
-        OR p.city LIKE ?
-        OR p.contact_name LIKE ?
-        OR p.contact_email LIKE ?
-        OR p.contact_phone LIKE ?
-        OR p.tracking_code LIKE ?
-        OR pt.name LIKE ?
-        OR pt.email LIKE ?
-        OR pt.phone LIKE ?
-      )
-      `
-    );
-
-
-    const q =
-      `%${search}%`;
-
-
-    for (
-      let i = 0;
-      i < 11;
-      i++
-    ) {
-      bindings.push(q);
-    }
-  }
-
-
-  const where =
-    conditions.length
-      ? `WHERE ${conditions.join(
-          " AND "
-        )}`
-      : "";
-
-
-  try {
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT
-            p.*,
-
-            pt.id AS participant_id,
-            pt.name AS participant_name,
-            pt.username AS participant_username,
-            pt.email AS participant_email,
-            pt.phone AS participant_phone,
-            pt.telegram AS participant_telegram,
-            pt.city AS participant_city,
-            pt.country AS participant_country,
-            pt.is_banned AS participant_is_banned,
-            pt.is_active AS participant_is_active,
-            pt.created_at AS participant_created_at
-
-          FROM publications p
-
-          LEFT JOIN participants pt
-            ON pt.id = p.user_id
-
-          ${where}
-
-          ORDER BY
-            CASE
-              WHEN p.status = 'pending'
-              THEN 0
-              WHEN p.status = 'published'
-              THEN 1
-              ELSE 2
-            END,
-
-            p.pinned DESC,
-            p.featured DESC,
-            p.created_at DESC
-
-          LIMIT ? OFFSET ?
-          `
-        )
-        .bind(
-          ...bindings,
-          limit,
-          offset
-        )
-        .all();
-
-
-    const count =
-      await env.DB
-        .prepare(
-          `
-          SELECT COUNT(*) AS count
-
-          FROM publications p
-
-          LEFT JOIN participants pt
-            ON pt.id = p.user_id
-
-          ${where}
-          `
-        )
-        .bind(
-          ...bindings
-        )
-        .first();
-
-
-    const rows =
-      result.results || [];
-
-
-    return json(
-      {
-        ok: true,
-
-        data: rows,
-
-        publications: rows,
-
-        pending:
-          rows.filter(
-            item =>
-              item.status ===
-              "pending"
-          ),
-
-        pagination: {
-          page,
-          limit,
-          total:
-            Number(
-              count?.count || 0
-            ),
-          pages:
-            Math.ceil(
-              Number(
-                count?.count || 0
-              ) / limit
-            )
-        }
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "ADMIN_PUBLICATIONS_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   PUBLICATION ACTIONS
-============================================================ */
-
-async function handlePublicationAction(
-  request,
-  env,
-  id,
-  action
-) {
-  const now =
-    new Date().toISOString();
-
-
-  /* APPROVE */
-
-  if (
-    action === "approve" ||
-    action === "publish"
-  ) {
-    try {
-      await env.DB
-        .prepare(
-          `
-          UPDATE publications
-
-          SET
-            status = 'published',
-            published_at = ?,
-            rejection_reason = NULL,
-            updated_at = ?
-
-          WHERE id = ?
-          `
-        )
-        .bind(
-          now,
-          now,
-          id
-        )
-        .run();
-
-
-      await writeAuditLog(
-        env,
-        "publication_approved",
-        id,
-        {
-          status:
-            "published"
-        }
-      );
-
-
-      return json(
-        {
-          ok: true,
-          id,
-          status:
-            "published",
-          message:
-            "Публикация подтверждена и опубликована."
-        },
-        200,
-        request
-      );
-    } catch (error) {
-      return json(
-        {
-          ok: false,
-          error:
-            "PUBLICATION_APPROVE_FAILED",
-          message:
-            error.message
-        },
-        500,
-        request
-      );
-    }
-  }
-
-
-  /* REJECT */
-
-  if (
-    action === "reject"
-  ) {
-    let body = {};
-
-    try {
-      body =
-        await request.json();
-    } catch {}
-
-
-    const reason =
-      cleanString(
-        body.reason ||
-        body.rejection_reason
-      );
-
-
-    try {
-      await env.DB
-        .prepare(
-          `
-          UPDATE publications
-
-          SET
-            status = 'rejected',
-            rejection_reason = ?,
-            updated_at = ?
-
-          WHERE id = ?
-          `
-        )
-        .bind(
-          reason,
-          now,
-          id
-        )
-        .run();
-
-
-      await writeAuditLog(
-        env,
-        "publication_rejected",
-        id,
-        {
-          reason
-        }
-      );
-
-
-      return json(
-        {
-          ok: true,
-          id,
-          status:
-            "rejected",
-          rejection_reason:
-            reason
-        },
-        200,
-        request
-      );
-    } catch (error) {
-      return json(
-        {
-          ok: false,
-          error:
-            "PUBLICATION_REJECT_FAILED",
-          message:
-            error.message
-        },
-        500,
-        request
-      );
-    }
-  }
-
-
-  /* PIN */
-
-  if (
-    action === "pin" ||
-    action === "unpin"
-  ) {
-    return updatePublicationFlag(
-      request,
-      env,
-      id,
-      "pinned",
-      action === "pin"
-        ? 1
-        : 0
-    );
-  }
-
-
-  /* FEATURE */
-
-  if (
-    action === "feature" ||
-    action === "unfeature"
-  ) {
-    return updatePublicationFlag(
-      request,
-      env,
-      id,
-      "featured",
-      action === "feature"
-        ? 1
-        : 0
-    );
-  }
-
-
-  /* ARCHIVE */
-
-  if (
-    action === "archive"
-  ) {
-    return updatePublicationStatus(
-      request,
-      env,
-      id,
-      "archived"
-    );
-  }
-
-
-  /* DRAFT */
-
-  if (
-    action === "draft"
-  ) {
-    return updatePublicationStatus(
-      request,
-      env,
-      id,
-      "draft"
-    );
-  }
-
-
-  return json(
-    {
+  if (!publication) {
+    return json({
       ok: false,
-      error:
-        "UNKNOWN_PUBLICATION_ACTION"
-    },
-    400,
-    request
-  );
-}
-
-
-/* ============================================================
-   PUBLICATION STATUS
-============================================================ */
-
-async function updatePublicationStatus(
-  request,
-  env,
-  id,
-  status
-) {
-  try {
-    await env.DB
-      .prepare(
-        `
-        UPDATE publications
-        SET
-          status = ?,
-          updated_at = ?
-        WHERE id = ?
-        `
-      )
-      .bind(
-        status,
-        new Date().toISOString(),
-        id
-      )
-      .run();
-
-
-    await writeAuditLog(
-      env,
-      "publication_status_changed",
-      id,
-      {
-        status
-      }
-    );
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        status
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_STATUS_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
+      error: "PUBLICATION_NOT_FOUND"
+    }, 404, request);
   }
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      views_count =
+        views_count + 1,
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    now(),
+    id
+  ).run();
+
+  const media =
+    await env.DB.prepare(`
+      SELECT *
+      FROM publication_media
+
+      WHERE publication_id = ?
+
+      ORDER BY
+        sort_order ASC
+    `).bind(id).all();
+
+  return json({
+    ok: true,
+
+    publication: {
+      ...publication,
+
+      views_count:
+        Number(
+          publication.views_count || 0
+        ) + 1,
+
+      media:
+        media.results || []
+    }
+  }, 200, request);
 }
 
+/* =========================================================
+   REACTION
+   ========================================================= */
 
-/* ============================================================
-   PUBLICATION FLAG
-============================================================ */
-
-async function updatePublicationFlag(
+async function reactPublication(
   request,
   env,
-  id,
-  field,
-  value
+  path
 ) {
+  const publicationId =
+    decodeURIComponent(
+      path.split("/")[3]
+    );
+
+  const participantId =
+    getParticipantId(request);
+
+  const body =
+    await readJSON(request);
+
+  const reaction =
+    clean(body.reaction) ||
+    "like";
+
   if (
-    field !== "pinned" &&
-    field !== "featured"
+    !REACTIONS.includes(reaction)
   ) {
-    return json(
-      {
-        ok: false,
-        error:
-          "INVALID_FLAG"
-      },
-      400,
-      request
-    );
+    return json({
+      ok: false,
+      error: "INVALID_REACTION"
+    }, 400, request);
   }
 
+  const publication =
+    await env.DB.prepare(`
+      SELECT id
+      FROM publications
 
-  try {
-    await env.DB
-      .prepare(
-        `
-        UPDATE publications
+      WHERE id = ?
+        AND status = 'published'
+        AND deleted_at IS NULL
 
-        SET
-          ${field} = ?,
-          updated_at = ?
+      LIMIT 1
+    `).bind(
+      publicationId
+    ).first();
 
-        WHERE id = ?
-        `
-      )
-      .bind(
-        value,
-        new Date().toISOString(),
-        id
-      )
-      .run();
-
-
-    await writeAuditLog(
-      env,
-      `publication_${field}`,
-      id,
-      {
-        value
-      }
-    );
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        [field]: value
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_FLAG_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   UPDATE PUBLICATION
-   ADMIN CAN CHANGE EVERYTHING
-============================================================ */
-
-async function handleAdminPublicationUpdate(
-  request,
-  env,
-  id
-) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error: "INVALID_JSON"
-      },
-      400,
-      request
-    );
+  if (!publication) {
+    return json({
+      ok: false,
+      error: "PUBLICATION_NOT_FOUND"
+    }, 404, request);
   }
 
+  const existing =
+    await env.DB.prepare(`
+      SELECT *
+      FROM reactions
 
-  const allowed = [
-    "title",
-    "text",
-    "category",
-    "city",
-    "country",
-    "hashtags",
-    "media",
-    "status",
-    "price",
-    "pinned",
-    "featured",
-    "subcategory",
-    "location",
-    "scope",
-    "event_start",
-    "event_end",
-    "deadline",
-    "currency",
-    "employment_type",
-    "experience",
-    "rejection_reason",
-    "translate_all",
-    "language",
-    "contact_telegram",
-    "contact_email",
-    "contact_phone",
-    "contact_name",
-    "education",
-    "work_format",
-    "external_url",
-    "languages"
-  ];
+      WHERE publication_id = ?
+        AND participant_id = ?
 
+      LIMIT 1
+    `).bind(
+      publicationId,
+      participantId
+    ).first();
 
-  const updates = [];
-  const values = [];
+  if (existing) {
 
-
-  for (
-    const field
-    of allowed
-  ) {
     if (
-      Object.prototype.hasOwnProperty.call(
-        body,
-        field
-      )
+      existing.reaction === reaction
     ) {
-      updates.push(
-        `${field} = ?`
+
+      await env.DB.prepare(`
+        DELETE FROM reactions
+        WHERE id = ?
+      `).bind(
+        existing.id
+      ).run();
+
+      await reactionCounter(
+        env,
+        publicationId,
+        reaction,
+        -1
       );
 
-
-      if (
-        field === "pinned" ||
-        field === "featured" ||
-        field === "translate_all"
-      ) {
-        values.push(
-          body[field]
-            ? 1
-            : 0
-        );
-      } else {
-        values.push(
-          cleanString(
-            body[field]
-          )
-        );
-      }
+      return json({
+        ok: true,
+        action: "removed",
+        reaction
+      }, 200, request);
     }
-  }
 
+    await env.DB.prepare(`
+      UPDATE reactions
 
-  if (!updates.length) {
-    return json(
-      {
-        ok: false,
-        error:
-          "NOTHING_TO_UPDATE"
-      },
-      400,
-      request
+      SET
+        reaction = ?,
+        created_at = ?
+
+      WHERE id = ?
+    `).bind(
+      reaction,
+      now(),
+      existing.id
+    ).run();
+
+    await reactionCounter(
+      env,
+      publicationId,
+      existing.reaction,
+      -1
     );
+
+    await reactionCounter(
+      env,
+      publicationId,
+      reaction,
+      1
+    );
+
+    return json({
+      ok: true,
+      action: "changed",
+      reaction
+    }, 200, request);
   }
 
+  await env.DB.prepare(`
+    INSERT INTO reactions (
+      id,
+      publication_id,
+      participant_id,
+      reaction,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?)
+  `).bind(
+    uid("reaction"),
+    publicationId,
+    participantId,
+    reaction,
+    now()
+  ).run();
+
+  await reactionCounter(
+    env,
+    publicationId,
+    reaction,
+    1
+  );
+
+  return json({
+    ok: true,
+    action: "added",
+    reaction
+  }, 200, request);
+}
+
+/* =========================================================
+   SAVE
+   ========================================================= */
+
+async function savePublication(
+  request,
+  env,
+  path
+) {
+  const publicationId =
+    decodeURIComponent(
+      path.split("/")[3]
+    );
+
+  const participantId =
+    getParticipantId(request);
+
+  const existing =
+    await env.DB.prepare(`
+      SELECT id
+      FROM saves
+
+      WHERE publication_id = ?
+        AND participant_id = ?
+
+      LIMIT 1
+    `).bind(
+      publicationId,
+      participantId
+    ).first();
+
+  if (existing) {
+
+    await env.DB.prepare(`
+      DELETE FROM saves
+      WHERE id = ?
+    `).bind(
+      existing.id
+    ).run();
+
+    await env.DB.prepare(`
+      UPDATE publications
+
+      SET
+        saves_count =
+          CASE
+            WHEN saves_count > 0
+            THEN saves_count - 1
+            ELSE 0
+          END,
+
+        updated_at = ?
+
+      WHERE id = ?
+    `).bind(
+      now(),
+      publicationId
+    ).run();
+
+    return json({
+      ok: true,
+      saved: false
+    }, 200, request);
+  }
+
+  await env.DB.prepare(`
+    INSERT INTO saves (
+      id,
+      publication_id,
+      participant_id,
+      created_at
+    )
+    VALUES (?, ?, ?, ?)
+  `).bind(
+    uid("save"),
+    publicationId,
+    participantId,
+    now()
+  ).run();
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      saves_count =
+        saves_count + 1,
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    now(),
+    publicationId
+  ).run();
+
+  return json({
+    ok: true,
+    saved: true
+  }, 200, request);
+}
+
+/* =========================================================
+   SHARE
+   ========================================================= */
+
+async function sharePublication(
+  request,
+  env,
+  path
+) {
+  const publicationId =
+    decodeURIComponent(
+      path.split("/")[3]
+    );
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      shares_count =
+        shares_count + 1,
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    now(),
+    publicationId
+  ).run();
+
+  return json({
+    ok: true,
+    shared: true
+  }, 200, request);
+}
+
+/* =========================================================
+   COMMENTS
+   ========================================================= */
+
+async function getComments(
+  request,
+  env,
+  path
+) {
+  const publicationId =
+    decodeURIComponent(
+      path.split("/")[3]
+    );
+
+  const result =
+    await env.DB.prepare(`
+      SELECT
+
+        c.*,
+
+        u.name AS author_name,
+        u.username AS author_username,
+        u.avatar_url AS author_avatar,
+        u.verified AS author_verified
+
+      FROM comments c
+
+      LEFT JOIN participants u
+        ON u.id = c.participant_id
+
+      WHERE c.publication_id = ?
+        AND c.status = 'published'
+        AND c.deleted_at IS NULL
+
+      ORDER BY c.created_at ASC
+    `).bind(
+      publicationId
+    ).all();
+
+  return json({
+    ok: true,
+    comments:
+      result.results || []
+  }, 200, request);
+}
+
+async function createComment(
+  request,
+  env,
+  path
+) {
+  const publicationId =
+    decodeURIComponent(
+      path.split("/")[3]
+    );
+
+  const participantId =
+    getParticipantId(request);
+
+  const body =
+    await readJSON(request);
+
+  const text =
+    clean(body.text);
+
+  if (!text) {
+    return json({
+      ok: false,
+      error: "COMMENT_REQUIRED"
+    }, 400, request);
+  }
+
+  await env.DB.prepare(`
+    INSERT INTO comments (
+      id,
+      publication_id,
+      participant_id,
+      parent_id,
+      text,
+      status,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      ?, ?, ?, ?, ?,
+      'published',
+      ?, ?
+    )
+  `).bind(
+    uid("comment"),
+    publicationId,
+    participantId,
+    clean(body.parent_id) ||
+      null,
+    text,
+    now(),
+    now()
+  ).run();
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      comments_count =
+        comments_count + 1,
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    now(),
+    publicationId
+  ).run();
+
+  return json({
+    ok: true
+  }, 201, request);
+}
+
+/* =========================================================
+   REPORT
+   ========================================================= */
+
+async function createReport(
+  request,
+  env
+) {
+  const body =
+    await readJSON(request);
+
+  const publicationId =
+    clean(body.publication_id) ||
+    null;
+
+  const commentId =
+    clean(body.comment_id) ||
+    null;
+
+  await env.DB.prepare(`
+    INSERT INTO reports (
+      id,
+      publication_id,
+      comment_id,
+      participant_id,
+      type,
+      reason,
+      status,
+      created_at,
+      updated_at
+    )
+    VALUES (
+      ?, ?, ?, ?, ?, ?,
+      'open',
+      ?, ?
+    )
+  `).bind(
+    uid("report"),
+    publicationId,
+    commentId,
+    getParticipantId(request),
+    clean(body.type) ||
+      "other",
+    clean(body.reason) ||
+      "Без причины",
+    now(),
+    now()
+  ).run();
+
+  if (publicationId) {
+    await env.DB.prepare(`
+      UPDATE publications
+
+      SET
+        reports_count =
+          reports_count + 1,
+
+        updated_at = ?
+
+      WHERE id = ?
+    `).bind(
+      now(),
+      publicationId
+    ).run();
+  }
+
+  return json({
+    ok: true
+  }, 201, request);
+}
+
+/* =========================================================
+   ANONYMOUS PARTICIPANT
+   ========================================================= */
+
+async function getAnonymousParticipant(
+  request,
+  env
+) {
+  const id =
+    getParticipantId(request);
+
+  const participant =
+    await env.DB.prepare(`
+      SELECT
+
+        id,
+        name,
+        username,
+
+        email,
+        phone,
+
+        avatar_url,
+        bio,
+
+        country,
+        city,
+
+        profession,
+        education,
+        languages,
+        skills,
+
+        website,
+        social_links,
+
+        role,
+        status,
+
+        verified,
+        profile_visible,
+
+        followers_count,
+        following_count,
+        publications_count,
+
+        created_at,
+        updated_at
+
+      FROM participants
+
+      WHERE id = ?
+
+      LIMIT 1
+    `).bind(id).first();
+
+  if (!participant) {
+    return json({
+      ok: true,
+      registered: false,
+      participant: null
+    }, 200, request);
+  }
+
+  return json({
+    ok: true,
+    registered: false,
+    participant
+  }, 200, request);
+}
+
+/* =========================================================
+   UPDATE PARTICIPANT
+   ========================================================= */
+
+async function updateAnonymousParticipant(
+  request,
+  env
+) {
+  const id =
+    getParticipantId(request);
+
+  const body =
+    await readJSON(request);
 
   /*
-    If admin changes status
-    to published, automatically
-    create published_at.
-  */
-
-  if (
-    body.status ===
-    "published"
-  ) {
-    updates.push(
-      "published_at = ?"
-    );
-
-    values.push(
-      new Date().toISOString()
-    );
-  }
-
-
-  updates.push(
-    "updated_at = ?"
-  );
-
-  values.push(
-    new Date().toISOString()
-  );
-
-  values.push(id);
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        UPDATE publications
-        SET
-          ${updates.join(", ")}
-        WHERE id = ?
-        `
-      )
-      .bind(...values)
-      .run();
-
-
-    /*
-      If contact name or contact
-      information changed, also
-      update participant.
-    */
-
-    const publication =
-      await env.DB
-        .prepare(
-          `
-          SELECT user_id
-          FROM publications
-          WHERE id = ?
-          `
-        )
-        .bind(id)
-        .first();
-
-
-    if (
-      publication?.user_id
-    ) {
-      await updateParticipantFromPublication(
-        env,
-        publication.user_id,
-        body
-      );
-    }
-
-
-    await writeAuditLog(
-      env,
-      "publication_updated",
-      id,
-      body
-    );
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        message:
-          "Публикация полностью обновлена."
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_UPDATE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   DELETE PUBLICATION
-============================================================ */
-
-async function handleAdminPublicationDelete(
-  request,
-  env,
-  id
-) {
-  try {
-    await env.DB
-      .prepare(
-        `
-        DELETE FROM publication_media
-        WHERE publication_id = ?
-        `
-      )
-      .bind(id)
-      .run();
-  } catch {}
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        DELETE FROM publications
-        WHERE id = ?
-        `
-      )
-      .bind(id)
-      .run();
-
-
-    await writeAuditLog(
-      env,
-      "publication_deleted",
-      id,
-      {}
-    );
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        message:
-          "Публикация удалена."
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PUBLICATION_DELETE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   PARTICIPANTS
-============================================================ */
-
-async function handleAdminParticipants(
-  request,
-  env,
-  ctx
-) {
-  const url =
-    new URL(request.url);
-
-  const path =
-    normalizePath(
-      url.pathname
-    );
-
-
-  if (
-    path ===
-    "/api/admin/participants" ||
-    path ===
-    "/api/admin/users"
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return handleParticipantsList(
-        request,
-        env
-      );
-    }
-
-
-    if (
-      request.method === "POST"
-    ) {
-      return handleParticipantCreate(
-        request,
-        env
-      );
-    }
-
-
-    return methodNotAllowed(
-      request
-    );
-  }
-
-
-  const match =
-    path.match(
-      /^\/api\/admin\/(?:participants|users)\/([^/]+)(?:\/([^/]+))?$/
-    );
-
-
-  if (!match) {
-    return json(
-      {
-        ok: false,
-        error:
-          "INVALID_PARTICIPANT_ROUTE"
-      },
-      400,
-      request
-    );
-  }
-
-
-  const id =
-    decodeURIComponent(
-      match[1]
-    );
-
-  const action =
-    match[2]
-      ? decodeURIComponent(
-          match[2]
-        )
-      : null;
-
-
-  if (
-    action === "ban" ||
-    action === "unban"
-  ) {
-    return handleParticipantBan(
-      request,
-      env,
-      id,
-      action
-    );
-  }
-
-
-  if (
-    action === "delete"
-  ) {
-    return handleParticipantDelete(
-      request,
-      env,
-      id
-    );
-  }
-
-
-  if (
-    action === "publications"
-  ) {
-    return handleParticipantPublications(
-      request,
-      env,
-      id
-    );
-  }
-
-
-  if (
-    request.method === "GET"
-  ) {
-    return handleParticipantById(
-      request,
-      env,
-      id
-    );
-  }
-
-
-  if (
-    request.method === "PUT" ||
-    request.method === "PATCH"
-  ) {
-    return handleParticipantUpdate(
-      request,
-      env,
-      id
-    );
-  }
-
-
-  return methodNotAllowed(
-    request
-  );
-}
-
-
-/* ============================================================
-   PARTICIPANTS LIST
-============================================================ */
-
-async function handleParticipantsList(
-  request,
-  env
-) {
-  try {
-    await ensureParticipantsTable(
-      env
-    );
-
-
-    const url =
-      new URL(request.url);
-
-    const search =
-      url.searchParams.get(
-        "search"
-      ) ||
-      url.searchParams.get(
-        "q"
-      );
-
-
-    const status =
-      url.searchParams.get(
-        "status"
-      );
-
-
-    const conditions = [];
-    const bindings = [];
-
-
-    if (search) {
-      conditions.push(
-        `
-        (
-          p.name LIKE ?
-          OR p.username LIKE ?
-          OR p.email LIKE ?
-          OR p.phone LIKE ?
-          OR p.telegram LIKE ?
-          OR p.city LIKE ?
-          OR p.country LIKE ?
-          OR p.id LIKE ?
-        )
-        `
-      );
-
-
-      const q =
-        `%${search}%`;
-
-
-      for (
-        let i = 0;
-        i < 8;
-        i++
-      ) {
-        bindings.push(q);
-      }
-    }
-
-
-    if (
-      status === "banned"
-    ) {
-      conditions.push(
-        "p.is_banned = 1"
-      );
-    }
-
-
-    if (
-      status === "active"
-    ) {
-      conditions.push(
-        "p.is_banned = 0"
-      );
-    }
-
-
-    const where =
-      conditions.length
-        ? `WHERE ${conditions.join(
-            " AND "
-          )}`
-        : "";
-
-
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT
-            p.*,
-
-            (
-              SELECT COUNT(*)
-              FROM publications pub
-              WHERE pub.user_id = p.id
-            ) AS publications_count,
-
-            (
-              SELECT COUNT(*)
-              FROM publications pub
-              WHERE
-                pub.user_id = p.id
-                AND pub.status = 'pending'
-            ) AS pending_count,
-
-            (
-              SELECT MAX(pub.created_at)
-              FROM publications pub
-              WHERE pub.user_id = p.id
-            ) AS last_publication_at
-
-          FROM participants p
-
-          ${where}
-
-          ORDER BY
-            p.updated_at DESC
-
-          LIMIT 500
-          `
-        )
-        .bind(...bindings)
-        .all();
-
-
-    return json(
-      {
-        ok: true,
-        participants:
-          result.results || [],
-        users:
-          result.results || []
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PARTICIPANTS_QUERY_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   PARTICIPANT BY ID
-============================================================ */
-
-async function handleParticipantById(
-  request,
-  env,
-  id
-) {
-  try {
-    const participant =
-      await getParticipant(
-        env,
-        id
-      );
-
-
-    if (!participant) {
-      return json(
-        {
-          ok: false,
-          error:
-            "PARTICIPANT_NOT_FOUND"
-        },
-        404,
-        request
-      );
-    }
-
-
-    const publications =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-          FROM publications
-          WHERE user_id = ?
-          ORDER BY created_at DESC
-          `
-        )
-        .bind(id)
-        .all();
-
-
-    return json(
-      {
-        ok: true,
-
-        participant,
-
-        publications:
-          publications.results ||
-          []
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PARTICIPANT_QUERY_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   CREATE PARTICIPANT
-============================================================ */
-
-async function handleParticipantCreate(
-  request,
-  env
-) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error: "INVALID_JSON"
-      },
-      400,
-      request
-    );
-  }
-
-
-  try {
-    const participant =
-      await upsertParticipant(
-        env,
-        {
-          id:
-            cleanString(
-              body.id
-            ) ||
-            crypto.randomUUID(),
-
-          name:
-            cleanString(
-              body.name
-            ) ||
-            "Пользователь",
-
-          username:
-            cleanString(
-              body.username
-            ),
-
-          email:
-            cleanString(
-              body.email
-            ),
-
-          phone:
-            cleanString(
-              body.phone
-            ),
-
-          telegram:
-            cleanString(
-              body.telegram
-            ),
-
-          city:
-            cleanString(
-              body.city
-            ),
-
-          country:
-            cleanString(
-              body.country
-            )
-        }
-      );
-
-
-    await writeAuditLog(
-      env,
-      "participant_created",
-      participant.id,
-      participant
-    );
-
-
-    return json(
-      {
-        ok: true,
-        participant
-      },
-      201,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PARTICIPANT_CREATE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   UPDATE PARTICIPANT
-   ADMIN CAN CHANGE ALL DATA
-============================================================ */
-
-async function handleParticipantUpdate(
-  request,
-  env,
-  id
-) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error: "INVALID_JSON"
-      },
-      400,
-      request
-    );
-  }
-
+   * Участник НЕ регистрируется.
+   * Он просто редактирует свои данные.
+   */
 
   const allowed = [
     "name",
     "username",
     "email",
     "phone",
-    "telegram",
-    "city",
+    "avatar_url",
+    "bio",
     "country",
-    "is_banned",
-    "is_active",
-    "notes"
+    "city",
+    "profession",
+    "education",
+    "languages",
+    "skills",
+    "website",
+    "social_links"
   ];
-
 
   const updates = [];
   const values = [];
 
-
   for (
-    const field
-    of allowed
+    const field of allowed
   ) {
     if (
-      Object.prototype.hasOwnProperty.call(
-        body,
-        field
-      )
+      body[field] !== undefined
     ) {
       updates.push(
         `${field} = ?`
       );
 
-
-      if (
-        field === "is_banned" ||
-        field === "is_active"
-      ) {
-        values.push(
-          body[field]
-            ? 1
-            : 0
-        );
-      } else {
-        values.push(
-          cleanString(
-            body[field]
-          )
-        );
-      }
+      values.push(
+        clean(body[field])
+      );
     }
   }
 
-
   if (!updates.length) {
-    return json(
-      {
-        ok: false,
-        error:
-          "NOTHING_TO_UPDATE"
-      },
-      400,
-      request
-    );
+    return json({
+      ok: false,
+      error: "NOTHING_TO_UPDATE"
+    }, 400, request);
   }
-
 
   updates.push(
     "updated_at = ?"
   );
 
-  values.push(
-    new Date().toISOString()
-  );
-
+  values.push(now());
   values.push(id);
 
-
   try {
-    await env.DB
-      .prepare(
-        `
-        UPDATE participants
-        SET
-          ${updates.join(", ")}
-        WHERE id = ?
-        `
-      )
-      .bind(...values)
-      .run();
 
+    await env.DB.prepare(`
+      UPDATE participants
 
-    await writeAuditLog(
-      env,
-      "participant_updated",
-      id,
-      body
-    );
+      SET
+        ${updates.join(", ")}
 
+      WHERE id = ?
+    `).bind(
+      ...values
+    ).run();
 
-    const participant =
-      await getParticipant(
-        env,
-        id
-      );
-
-
-    return json(
-      {
-        ok: true,
-        participant
-      },
-      200,
-      request
-    );
   } catch (error) {
-    return json(
-      {
+
+    if (
+      String(error.message || "")
+        .toLowerCase()
+        .includes("unique")
+    ) {
+      return json({
         ok: false,
         error:
-          "PARTICIPANT_UPDATE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
+          "USERNAME_ALREADY_EXISTS"
+      }, 409, request);
+    }
+
+    throw error;
   }
-}
 
-
-/* ============================================================
-   PARTICIPANT BAN
-============================================================ */
-
-async function handleParticipantBan(
-  request,
-  env,
-  id,
-  action
-) {
-  const banned =
-    action === "ban"
-      ? 1
-      : 0;
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        UPDATE participants
-        SET
-          is_banned = ?,
-          updated_at = ?
-        WHERE id = ?
-        `
-      )
-      .bind(
-        banned,
-        new Date().toISOString(),
-        id
-      )
-      .run();
-
-
-    await writeAuditLog(
-      env,
-      `participant_${action}`,
-      id,
-      {
-        is_banned: banned
-      }
-    );
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        is_banned:
-          Boolean(banned)
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PARTICIPANT_BAN_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   PARTICIPANT DELETE
-============================================================ */
-
-async function handleParticipantDelete(
-  request,
-  env,
-  id
-) {
-  try {
-    /*
-      Remove participant publications
-      first so no orphan records remain.
-    */
-
-    await env.DB
-      .prepare(
-        `
-        DELETE FROM publication_media
-
-        WHERE publication_id IN (
-          SELECT id
-          FROM publications
-          WHERE user_id = ?
-        )
-        `
-      )
-      .bind(id)
-      .run();
-
-
-    await env.DB
-      .prepare(
-        `
-        DELETE FROM publications
-        WHERE user_id = ?
-        `
-      )
-      .bind(id)
-      .run();
-
-
-    await env.DB
-      .prepare(
-        `
-        DELETE FROM participants
-        WHERE id = ?
-        `
-      )
-      .bind(id)
-      .run();
-
-
-    await writeAuditLog(
-      env,
-      "participant_deleted",
-      id,
-      {}
-    );
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        message:
-          "Участник и связанные данные удалены."
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PARTICIPANT_DELETE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   PARTICIPANT PUBLICATIONS
-============================================================ */
-
-async function handleParticipantPublications(
-  request,
-  env,
-  id
-) {
-  try {
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-          FROM publications
-          WHERE user_id = ?
-          ORDER BY created_at DESC
-          `
-        )
-        .bind(id)
-        .all();
-
-
-    return json(
-      {
-        ok: true,
-        participant_id: id,
-        publications:
-          result.results || []
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "PARTICIPANT_PUBLICATIONS_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   PARTICIPANTS TABLE
-============================================================ */
-
-async function ensureParticipantsTable(
-  env
-) {
-  await env.DB
-    .prepare(
-      `
-      CREATE TABLE IF NOT EXISTS participants (
-
-        id TEXT PRIMARY KEY,
-
-        name TEXT,
-
-        username TEXT,
-
-        email TEXT,
-
-        phone TEXT,
-
-        telegram TEXT,
-
-        city TEXT,
-
-        country TEXT,
-
-        is_banned INTEGER DEFAULT 0,
-
-        is_active INTEGER DEFAULT 1,
-
-        notes TEXT,
-
-        created_at TEXT,
-
-        updated_at TEXT
-
-      )
-      `
-    )
-    .run();
-
-
-  /*
-    Create useful indexes.
-  */
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        CREATE INDEX IF NOT EXISTS
-        idx_participants_name
-
-        ON participants(name)
-        `
-      )
-      .run();
-  } catch {}
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        CREATE INDEX IF NOT EXISTS
-        idx_participants_email
-
-        ON participants(email)
-        `
-      )
-      .run();
-  } catch {}
-}
-
-
-/* ============================================================
-   UPSERT PARTICIPANT
-============================================================ */
-
-async function upsertParticipant(
-  env,
-  data
-) {
-  await ensureParticipantsTable(
+  return getAnonymousParticipant(
+    request,
     env
   );
+}
 
+/* =========================================================
+   MY PUBLICATIONS
+   ========================================================= */
 
-  const now =
-    new Date().toISOString();
+async function myPublications(
+  request,
+  env
+) {
+  const participantId =
+    getParticipantId(request);
 
+  const result =
+    await env.DB.prepare(`
+      SELECT *
 
-  const existing =
-    await getParticipant(
-      env,
-      data.id
+      FROM publications
+
+      WHERE participant_id = ?
+        AND deleted_at IS NULL
+
+      ORDER BY created_at DESC
+    `).bind(
+      participantId
+    ).all();
+
+  return json({
+    ok: true,
+    publications:
+      result.results || []
+  }, 200, request);
+}
+
+/* =========================================================
+   PARTICIPANT CHAT
+   ========================================================= */
+
+async function participantChat(
+  request,
+  env
+) {
+  const participantId =
+    getParticipantId(request);
+
+  const url =
+    new URL(request.url);
+
+  const publicationId =
+    clean(
+      url.searchParams.get(
+        "publication_id"
+      )
     );
 
+  const where = [
+    "participant_id = ?"
+  ];
 
-  if (existing) {
-    const fields = [
-      ["name", data.name],
-      ["username", data.username],
-      ["email", data.email],
-      ["phone", data.phone],
-      ["telegram", data.telegram],
-      ["city", data.city],
-      ["country", data.country]
-    ];
+  const args = [
+    participantId
+  ];
 
+  if (publicationId) {
+    where.push(
+      "publication_id = ?"
+    );
 
-    const updates = [];
-    const values = [];
-
-
-    for (
-      const [field, value]
-      of fields
-    ) {
-      if (
-        value !== undefined &&
-        value !== null &&
-        value !== ""
-      ) {
-        updates.push(
-          `${field} = ?`
-        );
-
-        values.push(
-          value
-        );
-      }
-    }
-
-
-    if (updates.length) {
-      updates.push(
-        "updated_at = ?"
-      );
-
-      values.push(
-        now
-      );
-
-      values.push(
-        data.id
-      );
-
-
-      await env.DB
-        .prepare(
-          `
-          UPDATE participants
-
-          SET
-            ${updates.join(", ")}
-
-          WHERE id = ?
-          `
-        )
-        .bind(...values)
-        .run();
-    }
-
-
-    return getParticipant(
-      env,
-      data.id
+    args.push(
+      publicationId
     );
   }
 
+  const result =
+    await env.DB.prepare(`
+      SELECT *
 
-  await env.DB
-    .prepare(
-      `
-      INSERT INTO participants
+      FROM chat_messages
+
+      WHERE ${where.join(" AND ")}
+
+      ORDER BY created_at ASC
+    `).bind(
+      ...args
+    ).all();
+
+  await env.DB.prepare(`
+    UPDATE chat_messages
+
+    SET is_read = 1
+
+    WHERE participant_id = ?
+      AND sender_type = 'official'
+  `).bind(
+    participantId
+  ).run();
+
+  return json({
+    ok: true,
+
+    official_account: {
+      name: SITE_NAME,
+      username: OFFICIAL_USERNAME,
+      verified: true
+    },
+
+    messages:
+      result.results || []
+  }, 200, request);
+}
+
+/* =========================================================
+   PARTICIPANT SEND CHAT
+   ========================================================= */
+
+async function participantSendChat(
+  request,
+  env
+) {
+  const participantId =
+    getParticipantId(request);
+
+  const body =
+    await readJSON(request);
+
+  const text =
+    clean(body.text);
+
+  if (!text) {
+    return json({
+      ok: false,
+      error: "MESSAGE_REQUIRED"
+    }, 400, request);
+  }
+
+  const id =
+    uid("message");
+
+  await env.DB.prepare(`
+    INSERT INTO chat_messages (
+      id,
+      participant_id,
+      publication_id,
+
+      sender_type,
+      sender_id,
+      sender_name,
+
+      text,
+
+      is_read,
+      created_at
+    )
+    VALUES (
+      ?, ?, ?,
+
+      'participant',
+      ?,
+      NULL,
+
+      ?,
+
+      0,
+      ?
+    )
+  `).bind(
+    id,
+
+    participantId,
+
+    clean(body.publication_id) ||
+      null,
+
+    participantId,
+
+    text,
+
+    now()
+  ).run();
+
+  return json({
+    ok: true,
+    message_id: id
+  }, 201, request);
+}
+
+/* =========================================================
+   PARTICIPANT NOTIFICATIONS
+   ========================================================= */
+
+async function participantNotifications(
+  request,
+  env
+) {
+  const participantId =
+    getParticipantId(request);
+
+  const result =
+    await env.DB.prepare(`
+      SELECT *
+
+      FROM notifications
+
+      WHERE participant_id = ?
+
+      ORDER BY created_at DESC
+
+      LIMIT 200
+    `).bind(
+      participantId
+    ).all();
+
+  return json({
+    ok: true,
+
+    notifications:
+      result.results || []
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN DASHBOARD
+   ========================================================= */
+
+async function adminDashboard(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const [
+    totalPublications,
+    pendingPublications,
+    publishedPublications,
+    rejectedPublications,
+    archivedPublications,
+
+    totalParticipants,
+    activeParticipants,
+    blockedParticipants,
+    deletedParticipants,
+
+    openReports,
+    unreadMessages,
+    totalComments
+  ] = await Promise.all([
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications
+       WHERE status = 'pending'
+       AND deleted_at IS NULL`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications
+       WHERE status = 'published'
+       AND deleted_at IS NULL`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications
+       WHERE status = 'rejected'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications
+       WHERE status = 'archived'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants
+       WHERE status = 'active'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants
+       WHERE status = 'blocked'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants
+       WHERE status = 'deleted'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM reports
+       WHERE status = 'open'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM chat_messages
+       WHERE sender_type = 'participant'
+       AND is_read = 0`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM comments
+       WHERE deleted_at IS NULL`
+    )
+  ]);
+
+  return json({
+    ok: true,
+
+    admin: auth.admin,
+
+    publications: {
+      total:
+        totalPublications,
+
+      pending:
+        pendingPublications,
+
+      published:
+        publishedPublications,
+
+      rejected:
+        rejectedPublications,
+
+      archived:
+        archivedPublications
+    },
+
+    participants: {
+      total:
+        totalParticipants,
+
+      active:
+        activeParticipants,
+
+      blocked:
+        blockedParticipants,
+
+      deleted:
+        deletedParticipants
+    },
+
+    moderation: {
+      open_reports:
+        openReports,
+
+      unread_messages:
+        unreadMessages
+    },
+
+    comments:
+      totalComments,
+
+    official_account: {
+      name: SITE_NAME,
+      username: OFFICIAL_USERNAME,
+      verified: true
+    }
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN STATS
+   ========================================================= */
+
+async function adminStats(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const [
+    views,
+    likes,
+    love,
+    support,
+    funny,
+    wow,
+    sad,
+    angry,
+    comments,
+    shares,
+    saves,
+    reports
+  ] = await Promise.all([
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(views_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(likes_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(love_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(support_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(funny_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(wow_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(sad_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(angry_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(comments_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(shares_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(saves_count),0
+      ) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COALESCE(
+        SUM(reports_count),0
+      ) FROM publications`
+    )
+  ]);
+
+  return json({
+    ok: true,
+
+    statistics: {
+      views,
+      likes,
+      comments,
+      shares,
+      saves,
+      reports,
+
+      reactions: {
+        love,
+        support,
+        funny,
+        wow,
+        sad,
+        angry
+      }
+    }
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN PUBLICATIONS LIST
+   ========================================================= */
+
+async function adminPublications(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const url =
+    new URL(request.url);
+
+  const status =
+    clean(
+      url.searchParams.get(
+        "status"
+      )
+    );
+
+  const q =
+    clean(
+      url.searchParams.get(
+        "q"
+      )
+    );
+
+  const category =
+    clean(
+      url.searchParams.get(
+        "category"
+      )
+    );
+
+  const where = [
+    "1 = 1"
+  ];
+
+  const args = [];
+
+  if (status) {
+    where.push(
+      "p.status = ?"
+    );
+
+    args.push(status);
+  }
+
+  if (category) {
+    where.push(
+      "p.category = ?"
+    );
+
+    args.push(category);
+  }
+
+  if (q) {
+    const s = `%${q}%`;
+
+    where.push(`
       (
+        p.title LIKE ?
+        OR p.text LIKE ?
+        OR p.tracking_code LIKE ?
+        OR u.name LIKE ?
+        OR u.username LIKE ?
+      )
+    `);
+
+    args.push(
+      s,
+      s,
+      s,
+      s,
+      s
+    );
+  }
+
+  const result =
+    await env.DB.prepare(`
+      SELECT
+
+        p.*,
+
+        u.name AS author_name,
+        u.username AS author_username,
+        u.email AS author_email,
+        u.phone AS author_phone,
+        u.verified AS author_verified
+
+      FROM publications p
+
+      LEFT JOIN participants u
+        ON u.id = p.participant_id
+
+      WHERE ${where.join(" AND ")}
+
+      ORDER BY
+        p.created_at DESC
+
+      LIMIT 1000
+    `).bind(...args).all();
+
+  return json({
+    ok: true,
+
+    publications:
+      result.results || []
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN SINGLE PUBLICATION
+   ========================================================= */
+
+async function adminPublication(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  const publication =
+    await env.DB.prepare(`
+      SELECT
+
+        p.*,
+
+        u.name AS author_name,
+        u.username AS author_username,
+        u.email AS author_email,
+        u.phone AS author_phone,
+
+        u.country AS author_country,
+        u.city AS author_city,
+
+        u.profession AS author_profession,
+        u.education AS author_education,
+
+        u.languages AS author_languages,
+        u.skills AS author_skills,
+
+        u.bio AS author_bio,
+
+        u.verified AS author_verified,
+        u.status AS author_status
+
+      FROM publications p
+
+      LEFT JOIN participants u
+        ON u.id = p.participant_id
+
+      WHERE p.id = ?
+
+      LIMIT 1
+    `).bind(id).first();
+
+  if (!publication) {
+    return json({
+      ok: false,
+      error: "PUBLICATION_NOT_FOUND"
+    }, 404, request);
+  }
+
+  const [
+    media,
+    comments,
+    reports
+  ] = await Promise.all([
+
+    env.DB.prepare(`
+      SELECT *
+
+      FROM publication_media
+
+      WHERE publication_id = ?
+
+      ORDER BY sort_order ASC
+    `).bind(id).all(),
+
+    env.DB.prepare(`
+      SELECT
+
+        c.*,
+
+        u.name AS author_name,
+        u.username AS author_username
+
+      FROM comments c
+
+      LEFT JOIN participants u
+        ON u.id = c.participant_id
+
+      WHERE c.publication_id = ?
+
+      ORDER BY c.created_at DESC
+    `).bind(id).all(),
+
+    env.DB.prepare(`
+      SELECT *
+
+      FROM reports
+
+      WHERE publication_id = ?
+
+      ORDER BY created_at DESC
+    `).bind(id).all()
+  ]);
+
+  return json({
+    ok: true,
+
+    publication,
+
+    media:
+      media.results || [],
+
+    comments:
+      comments.results || [],
+
+    reports:
+      reports.results || []
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN UPDATE PUBLICATION
+   ========================================================= */
+
+async function adminUpdatePublication(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  const body =
+    await readJSON(request);
+
+  const fields = [
+    "participant_id",
+    "title",
+    "text",
+    "category",
+    "country",
+    "city",
+    "location",
+    "scope",
+    "event_start",
+    "event_end",
+    "deadline",
+    "price",
+    "currency",
+    "salary",
+    "employment_type",
+    "work_format",
+    "experience",
+    "education",
+    "languages",
+    "tags",
+    "links",
+    "status",
+    "visibility",
+    "is_pinned",
+    "is_featured",
+    "admin_note",
+    "rejection_reason",
+    "published_at"
+  ];
+
+  const updates = [];
+  const values = [];
+
+  for (
+    const field of fields
+  ) {
+    if (
+      body[field] !== undefined
+    ) {
+      updates.push(
+        `${field} = ?`
+      );
+
+      values.push(
+        body[field]
+      );
+    }
+  }
+
+  if (!updates.length) {
+    return json({
+      ok: false,
+      error: "NOTHING_TO_UPDATE"
+    }, 400, request);
+  }
+
+  updates.push(
+    "updated_at = ?"
+  );
+
+  values.push(now());
+  values.push(id);
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      ${updates.join(", ")}
+
+    WHERE id = ?
+  `).bind(
+    ...values
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "publication_updated",
+
+    entity_type:
+      "publication",
+
+    entity_id:
+      id,
+
+    details:
+      body
+  });
+
+  return adminPublication(
+    request,
+    env,
+    `/api/admin/publications/${encodeURIComponent(id)}`
+  );
+}
+
+/* =========================================================
+   ADMIN DELETE PUBLICATION
+   ========================================================= */
+
+async function adminDeletePublication(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      status = 'deleted',
+      visibility = 'hidden',
+      deleted_at = ?,
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    now(),
+    now(),
+    id
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "publication_deleted",
+
+    entity_type:
+      "publication",
+
+    entity_id:
+      id
+  });
+
+  return json({
+    ok: true
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN PUBLICATION ACTION
+   ========================================================= */
+
+async function adminPublicationAction(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/")[4]
+    );
+
+  const body =
+    await readJSON(request);
+
+  const action =
+    clean(body.action);
+
+  const allowed = [
+    "approve",
+    "reject",
+    "archive",
+    "draft",
+    "restore",
+    "pin",
+    "unpin",
+    "feature",
+    "unfeature",
+    "hide",
+    "show"
+  ];
+
+  if (!allowed.includes(action)) {
+    return json({
+      ok: false,
+      error: "INVALID_ACTION"
+    }, 400, request);
+  }
+
+  const publication =
+    await env.DB.prepare(`
+      SELECT *
+      FROM publications
+      WHERE id = ?
+      LIMIT 1
+    `).bind(id).first();
+
+  if (!publication) {
+    return json({
+      ok: false,
+      error: "PUBLICATION_NOT_FOUND"
+    }, 404, request);
+  }
+
+  let status =
+    publication.status;
+
+  let visibility =
+    publication.visibility;
+
+  let pinned =
+    Number(
+      publication.is_pinned || 0
+    );
+
+  let featured =
+    Number(
+      publication.is_featured || 0
+    );
+
+  let publishedAt =
+    publication.published_at;
+
+  if (action === "approve") {
+    status = "published";
+    visibility = "public";
+    publishedAt = now();
+  }
+
+  if (action === "reject") {
+    status = "rejected";
+    visibility = "hidden";
+  }
+
+  if (action === "archive") {
+    status = "archived";
+    visibility = "hidden";
+  }
+
+  if (action === "draft") {
+    status = "draft";
+    visibility = "hidden";
+  }
+
+  if (action === "restore") {
+    status = "published";
+    visibility = "public";
+    publishedAt =
+      publishedAt || now();
+  }
+
+  if (action === "pin") {
+    pinned = 1;
+  }
+
+  if (action === "unpin") {
+    pinned = 0;
+  }
+
+  if (action === "feature") {
+    featured = 1;
+  }
+
+  if (action === "unfeature") {
+    featured = 0;
+  }
+
+  if (action === "hide") {
+    visibility = "hidden";
+  }
+
+  if (action === "show") {
+    visibility = "public";
+  }
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+
+      status = ?,
+      visibility = ?,
+
+      is_pinned = ?,
+      is_featured = ?,
+
+      published_at = ?,
+
+      admin_note = ?,
+
+      rejection_reason = ?,
+
+      deleted_at = NULL,
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    status,
+    visibility,
+
+    pinned,
+    featured,
+
+    publishedAt,
+
+    clean(body.admin_note) ||
+      publication.admin_note ||
+      null,
+
+    action === "reject"
+      ? clean(body.reason) ||
+        clean(body.rejection_reason) ||
+        null
+      : publication.rejection_reason ||
+        null,
+
+    now(),
+
+    id
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      `publication_${action}`,
+
+    entity_type:
+      "publication",
+
+    entity_id:
+      id,
+
+    details: {
+      old_status:
+        publication.status,
+
+      new_status:
+        status,
+
+      visibility,
+
+      reason:
+        body.reason || null
+    }
+  });
+
+  if (
+    publication.participant_id
+  ) {
+
+    if (
+      action === "approve"
+    ) {
+      await notify(
+        env,
+
+        publication.participant_id,
+
+        "Публикация опубликована",
+
+        `Публикация «${publication.title}» одобрена администрацией.`,
+
+        "publication_approved"
+      );
+    }
+
+    if (
+      action === "reject"
+    ) {
+      await notify(
+        env,
+
+        publication.participant_id,
+
+        "Публикация отклонена",
+
+        clean(body.reason) ||
+          "Публикация не прошла модерацию.",
+
+        "publication_rejected"
+      );
+    }
+  }
+
+  return json({
+    ok: true,
+
+    action,
+
+    publication_id:
+      id,
+
+    status,
+
+    visibility,
+
+    published_at:
+      publishedAt
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN COUNTERS
+   ========================================================= */
+
+async function adminCounters(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/")[4]
+    );
+
+  const body =
+    await readJSON(request);
+
+  const counters = [
+    "views_count",
+
+    "likes_count",
+    "love_count",
+    "support_count",
+    "funny_count",
+    "wow_count",
+    "sad_count",
+    "angry_count",
+
+    "comments_count",
+    "shares_count",
+    "saves_count",
+    "reports_count"
+  ];
+
+  const updates = [];
+  const values = [];
+
+  for (
+    const field of counters
+  ) {
+
+    if (
+      body[field] !== undefined
+    ) {
+
+      const value =
+        Number(body[field]);
+
+      if (
+        !Number.isFinite(value) ||
+        value < 0
+      ) {
+        return json({
+          ok: false,
+          error:
+            `INVALID_${field}`
+        }, 400, request);
+      }
+
+      updates.push(
+        `${field} = ?`
+      );
+
+      values.push(
+        Math.floor(value)
+      );
+    }
+  }
+
+  if (!updates.length) {
+    return json({
+      ok: false,
+      error: "NO_COUNTERS"
+    }, 400, request);
+  }
+
+  updates.push(
+    "updated_at = ?"
+  );
+
+  values.push(now());
+  values.push(id);
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      ${updates.join(", ")}
+
+    WHERE id = ?
+  `).bind(
+    ...values
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "publication_counters_changed",
+
+    entity_type:
+      "publication",
+
+    entity_id:
+      id,
+
+    details:
+      body
+  });
+
+  return json({
+    ok: true,
+
+    publication_id:
+      id,
+
+    changed:
+      body
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN MEDIA
+   ========================================================= */
+
+async function adminAddMedia(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const publicationId =
+    decodeURIComponent(
+      path.split("/")[4]
+    );
+
+  const body =
+    await readJSON(request);
+
+  const url =
+    clean(body.url);
+
+  if (!url) {
+    return json({
+      ok: false,
+      error: "MEDIA_URL_REQUIRED"
+    }, 400, request);
+  }
+
+  const type =
+    MEDIA_TYPES.includes(
+      clean(body.type)
+    )
+      ? clean(body.type)
+      : detectMediaType(url);
+
+  const order =
+    Number(
+      body.sort_order || 0
+    );
+
+  const id =
+    uid("media");
+
+  await env.DB.prepare(`
+    INSERT INTO publication_media (
+      id,
+      publication_id,
+      type,
+      url,
+      title,
+      sort_order,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    id,
+    publicationId,
+    type,
+    url,
+    clean(body.title) || null,
+    order,
+    now()
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "media_added",
+
+    entity_type:
+      "publication_media",
+
+    entity_id:
+      id,
+
+    details: {
+      publication_id:
+        publicationId,
+
+      type,
+      url
+    }
+  });
+
+  return json({
+    ok: true,
+    media_id: id
+  }, 201, request);
+}
+
+async function adminDeleteMedia(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const mediaId =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  await env.DB.prepare(`
+    DELETE FROM publication_media
+    WHERE id = ?
+  `).bind(
+    mediaId
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "media_deleted",
+
+    entity_type:
+      "publication_media",
+
+    entity_id:
+      mediaId
+  });
+
+  return json({
+    ok: true
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN PARTICIPANTS
+   ========================================================= */
+
+async function adminParticipants(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const url =
+    new URL(request.url);
+
+  const q =
+    clean(
+      url.searchParams.get("q")
+    );
+
+  const status =
+    clean(
+      url.searchParams.get(
+        "status"
+      )
+    );
+
+  const where = [
+    "1 = 1"
+  ];
+
+  const args = [];
+
+  if (q) {
+    const s = `%${q}%`;
+
+    where.push(`
+      (
+        name LIKE ?
+        OR username LIKE ?
+        OR email LIKE ?
+        OR phone LIKE ?
+      )
+    `);
+
+    args.push(
+      s,
+      s,
+      s,
+      s
+    );
+  }
+
+  if (status) {
+    where.push(
+      "status = ?"
+    );
+
+    args.push(status);
+  }
+
+  const result =
+    await env.DB.prepare(`
+      SELECT
+
         id,
         name,
         username,
+
         email,
         phone,
-        telegram,
-        city,
+
+        avatar_url,
+        bio,
+
         country,
-        is_banned,
-        is_active,
-        notes,
+        city,
+
+        profession,
+        education,
+        languages,
+        skills,
+
+        website,
+        social_links,
+
+        role,
+        status,
+
+        verified,
+        profile_visible,
+
+        followers_count,
+        following_count,
+        publications_count,
+
         created_at,
         updated_at
-      )
 
-      VALUES
-      (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `
-    )
-    .bind(
-      data.id,
-      data.name || "Пользователь",
-      data.username || null,
-      data.email || null,
-      data.phone || null,
-      data.telegram || null,
-      data.city || null,
-      data.country || null,
-      0,
-      1,
-      null,
-      now,
-      now
-    )
-    .run();
+      FROM participants
 
+      WHERE ${where.join(" AND ")}
 
-  return getParticipant(
-    env,
-    data.id
-  );
+      ORDER BY created_at DESC
+
+      LIMIT 1000
+    `).bind(...args).all();
+
+  return json({
+    ok: true,
+
+    participants:
+      result.results || []
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN PARTICIPANT
+   ========================================================= */
 
-/* ============================================================
-   GET PARTICIPANT
-============================================================ */
-
-async function getParticipant(
+async function adminParticipant(
+  request,
   env,
-  id
+  path
 ) {
-  if (!id) {
-    return null;
-  }
-
-
-  try {
-    await ensureParticipantsTable(
+  const auth =
+    await requireAdmin(
+      request,
       env
     );
 
-
-    return await env.DB
-      .prepare(
-        `
-        SELECT *
-        FROM participants
-        WHERE id = ?
-        LIMIT 1
-        `
-      )
-      .bind(id)
-      .first();
-  } catch {
-    return null;
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  const participant =
+    await env.DB.prepare(`
+      SELECT
+
+        id,
+        name,
+        username,
+
+        email,
+        phone,
+
+        avatar_url,
+        bio,
+
+        country,
+        city,
+
+        profession,
+        education,
+        languages,
+        skills,
+
+        website,
+        social_links,
+
+        role,
+        status,
+
+        verified,
+        profile_visible,
+
+        followers_count,
+        following_count,
+        publications_count,
+
+        created_at,
+        updated_at
+
+      FROM participants
+
+      WHERE id = ?
+
+      LIMIT 1
+    `).bind(id).first();
+
+  if (!participant) {
+    return json({
+      ok: false,
+      error: "PARTICIPANT_NOT_FOUND"
+    }, 404, request);
+  }
+
+  const [
+    publications,
+    chats
+  ] = await Promise.all([
+
+    env.DB.prepare(`
+      SELECT *
+
+      FROM publications
+
+      WHERE participant_id = ?
+
+      ORDER BY created_at DESC
+    `).bind(id).all(),
+
+    env.DB.prepare(`
+      SELECT *
+
+      FROM chat_messages
+
+      WHERE participant_id = ?
+
+      ORDER BY created_at DESC
+
+      LIMIT 100
+    `).bind(id).all()
+  ]);
+
+  return json({
+    ok: true,
+
+    participant,
+
+    publications:
+      publications.results || [],
+
+    chat:
+      chats.results || []
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN UPDATE PARTICIPANT
+   ========================================================= */
 
-/* ============================================================
-   UPDATE PARTICIPANT FROM PUBLICATION
-============================================================ */
-
-async function updateParticipantFromPublication(
+async function adminUpdateParticipant(
+  request,
   env,
-  id,
-  body
+  path
 ) {
-  const fields = {
-    name:
-      body.contact_name ||
-      body.name ||
-      body.user_name,
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
 
-    email:
-      body.contact_email ||
-      body.email,
+  if (!auth.ok) {
+    return auth.response;
+  }
 
-    phone:
-      body.contact_phone ||
-      body.phone,
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
 
-    telegram:
-      body.contact_telegram ||
-      body.telegram,
+  const body =
+    await readJSON(request);
 
-    city:
-      body.city,
+  const fields = [
+    "name",
+    "username",
 
-    country:
-      body.country
-  };
+    "email",
+    "phone",
 
+    "avatar_url",
+    "bio",
+
+    "country",
+    "city",
+
+    "profession",
+    "education",
+    "languages",
+    "skills",
+
+    "website",
+    "social_links",
+
+    "role",
+    "status",
+
+    "verified",
+    "profile_visible"
+  ];
 
   const updates = [];
   const values = [];
 
-
   for (
-    const [field, value]
-    of Object.entries(fields)
+    const field of fields
   ) {
     if (
-      value !== undefined &&
-      value !== null
+      body[field] !== undefined
     ) {
       updates.push(
         `${field} = ?`
       );
 
       values.push(
-        cleanString(value)
+        body[field]
       );
     }
   }
 
-
   if (!updates.length) {
-    return;
+    return json({
+      ok: false,
+      error: "NOTHING_TO_UPDATE"
+    }, 400, request);
   }
-
 
   updates.push(
     "updated_at = ?"
   );
 
-  values.push(
-    new Date().toISOString()
-  );
-
+  values.push(now());
   values.push(id);
 
-
   try {
-    await env.DB
-      .prepare(
-        `
-        UPDATE participants
 
-        SET
-          ${updates.join(", ")}
+    await env.DB.prepare(`
+      UPDATE participants
 
-        WHERE id = ?
-        `
-      )
-      .bind(...values)
-      .run();
-  } catch {}
-}
+      SET
+        ${updates.join(", ")}
 
+      WHERE id = ?
+    `).bind(
+      ...values
+    ).run();
 
-/* ============================================================
-   CHAT
-============================================================ */
-
-async function handlePublicChat(
-  request,
-  env,
-  ctx
-) {
-  await ensureAdminChatTable(
-    env
-  );
-
-
-  const url =
-    new URL(request.url);
-
-  const path =
-    normalizePath(
-      url.pathname
-    );
-
-
-  if (
-    path ===
-    "/api/admin-chat"
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return handleChatList(
-        request,
-        env,
-        false
-      );
-    }
-
-
-    if (
-      request.method === "POST"
-    ) {
-      return handleChatSend(
-        request,
-        env,
-        "user"
-      );
-    }
-  }
-
-
-  const match =
-    path.match(
-      /^\/api\/admin-chat\/([^/]+)$/
-    );
-
-
-  if (match) {
-    const id =
-      decodeURIComponent(
-        match[1]
-      );
-
-
-    if (
-      request.method === "GET"
-    ) {
-      return handleChatConversation(
-        request,
-        env,
-        id
-      );
-    }
-
-
-    if (
-      request.method === "PATCH" ||
-      request.method === "PUT"
-    ) {
-      return handleChatUpdate(
-        request,
-        env,
-        id
-      );
-    }
-  }
-
-
-  return json(
-    {
-      ok: false,
-      error:
-        "CHAT_ROUTE_NOT_FOUND"
-    },
-    404,
-    request
-  );
-}
-
-
-/* ============================================================
-   ADMIN CHAT
-============================================================ */
-
-async function handleAdminChat(
-  request,
-  env,
-  ctx
-) {
-  await ensureAdminChatTable(
-    env
-  );
-
-
-  const url =
-    new URL(request.url);
-
-  const path =
-    normalizePath(
-      url.pathname
-    );
-
-
-  if (
-    path ===
-    "/api/admin/chat"
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return handleChatList(
-        request,
-        env,
-        true
-      );
-    }
-
-
-    if (
-      request.method === "POST"
-    ) {
-      return handleChatSend(
-        request,
-        env,
-        "admin"
-      );
-    }
-  }
-
-
-  const match =
-    path.match(
-      /^\/api\/admin\/chat\/([^/]+)$/
-    );
-
-
-  if (match) {
-    const id =
-      decodeURIComponent(
-        match[1]
-      );
-
-
-    if (
-      request.method === "GET"
-    ) {
-      return handleChatConversation(
-        request,
-        env,
-        id
-      );
-    }
-
-
-    if (
-      request.method === "PATCH" ||
-      request.method === "PUT"
-    ) {
-      return handleChatUpdate(
-        request,
-        env,
-        id
-      );
-    }
-  }
-
-
-  return json(
-    {
-      ok: false,
-      error:
-        "ADMIN_CHAT_ROUTE_NOT_FOUND"
-    },
-    404,
-    request
-  );
-}
-
-
-/* ============================================================
-   CHAT LIST
-============================================================ */
-
-async function handleChatList(
-  request,
-  env,
-  adminView
-) {
-  try {
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-
-          FROM admin_chat
-
-          ORDER BY
-            created_at DESC
-
-          LIMIT 1000
-          `
-        )
-        .all();
-
-
-    const messages =
-      result.results || [];
-
-
-    return json(
-      {
-        ok: true,
-
-        messages,
-
-        conversations:
-          groupChatConversations(
-            messages
-          ),
-
-        unread:
-          messages.filter(
-            message =>
-              message.sender_type ===
-                "user" &&
-              (
-                !message.read_at
-              )
-          ).length,
-
-        admin_view:
-          Boolean(
-            adminView
-          )
-      },
-      200,
-      request
-    );
   } catch (error) {
-    return json(
-      {
+
+    if (
+      String(error.message || "")
+        .toLowerCase()
+        .includes("unique")
+    ) {
+      return json({
         ok: false,
         error:
-          "CHAT_LIST_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
+          "USERNAME_ALREADY_EXISTS"
+      }, 409, request);
+    }
+
+    throw error;
   }
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "participant_updated",
+
+    entity_type:
+      "participant",
+
+    entity_id:
+      id,
+
+    details:
+      body
+  });
+
+  return adminParticipant(
+    request,
+    env,
+    `/api/admin/participants/${encodeURIComponent(id)}`
+  );
 }
 
+/* =========================================================
+   ADMIN DELETE PARTICIPANT
+   ========================================================= */
 
-/* ============================================================
-   CHAT SEND
-============================================================ */
-
-async function handleChatSend(
+async function adminDeleteParticipant(
   request,
   env,
-  senderType
+  path
 ) {
-  let body;
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error:
-          "INVALID_JSON"
-      },
-      400,
-      request
+  const auth =
+    await requireAdmin(
+      request,
+      env
     );
+
+  if (!auth.ok) {
+    return auth.response;
   }
-
-
-  const message =
-    cleanString(
-      body.message ||
-      body.text ||
-      body.content
-    );
-
-
-  if (!message) {
-    return json(
-      {
-        ok: false,
-        error:
-          "MESSAGE_REQUIRED"
-      },
-      400,
-      request
-    );
-  }
-
 
   const id =
-    crypto.randomUUID();
-
-
-  const now =
-    new Date().toISOString();
-
-
-  const conversationId =
-    cleanString(
-      body.conversation_id
-    ) ||
-    cleanString(
-      body.user_id
-    ) ||
-    crypto.randomUUID();
-
-
-  let senderName;
-
-
-  if (
-    senderType ===
-    "admin"
-  ) {
-    senderName =
-      ADMIN.name;
-  } else {
-    senderName =
-      cleanString(
-        body.name ||
-        body.sender_name
-      ) ||
-      "Пользователь";
-  }
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        INSERT INTO admin_chat
-        (
-          id,
-          conversation_id,
-          sender_type,
-          sender_name,
-          user_id,
-          message,
-          created_at,
-          read_at
-        )
-
-        VALUES
-        (?, ?, ?, ?, ?, ?, ?, ?)
-        `
-      )
-      .bind(
-        id,
-        conversationId,
-        senderType,
-        senderName,
-        cleanString(
-          body.user_id
-        ),
-        message,
-        now,
-        senderType === "admin"
-          ? now
-          : null
-      )
-      .run();
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        conversation_id:
-          conversationId,
-        sender_type:
-          senderType
-      },
-      201,
-      request
+    decodeURIComponent(
+      path.split("/").pop()
     );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "CHAT_SEND_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
+
+  await env.DB.prepare(`
+    UPDATE participants
+
+    SET
+      status = 'deleted',
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    now(),
+    id
+  ).run();
+
+  await env.DB.prepare(`
+    UPDATE publications
+
+    SET
+      status = 'archived',
+      visibility = 'hidden',
+      updated_at = ?
+
+    WHERE participant_id = ?
+      AND deleted_at IS NULL
+  `).bind(
+    now(),
+    id
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "participant_deleted",
+
+    entity_type:
+      "participant",
+
+    entity_id:
+      id
+  });
+
+  return json({
+    ok: true
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN PARTICIPANT STATUS
+   ========================================================= */
 
-/* ============================================================
-   CHAT CONVERSATION
-============================================================ */
-
-async function handleChatConversation(
+async function adminParticipantStatus(
   request,
   env,
-  conversationId
+  path
 ) {
-  try {
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-
-          FROM admin_chat
-
-          WHERE conversation_id = ?
-
-          ORDER BY
-            created_at ASC
-          `
-        )
-        .bind(
-          conversationId
-        )
-        .all();
-
-
-    return json(
-      {
-        ok: true,
-
-        conversation_id:
-          conversationId,
-
-        messages:
-          result.results || []
-      },
-      200,
-      request
+  const auth =
+    await requireAdmin(
+      request,
+      env
     );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "CHAT_CONVERSATION_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
+
+  if (!auth.ok) {
+    return auth.response;
   }
-}
 
+  const id =
+    decodeURIComponent(
+      path.split("/")[4]
+    );
 
-/* ============================================================
-   CHAT UPDATE
-============================================================ */
+  const body =
+    await readJSON(request);
 
-async function handleChatUpdate(
-  request,
-  env,
-  id
-) {
-  let body = {};
+  const status =
+    clean(body.status);
 
-  try {
-    body =
-      await request.json();
-  } catch {}
+  const allowed = [
+    "active",
+    "blocked",
+    "deleted",
+    "suspended"
+  ];
 
+  if (!allowed.includes(status)) {
+    return json({
+      ok: false,
+      error: "INVALID_STATUS"
+    }, 400, request);
+  }
 
-  try {
-    if (
-      body.read === true ||
-      body.read_at
-    ) {
-      await env.DB
-        .prepare(
-          `
-          UPDATE admin_chat
+  await env.DB.prepare(`
+    UPDATE participants
 
-          SET
-            read_at = ?
+    SET
+      status = ?,
+      updated_at = ?
 
-          WHERE id = ?
-          `
-        )
-        .bind(
-          body.read_at ||
-            new Date().toISOString(),
-          id
-        )
-        .run();
+    WHERE id = ?
+  `).bind(
+    status,
+    now(),
+    id
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "participant_status_changed",
+
+    entity_type:
+      "participant",
+
+    entity_id:
+      id,
+
+    details: {
+      status
     }
+  });
 
-
-    return json(
-      {
-        ok: true,
-        id
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "CHAT_UPDATE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
+  return json({
+    ok: true,
+    status
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN PARTICIPANT COUNTERS
+   ========================================================= */
 
-/* ============================================================
-   CHAT GROUPING
-============================================================ */
-
-function groupChatConversations(
-  messages
+async function adminParticipantCounters(
+  request,
+  env,
+  path
 ) {
-  const map =
-    new Map();
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
 
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/")[4]
+    );
+
+  const body =
+    await readJSON(request);
+
+  const fields = [
+    "followers_count",
+    "following_count",
+    "publications_count"
+  ];
+
+  const updates = [];
+  const values = [];
 
   for (
-    const message
-    of messages
+    const field of fields
   ) {
-    const id =
-      message.conversation_id ||
-      message.user_id ||
-      message.id;
+    if (
+      body[field] !== undefined
+    ) {
+      const value =
+        Number(body[field]);
 
+      if (
+        !Number.isFinite(value) ||
+        value < 0
+      ) {
+        return json({
+          ok: false,
+          error:
+            `INVALID_${field}`
+        }, 400, request);
+      }
 
-    if (!map.has(id)) {
-      map.set(
-        id,
-        {
-          conversation_id:
-            id,
-
-          user_id:
-            message.user_id ||
-            null,
-
-          participant_name:
-            message.sender_type ===
-              "user"
-              ? message.sender_name
-              : null,
-
-          last_message:
-            message.message,
-
-          last_message_at:
-            message.created_at,
-
-          unread: 0,
-
-          messages: []
-        }
+      updates.push(
+        `${field} = ?`
       );
-    }
 
-
-    const conversation =
-      map.get(id);
-
-
-    conversation.messages.push(
-      message
-    );
-
-
-    conversation.last_message =
-      message.message;
-
-
-    conversation.last_message_at =
-      message.created_at;
-
-
-    if (
-      message.sender_type ===
-        "user" &&
-      !message.read_at
-    ) {
-      conversation.unread++;
-    }
-
-
-    if (
-      message.sender_type ===
-        "user"
-    ) {
-      conversation.participant_name =
-        message.sender_name;
+      values.push(
+        Math.floor(value)
+      );
     }
   }
 
+  if (!updates.length) {
+    return json({
+      ok: false,
+      error: "NO_COUNTERS"
+    }, 400, request);
+  }
 
-  return Array.from(
-    map.values()
-  ).sort(
-    (a, b) =>
-      String(
-        b.last_message_at || ""
-      ).localeCompare(
-        String(
-          a.last_message_at || ""
-        )
-      )
+  updates.push(
+    "updated_at = ?"
   );
+
+  values.push(now());
+  values.push(id);
+
+  await env.DB.prepare(`
+    UPDATE participants
+
+    SET
+      ${updates.join(", ")}
+
+    WHERE id = ?
+  `).bind(
+    ...values
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "participant_counters_changed",
+
+    entity_type:
+      "participant",
+
+    entity_id:
+      id,
+
+    details:
+      body
+  });
+
+  return json({
+    ok: true,
+    changed:
+      body
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN CHATS
+   ========================================================= */
 
-/* ============================================================
-   CHAT TABLE
-============================================================ */
-
-async function ensureAdminChatTable(
-  env
-) {
-  await env.DB
-    .prepare(
-      `
-      CREATE TABLE IF NOT EXISTS admin_chat
-      (
-        id TEXT PRIMARY KEY,
-
-        conversation_id TEXT,
-
-        sender_type TEXT,
-
-        sender_name TEXT,
-
-        user_id TEXT,
-
-        message TEXT,
-
-        created_at TEXT,
-
-        read_at TEXT
-      )
-      `
-    )
-    .run();
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        CREATE INDEX IF NOT EXISTS
-        idx_admin_chat_conversation
-
-        ON admin_chat(
-          conversation_id
-        )
-        `
-      )
-      .run();
-  } catch {}
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        CREATE INDEX IF NOT EXISTS
-        idx_admin_chat_created
-
-        ON admin_chat(
-          created_at
-        )
-        `
-      )
-      .run();
-  } catch {}
-}
-
-
-/* ============================================================
-   NOTIFICATIONS
-============================================================ */
-
-async function handleNotifications(
+async function adminChats(
   request,
   env
 ) {
-  if (
-    request.method !== "GET"
-  ) {
-    return methodNotAllowed(
-      request
-    );
-  }
-
-
-  try {
-    await ensureNotificationsTable(
+  const auth =
+    await requireAdmin(
+      request,
       env
     );
 
-
-    const url =
-      new URL(request.url);
-
-
-    const userId =
-      url.searchParams.get(
-        "user_id"
-      );
-
-
-    let result;
-
-
-    if (userId) {
-      result =
-        await env.DB
-          .prepare(
-            `
-            SELECT *
-
-            FROM notifications
-
-            WHERE
-              user_id = ?
-              OR user_id IS NULL
-
-            ORDER BY
-              created_at DESC
-
-            LIMIT 200
-            `
-          )
-          .bind(
-            userId
-          )
-          .all();
-    } else {
-      result =
-        await env.DB
-          .prepare(
-            `
-            SELECT *
-
-            FROM notifications
-
-            ORDER BY
-              created_at DESC
-
-            LIMIT 200
-            `
-          )
-          .all();
-    }
-
-
-    return json(
-      {
-        ok: true,
-
-        notifications:
-          result.results || []
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "NOTIFICATIONS_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   ADMIN NOTIFICATIONS
-============================================================ */
-
-async function handleAdminNotifications(
-  request,
-  env
-) {
-  await ensureNotificationsTable(
-    env
-  );
-
-
-  const url =
-    new URL(request.url);
-
-  const path =
-    normalizePath(
-      url.pathname
-    );
-
-
-  if (
-    path ===
-    "/api/admin/notifications"
-  ) {
-    if (
-      request.method === "GET"
-    ) {
-      return handleNotifications(
-        request,
-        env
-      );
-    }
-
-
-    if (
-      request.method === "POST"
-    ) {
-      return createNotification(
-        request,
-        env
-      );
-    }
-
-
-    return methodNotAllowed(
-      request
-    );
+  if (!auth.ok) {
+    return auth.response;
   }
 
+  const result =
+    await env.DB.prepare(`
+      SELECT
 
-  const match =
-    path.match(
-      /^\/api\/admin\/notifications\/([^/]+)$/
-    );
+        c.participant_id,
 
+        p.name AS participant_name,
+        p.username AS participant_username,
+        p.avatar_url AS participant_avatar,
+        p.verified AS participant_verified,
 
-  if (
-    match &&
-    (
-      request.method ===
-        "PATCH" ||
-      request.method ===
-        "PUT"
-    )
-  ) {
-    return markNotificationRead(
-      request,
-      env,
-      decodeURIComponent(
-        match[1]
-      )
-    );
-  }
+        MAX(c.created_at)
+          AS last_message_at,
 
+        SUM(
+          CASE
+            WHEN
+              c.sender_type = 'participant'
+              AND c.is_read = 0
+            THEN 1
+            ELSE 0
+          END
+        ) AS unread_count
 
-  return json(
-    {
-      ok: false,
-      error:
-        "NOTIFICATION_ROUTE_NOT_FOUND"
+      FROM chat_messages c
+
+      LEFT JOIN participants p
+        ON p.id = c.participant_id
+
+      GROUP BY
+        c.participant_id,
+        p.name,
+        p.username,
+        p.avatar_url,
+        p.verified
+
+      ORDER BY
+        last_message_at DESC
+    `).all();
+
+  return json({
+    ok: true,
+
+    official_account: {
+      name: SITE_NAME,
+      username: OFFICIAL_USERNAME,
+      verified: true
     },
-    404,
-    request
-  );
+
+    chats:
+      result.results || []
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN CHAT
+   ========================================================= */
 
-/* ============================================================
-   CREATE NOTIFICATION
-============================================================ */
-
-async function createNotification(
+async function adminChatMessages(
   request,
-  env
+  env,
+  path
 ) {
-  let body;
-
-
-  try {
-    body =
-      await request.json();
-  } catch {
-    return json(
-      {
-        ok: false,
-        error:
-          "INVALID_JSON"
-      },
-      400,
-      request
+  const auth =
+    await requireAdmin(
+      request,
+      env
     );
+
+  if (!auth.ok) {
+    return auth.response;
   }
 
+  const participantId =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  const result =
+    await env.DB.prepare(`
+      SELECT *
+
+      FROM chat_messages
+
+      WHERE participant_id = ?
+
+      ORDER BY created_at ASC
+    `).bind(
+      participantId
+    ).all();
+
+  return json({
+    ok: true,
+
+    official_account: {
+      name: SITE_NAME,
+      username: OFFICIAL_USERNAME,
+      verified: true
+    },
+
+    participant_id:
+      participantId,
+
+    messages:
+      result.results || []
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN SEND CHAT
+   ========================================================= */
+
+async function adminSendChat(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const participantId =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  const body =
+    await readJSON(request);
+
+  const text =
+    clean(body.text);
+
+  if (!text) {
+    return json({
+      ok: false,
+      error: "MESSAGE_REQUIRED"
+    }, 400, request);
+  }
 
   const id =
-    crypto.randomUUID();
+    uid("message");
 
-
-  const now =
-    new Date().toISOString();
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        INSERT INTO notifications
-        (
-          id,
-          user_id,
-          title,
-          message,
-          type,
-          is_read,
-          created_at
-        )
-
-        VALUES
-        (?, ?, ?, ?, ?, ?, ?)
-        `
-      )
-      .bind(
-        id,
-        cleanString(
-          body.user_id
-        ),
-        cleanString(
-          body.title
-        ),
-        cleanString(
-          body.message
-        ),
-        cleanString(
-          body.type
-        ) || "system",
-        0,
-        now
-      )
-      .run();
-
-
-    await writeAuditLog(
-      env,
-      "notification_created",
+  await env.DB.prepare(`
+    INSERT INTO chat_messages (
       id,
-      body
-    );
+      participant_id,
+      publication_id,
 
+      sender_type,
+      sender_id,
+      sender_name,
 
-    return json(
-      {
-        ok: true,
+      text,
+
+      is_read,
+      created_at
+    )
+    VALUES (
+      ?, ?, ?,
+
+      'official',
+      'official',
+      ?,
+
+      ?,
+
+      0,
+      ?
+    )
+  `).bind(
+    id,
+
+    participantId,
+
+    clean(body.publication_id) ||
+      null,
+
+    SITE_NAME,
+
+    text,
+
+    now()
+  ).run();
+
+  await notify(
+    env,
+
+    participantId,
+
+    SITE_NAME,
+
+    text,
+
+    "official_message"
+  );
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "official_message_sent",
+
+    entity_type:
+      "chat",
+
+    entity_id:
+      participantId,
+
+    details: {
+      publication_id:
+        clean(body.publication_id) ||
+        null,
+
+      message_id:
         id
-      },
-      201,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "NOTIFICATION_CREATE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
+    }
+  });
+
+  return json({
+    ok: true,
+
+    message_id:
+      id,
+
+    official_account: {
+      name: SITE_NAME,
+      username: OFFICIAL_USERNAME,
+      verified: true
+    }
+  }, 201, request);
 }
 
+/* =========================================================
+   ADMIN MARK CHAT READ
+   ========================================================= */
 
-/* ============================================================
-   MARK NOTIFICATION READ
-============================================================ */
-
-async function markNotificationRead(
+async function adminMarkChatRead(
   request,
   env,
-  id
+  path
 ) {
-  try {
-    await env.DB
-      .prepare(
-        `
-        UPDATE notifications
-
-        SET
-          is_read = 1
-
-        WHERE id = ?
-        `
-      )
-      .bind(id)
-      .run();
-
-
-    return json(
-      {
-        ok: true,
-        id,
-        is_read: 1
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "NOTIFICATION_UPDATE_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
-  }
-}
-
-
-/* ============================================================
-   NOTIFICATIONS TABLE
-============================================================ */
-
-async function ensureNotificationsTable(
-  env
-) {
-  await env.DB
-    .prepare(
-      `
-      CREATE TABLE IF NOT EXISTS notifications
-      (
-        id TEXT PRIMARY KEY,
-
-        user_id TEXT,
-
-        title TEXT,
-
-        message TEXT,
-
-        type TEXT,
-
-        is_read INTEGER DEFAULT 0,
-
-        created_at TEXT
-      )
-      `
-    )
-    .run();
-
-
-  try {
-    await env.DB
-      .prepare(
-        `
-        CREATE INDEX IF NOT EXISTS
-        idx_notifications_user
-
-        ON notifications(
-          user_id
-        )
-        `
-      )
-      .run();
-  } catch {}
-}
-
-
-/* ============================================================
-   AUDIT LOG
-============================================================ */
-
-async function handleAdminAudit(
-  request,
-  env
-) {
-  try {
-    await ensureAuditTable(
+  const auth =
+    await requireAdmin(
+      request,
       env
     );
 
-
-    const url =
-      new URL(request.url);
-
-
-    const limit =
-      Math.min(
-        1000,
-        Math.max(
-          1,
-          Number(
-            url.searchParams.get(
-              "limit"
-            ) || 200
-          )
-        )
-      );
-
-
-    const result =
-      await env.DB
-        .prepare(
-          `
-          SELECT *
-
-          FROM audit_log
-
-          ORDER BY
-            created_at DESC
-
-          LIMIT ?
-          `
-        )
-        .bind(limit)
-        .all();
-
-
-    return json(
-      {
-        ok: true,
-        logs:
-          result.results || []
-      },
-      200,
-      request
-    );
-  } catch (error) {
-    return json(
-      {
-        ok: false,
-        error:
-          "AUDIT_FAILED",
-        message:
-          error.message
-      },
-      500,
-      request
-    );
+  if (!auth.ok) {
+    return auth.response;
   }
+
+  const participantId =
+    decodeURIComponent(
+      path.split("/")[4]
+    );
+
+  await env.DB.prepare(`
+    UPDATE chat_messages
+
+    SET
+      is_read = 1
+
+    WHERE participant_id = ?
+      AND sender_type = 'participant'
+  `).bind(
+    participantId
+  ).run();
+
+  return json({
+    ok: true
+  }, 200, request);
 }
 
+/* =========================================================
+   ADMIN COMMENTS
+   ========================================================= */
 
-/* ============================================================
-   AUDIT TABLE
-============================================================ */
-
-async function ensureAuditTable(
+async function adminComments(
+  request,
   env
 ) {
-  await env.DB
-    .prepare(
-      `
-      CREATE TABLE IF NOT EXISTS audit_log
-      (
-        id TEXT PRIMARY KEY,
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
 
-        action TEXT,
+  if (!auth.ok) {
+    return auth.response;
+  }
 
-        target_id TEXT,
+  const result =
+    await env.DB.prepare(`
+      SELECT
 
-        data TEXT,
+        c.*,
 
-        created_at TEXT
-      )
-      `
-    )
-    .run();
+        p.title AS publication_title,
 
+        u.name AS author_name,
+        u.username AS author_username
 
-  try {
-    await env.DB
-      .prepare(
-        `
-        CREATE INDEX IF NOT EXISTS
-        idx_audit_created
+      FROM comments c
 
-        ON audit_log(
-          created_at
-        )
-        `
-      )
-      .run();
-  } catch {}
+      LEFT JOIN publications p
+        ON p.id = c.publication_id
+
+      LEFT JOIN participants u
+        ON u.id = c.participant_id
+
+      ORDER BY c.created_at DESC
+
+      LIMIT 1000
+    `).all();
+
+  return json({
+    ok: true,
+
+    comments:
+      result.results || []
+  }, 200, request);
 }
 
-
-/* ============================================================
-   WRITE AUDIT
-============================================================ */
-
-async function writeAuditLog(
+async function adminUpdateComment(
+  request,
   env,
-  action,
-  targetId,
-  data
+  path
 ) {
-  if (!env.DB) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  const body =
+    await readJSON(request);
+
+  await env.DB.prepare(`
+    UPDATE comments
+
+    SET
+
+      text =
+        COALESCE(?, text),
+
+      status =
+        COALESCE(?, status),
+
+      likes_count =
+        COALESCE(?, likes_count),
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    body.text !== undefined
+      ? clean(body.text)
+      : null,
+
+    body.status !== undefined
+      ? clean(body.status)
+      : null,
+
+    body.likes_count !== undefined
+      ? Math.max(
+          0,
+          Math.floor(
+            Number(
+              body.likes_count
+            )
+          )
+        )
+      : null,
+
+    now(),
+
+    id
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "comment_updated",
+
+    entity_type:
+      "comment",
+
+    entity_id:
+      id,
+
+    details:
+      body
+  });
+
+  return json({
+    ok: true
+  }, 200, request);
+}
+
+async function adminDeleteComment(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  await env.DB.prepare(`
+    UPDATE comments
+
+    SET
+      status = 'deleted',
+      deleted_at = ?,
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    now(),
+    now(),
+    id
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "comment_deleted",
+
+    entity_type:
+      "comment",
+
+    entity_id:
+      id
+  });
+
+  return json({
+    ok: true
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN REPORTS
+   ========================================================= */
+
+async function adminReports(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const result =
+    await env.DB.prepare(`
+      SELECT
+
+        r.*,
+
+        p.title AS publication_title,
+
+        u.name AS participant_name,
+        u.username AS participant_username
+
+      FROM reports r
+
+      LEFT JOIN publications p
+        ON p.id = r.publication_id
+
+      LEFT JOIN participants u
+        ON u.id = r.participant_id
+
+      ORDER BY r.created_at DESC
+
+      LIMIT 1000
+    `).all();
+
+  return json({
+    ok: true,
+
+    reports:
+      result.results || []
+  }, 200, request);
+}
+
+async function adminUpdateReport(
+  request,
+  env,
+  path
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const id =
+    decodeURIComponent(
+      path.split("/").pop()
+    );
+
+  const body =
+    await readJSON(request);
+
+  await env.DB.prepare(`
+    UPDATE reports
+
+    SET
+
+      status =
+        COALESCE(?, status),
+
+      admin_note =
+        COALESCE(?, admin_note),
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    body.status !== undefined
+      ? clean(body.status)
+      : null,
+
+    body.admin_note !== undefined
+      ? clean(body.admin_note)
+      : null,
+
+    now(),
+
+    id
+  ).run();
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "report_updated",
+
+    entity_type:
+      "report",
+
+    entity_id:
+      id,
+
+    details:
+      body
+  });
+
+  return json({
+    ok: true
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN NOTIFICATIONS
+   ========================================================= */
+
+async function adminNotifications(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const [
+    pending,
+    totalParticipants,
+    activeParticipants,
+    deletedParticipants,
+    blockedParticipants,
+    openReports,
+    unreadChats,
+    totalPublications,
+    publishedPublications
+  ] = await Promise.all([
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications
+       WHERE status = 'pending'
+       AND deleted_at IS NULL`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants
+       WHERE status = 'active'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants
+       WHERE status = 'deleted'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM participants
+       WHERE status = 'blocked'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM reports
+       WHERE status = 'open'`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM chat_messages
+       WHERE sender_type = 'participant'
+       AND is_read = 0`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications`
+    ),
+
+    scalar(
+      env,
+      `SELECT COUNT(*) FROM publications
+       WHERE status = 'published'
+       AND deleted_at IS NULL`
+    )
+  ]);
+
+  return json({
+    ok: true,
+
+    sections: {
+
+      pending_posts: {
+        title:
+          "Эти посты ждут разрешения",
+
+        count:
+          pending
+      },
+
+      participants: {
+        total:
+          totalParticipants,
+
+        active:
+          activeParticipants,
+
+        deleted:
+          deletedParticipants,
+
+        blocked:
+          blockedParticipants
+      },
+
+      publications: {
+        total:
+          totalPublications,
+
+        published:
+          publishedPublications
+      },
+
+      moderation: {
+        reports:
+          openReports,
+
+        unread_chats:
+          unreadChats
+      }
+    }
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN AUDIT
+   ========================================================= */
+
+async function adminAudit(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const result =
+    await env.DB.prepare(`
+      SELECT *
+
+      FROM audit_log
+
+      ORDER BY created_at DESC
+
+      LIMIT 1000
+    `).all();
+
+  return json({
+    ok: true,
+
+    audit:
+      result.results || []
+  }, 200, request);
+}
+
+/* =========================================================
+   ADMIN SETTINGS
+   ========================================================= */
+
+async function adminSettings(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const result =
+    await env.DB.prepare(`
+      SELECT *
+
+      FROM system_settings
+
+      ORDER BY key ASC
+    `).all();
+
+  const settings = {};
+
+  for (
+    const row of result.results || []
+  ) {
+    try {
+      settings[row.key] =
+        JSON.parse(row.value);
+    } catch {
+      settings[row.key] =
+        row.value;
+    }
+  }
+
+  return json({
+    ok: true,
+
+    settings
+  }, 200, request);
+}
+
+async function adminUpdateSettings(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  const body =
+    await readJSON(request);
+
+  for (
+    const [key, value]
+    of Object.entries(body)
+  ) {
+
+    await env.DB.prepare(`
+      INSERT INTO system_settings (
+        key,
+        value,
+        updated_at
+      )
+
+      VALUES (?, ?, ?)
+
+      ON CONFLICT(key)
+
+      DO UPDATE SET
+        value =
+          excluded.value,
+
+        updated_at =
+          excluded.updated_at
+    `).bind(
+      clean(key),
+      JSON.stringify(value),
+      now()
+    ).run();
+  }
+
+  await audit(env, {
+    admin_id:
+      auth.admin.username,
+
+    action:
+      "system_settings_updated",
+
+    entity_type:
+      "system",
+
+    details:
+      body
+  });
+
+  return adminSettings(
+    request,
+    env
+  );
+}
+
+/* =========================================================
+   ADMIN SYSTEM
+   ========================================================= */
+
+async function adminSystem(
+  request,
+  env
+) {
+  const auth =
+    await requireAdmin(
+      request,
+      env
+    );
+
+  if (!auth.ok) {
+    return auth.response;
+  }
+
+  return json({
+    ok: true,
+
+    site: {
+      name: SITE_NAME,
+
+      official_username:
+        OFFICIAL_USERNAME
+    },
+
+    admin: {
+      username:
+        ADMIN_USERNAME,
+
+      role:
+        "super_admin",
+
+      permissions:
+        ["*"],
+
+      registration:
+        false
+    },
+
+    participant_system: {
+      registration:
+        false,
+
+      login:
+        false,
+
+      social_login:
+        false,
+
+      google:
+        false,
+
+      facebook:
+        false,
+
+      telegram:
+        false,
+
+      apple:
+        false,
+
+      anonymous_usage:
+        true
+    },
+
+    categories:
+      CATEGORIES,
+
+    reactions:
+      REACTIONS,
+
+    media_types:
+      MEDIA_TYPES
+  }, 200, request);
+}
+
+/* =========================================================
+   NOTIFICATION
+   ========================================================= */
+
+async function notify(
+  env,
+  participantId,
+  title,
+  message,
+  type
+) {
+  if (!participantId) {
     return;
   }
 
-
-  try {
-    await ensureAuditTable(
-      env
-    );
-
-
-    await env.DB
-      .prepare(
-        `
-        INSERT INTO audit_log
-        (
-          id,
-          action,
-          target_id,
-          data,
-          created_at
-        )
-
-        VALUES
-        (?, ?, ?, ?, ?)
-        `
-      )
-      .bind(
-        crypto.randomUUID(),
-        action,
-        targetId || null,
-        JSON.stringify(
-          data || {}
-        ),
-        new Date().toISOString()
-      )
-      .run();
-  } catch (error) {
-    console.error(
-      "AUDIT_WRITE_ERROR",
-      error
-    );
-  }
+  await env.DB.prepare(`
+    INSERT INTO notifications (
+      id,
+      participant_id,
+      title,
+      message,
+      type,
+      is_read,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, 0, ?)
+  `).bind(
+    uid("notification"),
+    participantId,
+    title,
+    message,
+    type || "system",
+    now()
+  ).run();
 }
 
+/* =========================================================
+   AUDIT
+   ========================================================= */
 
-/* ============================================================
-   LEGACY OPPORTUNITIES
-============================================================ */
-
-async function handleLegacyOpportunities(
-  request,
-  env
+async function audit(
+  env,
+  data
 ) {
-  if (
-    request.method === "GET"
-  ) {
-    return handlePublicationsList(
-      request,
-      env
-    );
-  }
+  await env.DB.prepare(`
+    INSERT INTO audit_log (
+      id,
+      admin_id,
+      action,
+      entity_type,
+      entity_id,
+      details,
+      created_at
+    )
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).bind(
+    uid("audit"),
 
+    data.admin_id ||
+      null,
 
-  if (
-    request.method === "POST"
-  ) {
-    return handleCreatePublication(
-      request,
-      env
-    );
-  }
+    data.action ||
+      "unknown",
 
+    data.entity_type ||
+      null,
 
-  return methodNotAllowed(
-    request
-  );
+    data.entity_id ||
+      null,
+
+    JSON.stringify(
+      data.details || {}
+    ),
+
+    now()
+  ).run();
 }
 
+/* =========================================================
+   REACTION COUNTER
+   ========================================================= */
 
-/* ============================================================
-   LEGACY MESSAGES
-============================================================ */
-
-async function handleLegacyMessages(
-  request,
-  env
+async function reactionCounter(
+  env,
+  publicationId,
+  reaction,
+  delta
 ) {
-  if (
-    request.method === "GET"
-  ) {
-    return handleChatList(
-      request,
-      env,
-      false
-    );
+  const fields = {
+    like:
+      "likes_count",
+
+    love:
+      "love_count",
+
+    support:
+      "support_count",
+
+    funny:
+      "funny_count",
+
+    wow:
+      "wow_count",
+
+    sad:
+      "sad_count",
+
+    angry:
+      "angry_count"
+  };
+
+  const field =
+    fields[reaction];
+
+  if (!field) {
+    return;
   }
 
+  await env.DB.prepare(`
+    UPDATE publications
 
-  if (
-    request.method === "POST"
-  ) {
-    return handleChatSend(
-      request,
-      env,
-      "user"
-    );
-  }
+    SET
 
+      ${field} =
+        CASE
 
-  return methodNotAllowed(
-    request
-  );
+          WHEN ${field} + ? < 0
+          THEN 0
+
+          ELSE ${field} + ?
+
+        END,
+
+      updated_at = ?
+
+    WHERE id = ?
+  `).bind(
+    delta,
+    delta,
+    now(),
+    publicationId
+  ).run();
 }
 
+/* =========================================================
+   PARTICIPANT ID
+   ========================================================= */
 
-/* ============================================================
-   TRACKING CODE
-============================================================ */
-
-function createTrackingCode() {
-  const timestamp =
-    Date.now()
-      .toString(36)
-      .toUpperCase();
-
-
-  const random =
-    crypto
-      .randomUUID()
-      .replace(
-        /-/g,
-        ""
-      )
-      .slice(
-        0,
-        10
-      )
-      .toUpperCase();
-
-
-  return `TO-${timestamp}-${random}`;
-}
-
-
-/* ============================================================
-   STRING CLEANER
-============================================================ */
-
-function cleanString(
-  value
-) {
-  if (
-    value === undefined ||
-    value === null
-  ) {
-    return null;
-  }
-
-
-  if (
-    typeof value === "object"
-  ) {
-    try {
-      return JSON.stringify(
-        value
-      );
-    } catch {
-      return null;
-    }
-  }
-
-
-  return String(value)
-    .trim();
-}
-
-
-/* ============================================================
-   PATH
-============================================================ */
-
-function normalizePath(
-  path
-) {
-  if (!path) {
-    return "/";
-  }
-
-
-  let result =
-    path.replace(
-      /\/+/g,
-      "/"
-    );
-
-
-  if (
-    result.length > 1 &&
-    result.endsWith("/")
-  ) {
-    result =
-      result.slice(
-        0,
-        -1
-      );
-  }
-
-
-  return result;
-}
-
-
-/* ============================================================
-   METHOD
-============================================================ */
-
-function methodNotAllowed(
+function getParticipantId(
   request
 ) {
-  return json(
-    {
-      ok: false,
-      error:
-        "METHOD_NOT_ALLOWED"
-    },
-    405,
-    request
+  /*
+   * НЕТ ЛОГИНА.
+   *
+   * Frontend сохраняет этот ID локально
+   * и отправляет его обратно.
+   */
+
+  return (
+    request.headers.get(
+      "X-Participant-ID"
+    ) ||
+    request.headers.get(
+      "X-User-ID"
+    ) ||
+    "anonymous"
+  ).trim();
+}
+
+/* =========================================================
+   ADMIN TOKEN
+   ========================================================= */
+
+function getAdminToken(
+  request
+) {
+  const authorization =
+    request.headers.get(
+      "Authorization"
+    );
+
+  if (
+    authorization &&
+    authorization.startsWith(
+      "Bearer "
+    )
+  ) {
+    return authorization
+      .slice(7)
+      .trim();
+  }
+
+  return (
+    request.headers.get(
+      "X-Admin-Token"
+    ) || ""
+  ).trim();
+}
+
+/* =========================================================
+   HELPERS
+   ========================================================= */
+
+function now() {
+  return new Date().toISOString();
+}
+
+function uid(prefix) {
+  return (
+    prefix +
+    "_" +
+    crypto.randomUUID()
   );
 }
 
+function clean(value) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return "";
+  }
 
-/* ============================================================
-   JSON
-============================================================ */
+  return String(value)
+    .trim()
+    .replace(/\u0000/g, "");
+}
+
+function normalizePath(
+  pathname
+) {
+  let path =
+    pathname || "/";
+
+  if (
+    path.length > 1 &&
+    path.endsWith("/")
+  ) {
+    path =
+      path.slice(0, -1);
+  }
+
+  return path;
+}
+
+async function readJSON(
+  request
+) {
+  const text =
+    await request.text();
+
+  if (!text) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(
+      "INVALID_JSON"
+    );
+  }
+}
+
+async function scalar(
+  env,
+  sql,
+  ...args
+) {
+  const row =
+    await env.DB
+      .prepare(sql)
+      .bind(...args)
+      .first();
+
+  if (!row) {
+    return 0;
+  }
+
+  const key =
+    Object.keys(row)[0];
+
+  return Number(
+    row[key] || 0
+  );
+}
+
+function constantTimeEqual(
+  a,
+  b
+) {
+  const x =
+    String(a || "");
+
+  const y =
+    String(b || "");
+
+  if (
+    x.length !== y.length
+  ) {
+    return false;
+  }
+
+  let result = 0;
+
+  for (
+    let i = 0;
+    i < x.length;
+    i++
+  ) {
+    result |=
+      x.charCodeAt(i) ^
+      y.charCodeAt(i);
+  }
+
+  return result === 0;
+}
+
+function detectMediaType(
+  url
+) {
+  const value =
+    String(url || "")
+      .toLowerCase();
+
+  if (
+    /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/
+      .test(value)
+  ) {
+    return "image";
+  }
+
+  if (
+    /\.(mp4|webm|mov|mkv)(\?|$)/
+      .test(value)
+  ) {
+    return "video";
+  }
+
+  if (
+    /\.(mp3|wav|ogg|m4a)(\?|$)/
+      .test(value)
+  ) {
+    return "audio";
+  }
+
+  if (
+    /\.(pdf|doc|docx|xls|xlsx|ppt|pptx)(\?|$)/
+      .test(value)
+  ) {
+    return "document";
+  }
+
+  return "link";
+}
+
+/* =========================================================
+   RESPONSE
+   ========================================================= */
 
 function json(
   data,
-  status = 200,
-  request = null
-) {
-  const headers =
-    new Headers();
-
-
-  headers.set(
-    "Content-Type",
-    "application/json; charset=utf-8"
-  );
-
-
-  headers.set(
-    "Cache-Control",
-    "no-store"
-  );
-
-
-  headers.set(
-    "X-Content-Type-Options",
-    "nosniff"
-  );
-
-
-  headers.set(
-    "X-Frame-Options",
-    "SAMEORIGIN"
-  );
-
-
-  headers.set(
-    "Referrer-Policy",
-    "strict-origin-when-cross-origin"
-  );
-
-
-  if (request) {
-    applyCors(
-      headers,
-      request
-    );
-  }
-
-
-  return new Response(
-    JSON.stringify(
-      data
-    ),
-    {
-      status,
-      headers
-    }
-  );
-}
-
-
-/* ============================================================
-   CORS
-============================================================ */
-
-function corsResponse(
+  status,
   request
 ) {
-  const headers =
-    new Headers();
-
-
-  applyCors(
-    headers,
-    request
-  );
-
-
-  headers.set(
-    "Access-Control-Allow-Headers",
-    [
-      "Content-Type",
-      "Accept",
-      "X-Admin-Key",
-      "X-Admin-ID",
-      "X-Admin-Username"
-    ].join(", ")
-  );
-
-
-  headers.set(
-    "Access-Control-Allow-Methods",
-    ALLOWED_METHODS.join(
-      ", "
-    )
-  );
-
-
   return new Response(
-    null,
+    JSON.stringify(data),
     {
-      status: 204,
-      headers
+      status,
+
+      headers: {
+        ...corsHeaders(request),
+
+        "Content-Type":
+          "application/json; charset=utf-8",
+
+        "Cache-Control":
+          "no-store",
+
+        "X-Content-Type-Options":
+          "nosniff",
+
+        "X-Frame-Options":
+          "SAMEORIGIN",
+
+        "Referrer-Policy":
+          "strict-origin-when-cross-origin"
+      }
     }
   );
 }
 
-
-/* ============================================================
-   APPLY CORS
-============================================================ */
-
-function applyCors(
-  headers,
+function corsHeaders(
   request
 ) {
   const origin =
-    request.headers.get(
+    request?.headers.get(
       "Origin"
     );
 
+  return {
+    "Access-Control-Allow-Origin":
+      origin || "*",
 
-  if (origin) {
-    headers.set(
-      "Access-Control-Allow-Origin",
-      origin
-    );
+    "Access-Control-Allow-Credentials":
+      "true",
 
-    headers.set(
-      "Vary",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Admin-Token, X-Participant-ID, X-User-ID",
+
+    "Access-Control-Allow-Methods":
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+
+    "Vary":
       "Origin"
-    );
-  } else {
-    headers.set(
-      "Access-Control-Allow-Origin",
-      "https://tajik-opportunities.com"
-    );
-  }
-}
-
-
-/* ============================================================
-   SECURITY
-============================================================ */
-
-function withSecurity(
-  response,
-  request
-) {
-  const headers =
-    new Headers(
-      response.headers
-    );
-
-
-  headers.set(
-    "X-Content-Type-Options",
-    "nosniff"
-  );
-
-
-  headers.set(
-    "X-Frame-Options",
-    "SAMEORIGIN"
-  );
-
-
-  headers.set(
-    "Referrer-Policy",
-    "strict-origin-when-cross-origin"
-  );
-
-
-  headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
-  );
-
-
-  headers.set(
-    "Cross-Origin-Resource-Policy",
-    "same-origin"
-  );
-
-
-  applyCors(
-    headers,
-    request
-  );
-
-
-  return new Response(
-    response.body,
-    {
-      status:
-        response.status,
-
-      statusText:
-        response.statusText,
-
-      headers
-    }
-  );
+  };
   }
