@@ -1,38 +1,58 @@
 /* ============================================================
    TAJIK OPPORTUNITIES
    ADMIN CONTROL CENTER
-   /js/admin.js
+   public/js/admin.js
 
-   Полное управление:
-   - администрация
-   - статистика
-   - участники
-   - публикации
-   - ручные счётчики
-   - модерация
-   - корзина
-   - комментарии
-   - чаты
-   - уведомления
-   - платежи
+   VERSION: 2026.09.07
+
+   ADMIN MODE:
+   - Без входа
+   - Без пароля
+   - Без регистрации
+   - Сразу открывается панель
+   - Полные права super_admin
+
+   УПРАВЛЕНИЕ:
+   - Dashboard
+   - Статистика
+   - Заявки
+   - Публикации
+   - Участники
+   - Комментарии
+   - Чаты
+   - Уведомления
+   - Корзина
+   - Модерация
+   - Редактирование данных
 ============================================================ */
 
+"use strict";
 
 /* ============================================================
    STATE
 ============================================================ */
 
 const state = {
-  authenticated: false,
+  authenticated: true,
   loading: false,
 
+  admin: {
+    id: "key-admin",
+    name: "Главный администратор",
+    username: "admin",
+    role: "super_admin",
+    permissions: ["*"],
+    is_active: true
+  },
+
+  stats: {},
   submissions: [],
   posts: [],
-
   users: [],
   comments: [],
   chats: [],
   notifications: [],
+  audit: [],
 
   trashPosts: [],
   rejectedSubmissions: [],
@@ -58,53 +78,17 @@ const state = {
    HELPERS
 ============================================================ */
 
-const $ = id =>
-  document.getElementById(id);
-
-
-async function api(
-  url,
-  options = {}
-) {
-  const response = await fetch(
-    url,
-    {
-      credentials: "same-origin",
-      ...options,
-
-      headers: {
-        "content-type": "application/json",
-        ...(options.headers || {})
-      }
-    }
-  );
-
-  let data = {};
-
-  try {
-    data = await response.json();
-  } catch {
-    data = {};
-  }
-
-  if (!response.ok) {
-    const error = new Error(
-      data.error ||
-      data.message ||
-      `Ошибка ${response.status}`
-    );
-
-    error.status = response.status;
-
-    throw error;
-  }
-
-  return data;
+function $(id) {
+  return document.getElementById(id);
 }
 
 
 function escapeHtml(value) {
-  return String(value ?? "")
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  return String(value)
     .replaceAll("&", "&amp;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;")
@@ -113,7 +97,7 @@ function escapeHtml(value) {
 }
 
 
-function escapeAttr(value) {
+function escapeAttribute(value) {
   return escapeHtml(value);
 }
 
@@ -123,73 +107,158 @@ function formatDate(value) {
     return "—";
   }
 
-  const date = new Date(value);
+  try {
+    const date = new Date(value);
 
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return "—";
-  }
-
-  return date.toLocaleString(
-    "ru-RU",
-    {
-      dateStyle: "medium",
-      timeStyle: "short"
+    if (Number.isNaN(date.getTime())) {
+      return escapeHtml(value);
     }
-  );
+
+    return date.toLocaleString(
+      "ru-RU",
+      {
+        dateStyle: "medium",
+        timeStyle: "short"
+      }
+    );
+  } catch {
+    return escapeHtml(value);
+  }
 }
 
 
 function formatNumber(value) {
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return "0";
-  }
+  const number = Number(value || 0);
 
   return number.toLocaleString("ru-RU");
 }
 
 
 function getValue(id) {
-  return String(
-    $(id)?.value || ""
-  ).trim();
-}
-
-
-function setValue(
-  id,
-  value
-) {
   const element = $(id);
 
-  if (element) {
-    element.value =
-      value ?? "";
+  if (!element) {
+    return "";
   }
+
+  return String(element.value || "").trim();
 }
 
 
-function showMessage(
-  element,
-  message,
-  type = ""
-) {
+function setValue(id, value) {
+  const element = $(id);
+
   if (!element) {
     return;
   }
 
-  element.textContent =
-    message;
+  element.value =
+    value === null ||
+    value === undefined
+      ? ""
+      : value;
+}
 
-  element.className =
-    type
-      ? `admin-message ${type} show`
-      : "admin-message";
+
+function safeJson(value) {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return "{}";
+  }
+}
+
+
+function getQuery(name) {
+  const params =
+    new URLSearchParams(
+      window.location.search
+    );
+
+  return params.get(name);
+}
+
+
+/* ============================================================
+   API
+============================================================ */
+
+async function api(
+  url,
+  options = {}
+) {
+  const requestOptions = {
+    credentials: "include",
+    ...options,
+    headers: {
+      Accept: "application/json",
+      ...(options.headers || {})
+    }
+  };
+
+  if (
+    requestOptions.body &&
+    typeof requestOptions.body !== "string"
+  ) {
+    requestOptions.headers[
+      "Content-Type"
+    ] = "application/json";
+
+    requestOptions.body =
+      JSON.stringify(
+        requestOptions.body
+      );
+  }
+
+  const response =
+    await fetch(
+      url,
+      requestOptions
+    );
+
+  const contentType =
+    response.headers.get(
+      "content-type"
+    ) || "";
+
+  let data;
+
+  if (
+    contentType.includes(
+      "application/json"
+    )
+  ) {
+    data =
+      await response.json()
+        .catch(() => ({}));
+  } else {
+    const text =
+      await response.text()
+        .catch(() => "");
+
+    data = {
+      ok: response.ok,
+      message: text
+    };
+  }
+
+  if (!response.ok) {
+    const error =
+      new Error(
+        data?.message ||
+        data?.error ||
+        `Ошибка API: ${response.status}`
+      );
+
+    error.status =
+      response.status;
+
+    error.data = data;
+
+    throw error;
+  }
+
+  return data;
 }
 
 
@@ -198,11 +267,11 @@ function handleUnauthorized(error) {
     error &&
     error.status === 401
   ) {
-    state.authenticated = false;
+    console.error(
+      "Admin authorization is disabled. Worker should allow admin access."
+    );
 
-    showLogin();
-
-    return true;
+    return false;
   }
 
   return false;
@@ -210,330 +279,276 @@ function handleUnauthorized(error) {
 
 
 /* ============================================================
-   AUTHENTICATION
+   NOTIFICATION
 ============================================================ */
 
-function showLogin() {
-  const login =
-    $("adminLogin");
-
-  const dashboard =
-    $("adminDashboard");
-
-  if (login) {
-    login.hidden = false;
-    login.style.display = "";
-  }
-
-  if (dashboard) {
-    dashboard.hidden = true;
-    dashboard.classList.remove(
-      "active"
-    );
-  }
-
-  state.authenticated =
-    false;
-}
-
-
-function showDashboard() {
-  const login =
-    $("adminLogin");
-
-  const dashboard =
-    $("adminDashboard");
-
-  if (login) {
-    login.hidden = true;
-    login.style.display = "none";
-  }
-
-  if (dashboard) {
-    dashboard.hidden = false;
-    dashboard.style.display = "block";
-    dashboard.classList.add(
-      "active"
-    );
-  }
-
-  state.authenticated =
-    true;
-}
-
-
-async function checkAuthentication() {
-  try {
-    await api(
-      "/api/admin/me"
+function notify(
+  message,
+  type = "success"
+) {
+  const old =
+    document.querySelector(
+      ".admin-toast"
     );
 
-    showDashboard();
+  old?.remove();
 
-    await refreshEverything();
-
-  } catch {
-    showLogin();
-  }
-}
-
-
-async function handleLogin() {
-  const input =
-    $("adminPassword");
-
-  const button =
-    $("adminLoginButton");
-
-  const message =
-    $("adminLoginMessage");
-
-  const password =
-    input?.value || "";
-
-  if (!password) {
-    showMessage(
-      message,
-      "Введите пароль администратора.",
-      "error"
+  const toast =
+    document.createElement(
+      "div"
     );
 
-    return;
-  }
+  toast.className =
+    `admin-toast admin-toast-${type}`;
 
-  if (button) {
-    button.disabled = true;
-  }
+  toast.textContent =
+    message;
 
-  showMessage(
-    message,
-    "Проверяем пароль..."
+  Object.assign(
+    toast.style,
+    {
+      position: "fixed",
+      right: "22px",
+      bottom: "22px",
+      zIndex: "99999",
+      padding: "14px 18px",
+      borderRadius: "14px",
+      background: "#111827",
+      color: "#fff",
+      boxShadow:
+        "0 15px 45px rgba(0,0,0,.22)",
+      fontWeight: "700",
+      maxWidth: "420px"
+    }
   );
 
+  document.body.appendChild(
+    toast
+  );
+
+  setTimeout(
+    () => toast.remove(),
+    3500
+  );
+}
+
+
+/* ============================================================
+   ADMIN INFORMATION
+============================================================ */
+
+async function loadAdmin() {
   try {
-    await api(
-      "/api/admin/login",
-      {
-        method: "POST",
+    const data =
+      await api(
+        "/api/admin/me"
+      );
 
-        body: JSON.stringify({
-          password
-        })
-      }
-    );
-
-    if (input) {
-      input.value = "";
+    if (data?.admin) {
+      state.admin =
+        data.admin;
     }
 
-    showMessage(
-      message,
-      "Вход выполнен.",
-      "success"
-    );
-
-    showDashboard();
-
-    await refreshEverything();
+    updateAdminIdentity();
 
   } catch (error) {
-    showMessage(
-      message,
-      error.message ||
-      "Не удалось войти.",
-      "error"
+    /*
+     * Авторизация отключена.
+     * Даже если /me отсутствует,
+     * панель продолжает работать.
+     */
+
+    console.warn(
+      "Не удалось получить /api/admin/me:",
+      error
     );
 
-  } finally {
-    if (button) {
-      button.disabled = false;
-    }
+    updateAdminIdentity();
   }
 }
 
 
-async function handleLogout() {
-  try {
-    await api(
-      "/api/admin/logout",
-      {
-        method: "POST"
+function updateAdminIdentity() {
+  const name =
+    state.admin?.name ||
+    "Главный администратор";
+
+  const username =
+    state.admin?.username ||
+    "admin";
+
+  document
+    .querySelectorAll(
+      "[data-admin-name]"
+    )
+    .forEach(
+      element => {
+        element.textContent =
+          name;
       }
     );
-  } catch {
-    // локальный выход
-  }
 
-  state.authenticated =
-    false;
+  document
+    .querySelectorAll(
+      "[data-admin-username]"
+    )
+    .forEach(
+      element => {
+        element.textContent =
+          `@${username}`;
+      }
+    );
 
-  state.submissions = [];
-  state.posts = [];
-  state.users = [];
-  state.comments = [];
-  state.chats = [];
-  state.notifications = [];
-
-  state.trashPosts = [];
-  state.rejectedSubmissions = [];
-
-  showLogin();
+  document
+    .querySelectorAll(
+      "[data-admin-role]"
+    )
+    .forEach(
+      element => {
+        element.textContent =
+          "SUPER ADMIN";
+      }
+    );
 }
 
 
 /* ============================================================
-   REFRESH EVERYTHING
-============================================================ */
-
-async function refreshEverything() {
-  if (!state.authenticated) {
-    return;
-  }
-
-  state.loading = true;
-
-  const requests = [
-    loadStats(),
-    loadSubmissions(),
-    loadPosts(),
-    loadTrash(),
-
-    loadUsers(),
-    loadComments(),
-    loadChats(),
-    loadNotifications()
-  ];
-
-  await Promise.allSettled(
-    requests
-  );
-
-  state.loading = false;
-}
-
-
-/* ============================================================
-   STATISTICS
+   DASHBOARD
 ============================================================ */
 
 async function loadStats() {
   try {
-    let data;
-
-    try {
-      data = await api(
-        "/api/admin/dashboard"
-      );
-    } catch {
-      data = await api(
+    const data =
+      await api(
         "/api/admin/stats"
       );
-    }
 
-    const stats =
+    state.stats =
       data.stats ||
-      data.dashboard ||
       data ||
       {};
 
-    setText(
-      "pendingCount",
-      stats.pending ??
-      stats.pending_posts ??
-      0
-    );
-
-    setText(
-      "approvedCount",
-      stats.approved ??
-      stats.published ??
-      stats.approved_posts ??
-      0
-    );
-
-    setText(
-      "rejectedCount",
-      stats.rejected ??
-      stats.rejected_posts ??
-      0
-    );
-
-    setText(
-      "totalCount",
-      stats.total_posts ??
-      stats.total ??
-      0
-    );
-
-    setText(
-      "trashCount",
-      stats.trash_posts ??
-      stats.trash ??
-      0
-    );
-
-    setText(
-      "totalSubmissionsCount",
-      stats.total_submissions ??
-      stats.submissions ??
-      0
-    );
-
-    /* Дополнительные статистические поля,
-       если они присутствуют в HTML */
-
-    setText(
-      "usersCount",
-      stats.users ??
-      stats.total_users ??
-      stats.participants ??
-      0
-    );
-
-    setText(
-      "commentsCount",
-      stats.comments ??
-      stats.total_comments ??
-      0
-    );
-
-    setText(
-      "viewsCount",
-      stats.views ??
-      stats.total_views ??
-      0
-    );
-
-    setText(
-      "likesCount",
-      stats.likes ??
-      stats.total_likes ??
-      0
-    );
-
-    setText(
-      "sharesCount",
-      stats.shares ??
-      stats.total_shares ??
-      0
-    );
+    renderStats();
 
   } catch (error) {
     handleUnauthorized(error);
+
+    console.error(
+      "Stats error:",
+      error
+    );
   }
 }
 
 
-function setText(
-  id,
-  value
-) {
-  const element = $(id);
+function renderStats() {
+  const stats =
+    state.stats ||
+    {};
 
-  if (element) {
-    element.textContent =
-      formatNumber(value);
-  }
+  const values = {
+    total:
+      stats.total ||
+      stats.total_publications ||
+      stats.publications ||
+      0,
+
+    pending:
+      stats.pending ||
+      stats.pending_publications ||
+      stats.pending_submissions ||
+      0,
+
+    published:
+      stats.published ||
+      stats.published_publications ||
+      0,
+
+    users:
+      stats.users ||
+      stats.total_users ||
+      stats.participants ||
+      0,
+
+    comments:
+      stats.comments ||
+      stats.total_comments ||
+      0,
+
+    chats:
+      stats.chats ||
+      stats.total_chats ||
+      0,
+
+    notifications:
+      stats.notifications ||
+      stats.total_notifications ||
+      0,
+
+    views:
+      stats.views ||
+      stats.total_views ||
+      0,
+
+    likes:
+      stats.likes ||
+      stats.total_likes ||
+      0
+  };
+
+  const map = {
+    adminTotal:
+      values.total,
+
+    adminPending:
+      values.pending,
+
+    adminPublished:
+      values.published,
+
+    adminUsers:
+      values.users,
+
+    adminComments:
+      values.comments,
+
+    adminChats:
+      values.chats,
+
+    adminNotifications:
+      values.notifications,
+
+    adminViews:
+      values.views,
+
+    adminLikes:
+      values.likes,
+
+    totalPublications:
+      values.total,
+
+    pendingPublications:
+      values.pending,
+
+    publishedPublications:
+      values.published,
+
+    totalUsers:
+      values.users
+  };
+
+  Object.entries(map)
+    .forEach(
+      ([id, value]) => {
+        const element =
+          $(id);
+
+        if (element) {
+          element.textContent =
+            formatNumber(value);
+        }
+      }
+    );
 }
 
 
@@ -542,78 +557,86 @@ function setText(
 ============================================================ */
 
 async function loadSubmissions() {
-  const loading =
-    $("submissionsLoading");
-
-  const errorBox =
-    $("submissionsError");
-
-  const empty =
-    $("submissionsEmpty");
-
-  if (loading) {
-    loading.hidden = false;
-  }
-
-  if (errorBox) {
-    errorBox.hidden = true;
-  }
-
   try {
-    let data;
+    const url =
+      `/api/admin/submissions?status=${encodeURIComponent(
+        state.filter
+      )}`;
 
-    try {
-      data = await api(
-        `/api/admin/submissions?status=${encodeURIComponent(
-          state.filter
-        )}`
-      );
-    } catch {
-      data = await api(
-        `/api/admin/publications?status=${encodeURIComponent(
-          state.filter
-        )}`
-      );
-    }
+    const data =
+      await api(url);
 
     state.submissions =
       data.submissions ||
       data.publications ||
+      data.items ||
       [];
 
     renderSubmissions();
 
+    updateSubmissionCounters();
+
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
+    console.error(
+      "Submissions error:",
+      error
+    );
 
-    if (errorBox) {
-      errorBox.textContent =
-        error.message ||
-        "Не удалось загрузить заявки.";
-
-      errorBox.hidden =
-        false;
-    }
-
-  } finally {
-    if (loading) {
-      loading.hidden = true;
-    }
+    renderSubmissionsError(
+      error
+    );
   }
+}
+
+
+function renderSubmissionsError(
+  error
+) {
+  const list =
+    $("adminSubmissionsList") ||
+    $("submissionsList");
+
+  if (!list) {
+    return;
+  }
+
+  list.innerHTML = `
+    <div class="admin-empty">
+      ⚠️ Не удалось загрузить заявки.<br>
+      <small>
+        ${escapeHtml(
+          error?.message ||
+          "Ошибка сервера"
+        )}
+      </small>
+    </div>
+  `;
+}
+
+
+function updateSubmissionCounters() {
+  const count =
+    state.submissions.length;
+
+  document
+    .querySelectorAll(
+      "[data-pending-count]"
+    )
+    .forEach(
+      element => {
+        element.textContent =
+          formatNumber(count);
+      }
+    );
 }
 
 
 function renderSubmissions() {
   const list =
+    $("adminSubmissionsList") ||
     $("submissionsList");
-
-  const empty =
-    $("submissionsEmpty");
 
   if (!list) {
     return;
@@ -621,18 +644,22 @@ function renderSubmissions() {
 
   list.innerHTML = "";
 
-  if (
-    !state.submissions.length
-  ) {
-    if (empty) {
-      empty.hidden = false;
-    }
+  if (!state.submissions.length) {
+    list.innerHTML = `
+      <div class="admin-empty">
+        <div style="font-size:42px;">
+          📭
+        </div>
+        <strong>
+          Заявок нет
+        </strong>
+        <div>
+          В выбранном разделе пока ничего нет.
+        </div>
+      </div>
+    `;
 
     return;
-  }
-
-  if (empty) {
-    empty.hidden = true;
   }
 
   state.submissions.forEach(
@@ -646,58 +673,65 @@ function renderSubmissions() {
       card.className =
         "admin-card";
 
+      const title =
+        submission.title ||
+        "Без названия";
+
+      const author =
+        submission.user_name ||
+        submission.author_name ||
+        submission.contact_name ||
+        submission.username ||
+        "Участник";
+
+      const status =
+        submission.status ||
+        state.filter ||
+        "pending";
+
       card.innerHTML = `
         <div class="admin-card-top">
-
           <div>
-
             <h3 class="admin-card-title">
-              ${escapeHtml(
-                submission.title ||
-                "Без названия"
-              )}
+              ${escapeHtml(title)}
             </h3>
 
             <div class="admin-card-meta">
+              <span class="admin-badge">
+                👤 ${escapeHtml(author)}
+              </span>
 
               <span class="admin-badge">
+                ID:
                 ${escapeHtml(
-                  submission.category ||
-                  "Без категории"
+                  submission.id
                 )}
               </span>
 
               <span class="admin-badge">
-                ${formatDate(
-                  submission.created_at
-                )}
+                ${escapeHtml(status)}
               </span>
-
-              <span class="admin-badge">
-                👤 ${escapeHtml(
-                  submission.author_name ||
-                  submission.username ||
-                  "Автор не указан"
-                )}
-              </span>
-
             </div>
-
           </div>
-
-          <span class="admin-badge pending">
-            ${escapeHtml(
-              submission.status ||
-              "pending"
-            )}
-          </span>
-
         </div>
 
         <div class="admin-card-preview">
           ${escapeHtml(
-            submission.content ||
+            submission.text ||
+            submission.description ||
             ""
+          ).slice(0, 500)}
+        </div>
+
+        <div class="admin-card-meta">
+          📍 ${escapeHtml(
+            submission.city ||
+            submission.location ||
+            "Не указано"
+          )}
+          ·
+          📅 ${formatDate(
+            submission.created_at
           )}
         </div>
 
@@ -705,21 +739,21 @@ function renderSubmissions() {
 
           <button
             type="button"
-            class="admin-button admin-button-light"
-            data-action="submission-view"
+            class="admin-button admin-button-primary"
+            data-action="submission-open"
           >
             👁 Открыть
           </button>
 
           ${
-            submission.status === "pending"
+            status === "pending"
               ? `
                 <button
                   type="button"
                   class="admin-button admin-button-success"
                   data-action="submission-approve"
                 >
-                  ✅ Опубликовать
+                  ✓ Одобрить
                 </button>
 
                 <button
@@ -727,7 +761,7 @@ function renderSubmissions() {
                   class="admin-button admin-button-danger"
                   data-action="submission-reject"
                 >
-                  ❌ Отклонить
+                  ✕ Отклонить
                 </button>
               `
               : ""
@@ -738,13 +772,13 @@ function renderSubmissions() {
 
       card
         .querySelector(
-          '[data-action="submission-view"]'
+          '[data-action="submission-open"]'
         )
         ?.addEventListener(
           "click",
           () =>
             openSubmission(
-              submission.id
+              submission
             )
         );
 
@@ -772,191 +806,160 @@ function renderSubmissions() {
             )
         );
 
-      list.appendChild(card);
+      list.appendChild(
+        card
+      );
     }
   );
 }
 
 
-function openSubmission(id) {
-  const submission =
-    state.submissions.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-  if (!submission) {
-    return;
-  }
-
+function openSubmission(
+  submission
+) {
   state.selectedSubmission =
     submission;
 
-  const modal =
+  let modal =
     $("submissionModal");
+
+  if (!modal) {
+    createSubmissionModal();
+
+    modal =
+      $("submissionModal");
+  }
+
+  const title =
+    $("submissionModalTitle");
 
   const body =
     $("submissionModalBody");
 
-  if (!modal || !body) {
-    return;
+  if (title) {
+    title.textContent =
+      submission.title ||
+      "Заявка";
   }
 
-  body.innerHTML = `
-    <div class="admin-detail">
+  if (body) {
+    body.innerHTML =
+      renderPublicationDetails(
+        submission
+      );
+  }
 
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Заголовок
-        </span>
+  modal.hidden = false;
+}
 
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            submission.title ||
-            "Без названия"
-          )}
-        </div>
+
+function createSubmissionModal() {
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+  modal.id =
+    "submissionModal";
+
+  modal.className =
+    "admin-modal";
+
+  modal.innerHTML = `
+    <div class="admin-modal-box">
+
+      <div class="admin-modal-header">
+        <h2 id="submissionModalTitle">
+          Заявка
+        </h2>
+
+        <button
+          id="submissionClose"
+          type="button"
+          class="admin-modal-close"
+        >
+          ×
+        </button>
       </div>
 
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Категория
-        </span>
+      <div
+        id="submissionModalBody"
+        class="admin-modal-body"
+      ></div>
 
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            submission.category ||
-            "—"
-          )}
-        </div>
+      <div class="admin-modal-footer">
+
+        <button
+          id="submissionCancel"
+          type="button"
+          class="admin-button admin-button-light"
+        >
+          Закрыть
+        </button>
+
+        <button
+          id="submissionReject"
+          type="button"
+          class="admin-button admin-button-danger"
+        >
+          ✕ Отклонить
+        </button>
+
+        <button
+          id="submissionApprove"
+          type="button"
+          class="admin-button admin-button-success"
+        >
+          ✓ Одобрить
+        </button>
+
       </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Автор
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            submission.author_name ||
-            submission.username ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          ID
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            submission.id
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Контакт
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            submission.contact ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Дата
-        </span>
-
-        <div class="admin-detail-value">
-          ${formatDate(
-            submission.created_at
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Статус
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            submission.status ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Текст
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            submission.content ||
-            ""
-          )}
-        </div>
-      </div>
-
-      ${
-        submission.image_url
-          ? `
-            <div class="admin-detail-row">
-              <span class="admin-detail-label">
-                Изображение
-              </span>
-
-              <a
-                href="${escapeAttr(
-                  submission.image_url
-                )}"
-                target="_blank"
-                rel="noopener"
-              >
-                Открыть изображение
-              </a>
-            </div>
-          `
-          : ""
-      }
-
-      ${
-        submission.link_url
-          ? `
-            <div class="admin-detail-row">
-              <span class="admin-detail-label">
-                Ссылка
-              </span>
-
-              <a
-                href="${escapeAttr(
-                  submission.link_url
-                )}"
-                target="_blank"
-                rel="noopener"
-              >
-                Открыть ссылку
-              </a>
-            </div>
-          `
-          : ""
-      }
-
     </div>
   `;
 
-  modal.hidden = false;
+  document.body.appendChild(
+    modal
+  );
+
+  $("submissionClose")
+    ?.addEventListener(
+      "click",
+      closeSubmissionModal
+    );
+
+  $("submissionCancel")
+    ?.addEventListener(
+      "click",
+      closeSubmissionModal
+    );
+
+  $("submissionApprove")
+    ?.addEventListener(
+      "click",
+      () => {
+        if (
+          state.selectedSubmission
+        ) {
+          approveSubmission(
+            state.selectedSubmission.id
+          );
+        }
+      }
+    );
+
+  $("submissionReject")
+    ?.addEventListener(
+      "click",
+      () => {
+        if (
+          state.selectedSubmission
+        ) {
+          rejectSubmission(
+            state.selectedSubmission.id
+          );
+        }
+      }
+    );
 }
 
 
@@ -973,73 +976,68 @@ function closeSubmissionModal() {
 }
 
 
-/* ============================================================
-   APPROVE / REJECT
-============================================================ */
+async function approveSubmission(
+  id
+) {
+  if (!id) {
+    return;
+  }
 
-async function approveSubmission(id) {
-  const confirmed =
-    confirm(
-      "Опубликовать эту заявку?"
-    );
-
-  if (!confirmed) {
+  if (
+    !confirm(
+      "Одобрить эту публикацию?"
+    )
+  ) {
     return;
   }
 
   try {
-
-    try {
-      await api(
-        `/api/admin/submissions/${encodeURIComponent(
-          id
-        )}/approve`,
-        {
-          method: "POST"
+    await api(
+      "/api/admin/publication/action",
+      {
+        method: "POST",
+        body: {
+          id,
+          action: "approve"
         }
-      );
-    } catch {
-      await api(
-        "/api/admin/publication/action",
-        {
-          method: "POST",
+      }
+    );
 
-          body: JSON.stringify({
-            id,
-            action: "publish"
-          })
-        }
-      );
-    }
+    notify(
+      "Публикация одобрена."
+    );
 
     closeSubmissionModal();
 
-    await refreshEverything();
-
-    alert(
-      "✅ Публикация размещена."
-    );
+    await Promise.all([
+      loadSubmissions(),
+      loadPosts(),
+      loadStats()
+    ]);
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось опубликовать."
+      "Не удалось одобрить публикацию.",
+      "error"
     );
   }
 }
 
 
-async function rejectSubmission(id) {
+async function rejectSubmission(
+  id
+) {
+  if (!id) {
+    return;
+  }
+
   const reason =
     prompt(
-      "Укажите причину отклонения:"
+      "Причина отклонения:",
+      ""
     );
 
   if (reason === null) {
@@ -1047,173 +1045,111 @@ async function rejectSubmission(id) {
   }
 
   try {
-
-    try {
-      await api(
-        `/api/admin/submissions/${encodeURIComponent(
-          id
-        )}/reject`,
-        {
-          method: "POST",
-
-          body: JSON.stringify({
-            reason:
-              reason.trim() ||
-              "Материал не соответствует требованиям."
-          })
+    await api(
+      "/api/admin/publication/action",
+      {
+        method: "POST",
+        body: {
+          id,
+          action: "reject",
+          rejection_reason:
+            reason
         }
-      );
-    } catch {
-      await api(
-        "/api/admin/publication/action",
-        {
-          method: "POST",
+      }
+    );
 
-          body: JSON.stringify({
-            id,
-            action: "reject",
-            reason:
-              reason.trim() ||
-              "Материал не соответствует требованиям."
-          })
-        }
-      );
-    }
+    notify(
+      "Публикация отклонена."
+    );
 
     closeSubmissionModal();
 
-    await refreshEverything();
-
-    alert(
-      "❌ Заявка отклонена."
-    );
+    await Promise.all([
+      loadSubmissions(),
+      loadPosts(),
+      loadStats()
+    ]);
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось отклонить заявку."
+      "Не удалось отклонить публикацию.",
+      "error"
     );
   }
 }
 
 
 /* ============================================================
-   POSTS
+   PUBLICATIONS
 ============================================================ */
 
 async function loadPosts() {
-  const loading =
-    $("adminPostsLoading");
-
-  const errorBox =
-    $("adminPostsError");
-
-  const empty =
-    $("adminPostsEmpty");
-
-  if (loading) {
-    loading.hidden = false;
-  }
-
-  if (errorBox) {
-    errorBox.hidden = true;
-  }
-
   try {
-    let data;
-
-    try {
-      data = await api(
-        "/api/admin/posts"
-      );
-    } catch {
-      data = await api(
+    const data =
+      await api(
         "/api/admin/publications"
       );
-    }
 
     state.posts =
-      data.posts ||
       data.publications ||
+      data.posts ||
+      data.items ||
       [];
 
     renderPosts();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    if (errorBox) {
-      errorBox.textContent =
-        error.message ||
-        "Не удалось загрузить публикации.";
-
-      errorBox.hidden = false;
-    }
-
-  } finally {
-    if (loading) {
-      loading.hidden = true;
-    }
+    console.error(
+      "Posts error:",
+      error
+    );
   }
 }
 
 
 function renderPosts() {
   const list =
-    $("adminPostsList");
-
-  const empty =
-    $("adminPostsEmpty");
+    $("adminPostsList") ||
+    $("postsList");
 
   if (!list) {
     return;
   }
 
-  list.innerHTML = "";
-
   let posts =
     [...state.posts];
 
   if (
+    state.postFilter &&
     state.postFilter !== "all"
   ) {
     posts =
       posts.filter(
         post =>
-          post.category ===
+          post.status ===
           state.postFilter
       );
   }
 
+  list.innerHTML = "";
+
   if (!posts.length) {
-    if (empty) {
-      empty.hidden = false;
-    }
+    list.innerHTML = `
+      <div class="admin-empty">
+        📄 Публикаций нет.
+      </div>
+    `;
 
     return;
   }
 
-  if (empty) {
-    empty.hidden = true;
-  }
-
   posts.forEach(
     post => {
-
-      const counters =
-        getCounters(post);
 
       const card =
         document.createElement(
@@ -1224,11 +1160,9 @@ function renderPosts() {
         "admin-card";
 
       card.innerHTML = `
-
         <div class="admin-card-top">
 
           <div>
-
             <h3 class="admin-card-title">
               ${escapeHtml(
                 post.title ||
@@ -1240,77 +1174,69 @@ function renderPosts() {
 
               <span class="admin-badge">
                 ${escapeHtml(
-                  post.category ||
-                  "Без категории"
+                  post.status ||
+                  "unknown"
                 )}
               </span>
 
               <span class="admin-badge">
-                ${formatDate(
-                  post.published_at ||
-                  post.created_at
+                ID:
+                ${escapeHtml(
+                  post.id
                 )}
               </span>
 
-              <span class="admin-badge">
-                👤 ${escapeHtml(
-                  post.author_name ||
-                  post.username ||
-                  "Автор"
-                )}
-              </span>
+              ${
+                post.pinned
+                  ? `
+                    <span class="admin-badge">
+                      📌 Закреплено
+                    </span>
+                  `
+                  : ""
+              }
+
+              ${
+                post.featured
+                  ? `
+                    <span class="admin-badge">
+                      ⭐ Важное
+                    </span>
+                  `
+                  : ""
+              }
 
             </div>
-
           </div>
-
-          <span class="admin-badge approved">
-            ${escapeHtml(
-              post.status ||
-              "published"
-            )}
-          </span>
 
         </div>
 
         <div class="admin-card-preview">
           ${escapeHtml(
-            post.content ||
+            post.text ||
+            post.description ||
             ""
-          )}
+          ).slice(0, 600)}
         </div>
 
-        <div
-          class="admin-card-meta"
-          style="
-            margin-top:10px;
-            margin-bottom:13px;
-          "
-        >
+        <div class="admin-card-meta">
 
-          <span class="admin-badge">
-            👁 ${formatNumber(
-              counters.views
-            )}
-          </span>
+          👁 ${formatNumber(
+            post.views
+          )}
 
-          <span class="admin-badge">
-            ❤️ ${formatNumber(
-              counters.likes
-            )}
-          </span>
+          · ❤️ ${formatNumber(
+            post.likes
+          )}
 
-          <span class="admin-badge">
-            💬 ${formatNumber(
-              counters.comments
-            )}
-          </span>
+          · 💬 ${formatNumber(
+            post.comments
+          )}
 
-          <span class="admin-badge">
-            🔄 ${formatNumber(
-              counters.shares
-            )}
-          </span>
+          ·
+          ${formatDate(
+            post.created_at
+          )}
 
         </div>
 
@@ -1318,7 +1244,7 @@ function renderPosts() {
 
           <button
             type="button"
-            class="admin-button admin-button-light"
+            class="admin-button admin-button-primary"
             data-action="post-open"
           >
             👁 Открыть
@@ -1326,26 +1252,26 @@ function renderPosts() {
 
           <button
             type="button"
-            class="admin-button admin-button-primary"
-            data-action="post-counters"
+            class="admin-button admin-button-light"
+            data-action="post-edit"
           >
-            🔢 Счётчики
+            ✏️ Изменить
           </button>
 
           <button
             type="button"
             class="admin-button admin-button-light"
-            data-action="post-edit"
+            data-action="post-counters"
           >
-            ✏️ Редактировать
+            📊 Счётчики
           </button>
 
           <button
             type="button"
-            class="admin-button admin-button-warning"
-            data-action="post-trash"
+            class="admin-button admin-button-danger"
+            data-action="post-delete"
           >
-            🗑 В корзину
+            🗑 Удалить
           </button>
 
         </div>
@@ -1358,21 +1284,7 @@ function renderPosts() {
         ?.addEventListener(
           "click",
           () =>
-            openPost(
-              post.id
-            )
-        );
-
-      card
-        .querySelector(
-          '[data-action="post-counters"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            openCountersEditor(
-              post
-            )
+            openPost(post)
         );
 
       card
@@ -1382,21 +1294,27 @@ function renderPosts() {
         ?.addEventListener(
           "click",
           () =>
-            editPost(
-              post.id
-            )
+            openPostEdit(post)
         );
 
       card
         .querySelector(
-          '[data-action="post-trash"]'
+          '[data-action="post-counters"]'
         )
         ?.addEventListener(
           "click",
           () =>
-            trashPost(
-              post.id
-            )
+            openCountersEditor(post)
+        );
+
+      card
+        .querySelector(
+          '[data-action="post-delete"]'
+        )
+        ?.addEventListener(
+          "click",
+          () =>
+            deletePost(post.id)
         );
 
       list.appendChild(
@@ -1407,209 +1325,738 @@ function renderPosts() {
 }
 
 
-/* ============================================================
-   COUNTERS
-============================================================ */
-
-function getCounters(post) {
-  return {
-    views:
-      Number(
-        post.views ??
-        post.view_count ??
-        post.views_count ??
-        0
-      ),
-
-    likes:
-      Number(
-        post.likes ??
-        post.like_count ??
-        post.likes_count ??
-        0
-      ),
-
-    comments:
-      Number(
-        post.comments ??
-        post.comment_count ??
-        post.comments_count ??
-        0
-      ),
-
-    shares:
-      Number(
-        post.shares ??
-        post.share_count ??
-        post.shares_count ??
-        0
-      )
-  };
-}
-
-
-function openCountersEditor(
+function renderPublicationDetails(
   post
 ) {
-  state.selectedPost =
-    post;
+  const ignored =
+    new Set([
+      "text",
+      "description",
+      "media",
+      "created_at",
+      "updated_at"
+    ]);
 
-  const modal =
-    $("countersModal");
+  let fields = "";
 
-  const body =
-    $("countersModalBody");
+  Object.entries(
+    post || {}
+  ).forEach(
+    ([key, value]) => {
 
-  if (!modal || !body) {
-    /*
-     * Если пользователь ещё не добавил
-     * модальное окно в HTML,
-     * создаём его автоматически.
-     */
+      if (
+        ignored.has(key)
+      ) {
+        return;
+      }
 
-    createCountersModal();
+      if (
+        value === null ||
+        value === undefined ||
+        value === ""
+      ) {
+        return;
+      }
 
-    return openCountersEditor(
-      post
-    );
-  }
+      let display =
+        value;
 
-  const counters =
-    getCounters(post);
+      if (
+        typeof value ===
+        "object"
+      ) {
+        display =
+          safeJson(value);
+      }
 
-  body.innerHTML = `
-    <div class="admin-detail">
-
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          Публикация
-        </span>
-
-        <div class="admin-detail-value">
+      fields += `
+        <div
+          style="
+            padding:12px 0;
+            border-bottom:1px solid rgba(0,0,0,.08);
+          "
+        >
           <strong>
-            ${escapeHtml(
-              post.title ||
-              "Без названия"
-            )}
+            ${escapeHtml(key)}
           </strong>
-        </div>
 
+          <div
+            style="
+              margin-top:4px;
+              word-break:break-word;
+            "
+          >
+            ${escapeHtml(display)}
+          </div>
+        </div>
+      `;
+    }
+  );
+
+  return `
+    <div>
+
+      <div
+        style="
+          margin-bottom:20px;
+          font-size:16px;
+          line-height:1.7;
+        "
+      >
+        ${escapeHtml(
+          post?.text ||
+          post?.description ||
+          "Нет текста"
+        )}
       </div>
 
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          ID публикации
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            post.id
-          )}
-        </div>
-
-      </div>
-
-      <div class="admin-edit-grid">
-
-        <div class="admin-form-group">
-
-          <label for="counterViews">
-            👁 Просмотры
-          </label>
-
-          <input
-            id="counterViews"
-            class="admin-input"
-            type="text"
-            inputmode="numeric"
-            value="${escapeAttr(
-              counters.views
-            )}"
-          >
-
-        </div>
-
-        <div class="admin-form-group">
-
-          <label for="counterLikes">
-            ❤️ Лайки
-          </label>
-
-          <input
-            id="counterLikes"
-            class="admin-input"
-            type="text"
-            inputmode="numeric"
-            value="${escapeAttr(
-              counters.likes
-            )}"
-          >
-
-        </div>
-
-        <div class="admin-form-group">
-
-          <label for="counterComments">
-            💬 Комментарии
-          </label>
-
-          <input
-            id="counterComments"
-            class="admin-input"
-            type="text"
-            inputmode="numeric"
-            value="${escapeAttr(
-              counters.comments
-            )}"
-          >
-
-        </div>
-
-        <div class="admin-form-group">
-
-          <label for="counterShares">
-            🔄 Репосты
-          </label>
-
-          <input
-            id="counterShares"
-            class="admin-input"
-            type="text"
-            inputmode="numeric"
-            value="${escapeAttr(
-              counters.shares
-            )}"
-          >
-
-        </div>
-
+      <div>
+        ${fields}
       </div>
 
       <div
         style="
-          margin-top:15px;
-          padding:13px;
-          border-radius:12px;
-          background:#fff7ed;
-          border:1px solid #fed7aa;
-          color:#9a3412;
+          margin-top:20px;
+          color:#6b7280;
         "
       >
-        ⚠️ Вы можете вручную установить
-        любое допустимое числовое значение.
-        После подтверждения новые значения
-        отправляются на сервер и должны
-        отображаться всем пользователям.
+        Создано:
+        ${formatDate(
+          post?.created_at
+        )}
+      </div>
+
+      <div
+        style="
+          color:#6b7280;
+        "
+      >
+        Изменено:
+        ${formatDate(
+          post?.updated_at
+        )}
+      </div>
+
+    </div>
+  `;
+}
+
+
+function openPost(post) {
+  state.selectedPost =
+    post;
+
+  let modal =
+    $("postModal");
+
+  if (!modal) {
+    createPostModal();
+
+    modal =
+      $("postModal");
+  }
+
+  const title =
+    $("postModalTitle");
+
+  const body =
+    $("postModalBody");
+
+  if (title) {
+    title.textContent =
+      post.title ||
+      "Публикация";
+  }
+
+  if (body) {
+    body.innerHTML =
+      renderPublicationDetails(
+        post
+      );
+  }
+
+  modal.hidden = false;
+}
+
+
+function createPostModal() {
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+  modal.id =
+    "postModal";
+
+  modal.className =
+    "admin-modal";
+
+  modal.innerHTML = `
+    <div class="admin-modal-box">
+
+      <div class="admin-modal-header">
+
+        <h2 id="postModalTitle">
+          Публикация
+        </h2>
+
+        <button
+          id="postModalClose"
+          type="button"
+          class="admin-modal-close"
+        >
+          ×
+        </button>
+
+      </div>
+
+      <div
+        id="postModalBody"
+        class="admin-modal-body"
+      ></div>
+
+      <div class="admin-modal-footer">
+
+        <button
+          id="postModalCancel"
+          type="button"
+          class="admin-button admin-button-light"
+        >
+          Закрыть
+        </button>
+
       </div>
 
     </div>
   `;
 
+  document.body.appendChild(
+    modal
+  );
+
+  $("postModalClose")
+    ?.addEventListener(
+      "click",
+      closePostModal
+    );
+
+  $("postModalCancel")
+    ?.addEventListener(
+      "click",
+      closePostModal
+    );
+}
+
+
+function closePostModal() {
+  const modal =
+    $("postModal");
+
+  if (modal) {
+    modal.hidden = true;
+  }
+
+  state.selectedPost =
+    null;
+}
+
+
+/* ============================================================
+   PUBLICATION EDITOR
+============================================================ */
+
+function openPostEdit(post) {
+  state.selectedPost =
+    post;
+
+  let modal =
+    $("postEditModal");
+
+  if (!modal) {
+    createPostEditModal();
+
+    modal =
+      $("postEditModal");
+  }
+
+  setValue(
+    "postEditTitle",
+    post.title
+  );
+
+  setValue(
+    "postEditText",
+    post.text ||
+    post.description
+  );
+
+  setValue(
+    "postEditCategory",
+    post.category
+  );
+
+  setValue(
+    "postEditCity",
+    post.city
+  );
+
+  setValue(
+    "postEditStatus",
+    post.status
+  );
+
+  setValue(
+    "postEditPrice",
+    post.price
+  );
+
+  setValue(
+    "postEditCurrency",
+    post.currency
+  );
+
+  setValue(
+    "postEditLocation",
+    post.location
+  );
+
+  setValue(
+    "postEditContactName",
+    post.contact_name
+  );
+
+  setValue(
+    "postEditContactPhone",
+    post.contact_phone
+  );
+
+  setValue(
+    "postEditContactTelegram",
+    post.contact_telegram
+  );
+
+  setValue(
+    "postEditContactEmail",
+    post.contact_email
+  );
+
+  setValue(
+    "postEditExternalUrl",
+    post.external_url
+  );
+
+  const pinned =
+    $("postEditPinned");
+
+  if (pinned) {
+    pinned.checked =
+      Boolean(
+        post.pinned
+      );
+  }
+
+  const featured =
+    $("postEditFeatured");
+
+  if (featured) {
+    featured.checked =
+      Boolean(
+        post.featured
+      );
+  }
+
   modal.hidden = false;
 }
 
+
+function createPostEditModal() {
+  const modal =
+    document.createElement(
+      "div"
+    );
+
+  modal.id =
+    "postEditModal";
+
+  modal.className =
+    "admin-modal";
+
+  modal.innerHTML = `
+    <div class="admin-modal-box">
+
+      <div class="admin-modal-header">
+
+        <h2>
+          ✏️ Редактирование публикации
+        </h2>
+
+        <button
+          id="postEditClose"
+          type="button"
+          class="admin-modal-close"
+        >
+          ×
+        </button>
+
+      </div>
+
+      <form
+        id="postEditForm"
+        class="admin-modal-body"
+      >
+
+        <label>
+          Название
+          <input
+            id="postEditTitle"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Текст
+          <textarea
+            id="postEditText"
+            class="admin-textarea"
+            rows="8"
+          ></textarea>
+        </label>
+
+        <label>
+          Категория
+          <input
+            id="postEditCategory"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Город
+          <input
+            id="postEditCity"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Статус
+          <select
+            id="postEditStatus"
+            class="admin-input"
+          >
+            <option value="pending">
+              pending
+            </option>
+
+            <option value="published">
+              published
+            </option>
+
+            <option value="rejected">
+              rejected
+            </option>
+
+            <option value="draft">
+              draft
+            </option>
+
+            <option value="archived">
+              archived
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Цена
+          <input
+            id="postEditPrice"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Валюта
+          <input
+            id="postEditCurrency"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Местоположение
+          <input
+            id="postEditLocation"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Контактное имя
+          <input
+            id="postEditContactName"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Телефон
+          <input
+            id="postEditContactPhone"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Telegram
+          <input
+            id="postEditContactTelegram"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Email
+          <input
+            id="postEditContactEmail"
+            class="admin-input"
+            type="email"
+          >
+        </label>
+
+        <label>
+          Внешняя ссылка
+          <input
+            id="postEditExternalUrl"
+            class="admin-input"
+            type="url"
+          >
+        </label>
+
+        <label
+          style="
+            display:flex;
+            gap:10px;
+            align-items:center;
+          "
+        >
+          <input
+            id="postEditPinned"
+            type="checkbox"
+          >
+
+          📌 Закрепить
+        </label>
+
+        <label
+          style="
+            display:flex;
+            gap:10px;
+            align-items:center;
+          "
+        >
+          <input
+            id="postEditFeatured"
+            type="checkbox"
+          >
+
+          ⭐ Сделать важной
+        </label>
+
+        <div class="admin-modal-footer">
+
+          <button
+            id="postEditCancel"
+            type="button"
+            class="admin-button admin-button-light"
+          >
+            Отмена
+          </button>
+
+          <button
+            type="submit"
+            class="admin-button admin-button-primary"
+          >
+            💾 Сохранить
+          </button>
+
+        </div>
+
+      </form>
+
+    </div>
+  `;
+
+  document.body.appendChild(
+    modal
+  );
+
+  $("postEditClose")
+    ?.addEventListener(
+      "click",
+      closePostEditModal
+    );
+
+  $("postEditCancel")
+    ?.addEventListener(
+      "click",
+      closePostEditModal
+    );
+
+  $("postEditForm")
+    ?.addEventListener(
+      "submit",
+      event => {
+        event.preventDefault();
+        savePost();
+      }
+    );
+}
+
+
+function closePostEditModal() {
+  const modal =
+    $("postEditModal");
+
+  if (modal) {
+    modal.hidden = true;
+  }
+}
+
+
+async function savePost() {
+  const post =
+    state.selectedPost;
+
+  if (!post) {
+    return;
+  }
+
+  const payload = {
+    id: post.id,
+
+    title:
+      getValue(
+        "postEditTitle"
+      ),
+
+    text:
+      getValue(
+        "postEditText"
+      ),
+
+    category:
+      getValue(
+        "postEditCategory"
+      ),
+
+    city:
+      getValue(
+        "postEditCity"
+      ),
+
+    status:
+      getValue(
+        "postEditStatus"
+      ),
+
+    price:
+      getValue(
+        "postEditPrice"
+      ),
+
+    currency:
+      getValue(
+        "postEditCurrency"
+      ),
+
+    location:
+      getValue(
+        "postEditLocation"
+      ),
+
+    contact_name:
+      getValue(
+        "postEditContactName"
+      ),
+
+    contact_phone:
+      getValue(
+        "postEditContactPhone"
+      ),
+
+    contact_telegram:
+      getValue(
+        "postEditContactTelegram"
+      ),
+
+    contact_email:
+      getValue(
+        "postEditContactEmail"
+      ),
+
+    external_url:
+      getValue(
+        "postEditExternalUrl"
+      ),
+
+    pinned:
+      Boolean(
+        $("postEditPinned")
+          ?.checked
+      ),
+
+    featured:
+      Boolean(
+        $("postEditFeatured")
+          ?.checked
+      )
+  };
+
+  try {
+    await api(
+      "/api/admin/publication/edit",
+      {
+        method: "POST",
+        body: payload
+      }
+    );
+
+    notify(
+      "Публикация сохранена."
+    );
+
+    closePostEditModal();
+
+    await Promise.all([
+      loadPosts(),
+      loadSubmissions(),
+      loadStats()
+    ]);
+
+  } catch (error) {
+    handleUnauthorized(error);
+
+    notify(
+      error.message ||
+      "Не удалось сохранить публикацию.",
+      "error"
+    );
+  }
+}
+
+
+/* ============================================================
+   COUNTERS
+============================================================ */
 
 function createCountersModal() {
   if (
@@ -1630,13 +2077,12 @@ function createCountersModal() {
     "admin-modal";
 
   modal.innerHTML = `
-
     <div class="admin-modal-box">
 
       <div class="admin-modal-header">
 
         <h2>
-          🔢 Управление счётчиками
+          📊 Ручное изменение счётчиков
         </h2>
 
         <button
@@ -1649,10 +2095,97 @@ function createCountersModal() {
 
       </div>
 
-      <div
-        id="countersModalBody"
-        class="admin-modal-body"
-      ></div>
+      <div class="admin-modal-body">
+
+        <input
+          id="counterViews"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="Просмотры"
+        >
+
+        <input
+          id="counterLikes"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="Лайки"
+        >
+
+        <input
+          id="counterComments"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="Комментарии"
+        >
+
+        <input
+          id="counterSaves"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="Сохранения"
+        >
+
+        <input
+          id="counterShares"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="Репосты"
+        >
+
+        <input
+          id="counterLove"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="❤️ Love"
+        >
+
+        <input
+          id="counterSupport"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="👍 Support"
+        >
+
+        <input
+          id="counterFunny"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="😂 Funny"
+        >
+
+        <input
+          id="counterWow"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="😮 Wow"
+        >
+
+        <input
+          id="counterSad"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="😢 Sad"
+        >
+
+        <input
+          id="counterAngry"
+          class="admin-input"
+          type="number"
+          min="0"
+          placeholder="😡 Angry"
+        >
+
+      </div>
 
       <div class="admin-modal-footer">
 
@@ -1667,9 +2200,9 @@ function createCountersModal() {
         <button
           id="countersSave"
           type="button"
-          class="admin-button admin-button-success"
+          class="admin-button admin-button-primary"
         >
-          ✅ Подтвердить изменения
+          💾 Сохранить
         </button>
 
       </div>
@@ -1698,220 +2231,77 @@ function createCountersModal() {
       "click",
       saveCounters
     );
+}
 
-  modal.addEventListener(
-    "click",
-    event => {
 
-      if (
-        event.target ===
-        modal
-      ) {
-        closeCountersEditor();
-      }
+function openCountersEditor(
+  post
+) {
+  state.selectedPost =
+    post;
 
-    }
+  createCountersModal();
+
+  setValue(
+    "counterViews",
+    post.views || 0
   );
-}
 
+  setValue(
+    "counterLikes",
+    post.likes || 0
+  );
 
-function parseCounter(
-  value
-) {
-  const clean =
-    String(value ?? "")
-      .replaceAll(
-        " ",
-        ""
-      )
-      .replaceAll(
-        ",",
-        ""
-      );
+  setValue(
+    "counterComments",
+    post.comments || 0
+  );
 
-  if (!/^\d+$/.test(clean)) {
-    return null;
-  }
+  setValue(
+    "counterSaves",
+    post.saves || 0
+  );
 
-  const number =
-    Number(clean);
+  setValue(
+    "counterShares",
+    post.shares || 0
+  );
 
-  if (
-    !Number.isSafeInteger(
-      number
-    )
-  ) {
-    /*
-     * BigInt используется ниже
-     * для очень больших значений.
-     */
-    try {
-      return BigInt(clean);
-    } catch {
-      return null;
-    }
-  }
+  setValue(
+    "counterLove",
+    post.love || 0
+  );
 
-  return number;
-}
+  setValue(
+    "counterSupport",
+    post.support || 0
+  );
 
+  setValue(
+    "counterFunny",
+    post.funny || 0
+  );
 
-function counterPayloadValue(
-  value
-) {
-  const parsed =
-    parseCounter(value);
+  setValue(
+    "counterWow",
+    post.wow || 0
+  );
 
-  if (parsed === null) {
-    return null;
-  }
+  setValue(
+    "counterSad",
+    post.sad || 0
+  );
 
-  /*
-   * JSON не умеет передавать BigInt.
-   * Для огромных значений передаём строку.
-   */
-  if (
-    typeof parsed ===
-    "bigint"
-  ) {
-    return parsed.toString();
-  }
+  setValue(
+    "counterAngry",
+    post.angry || 0
+  );
 
-  return parsed;
-}
+  const modal =
+    $("countersModal");
 
-
-async function saveCounters() {
-  const post =
-    state.selectedPost;
-
-  if (!post) {
-    return;
-  }
-
-  const views =
-    counterPayloadValue(
-      getValue(
-        "counterViews"
-      )
-    );
-
-  const likes =
-    counterPayloadValue(
-      getValue(
-        "counterLikes"
-      )
-    );
-
-  const comments =
-    counterPayloadValue(
-      getValue(
-        "counterComments"
-      )
-    );
-
-  const shares =
-    counterPayloadValue(
-      getValue(
-        "counterShares"
-      )
-    );
-
-  if (
-    views === null ||
-    likes === null ||
-    comments === null ||
-    shares === null
-  ) {
-    alert(
-      "Все счётчики должны содержать только целые числа 0 или больше."
-    );
-
-    return;
-  }
-
-  const confirmed =
-    confirm(
-      "Подтвердить новые значения?\n\n" +
-      `Просмотры: ${views}\n` +
-      `Лайки: ${likes}\n` +
-      `Комментарии: ${comments}\n` +
-      `Репосты: ${shares}`
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  const button =
-    $("countersSave");
-
-  if (button) {
-    button.disabled = true;
-    button.textContent =
-      "Сохраняем...";
-  }
-
-  try {
-
-    /*
-     * Основной существующий endpoint.
-     */
-    await api(
-      "/api/admin/publication/counters",
-      {
-        method: "POST",
-
-        body: JSON.stringify({
-          id: post.id,
-
-          views,
-          likes,
-          comments,
-          shares
-        })
-      }
-    );
-
-    /*
-     * Обновляем локальный объект.
-     */
-    post.views = views;
-    post.likes = likes;
-    post.comments = comments;
-    post.shares = shares;
-
-    closeCountersEditor();
-
-    await Promise.all([
-      loadPosts(),
-      loadStats()
-    ]);
-
-    alert(
-      "✅ Счётчики успешно изменены."
-    );
-
-  } catch (error) {
-
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
-      error.message ||
-      "Сервер не принял изменение счётчиков."
-    );
-
-  } finally {
-
-    if (button) {
-      button.disabled = false;
-      button.textContent =
-        "✅ Подтвердить изменения";
-    }
+  if (modal) {
+    modal.hidden = false;
   }
 }
 
@@ -1929,326 +2319,7 @@ function closeCountersEditor() {
 }
 
 
-/* ============================================================
-   OPEN POST
-============================================================ */
-
-function openPost(id) {
-  const post =
-    state.posts.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-  if (!post) {
-    return;
-  }
-
-  state.selectedPost =
-    post;
-
-  const modal =
-    $("postModal");
-
-  const body =
-    $("postModalBody");
-
-  if (!modal || !body) {
-    return;
-  }
-
-  const counters =
-    getCounters(post);
-
-  body.innerHTML = `
-
-    <div class="admin-detail">
-
-      ${
-        post.image_url
-          ? `
-            <img
-              src="${escapeAttr(
-                post.image_url
-              )}"
-              alt=""
-              style="
-                width:100%;
-                max-height:420px;
-                object-fit:cover;
-                border-radius:12px;
-                margin-bottom:15px;
-              "
-            >
-          `
-          : ""
-      }
-
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          Заголовок
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            post.title ||
-            "Без названия"
-          )}
-        </div>
-
-      </div>
-
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          Автор
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            post.author_name ||
-            post.username ||
-            "—"
-          )}
-        </div>
-
-      </div>
-
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          Категория
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            post.category ||
-            "—"
-          )}
-        </div>
-
-      </div>
-
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          ID
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            post.id
-          )}
-        </div>
-
-      </div>
-
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          Статистика
-        </span>
-
-        <div class="admin-card-meta">
-
-          <span class="admin-badge">
-            👁 ${formatNumber(
-              counters.views
-            )}
-          </span>
-
-          <span class="admin-badge">
-            ❤️ ${formatNumber(
-              counters.likes
-            )}
-          </span>
-
-          <span class="admin-badge">
-            💬 ${formatNumber(
-              counters.comments
-            )}
-          </span>
-
-          <span class="admin-badge">
-            🔄 ${formatNumber(
-              counters.shares
-            )}
-          </span>
-
-        </div>
-
-      </div>
-
-      <div class="admin-detail-row">
-
-        <span class="admin-detail-label">
-          Текст
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            post.content ||
-            ""
-          )}
-        </div>
-
-      </div>
-
-      <div class="admin-card-actions">
-
-        <button
-          type="button"
-          class="admin-button admin-button-primary"
-          id="openCountersFromPost"
-        >
-          🔢 Изменить цифры
-        </button>
-
-      </div>
-
-      ${
-        post.link_url
-          ? `
-            <div class="admin-detail-row">
-
-              <a
-                href="${escapeAttr(
-                  post.link_url
-                )}"
-                target="_blank"
-                rel="noopener"
-              >
-                🔗 Открыть ссылку
-              </a>
-
-            </div>
-          `
-          : ""
-      }
-
-    </div>
-  `;
-
-  $("openCountersFromPost")
-    ?.addEventListener(
-      "click",
-      () => {
-
-        closePostModal();
-
-        setTimeout(
-          () =>
-            openCountersEditor(
-              post
-            ),
-          50
-        );
-
-      }
-    );
-
-  modal.hidden = false;
-}
-
-
-function closePostModal() {
-  const modal =
-    $("postModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-
-  state.selectedPost =
-    null;
-}
-
-
-/* ============================================================
-   EDIT POST
-============================================================ */
-
-function editPost(id) {
-  const post =
-    state.posts.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-  if (!post) {
-    return;
-  }
-
-  state.selectedPost =
-    post;
-
-  const modal =
-    $("postEditModal");
-
-  if (!modal) {
-    alert(
-      "Форма редактирования не найдена."
-    );
-
-    return;
-  }
-
-  setValue(
-    "editPostTitle",
-    post.title
-  );
-
-  setValue(
-    "editPostContent",
-    post.content
-  );
-
-  setValue(
-    "editPostCategory",
-    post.category
-  );
-
-  setValue(
-    "editPostImage",
-    post.image_url
-  );
-
-  setValue(
-    "editPostLink",
-    post.link_url
-  );
-
-  setValue(
-    "editPostContact",
-    post.contact
-  );
-
-  setValue(
-    "editPostAuthor",
-    post.author_name
-  );
-
-  modal.hidden = false;
-}
-
-
-function closePostEditModal() {
-  const modal =
-    $("postEditModal");
-
-  if (modal) {
-    modal.hidden = true;
-  }
-
-  state.selectedPost =
-    null;
-}
-
-
-async function savePost() {
+async function saveCounters() {
   const post =
     state.selectedPost;
 
@@ -2256,342 +2327,168 @@ async function savePost() {
     return;
   }
 
-  const title =
-    getValue(
-      "editPostTitle"
-    );
+  const counters = {
+    views:
+      Number(
+        getValue(
+          "counterViews"
+        )
+      ) || 0,
 
-  const content =
-    getValue(
-      "editPostContent"
-    );
+    likes:
+      Number(
+        getValue(
+          "counterLikes"
+        )
+      ) || 0,
 
-  const category =
-    getValue(
-      "editPostCategory"
-    );
+    comments:
+      Number(
+        getValue(
+          "counterComments"
+        )
+      ) || 0,
 
-  const image_url =
-    getValue(
-      "editPostImage"
-    );
+    saves:
+      Number(
+        getValue(
+          "counterSaves"
+        )
+      ) || 0,
 
-  const link_url =
-    getValue(
-      "editPostLink"
-    );
+    shares:
+      Number(
+        getValue(
+          "counterShares"
+        )
+      ) || 0,
 
-  const contact =
-    getValue(
-      "editPostContact"
-    );
+    love:
+      Number(
+        getValue(
+          "counterLove"
+        )
+      ) || 0,
 
-  const author_name =
-    getValue(
-      "editPostAuthor"
-    );
+    support:
+      Number(
+        getValue(
+          "counterSupport"
+        )
+      ) || 0,
 
-  if (
-    title.length < 5
-  ) {
-    alert(
-      "Заголовок должен содержать минимум 5 символов."
-    );
+    funny:
+      Number(
+        getValue(
+          "counterFunny"
+        )
+      ) || 0,
 
-    return;
-  }
+    wow:
+      Number(
+        getValue(
+          "counterWow"
+        )
+      ) || 0,
 
-  if (
-    content.length < 20
-  ) {
-    alert(
-      "Описание должно содержать минимум 20 символов."
-    );
+    sad:
+      Number(
+        getValue(
+          "counterSad"
+        )
+      ) || 0,
 
-    return;
-  }
-
-  if (!category) {
-    alert(
-      "Укажите категорию."
-    );
-
-    return;
-  }
-
-  const confirmed =
-    confirm(
-      "Сохранить изменения публикации?"
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  const button =
-    $("postEditSave");
-
-  if (button) {
-    button.disabled = true;
-    button.textContent =
-      "Сохраняем...";
-  }
+    angry:
+      Number(
+        getValue(
+          "counterAngry"
+        )
+      ) || 0
+  };
 
   try {
-
-    try {
-
-      await api(
-        `/api/admin/posts/${encodeURIComponent(
-          post.id
-        )}`,
-        {
-          method: "PUT",
-
-          body: JSON.stringify({
-            title,
-            content,
-            category,
-            image_url,
-            link_url,
-            contact,
-            author_name
-          })
+    await api(
+      "/api/admin/publication/counters",
+      {
+        method: "POST",
+        body: {
+          id: post.id,
+          ...counters
         }
-      );
+      }
+    );
 
-    } catch {
+    notify(
+      "Счётчики обновлены."
+    );
 
-      await api(
-        "/api/admin/publication/edit",
-        {
-          method: "POST",
-
-          body: JSON.stringify({
-            id: post.id,
-            title,
-            content,
-            category,
-            image_url,
-            link_url,
-            contact,
-            author_name
-          })
-        }
-      );
-
-    }
-
-    closePostEditModal();
+    closeCountersEditor();
 
     await Promise.all([
       loadPosts(),
       loadStats()
     ]);
 
-    alert(
-      "✅ Публикация изменена."
-    );
-
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось изменить публикацию."
+      "Не удалось изменить счётчики.",
+      "error"
     );
-
-  } finally {
-
-    if (button) {
-      button.disabled = false;
-
-      button.textContent =
-        "💾 Сохранить изменения";
-    }
   }
 }
 
 
 /* ============================================================
-   POST ACTIONS
+   DELETE POST
 ============================================================ */
 
-async function publicationAction(
-  id,
-  action,
-  confirmation
+async function deletePost(
+  id
 ) {
-  if (confirmation) {
-    const confirmed =
-      confirm(
-        confirmation
-      );
+  if (!id) {
+    return;
+  }
 
-    if (!confirmed) {
-      return false;
-    }
+  if (
+    !confirm(
+      "Переместить публикацию в корзину?"
+    )
+  ) {
+    return;
   }
 
   try {
-
     await api(
       "/api/admin/publication/action",
       {
         method: "POST",
-
-        body: JSON.stringify({
+        body: {
           id,
-          action
-        })
+          action: "delete"
+        }
       }
     );
 
-    return true;
+    notify(
+      "Публикация перемещена в корзину."
+    );
+
+    await Promise.all([
+      loadPosts(),
+      loadTrash(),
+      loadStats()
+    ]);
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return false;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Действие не выполнено."
-    );
-
-    return false;
-  }
-}
-
-
-async function trashPost(id) {
-  const post =
-    state.posts.find(
-      item =>
-        String(item.id) ===
-        String(id)
-    );
-
-  if (!post) {
-    return;
-  }
-
-  const ok =
-    await publicationAction(
-      id,
-      "trash",
-      `Переместить «${post.title || "публикацию"}» в корзину?`
-    );
-
-  if (!ok) {
-    /*
-     * Старый endpoint,
-     * если worker поддерживает его.
-     */
-    try {
-
-      await api(
-        `/api/admin/posts/${encodeURIComponent(
-          id
-        )}/trash`,
-        {
-          method: "POST"
-        }
-      );
-
-    } catch {
-      return;
-    }
-  }
-
-  await Promise.all([
-    loadPosts(),
-    loadTrash(),
-    loadStats()
-  ]);
-
-  alert(
-    "🗑 Публикация перемещена в корзину."
-  );
-}
-
-
-async function trashAllPosts() {
-  if (!state.posts.length) {
-    alert(
-      "Опубликованных публикаций нет."
-    );
-
-    return;
-  }
-
-  const confirmed =
-    confirm(
-      `Переместить ВСЕ ${state.posts.length} публикаций в корзину?`
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-
-    try {
-
-      await api(
-        "/api/admin/posts/all/trash",
-        {
-          method: "POST"
-        }
-      );
-
-    } catch {
-
-      for (
-        const post of state.posts
-      ) {
-
-        await api(
-          "/api/admin/publication/action",
-          {
-            method: "POST",
-
-            body: JSON.stringify({
-              id: post.id,
-              action: "trash"
-            })
-          }
-        );
-
-      }
-
-    }
-
-    await refreshEverything();
-
-    alert(
-      "🗑 Все публикации перемещены в корзину."
-    );
-
-  } catch (error) {
-
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
-      error.message ||
-      "Не удалось переместить публикации."
+      "Не удалось удалить публикацию.",
+      "error"
     );
   }
 }
@@ -2602,79 +2499,35 @@ async function trashAllPosts() {
 ============================================================ */
 
 async function loadTrash() {
-  const loading =
-    $("trashLoading");
-
-  const errorBox =
-    $("trashError");
-
-  const empty =
-    $("trashEmpty");
-
-  if (loading) {
-    loading.hidden = false;
-  }
-
-  if (errorBox) {
-    errorBox.hidden = true;
-  }
-
   try {
-
-    let data;
-
-    try {
-      data = await api(
+    const data =
+      await api(
         "/api/admin/trash"
       );
-    } catch {
-      data = {
-        posts: [],
-        rejected_submissions: []
-      };
-    }
 
     state.trashPosts =
       data.posts ||
-      [];
-
-    state.rejectedSubmissions =
-      data.rejected_submissions ||
+      data.publications ||
+      data.items ||
       [];
 
     renderTrash();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    if (errorBox) {
-      errorBox.textContent =
-        error.message ||
-        "Не удалось загрузить корзину.";
-
-      errorBox.hidden = false;
-    }
-
-  } finally {
-
-    if (loading) {
-      loading.hidden = true;
-    }
+    console.error(
+      "Trash error:",
+      error
+    );
   }
 }
 
 
 function renderTrash() {
   const list =
+    $("adminTrashList") ||
     $("trashList");
-
-  const empty =
-    $("trashEmpty");
 
   if (!list) {
     return;
@@ -2682,43 +2535,17 @@ function renderTrash() {
 
   list.innerHTML = "";
 
-  let deletedPosts =
-    state.trashPosts || [];
-
-  let rejected =
-    state.rejectedSubmissions || [];
-
-  if (
-    state.trashFilter ===
-    "posts"
-  ) {
-    rejected = [];
-  }
-
-  if (
-    state.trashFilter ===
-    "submissions"
-  ) {
-    deletedPosts = [];
-  }
-
-  const total =
-    deletedPosts.length +
-    rejected.length;
-
-  if (!total) {
-    if (empty) {
-      empty.hidden = false;
-    }
+  if (!state.trashPosts.length) {
+    list.innerHTML = `
+      <div class="admin-empty">
+        🗑 Корзина пуста.
+      </div>
+    `;
 
     return;
   }
 
-  if (empty) {
-    empty.hidden = true;
-  }
-
-  deletedPosts.forEach(
+  state.trashPosts.forEach(
     post => {
 
       const card =
@@ -2730,63 +2557,43 @@ function renderTrash() {
         "admin-card";
 
       card.innerHTML = `
-
-        <div class="admin-card-top">
-
-          <div>
-
-            <h3 class="admin-card-title">
-              🗑 ${escapeHtml(
-                post.title ||
-                "Без названия"
-              )}
-            </h3>
-
-            <div class="admin-card-meta">
-
-              <span class="admin-badge">
-                ${escapeHtml(
-                  post.category ||
-                  "Без категории"
-                )}
-              </span>
-
-              <span class="admin-badge">
-                Удалён:
-                ${formatDate(
-                  post.deleted_at
-                )}
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="admin-card-preview">
+        <h3 class="admin-card-title">
           ${escapeHtml(
-            post.content ||
-            ""
+            post.title ||
+            "Без названия"
+          )}
+        </h3>
+
+        <div class="admin-card-meta">
+          ID:
+          ${escapeHtml(
+            post.id
+          )}
+
+          ·
+
+          ${formatDate(
+            post.updated_at ||
+            post.created_at
           )}
         </div>
 
         <div class="admin-card-actions">
 
           <button
-            type="button"
             class="admin-button admin-button-success"
+            type="button"
             data-action="restore"
           >
             ♻️ Восстановить
           </button>
 
           <button
-            type="button"
             class="admin-button admin-button-danger"
+            type="button"
             data-action="permanent"
           >
-            ❌ Удалить навсегда
+            🗑 Удалить навсегда
           </button>
 
         </div>
@@ -2821,169 +2628,48 @@ function renderTrash() {
       );
     }
   );
-
-  rejected.forEach(
-    submission => {
-
-      const card =
-        document.createElement(
-          "article"
-        );
-
-      card.className =
-        "admin-card";
-
-      card.innerHTML = `
-
-        <div class="admin-card-top">
-
-          <div>
-
-            <h3 class="admin-card-title">
-              ❌ ${escapeHtml(
-                submission.title ||
-                "Без названия"
-              )}
-            </h3>
-
-            <div class="admin-card-meta">
-
-              <span class="admin-badge rejected">
-                Отклонено
-              </span>
-
-              <span class="admin-badge">
-                ${formatDate(
-                  submission.reviewed_at
-                )}
-              </span>
-
-            </div>
-
-          </div>
-
-        </div>
-
-        <div class="admin-card-preview">
-          <strong>
-            Причина:
-          </strong>
-
-          ${escapeHtml(
-            submission.rejection_reason ||
-            "Не указана"
-          )}
-        </div>
-
-        <div class="admin-card-actions">
-
-          <button
-            type="button"
-            class="admin-button admin-button-success"
-            data-action="restore-submission"
-          >
-            ♻️ Восстановить
-          </button>
-
-          <button
-            type="button"
-            class="admin-button admin-button-danger"
-            data-action="delete-submission"
-          >
-            ❌ Удалить навсегда
-          </button>
-
-        </div>
-      `;
-
-      card
-        .querySelector(
-          '[data-action="restore-submission"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            restoreRejectedSubmission(
-              submission.id
-            )
-        );
-
-      card
-        .querySelector(
-          '[data-action="delete-submission"]'
-        )
-        ?.addEventListener(
-          "click",
-          () =>
-            permanentDeleteRejectedSubmission(
-              submission.id
-            )
-        );
-
-      list.appendChild(
-        card
-      );
-    }
-  );
 }
 
 
-async function restorePost(id) {
-  const confirmed =
-    confirm(
+async function restorePost(
+  id
+) {
+  if (
+    !confirm(
       "Восстановить публикацию?"
-    );
-
-  if (!confirmed) {
+    )
+  ) {
     return;
   }
 
   try {
-
-    try {
-
-      await api(
-        `/api/admin/posts/${encodeURIComponent(
+    await api(
+      "/api/admin/trash/restore",
+      {
+        method: "POST",
+        body: {
           id
-        )}/restore`,
-        {
-          method: "POST"
         }
-      );
-
-    } catch {
-
-      await api(
-        "/api/admin/publication/action",
-        {
-          method: "POST",
-
-          body: JSON.stringify({
-            id,
-            action: "restore"
-          })
-        }
-      );
-
-    }
-
-    await refreshEverything();
-
-    alert(
-      "♻️ Публикация восстановлена."
+      }
     );
 
+    notify(
+      "Публикация восстановлена."
+    );
+
+    await Promise.all([
+      loadTrash(),
+      loadPosts(),
+      loadStats()
+    ]);
+
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось восстановить."
+      "Не удалось восстановить.",
+      "error"
     );
   }
 }
@@ -2992,231 +2678,115 @@ async function restorePost(id) {
 async function permanentDeletePost(
   id
 ) {
-  const confirmed =
-    confirm(
-      "Удалить публикацию окончательно?"
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  const second =
-    confirm(
-      "ВНИМАНИЕ!\n\nЭто действие нельзя отменить.\n\nПродолжить?"
-    );
-
-  if (!second) {
+  if (
+    !confirm(
+      "Удалить публикацию НАВСЕГДА? Это действие нельзя отменить."
+    )
+  ) {
     return;
   }
 
   try {
-
-    try {
-
-      await api(
-        `/api/admin/posts/${encodeURIComponent(
+    await api(
+      "/api/admin/trash/permanent-delete",
+      {
+        method: "POST",
+        body: {
           id
-        )}/permanent`,
-        {
-          method: "DELETE"
         }
-      );
-
-    } catch {
-
-      await api(
-        "/api/admin/publication/action",
-        {
-          method: "POST",
-
-          body: JSON.stringify({
-            id,
-            action: "delete"
-          })
-        }
-      );
-
-    }
-
-    await refreshEverything();
-
-    alert(
-      "❌ Публикация удалена окончательно."
-    );
-
-  } catch (error) {
-
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
-      error.message ||
-      "Не удалось удалить публикацию."
-    );
-  }
-}
-
-
-async function restoreRejectedSubmission(
-  id
-) {
-  const confirmed =
-    confirm(
-      "Вернуть заявку на повторную модерацию?"
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  try {
-
-    await api(
-      `/api/admin/submissions/${encodeURIComponent(
-        id
-      )}/restore`,
-      {
-        method: "POST"
       }
     );
 
-    await refreshEverything();
-
-    alert(
-      "♻️ Заявка восстановлена."
+    notify(
+      "Публикация удалена навсегда."
     );
+
+    await loadTrash();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось восстановить заявку."
-    );
-  }
-}
-
-
-async function permanentDeleteRejectedSubmission(
-  id
-) {
-  const confirmed =
-    confirm(
-      "Удалить заявку окончательно?"
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  const second =
-    confirm(
-      "Это действие нельзя отменить.\n\nПродолжить?"
-    );
-
-  if (!second) {
-    return;
-  }
-
-  try {
-
-    await api(
-      `/api/admin/submissions/${encodeURIComponent(
-        id
-      )}/permanent`,
-      {
-        method: "DELETE"
-      }
-    );
-
-    await refreshEverything();
-
-    alert(
-      "❌ Заявка удалена."
-    );
-
-  } catch (error) {
-
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
-      error.message ||
-      "Не удалось удалить заявку."
+      "Не удалось удалить.",
+      "error"
     );
   }
 }
 
 
 async function emptyTrash() {
-  const total =
-    state.trashPosts.length +
-    state.rejectedSubmissions.length;
-
-  if (!total) {
-    alert(
-      "Корзина уже пустая."
-    );
-
-    return;
-  }
-
-  const confirmed =
-    confirm(
-      `В корзине ${total} материалов.\n\nОчистить всю корзину?`
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  const second =
-    confirm(
-      "ВНИМАНИЕ!\n\nВсе материалы будут удалены окончательно.\n\nПродолжить?"
-    );
-
-  if (!second) {
+  if (
+    !confirm(
+      "Полностью очистить корзину?"
+    )
+  ) {
     return;
   }
 
   try {
-
     await api(
       "/api/admin/trash/empty",
       {
-        method: "DELETE"
+        method: "POST"
       }
     );
 
-    await refreshEverything();
-
-    alert(
-      "🧹 Корзина очищена."
+    notify(
+      "Корзина очищена."
     );
 
+    await Promise.all([
+      loadTrash(),
+      loadStats()
+    ]);
+
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось очистить корзину."
+      "Не удалось очистить корзину.",
+      "error"
+    );
+  }
+}
+
+
+async function trashAllPosts() {
+  if (
+    !confirm(
+      "Переместить все публикации в корзину?"
+    )
+  ) {
+    return;
+  }
+
+  try {
+    await api(
+      "/api/admin/trash/all",
+      {
+        method: "POST"
+      }
+    );
+
+    notify(
+      "Публикации перемещены в корзину."
+    );
+
+    await Promise.all([
+      loadPosts(),
+      loadTrash(),
+      loadStats()
+    ]);
+
+  } catch (error) {
+    handleUnauthorized(error);
+
+    notify(
+      error.message ||
+      "Не удалось выполнить действие.",
+      "error"
     );
   }
 }
@@ -3228,7 +2798,6 @@ async function emptyTrash() {
 
 async function loadUsers() {
   try {
-
     const data =
       await api(
         "/api/admin/users"
@@ -3237,23 +2806,18 @@ async function loadUsers() {
     state.users =
       data.users ||
       data.participants ||
+      data.items ||
       [];
 
     renderUsers();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    /*
-     * Раздел может отсутствовать
-     * в старом HTML — это не ошибка
-     * всей панели.
-     */
+    console.error(
+      "Users error:",
+      error
+    );
   }
 }
 
@@ -3261,13 +2825,12 @@ async function loadUsers() {
 function renderUsers() {
   const list =
     $("adminUsersList") ||
-    $("usersList");
+    $("usersList") ||
+    $("participantsList");
 
   if (!list) {
     return;
   }
-
-  list.innerHTML = "";
 
   let users =
     [...state.users];
@@ -3278,25 +2841,30 @@ function renderUsers() {
       .trim();
 
   if (search) {
-
     users =
       users.filter(
         user => {
 
-          const text =
-            [
-              user.id,
-              user.username,
-              user.name,
-              user.full_name,
-              user.display_name,
-              user.email,
-              user.phone
-            ]
+          const values =
+            Object.values(
+              user || {}
+            )
+              .filter(
+                value =>
+                  value !== null &&
+                  value !== undefined
+              )
+              .map(
+                value =>
+                  typeof value ===
+                  "object"
+                    ? safeJson(value)
+                    : String(value)
+              )
               .join(" ")
               .toLowerCase();
 
-          return text.includes(
+          return values.includes(
             search
           );
         }
@@ -3304,25 +2872,35 @@ function renderUsers() {
   }
 
   if (
-    state.userFilter !==
-    "all"
+    state.userFilter &&
+    state.userFilter !== "all"
   ) {
     users =
       users.filter(
-        user =>
-          String(
-            user.status ||
-            ""
-          ).toLowerCase() ===
-          state.userFilter
+        user => {
+
+          const status =
+            String(
+              user.status ||
+              user.account_status ||
+              "active"
+            )
+              .toLowerCase();
+
+          return (
+            status ===
+            state.userFilter
+          );
+        }
       );
   }
 
-  if (!users.length) {
+  list.innerHTML = "";
 
+  if (!users.length) {
     list.innerHTML = `
       <div class="admin-empty">
-        👥 Участники не найдены.
+        👤 Участники не найдены.
       </div>
     `;
 
@@ -3332,6 +2910,25 @@ function renderUsers() {
   users.forEach(
     user => {
 
+      const id =
+        user.id ||
+        user.user_id ||
+        user.uuid ||
+        "";
+
+      const name =
+        user.name ||
+        user.full_name ||
+        user.display_name ||
+        user.username ||
+        user.contact_name ||
+        "Без имени";
+
+      const status =
+        user.status ||
+        user.account_status ||
+        "active";
+
       const card =
         document.createElement(
           "article"
@@ -3340,55 +2937,24 @@ function renderUsers() {
       card.className =
         "admin-card";
 
-      const status =
-        user.status ||
-        "active";
-
       card.innerHTML = `
-
         <div class="admin-card-top">
 
           <div>
 
             <h3 class="admin-card-title">
-              ${escapeHtml(
-                user.name ||
-                user.full_name ||
-                user.display_name ||
-                "Без имени"
-              )}
+              ${escapeHtml(name)}
             </h3>
 
             <div class="admin-card-meta">
 
-              ${
-                user.username
-                  ? `
-                    <span class="admin-badge">
-                      @${escapeHtml(
-                        String(
-                          user.username
-                        ).replace(
-                          /^@/,
-                          ""
-                        )
-                      )}
-                    </span>
-                  `
-                  : ""
-              }
-
               <span class="admin-badge">
                 ID:
-                ${escapeHtml(
-                  user.id
-                )}
+                ${escapeHtml(id)}
               </span>
 
               <span class="admin-badge">
-                ${escapeHtml(
-                  status
-                )}
+                ${escapeHtml(status)}
               </span>
 
             </div>
@@ -3400,26 +2966,26 @@ function renderUsers() {
         <div class="admin-card-preview">
 
           ${
-            user.email
-              ? `📧 ${escapeHtml(
-                  user.email
-                )}<br>`
+            user.phone
+              ? `📞 ${escapeHtml(user.phone)}<br>`
               : ""
           }
 
           ${
-            user.phone
-              ? `📱 ${escapeHtml(
-                  user.phone
-                )}<br>`
+            user.email
+              ? `✉️ ${escapeHtml(user.email)}<br>`
+              : ""
+          }
+
+          ${
+            user.city
+              ? `📍 ${escapeHtml(user.city)}<br>`
               : ""
           }
 
           ${
             user.created_at
-              ? `📅 ${formatDate(
-                  user.created_at
-                )}`
+              ? `📅 ${formatDate(user.created_at)}`
               : ""
           }
 
@@ -3429,15 +2995,15 @@ function renderUsers() {
 
           <button
             type="button"
-            class="admin-button admin-button-light"
+            class="admin-button admin-button-primary"
             data-action="user-open"
           >
-            👤 Открыть
+            👁 Все данные
           </button>
 
           <button
             type="button"
-            class="admin-button admin-button-primary"
+            class="admin-button admin-button-light"
             data-action="user-edit"
           >
             ✏️ Изменить
@@ -3445,10 +3011,10 @@ function renderUsers() {
 
           <button
             type="button"
-            class="admin-button admin-button-warning"
-            data-action="user-action"
+            class="admin-button admin-button-danger"
+            data-action="user-delete"
           >
-            ⚙️ Управление
+            🗑 Удалить
           </button>
 
         </div>
@@ -3461,9 +3027,7 @@ function renderUsers() {
         ?.addEventListener(
           "click",
           () =>
-            openUser(
-              user.id
-            )
+            openUser(user)
         );
 
       card
@@ -3473,20 +3037,19 @@ function renderUsers() {
         ?.addEventListener(
           "click",
           () =>
-            editUser(
-              user
-            )
+            openUserEdit(user)
         );
 
       card
         .querySelector(
-          '[data-action="user-action"]'
+          '[data-action="user-delete"]'
         )
         ?.addEventListener(
           "click",
           () =>
             manageUser(
-              user
+              id,
+              "delete"
             )
         );
 
@@ -3498,51 +3061,80 @@ function renderUsers() {
 }
 
 
-async function openUser(id) {
-  try {
+function renderUserAllData(
+  user
+) {
+  let html = "";
 
-    const data =
-      await api(
-        `/api/admin/user?id=${encodeURIComponent(
-          id
-        )}`
-      );
+  Object.entries(
+    user || {}
+  ).forEach(
+    ([key, value]) => {
 
-    const user =
-      data.user ||
-      data;
+      let display =
+        value;
 
-    state.selectedUser =
-      user;
+      if (
+        value === null ||
+        value === undefined
+      ) {
+        display = "—";
+      }
 
-    showUserModal(
-      user
-    );
+      if (
+        typeof value ===
+        "object"
+      ) {
+        display =
+          safeJson(value);
+      }
 
-  } catch (error) {
+      html += `
+        <div
+          style="
+            padding:13px 0;
+            border-bottom:1px solid rgba(0,0,0,.08);
+          "
+        >
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
+          <div
+            style="
+              font-size:12px;
+              color:#6b7280;
+              margin-bottom:4px;
+              font-weight:700;
+            "
+          >
+            ${escapeHtml(key)}
+          </div>
+
+          <div
+            style="
+              word-break:break-word;
+            "
+          >
+            ${escapeHtml(display)}
+          </div>
+
+        </div>
+      `;
     }
+  );
 
-    alert(
-      error.message ||
-      "Не удалось загрузить участника."
-    );
-  }
+  return html;
 }
 
 
-function showUserModal(
-  user
-) {
+function openUser(user) {
+  state.selectedUser =
+    user;
+
   let modal =
     $("userModal");
 
   if (!modal) {
     createUserModal();
+
     modal =
       $("userModal");
   }
@@ -3550,107 +3142,12 @@ function showUserModal(
   const body =
     $("userModalBody");
 
-  if (!body) {
-    return;
+  if (body) {
+    body.innerHTML =
+      renderUserAllData(
+        user
+      );
   }
-
-  body.innerHTML = `
-
-    <div class="admin-detail">
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Имя
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            user.name ||
-            user.full_name ||
-            user.display_name ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Username
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            user.username ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          ID
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            user.id
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Email
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            user.email ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Телефон
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            user.phone ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Статус
-        </span>
-
-        <div class="admin-detail-value">
-          ${escapeHtml(
-            user.status ||
-            "—"
-          )}
-        </div>
-      </div>
-
-      <div class="admin-detail-row">
-        <span class="admin-detail-label">
-          Регистрация
-        </span>
-
-        <div class="admin-detail-value">
-          ${formatDate(
-            user.created_at
-          )}
-        </div>
-      </div>
-
-    </div>
-  `;
 
   modal.hidden = false;
 }
@@ -3669,13 +3166,12 @@ function createUserModal() {
     "admin-modal";
 
   modal.innerHTML = `
-
     <div class="admin-modal-box">
 
       <div class="admin-modal-header">
 
         <h2>
-          👤 Участник
+          👤 Данные участника
         </h2>
 
         <button
@@ -3694,6 +3190,14 @@ function createUserModal() {
       ></div>
 
       <div class="admin-modal-footer">
+
+        <button
+          id="userModalEdit"
+          type="button"
+          class="admin-button admin-button-primary"
+        >
+          ✏️ Изменить
+        </button>
 
         <button
           id="userModalCancel"
@@ -3723,6 +3227,22 @@ function createUserModal() {
       "click",
       closeUserModal
     );
+
+  $("userModalEdit")
+    ?.addEventListener(
+      "click",
+      () => {
+
+        if (
+          state.selectedUser
+        ) {
+          openUserEdit(
+            state.selectedUser
+          );
+        }
+
+      }
+    );
 }
 
 
@@ -3733,13 +3253,12 @@ function closeUserModal() {
   if (modal) {
     modal.hidden = true;
   }
-
-  state.selectedUser =
-    null;
 }
 
 
-function editUser(user) {
+function openUserEdit(
+  user
+) {
   state.selectedUser =
     user;
 
@@ -3748,6 +3267,7 @@ function editUser(user) {
 
   if (!modal) {
     createUserEditModal();
+
     modal =
       $("userEditModal");
   }
@@ -3756,26 +3276,49 @@ function editUser(user) {
     "userEditName",
     user.name ||
     user.full_name ||
-    user.display_name ||
-    ""
+    user.display_name
   );
 
   setValue(
     "userEditUsername",
-    user.username ||
-    ""
+    user.username
   );
 
   setValue(
     "userEditEmail",
-    user.email ||
-    ""
+    user.email
   );
 
   setValue(
     "userEditPhone",
-    user.phone ||
-    ""
+    user.phone
+  );
+
+  setValue(
+    "userEditCity",
+    user.city
+  );
+
+  setValue(
+    "userEditCountry",
+    user.country
+  );
+
+  setValue(
+    "userEditBio",
+    user.bio
+  );
+
+  setValue(
+    "userEditTelegram",
+    user.contact_telegram ||
+    user.telegram
+  );
+
+  setValue(
+    "userEditStatus",
+    user.status ||
+    "active"
   );
 
   modal.hidden = false;
@@ -3795,7 +3338,6 @@ function createUserEditModal() {
     "admin-modal";
 
   modal.innerHTML = `
-
     <div class="admin-modal-box">
 
       <div class="admin-modal-header">
@@ -3814,85 +3356,127 @@ function createUserEditModal() {
 
       </div>
 
-      <div class="admin-modal-body">
+      <form
+        id="userEditForm"
+        class="admin-modal-body"
+      >
 
-        <div class="admin-form-group">
-
-          <label>
-            Имя
-          </label>
-
+        <label>
+          Имя
           <input
             id="userEditName"
             class="admin-input"
             type="text"
           >
+        </label>
 
-        </div>
-
-        <div class="admin-form-group">
-
-          <label>
-            Username
-          </label>
-
+        <label>
+          Username
           <input
             id="userEditUsername"
             class="admin-input"
             type="text"
           >
+        </label>
 
-        </div>
-
-        <div class="admin-form-group">
-
-          <label>
-            Email
-          </label>
-
+        <label>
+          Email
           <input
             id="userEditEmail"
             class="admin-input"
             type="email"
           >
+        </label>
 
-        </div>
-
-        <div class="admin-form-group">
-
-          <label>
-            Телефон
-          </label>
-
+        <label>
+          Телефон
           <input
             id="userEditPhone"
             class="admin-input"
             type="text"
           >
+        </label>
+
+        <label>
+          Город
+          <input
+            id="userEditCity"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Страна
+          <input
+            id="userEditCountry"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Telegram
+          <input
+            id="userEditTelegram"
+            class="admin-input"
+            type="text"
+          >
+        </label>
+
+        <label>
+          Статус
+          <select
+            id="userEditStatus"
+            class="admin-input"
+          >
+            <option value="active">
+              active
+            </option>
+
+            <option value="blocked">
+              blocked
+            </option>
+
+            <option value="banned">
+              banned
+            </option>
+
+            <option value="inactive">
+              inactive
+            </option>
+          </select>
+        </label>
+
+        <label>
+          Описание
+          <textarea
+            id="userEditBio"
+            class="admin-textarea"
+            rows="6"
+          ></textarea>
+        </label>
+
+        <div class="admin-modal-footer">
+
+          <button
+            id="userEditCancel"
+            type="button"
+            class="admin-button admin-button-light"
+          >
+            Отмена
+          </button>
+
+          <button
+            type="submit"
+            class="admin-button admin-button-primary"
+          >
+            💾 Сохранить
+          </button>
 
         </div>
 
-      </div>
-
-      <div class="admin-modal-footer">
-
-        <button
-          id="userEditCancel"
-          type="button"
-          class="admin-button admin-button-light"
-        >
-          Отмена
-        </button>
-
-        <button
-          id="userEditSave"
-          type="button"
-          class="admin-button admin-button-success"
-        >
-          💾 Сохранить
-        </button>
-
-      </div>
+      </form>
 
     </div>
   `;
@@ -3913,10 +3497,16 @@ function createUserEditModal() {
       closeUserEditModal
     );
 
-  $("userEditSave")
+  $("userEditForm")
     ?.addEventListener(
-      "click",
-      saveUser
+      "submit",
+      event => {
+
+        event.preventDefault();
+
+        saveUser();
+
+      }
     );
 }
 
@@ -3928,9 +3518,6 @@ function closeUserEditModal() {
   if (modal) {
     modal.hidden = true;
   }
-
-  state.selectedUser =
-    null;
 }
 
 
@@ -3942,153 +3529,141 @@ async function saveUser() {
     return;
   }
 
-  const payload = {
-    id: user.id,
-
-    name:
-      getValue(
-        "userEditName"
-      ),
-
-    username:
-      getValue(
-        "userEditUsername"
-      ),
-
-    email:
-      getValue(
-        "userEditEmail"
-      ),
-
-    phone:
-      getValue(
-        "userEditPhone"
-      )
-  };
-
-  const confirmed =
-    confirm(
-      "Сохранить изменения участника?"
-    );
-
-  if (!confirmed) {
-    return;
-  }
+  const id =
+    user.id ||
+    user.user_id ||
+    user.uuid;
 
   try {
-
     await api(
       "/api/admin/user/edit",
       {
         method: "POST",
+        body: {
+          id,
 
-        body: JSON.stringify(
-          payload
-        )
+          name:
+            getValue(
+              "userEditName"
+            ),
+
+          username:
+            getValue(
+              "userEditUsername"
+            ),
+
+          email:
+            getValue(
+              "userEditEmail"
+            ),
+
+          phone:
+            getValue(
+              "userEditPhone"
+            ),
+
+          city:
+            getValue(
+              "userEditCity"
+            ),
+
+          country:
+            getValue(
+              "userEditCountry"
+            ),
+
+          bio:
+            getValue(
+              "userEditBio"
+            ),
+
+          contact_telegram:
+            getValue(
+              "userEditTelegram"
+            ),
+
+          status:
+            getValue(
+              "userEditStatus"
+            )
+        }
       }
+    );
+
+    notify(
+      "Данные участника изменены."
     );
 
     closeUserEditModal();
 
     await loadUsers();
 
-    alert(
-      "✅ Данные участника изменены."
-    );
-
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось изменить участника."
+      "Не удалось изменить участника.",
+      "error"
     );
   }
 }
 
 
 async function manageUser(
-  user
+  id,
+  action
 ) {
-  const action =
-    prompt(
-      "Введите действие:\n\n" +
-      "block — заблокировать\n" +
-      "unblock — разблокировать\n" +
-      "delete — удалить\n\n" +
-      "Или отмените."
-    );
-
-  if (!action) {
+  if (!id) {
     return;
   }
 
-  const normalized =
-    action
-      .trim()
-      .toLowerCase();
+  const texts = {
+    delete:
+      "Удалить участника?",
+    ban:
+      "Заблокировать участника?",
+    unban:
+      "Разблокировать участника?"
+  };
 
   if (
-    ![
-      "block",
-      "unblock",
-      "delete"
-    ].includes(
-      normalized
+    !confirm(
+      texts[action] ||
+      "Выполнить действие?"
     )
   ) {
-    alert(
-      "Неизвестное действие."
-    );
-
-    return;
-  }
-
-  const confirmed =
-    confirm(
-      `Выполнить действие "${normalized}" для участника?`
-    );
-
-  if (!confirmed) {
     return;
   }
 
   try {
-
     await api(
       "/api/admin/user/action",
       {
         method: "POST",
-
-        body: JSON.stringify({
-          id: user.id,
-          action: normalized
-        })
+        body: {
+          id,
+          action
+        }
       }
     );
 
-    await loadUsers();
-
-    alert(
-      "✅ Действие выполнено."
+    notify(
+      "Действие выполнено."
     );
 
+    await Promise.all([
+      loadUsers(),
+      loadStats()
+    ]);
+
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Действие не выполнено."
+      "Не удалось выполнить действие.",
+      "error"
     );
   }
 }
@@ -4100,7 +3675,6 @@ async function manageUser(
 
 async function loadComments() {
   try {
-
     const data =
       await api(
         "/api/admin/comments"
@@ -4108,17 +3682,18 @@ async function loadComments() {
 
     state.comments =
       data.comments ||
+      data.items ||
       [];
 
     renderComments();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
+    console.error(
+      "Comments error:",
+      error
+    );
   }
 }
 
@@ -4156,7 +3731,6 @@ function renderComments() {
         "admin-card";
 
       card.innerHTML = `
-
         <div class="admin-card-top">
 
           <div>
@@ -4270,36 +3844,33 @@ async function editComment(
   }
 
   try {
-
     await api(
       "/api/admin/comment/edit",
       {
         method: "POST",
-
-        body: JSON.stringify({
+        body: {
           id: comment.id,
           content: text
-        })
+        }
       }
     );
 
-    await loadComments();
-
-    alert(
-      "✅ Комментарий изменён."
+    notify(
+      "Комментарий изменён."
     );
 
+    await Promise.all([
+      loadComments(),
+      loadStats()
+    ]);
+
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось изменить комментарий."
+      "Не удалось изменить комментарий.",
+      "error"
     );
   }
 }
@@ -4308,46 +3879,42 @@ async function editComment(
 async function deleteComment(
   id
 ) {
-  const confirmed =
-    confirm(
+  if (
+    !confirm(
       "Удалить комментарий?"
-    );
-
-  if (!confirmed) {
+    )
+  ) {
     return;
   }
 
   try {
-
     await api(
       "/api/admin/comment/action",
       {
         method: "POST",
-
-        body: JSON.stringify({
+        body: {
           id,
           action: "delete"
-        })
+        }
       }
     );
 
-    await loadComments();
-
-    alert(
-      "🗑 Комментарий удалён."
+    notify(
+      "Комментарий удалён."
     );
 
+    await Promise.all([
+      loadComments(),
+      loadStats()
+    ]);
+
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось удалить комментарий."
+      "Не удалось удалить комментарий.",
+      "error"
     );
   }
 }
@@ -4359,7 +3926,6 @@ async function deleteComment(
 
 async function loadChats() {
   try {
-
     const data =
       await api(
         "/api/admin/chats"
@@ -4367,17 +3933,19 @@ async function loadChats() {
 
     state.chats =
       data.chats ||
+      data.conversations ||
+      data.items ||
       [];
 
     renderChats();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
+    console.error(
+      "Chats error:",
+      error
+    );
   }
 }
 
@@ -4394,7 +3962,6 @@ function renderChats() {
   list.innerHTML = "";
 
   if (!state.chats.length) {
-
     list.innerHTML = `
       <div class="admin-empty">
         💬 Чатов пока нет.
@@ -4407,6 +3974,11 @@ function renderChats() {
   state.chats.forEach(
     chat => {
 
+      const userId =
+        chat.user_id ||
+        chat.userId ||
+        chat.id;
+
       const card =
         document.createElement(
           "article"
@@ -4416,7 +3988,6 @@ function renderChats() {
         "admin-card";
 
       card.innerHTML = `
-
         <div class="admin-card-top">
 
           <div>
@@ -4424,6 +3995,7 @@ function renderChats() {
             <h3 class="admin-card-title">
               ${escapeHtml(
                 chat.user_name ||
+                chat.name ||
                 chat.username ||
                 "Пользователь"
               )}
@@ -4434,9 +4006,7 @@ function renderChats() {
               <span class="admin-badge">
                 ID:
                 ${escapeHtml(
-                  chat.user_id ||
-                  chat.id ||
-                  ""
+                  userId
                 )}
               </span>
 
@@ -4446,6 +4016,16 @@ function renderChats() {
                   chat.last_message_at
                 )}
               </span>
+
+              ${
+                chat.unread
+                  ? `
+                    <span class="admin-badge">
+                      🔴 ${formatNumber(chat.unread)}
+                    </span>
+                  `
+                  : ""
+              }
 
             </div>
 
@@ -4482,8 +4062,7 @@ function renderChats() {
           "click",
           () =>
             openAdminChat(
-              chat.user_id ||
-              chat.id
+              userId
             )
         );
 
@@ -4499,7 +4078,6 @@ async function openAdminChat(
   userId
 ) {
   try {
-
     const data =
       await api(
         `/api/admin/chat/messages?user_id=${encodeURIComponent(
@@ -4517,16 +4095,12 @@ async function openAdminChat(
     showAdminChatModal();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось открыть чат."
+      "Не удалось открыть чат.",
+      "error"
     );
   }
 }
@@ -4538,6 +4112,7 @@ function showAdminChatModal() {
 
   if (!modal) {
     createAdminChatModal();
+
     modal =
       $("adminChatModal");
   }
@@ -4557,42 +4132,69 @@ function showAdminChatModal() {
     messages.length
       ? messages
           .map(
-            message => `
-              <div
-                style="
-                  padding:10px;
-                  margin-bottom:8px;
-                  border-radius:10px;
-                  background:#f3f4f6;
-                "
-              >
-                <strong>
-                  ${escapeHtml(
-                    message.sender_name ||
-                    message.author_name ||
-                    "Пользователь"
-                  )}
-                </strong>
+            message => {
 
-                <div style="margin-top:5px;">
-                  ${escapeHtml(
-                    message.content ||
-                    message.text ||
-                    ""
-                  )}
-                </div>
+              const isAdmin =
+                message.sender_type ===
+                  "admin" ||
+                message.author_type ===
+                  "admin";
 
-                <small
+              return `
+                <div
                   style="
-                    color:#6b7280;
+                    padding:13px;
+                    margin-bottom:9px;
+                    border-radius:14px;
+                    background:${
+                      isAdmin
+                        ? "#e8f1ff"
+                        : "#f3f4f6"
+                    };
                   "
                 >
-                  ${formatDate(
-                    message.created_at
-                  )}
-                </small>
-              </div>
-            `
+
+                  <strong>
+                    ${escapeHtml(
+                      message.sender_name ||
+                      message.author_name ||
+                      (
+                        isAdmin
+                          ? "Администратор"
+                          : "Пользователь"
+                      )
+                    )}
+                  </strong>
+
+                  <div
+                    style="
+                      margin-top:6px;
+                      line-height:1.55;
+                      white-space:pre-wrap;
+                    "
+                  >
+                    ${escapeHtml(
+                      message.content ||
+                      message.text ||
+                      ""
+                    )}
+                  </div>
+
+                  <small
+                    style="
+                      display:block;
+                      margin-top:7px;
+                      color:#6b7280;
+                    "
+                  >
+                    ${formatDate(
+                      message.created_at
+                    )}
+                  </small>
+
+                </div>
+              `;
+            }
           )
           .join("")
       : `
@@ -4602,6 +4204,13 @@ function showAdminChatModal() {
         `;
 
   modal.hidden = false;
+
+  requestAnimationFrame(
+    () => {
+      body.scrollTop =
+        body.scrollHeight;
+    }
+  );
 }
 
 
@@ -4618,7 +4227,6 @@ function createAdminChatModal() {
     "admin-modal";
 
   modal.innerHTML = `
-
     <div class="admin-modal-box">
 
       <div class="admin-modal-header">
@@ -4640,7 +4248,10 @@ function createAdminChatModal() {
       <div
         id="adminChatBody"
         class="admin-modal-body"
-        style="max-height:500px;overflow:auto;"
+        style="
+          max-height:500px;
+          overflow:auto;
+        "
       ></div>
 
       <div class="admin-modal-body">
@@ -4649,7 +4260,7 @@ function createAdminChatModal() {
           id="adminChatMessage"
           class="admin-textarea"
           style="min-height:100px;"
-          placeholder="Введите ответ..."
+          placeholder="Введите ответ участнику..."
         ></textarea>
 
       </div>
@@ -4728,26 +4339,25 @@ async function sendAdminChatMessage() {
     );
 
   if (!content) {
-    alert(
-      "Введите сообщение."
+    notify(
+      "Введите сообщение.",
+      "error"
     );
 
     return;
   }
 
   try {
-
     await api(
       "/api/admin/chat/send",
       {
         method: "POST",
-
-        body: JSON.stringify({
+        body: {
           user_id:
             chat.userId,
 
           content
-        })
+        }
       }
     );
 
@@ -4760,21 +4370,19 @@ async function sendAdminChatMessage() {
       chat.userId
     );
 
-    alert(
-      "✅ Сообщение отправлено."
+    notify(
+      "Сообщение отправлено."
     );
 
+    await loadChats();
+
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
-
-    alert(
+    notify(
       error.message ||
-      "Не удалось отправить сообщение."
+      "Не удалось отправить сообщение.",
+      "error"
     );
   }
 }
@@ -4786,7 +4394,6 @@ async function sendAdminChatMessage() {
 
 async function loadNotifications() {
   try {
-
     const data =
       await api(
         "/api/admin/notifications"
@@ -4794,17 +4401,18 @@ async function loadNotifications() {
 
     state.notifications =
       data.notifications ||
+      data.items ||
       [];
 
     renderNotifications();
 
   } catch (error) {
+    handleUnauthorized(error);
 
-    if (
-      handleUnauthorized(error)
-    ) {
-      return;
-    }
+    console.error(
+      "Notifications error:",
+      error
+    );
   }
 }
 
@@ -4821,7 +4429,6 @@ function renderNotifications() {
   list.innerHTML = "";
 
   if (!state.notifications.length) {
-
     list.innerHTML = `
       <div class="admin-empty">
         🔔 Уведомлений нет.
@@ -4843,7 +4450,6 @@ function renderNotifications() {
         "admin-card";
 
       card.innerHTML = `
-
         <h3 class="admin-card-title">
           ${escapeHtml(
             notification.title ||
@@ -4861,11 +4467,120 @@ function renderNotifications() {
 
         <div class="admin-card-meta">
 
+          ${formatDate(
+            notification.created_at
+          )}
+
+        </div>
+      `;
+
+      list.appendChild(
+        card
+      );
+    }
+  );
+}
+
+
+/* ============================================================
+   AUDIT LOG
+============================================================ */
+
+async function loadAudit() {
+  try {
+    const data =
+      await api(
+        "/api/admin/audit"
+      );
+
+    state.audit =
+      data.audit ||
+      data.logs ||
+      data.items ||
+      [];
+
+    renderAudit();
+
+  } catch (error) {
+    handleUnauthorized(error);
+
+    console.error(
+      "Audit error:",
+      error
+    );
+  }
+}
+
+
+function renderAudit() {
+  const list =
+    $("adminAuditList") ||
+    $("auditList");
+
+  if (!list) {
+    return;
+  }
+
+  list.innerHTML = "";
+
+  if (!state.audit.length) {
+    list.innerHTML = `
+      <div class="admin-empty">
+        📋 Журнал действий пуст.
+      </div>
+    `;
+
+    return;
+  }
+
+  state.audit.forEach(
+    item => {
+
+      const card =
+        document.createElement(
+          "article"
+        );
+
+      card.className =
+        "admin-card";
+
+      card.innerHTML = `
+        <div class="admin-card-top">
+
+          <strong>
+            ${escapeHtml(
+              item.action ||
+              item.event ||
+              "Действие"
+            )}
+          </strong>
+
           <span class="admin-badge">
             ${formatDate(
-              notification.created_at
+              item.created_at
             )}
           </span>
+
+        </div>
+
+        <div class="admin-card-preview">
+
+          ${escapeHtml(
+            item.description ||
+            item.message ||
+            item.target ||
+            ""
+          )}
+
+        </div>
+
+        <div class="admin-card-meta">
+
+          Администратор:
+          ${escapeHtml(
+            item.admin_name ||
+            "Главный администратор"
+          )}
 
         </div>
       `;
@@ -5058,39 +4773,91 @@ function setupFilters() {
 
 
 /* ============================================================
+   REFRESH
+============================================================ */
+
+async function refreshEverything() {
+  if (state.loading) {
+    return;
+  }
+
+  state.loading =
+    true;
+
+  try {
+
+    await Promise.allSettled([
+      loadAdmin(),
+      loadStats(),
+      loadSubmissions(),
+      loadPosts(),
+      loadTrash(),
+      loadUsers(),
+      loadComments(),
+      loadChats(),
+      loadNotifications(),
+      loadAudit()
+    ]);
+
+    updateAdminIdentity();
+
+    notify(
+      "Панель обновлена."
+    );
+
+  } finally {
+    state.loading =
+      false;
+  }
+}
+
+
+/* ============================================================
    EVENTS
 ============================================================ */
 
 function setupEvents() {
 
-  $("adminLoginButton")
-    ?.addEventListener(
-      "click",
-      handleLogin
-    );
+  /*
+   * Старая форма входа больше НЕ используется.
+   */
+
+  const loginButton =
+    $("adminLoginButton");
+
+  if (loginButton) {
+    loginButton.style.display =
+      "none";
+  }
+
+  const password =
+    $("adminPassword");
+
+  if (password) {
+    password.style.display =
+      "none";
+  }
+
+  const loginForm =
+    $("adminLoginForm");
+
+  if (loginForm) {
+    loginForm.style.display =
+      "none";
+  }
 
 
-  $("adminPassword")
-    ?.addEventListener(
-      "keydown",
-      event => {
+  /*
+   * Старую кнопку logout скрываем.
+   */
 
-        if (
-          event.key ===
-          "Enter"
-        ) {
-          handleLogin();
-        }
+  const logout =
+    $("adminLogout");
 
-      }
-    );
-
-
-  $("adminLogout")
-    ?.addEventListener(
-      "click",
-      handleLogout
-    );
+  if (logout) {
+    logout.style.display =
+      "none";
+  }
 
 
   $("adminRefresh")
@@ -5110,6 +4877,10 @@ function setupEvents() {
           loadStats()
         ]);
 
+        notify(
+          "Публикации обновлены."
+        );
+
       }
     );
 
@@ -5124,7 +4895,64 @@ function setupEvents() {
           loadStats()
         ]);
 
+        notify(
+          "Корзина обновлена."
+        );
+
       }
+    );
+
+
+  $("adminUsersRefresh")
+    ?.addEventListener(
+      "click",
+      async () => {
+
+        await Promise.all([
+          loadUsers(),
+          loadStats()
+        ]);
+
+        notify(
+          "Участники обновлены."
+        );
+
+      }
+    );
+
+
+  $("adminCommentsRefresh")
+    ?.addEventListener(
+      "click",
+      async () => {
+
+        await Promise.all([
+          loadComments(),
+          loadStats()
+        ]);
+
+      }
+    );
+
+
+  $("adminChatsRefresh")
+    ?.addEventListener(
+      "click",
+      loadChats
+    );
+
+
+  $("adminNotificationsRefresh")
+    ?.addEventListener(
+      "click",
+      loadNotifications
+    );
+
+
+  $("adminAuditRefresh")
+    ?.addEventListener(
+      "click",
+      loadAudit
     );
 
 
@@ -5142,97 +4970,24 @@ function setupEvents() {
     );
 
 
-  $("submissionClose")
-    ?.addEventListener(
-      "click",
-      closeSubmissionModal
-    );
+  document
+    .querySelectorAll(
+      [
+        "submissionModal",
+        "postModal",
+        "postEditModal",
+        "countersModal",
+        "userModal",
+        "userEditModal",
+        "adminChatModal"
+      ].map(
+        id => `#${id}`
+      ).join(",")
+    )
+    .forEach(
+      modal => {
 
-
-  $("submissionCancel")
-    ?.addEventListener(
-      "click",
-      closeSubmissionModal
-    );
-
-
-  $("submissionApprove")
-    ?.addEventListener(
-      "click",
-      () =>
-        state.selectedSubmission &&
-        approveSubmission(
-          state.selectedSubmission.id
-        )
-    );
-
-
-  $("submissionReject")
-    ?.addEventListener(
-      "click",
-      () =>
-        state.selectedSubmission &&
-        rejectSubmission(
-          state.selectedSubmission.id
-        )
-    );
-
-
-  $("postModalClose")
-    ?.addEventListener(
-      "click",
-      closePostModal
-    );
-
-
-  $("postModalCancel")
-    ?.addEventListener(
-      "click",
-      closePostModal
-    );
-
-
-  $("postEditClose")
-    ?.addEventListener(
-      "click",
-      closePostEditModal
-    );
-
-
-  $("postEditCancel")
-    ?.addEventListener(
-      "click",
-      closePostEditModal
-    );
-
-
-  $("postEditForm")
-    ?.addEventListener(
-      "submit",
-      event => {
-
-        event.preventDefault();
-
-        savePost();
-
-      }
-    );
-
-
-  [
-    "submissionModal",
-    "postModal",
-    "postEditModal",
-    "countersModal",
-    "userModal",
-    "userEditModal",
-    "adminChatModal"
-  ].forEach(
-    id => {
-
-      document
-        .getElementById(id)
-        ?.addEventListener(
+        modal.addEventListener(
           "click",
           event => {
 
@@ -5243,7 +4998,7 @@ function setupEvents() {
               return;
             }
 
-            const closeMap = {
+            const map = {
               submissionModal:
                 closeSubmissionModal,
 
@@ -5266,12 +5021,15 @@ function setupEvents() {
                 closeAdminChat
             };
 
-            closeMap[id]?.();
+            map[
+              modal.id
+            ]?.();
 
           }
         );
-    }
-  );
+
+      }
+    );
 
 
   document.addEventListener(
@@ -5299,17 +5057,214 @@ function setupEvents() {
 
 
 /* ============================================================
+   REMOVE OLD LOGIN UI
+============================================================ */
+
+function removeOldLoginUI() {
+
+  const selectors = [
+    "#adminLogin",
+    "#adminLoginPanel",
+    ".admin-login",
+    ".admin-login-panel",
+    "[data-admin-login]"
+  ];
+
+  selectors.forEach(
+    selector => {
+
+      document
+        .querySelectorAll(
+          selector
+        )
+        .forEach(
+          element => {
+
+            /*
+             * Не удаляем случайно
+             * весь admin dashboard.
+             * Скрываем только явно
+             * обозначенные login-блоки.
+             */
+
+            element.hidden =
+              true;
+
+            element.style.display =
+              "none";
+
+          }
+        );
+
+    }
+  );
+
+
+  document
+    .querySelectorAll(
+      "[data-admin-dashboard]"
+    )
+    .forEach(
+      element => {
+        element.hidden =
+          false;
+
+        element.style.display =
+          "";
+      }
+    );
+}
+
+
+/* ============================================================
+   SHOW ADMIN PANEL
+============================================================ */
+
+function showDashboard() {
+
+  state.authenticated =
+    true;
+
+  removeOldLoginUI();
+
+  document
+    .querySelectorAll(
+      "[data-admin-dashboard]"
+    )
+    .forEach(
+      element => {
+        element.hidden =
+          false;
+      }
+    );
+
+  document
+    .querySelectorAll(
+      ".admin-dashboard"
+    )
+    .forEach(
+      element => {
+
+        if (
+          element.dataset
+            .adminDashboard ===
+          "true"
+        ) {
+          element.hidden =
+            false;
+        }
+
+      }
+    );
+}
+
+
+/* ============================================================
+   NEW AUTH FLOW
+============================================================ */
+
+async function checkAuthentication() {
+
+  /*
+   * Вход полностью отключён.
+   *
+   * Панель считается авторизованной
+   * сразу после открытия страницы.
+   */
+
+  state.authenticated =
+    true;
+
+  showDashboard();
+
+  updateAdminIdentity();
+
+  await refreshEverything();
+}
+
+
+/*
+ * Совместимость со старым admin.html.
+ *
+ * Если старый HTML где-то всё ещё
+ * вызывает handleLogin(), функция
+ * просто открывает панель.
+ */
+function handleLogin() {
+  state.authenticated =
+    true;
+
+  showDashboard();
+
+  refreshEverything();
+}
+
+
+/*
+ * Совместимость со старым HTML.
+ *
+ * Реального logout больше нет.
+ */
+function handleLogout() {
+  state.authenticated =
+    true;
+
+  showDashboard();
+
+  notify(
+    "Вход администратора отключён.",
+    "info"
+  );
+}
+
+
+/* ============================================================
+   GLOBAL ADMIN API
+============================================================ */
+
+window.TajikAdmin = {
+  state,
+
+  api,
+
+  refresh:
+    refreshEverything,
+
+  loadStats,
+
+  loadSubmissions,
+
+  loadPosts,
+
+  loadUsers,
+
+  loadComments,
+
+  loadChats,
+
+  loadNotifications,
+
+  loadAudit,
+
+  openPost,
+
+  openPostEdit,
+
+  openUser,
+
+  openUserEdit,
+
+  openAdminChat
+};
+
+
+/* ============================================================
    START
 ============================================================ */
 
 document.addEventListener(
   "DOMContentLoaded",
-  () => {
-
-    /*
-     * Создаём дополнительные окна
-     * заранее, чтобы интерфейс был готов.
-     */
+  async () => {
 
     createCountersModal();
 
@@ -5317,7 +5272,9 @@ document.addEventListener(
 
     setupFilters();
 
-    checkAuthentication();
+    showDashboard();
+
+    await checkAuthentication();
 
   }
 );
