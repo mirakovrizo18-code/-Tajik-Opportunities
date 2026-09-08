@@ -1,0 +1,2103 @@
+/* ============================================================
+   🇹🇯 TAJIK OPPORTUNITIES
+   API CLIENT
+   File: public/js/api.js
+   Version: 2026.09.09
+   ============================================================ */
+
+"use strict";
+
+/* ============================================================
+   CONFIG
+   ============================================================ */
+
+const API_CONFIG = Object.freeze({
+  BASE_URL: "/api",
+  DEFAULT_TIMEOUT: 30000,
+  MAX_RETRIES: 2,
+  RETRY_DELAY: 500,
+  JSON_HEADERS: {
+    "Content-Type": "application/json",
+    "Accept": "application/json"
+  }
+});
+
+
+/* ============================================================
+   API ERROR
+   ============================================================ */
+
+class ApiError extends Error {
+  constructor(message, options = {}) {
+    super(message);
+
+    this.name = "ApiError";
+    this.status = Number(options.status || 0);
+    this.code = options.code || "API_ERROR";
+    this.details = options.details ?? null;
+    this.data = options.data ?? null;
+    this.url = options.url || "";
+    this.method = options.method || "";
+    this.requestId = options.requestId || null;
+    this.retryable = Boolean(options.retryable);
+  }
+
+  get isUnauthorized() {
+    return this.status === 401;
+  }
+
+  get isForbidden() {
+    return this.status === 403;
+  }
+
+  get isNotFound() {
+    return this.status === 404;
+  }
+
+  get isConflict() {
+    return this.status === 409;
+  }
+
+  get isRateLimited() {
+    return this.status === 429;
+  }
+
+  get isServerError() {
+    return this.status >= 500;
+  }
+}
+
+
+/* ============================================================
+   INTERNAL STATE
+   ============================================================ */
+
+const apiState = {
+  accessToken: null,
+  csrfToken: null,
+  visitorId: null,
+  sessionId: null,
+  adminToken: null,
+  requestCounter: 0
+};
+
+
+/* ============================================================
+   STORAGE HELPERS
+   ============================================================ */
+
+function safeStorageGet(storage, key) {
+  try {
+    return storage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function safeStorageSet(storage, key, value) {
+  try {
+    storage.setItem(key, value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function safeStorageRemove(storage, key) {
+  try {
+    storage.removeItem(key);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const STORAGE_KEYS = Object.freeze({
+  ACCESS_TOKEN: "to_access_token",
+  CSRF_TOKEN: "to_csrf_token",
+  VISITOR_ID: "to_visitor_id",
+  SESSION_ID: "to_session_id",
+  ADMIN_TOKEN: "to_admin_token",
+  LANGUAGE: "to_language"
+});
+
+
+/* ============================================================
+   TOKEN MANAGEMENT
+   ============================================================ */
+
+function loadStoredState() {
+  apiState.accessToken =
+    safeStorageGet(localStorage, STORAGE_KEYS.ACCESS_TOKEN);
+
+  apiState.csrfToken =
+    safeStorageGet(localStorage, STORAGE_KEYS.CSRF_TOKEN);
+
+  apiState.visitorId =
+    safeStorageGet(localStorage, STORAGE_KEYS.VISITOR_ID);
+
+  apiState.sessionId =
+    safeStorageGet(sessionStorage, STORAGE_KEYS.SESSION_ID);
+
+  apiState.adminToken =
+    safeStorageGet(sessionStorage, STORAGE_KEYS.ADMIN_TOKEN);
+
+  return apiState;
+}
+
+loadStoredState();
+
+
+function setAccessToken(token) {
+  apiState.accessToken = token || null;
+
+  if (token) {
+    safeStorageSet(
+      localStorage,
+      STORAGE_KEYS.ACCESS_TOKEN,
+      token
+    );
+  } else {
+    safeStorageRemove(
+      localStorage,
+      STORAGE_KEYS.ACCESS_TOKEN
+    );
+  }
+}
+
+
+function getAccessToken() {
+  return apiState.accessToken;
+}
+
+
+function setCsrfToken(token) {
+  apiState.csrfToken = token || null;
+
+  if (token) {
+    safeStorageSet(
+      localStorage,
+      STORAGE_KEYS.CSRF_TOKEN,
+      token
+    );
+  } else {
+    safeStorageRemove(
+      localStorage,
+      STORAGE_KEYS.CSRF_TOKEN
+    );
+  }
+}
+
+
+function getCsrfToken() {
+  return apiState.csrfToken;
+}
+
+
+function setVisitorId(id) {
+  apiState.visitorId = id || null;
+
+  if (id) {
+    safeStorageSet(
+      localStorage,
+      STORAGE_KEYS.VISITOR_ID,
+      id
+    );
+  }
+}
+
+
+function getVisitorId() {
+  return apiState.visitorId;
+}
+
+
+function setSessionId(id) {
+  apiState.sessionId = id || null;
+
+  if (id) {
+    safeStorageSet(
+      sessionStorage,
+      STORAGE_KEYS.SESSION_ID,
+      id
+    );
+  }
+}
+
+
+function getSessionId() {
+  return apiState.sessionId;
+}
+
+
+function setAdminToken(token) {
+  apiState.adminToken = token || null;
+
+  if (token) {
+    safeStorageSet(
+      sessionStorage,
+      STORAGE_KEYS.ADMIN_TOKEN,
+      token
+    );
+  } else {
+    safeStorageRemove(
+      sessionStorage,
+      STORAGE_KEYS.ADMIN_TOKEN
+    );
+  }
+}
+
+
+function getAdminToken() {
+  return apiState.adminToken;
+}
+
+
+function clearAuth() {
+  setAccessToken(null);
+  setCsrfToken(null);
+  setAdminToken(null);
+}
+
+
+/* ============================================================
+   REQUEST ID
+   ============================================================ */
+
+function createRequestId() {
+  apiState.requestCounter += 1;
+
+  const random =
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return `web-${apiState.requestCounter}-${random}`;
+}
+
+
+/* ============================================================
+   URL HELPERS
+   ============================================================ */
+
+function normalizePath(path = "") {
+  let value = String(path || "").trim();
+
+  if (!value) {
+    return "/";
+  }
+
+  if (!value.startsWith("/")) {
+    value = `/${value}`;
+  }
+
+  return value.replace(/\/{2,}/g, "/");
+}
+
+
+function buildUrl(path, query = null) {
+  const normalized = normalizePath(path);
+
+  let url;
+
+  if (
+    normalized.startsWith("http://") ||
+    normalized.startsWith("https://")
+  ) {
+    url = new URL(normalized);
+  } else {
+    url = new URL(
+      `${API_CONFIG.BASE_URL}${normalized}`,
+      window.location.origin
+    );
+  }
+
+  if (query && typeof query === "object") {
+    Object.entries(query).forEach(([key, value]) => {
+      if (
+        value === undefined ||
+        value === null ||
+        value === ""
+      ) {
+        return;
+      }
+
+      if (Array.isArray(value)) {
+        value.forEach(item => {
+          if (
+            item !== undefined &&
+            item !== null &&
+            item !== ""
+          ) {
+            url.searchParams.append(key, String(item));
+          }
+        });
+
+        return;
+      }
+
+      url.searchParams.set(key, String(value));
+    });
+  }
+
+  return url.toString();
+}
+
+
+/* ============================================================
+   HEADER HELPERS
+   ============================================================ */
+
+function createHeaders(options = {}) {
+  const headers = new Headers();
+
+  headers.set("Accept", "application/json");
+
+  const method =
+    String(options.method || "GET").toUpperCase();
+
+  if (
+    options.body !== undefined &&
+    options.body !== null &&
+    !(options.body instanceof FormData) &&
+    !(options.body instanceof Blob) &&
+    !(options.body instanceof ArrayBuffer)
+  ) {
+    headers.set(
+      "Content-Type",
+      "application/json"
+    );
+  }
+
+  if (apiState.accessToken) {
+    headers.set(
+      "Authorization",
+      `Bearer ${apiState.accessToken}`
+    );
+  }
+
+  if (apiState.adminToken) {
+    headers.set(
+      "X-Admin-Token",
+      apiState.adminToken
+    );
+  }
+
+  if (apiState.csrfToken) {
+    headers.set(
+      "X-CSRF-Token",
+      apiState.csrfToken
+    );
+  }
+
+  if (apiState.visitorId) {
+    headers.set(
+      "X-Visitor-ID",
+      apiState.visitorId
+    );
+  }
+
+  if (apiState.sessionId) {
+    headers.set(
+      "X-Session-ID",
+      apiState.sessionId
+    );
+  }
+
+  headers.set(
+    "X-Request-ID",
+    createRequestId()
+  );
+
+  if (method !== "GET") {
+    headers.set(
+      "X-Requested-With",
+      "XMLHttpRequest"
+    );
+  }
+
+  if (options.headers) {
+    Object.entries(options.headers).forEach(
+      ([key, value]) => {
+        if (
+          value !== undefined &&
+          value !== null
+        ) {
+          headers.set(key, String(value));
+        }
+      }
+    );
+  }
+
+  return headers;
+}
+
+
+/* ============================================================
+   BODY SERIALIZATION
+   ============================================================ */
+
+function prepareBody(body) {
+  if (
+    body === undefined ||
+    body === null
+  ) {
+    return undefined;
+  }
+
+  if (
+    body instanceof FormData ||
+    body instanceof Blob ||
+    body instanceof ArrayBuffer ||
+    typeof body === "string"
+  ) {
+    return body;
+  }
+
+  return JSON.stringify(body);
+}
+
+
+/* ============================================================
+   RESPONSE PARSING
+   ============================================================ */
+
+async function parseResponseBody(response) {
+  const contentType =
+    response.headers.get("content-type") || "";
+
+  if (response.status === 204) {
+    return null;
+  }
+
+  if (
+    contentType.includes("application/json") ||
+    contentType.includes("+json")
+  ) {
+    try {
+      return await response.json();
+    } catch {
+      return null;
+    }
+  }
+
+  const text = await response.text();
+
+  if (!text) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
+}
+
+
+/* ============================================================
+   API RESPONSE NORMALIZATION
+   ============================================================ */
+
+function extractData(data) {
+  if (
+    data &&
+    typeof data === "object" &&
+    Object.prototype.hasOwnProperty.call(data, "data")
+  ) {
+    return data.data;
+  }
+
+  return data;
+}
+
+
+function extractMessage(data, fallback) {
+  if (!data) {
+    return fallback;
+  }
+
+  if (typeof data === "string") {
+    return data || fallback;
+  }
+
+  if (typeof data.message === "string") {
+    return data.message;
+  }
+
+  if (
+    data.error &&
+    typeof data.error === "object" &&
+    typeof data.error.message === "string"
+  ) {
+    return data.error.message;
+  }
+
+  if (typeof data.error === "string") {
+    return data.error;
+  }
+
+  return fallback;
+}
+
+
+function extractCode(data) {
+  if (!data || typeof data !== "object") {
+    return "API_ERROR";
+  }
+
+  if (typeof data.code === "string") {
+    return data.code;
+  }
+
+  if (
+    data.error &&
+    typeof data.error === "object" &&
+    typeof data.error.code === "string"
+  ) {
+    return data.error.code;
+  }
+
+  return "API_ERROR";
+}
+
+
+function extractDetails(data) {
+  if (!data || typeof data !== "object") {
+    return null;
+  }
+
+  if (data.details !== undefined) {
+    return data.details;
+  }
+
+  if (
+    data.error &&
+    typeof data.error === "object" &&
+    data.error.details !== undefined
+  ) {
+    return data.error.details;
+  }
+
+  return null;
+}
+
+
+/* ============================================================
+   RETRY
+   ============================================================ */
+
+function isRetryableStatus(status) {
+  return (
+    status === 408 ||
+    status === 425 ||
+    status === 429 ||
+    status >= 500
+  );
+}
+
+
+function sleep(ms) {
+  return new Promise(resolve =>
+    setTimeout(resolve, ms)
+  );
+}
+
+
+/* ============================================================
+   REQUEST
+   ============================================================ */
+
+async function request(path, options = {}) {
+  const {
+    method = "GET",
+    query = null,
+    body = undefined,
+    timeout = API_CONFIG.DEFAULT_TIMEOUT,
+    retries = API_CONFIG.MAX_RETRIES,
+    signal = undefined,
+    credentials = "same-origin",
+    headers: customHeaders = {}
+  } = options;
+
+  const url = buildUrl(path, query);
+
+  const requestMethod =
+    String(method).toUpperCase();
+
+  const serializedBody =
+    prepareBody(body);
+
+  let attempt = 0;
+
+  while (true) {
+    const controller =
+      new AbortController();
+
+    let timeoutId = null;
+
+    const externalSignal = signal;
+
+    const abortHandler = () => {
+      controller.abort();
+    };
+
+    if (externalSignal) {
+      if (externalSignal.aborted) {
+        controller.abort();
+      } else {
+        externalSignal.addEventListener(
+          "abort",
+          abortHandler,
+          { once: true }
+        );
+      }
+    }
+
+    timeoutId = setTimeout(
+      () => controller.abort(),
+      timeout
+    );
+
+    try {
+      const response = await fetch(url, {
+        method: requestMethod,
+        headers: createHeaders({
+          method: requestMethod,
+          body,
+          headers: customHeaders
+        }),
+        body: serializedBody,
+        credentials,
+        signal: controller.signal
+      });
+
+      const data =
+        await parseResponseBody(response);
+
+      const requestId =
+        response.headers.get("X-Request-ID") ||
+        response.headers.get("CF-Ray") ||
+        null;
+
+      if (!response.ok) {
+        const retryable =
+          isRetryableStatus(response.status);
+
+        if (
+          retryable &&
+          attempt < retries
+        ) {
+          attempt += 1;
+
+          const delay =
+            API_CONFIG.RETRY_DELAY *
+            Math.pow(2, attempt - 1);
+
+          await sleep(delay);
+          continue;
+        }
+
+        throw new ApiError(
+          extractMessage(
+            data,
+            `HTTP ${response.status}`
+          ),
+          {
+            status: response.status,
+            code: extractCode(data),
+            details: extractDetails(data),
+            data,
+            url,
+            method: requestMethod,
+            requestId,
+            retryable
+          }
+        );
+      }
+
+      return {
+        ok: true,
+        status: response.status,
+        statusText: response.statusText,
+        data: extractData(data),
+        raw: data,
+        headers: response.headers,
+        requestId
+      };
+
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error;
+      }
+
+      const aborted =
+        error &&
+        typeof error === "object" &&
+        error.name === "AbortError";
+
+      if (
+        !aborted &&
+        attempt < retries
+      ) {
+        attempt += 1;
+
+        const delay =
+          API_CONFIG.RETRY_DELAY *
+          Math.pow(2, attempt - 1);
+
+        await sleep(delay);
+        continue;
+      }
+
+      if (aborted) {
+        throw new ApiError(
+          "Запрос отменён или превышено время ожидания.",
+          {
+            status: 408,
+            code: "REQUEST_TIMEOUT",
+            url,
+            method: requestMethod,
+            retryable: false
+          }
+        );
+      }
+
+      throw new ApiError(
+        error?.message ||
+          "Ошибка соединения с сервером.",
+        {
+          status: 0,
+          code: "NETWORK_ERROR",
+          url,
+          method: requestMethod,
+          retryable: true
+        }
+      );
+
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+
+      if (externalSignal) {
+        externalSignal.removeEventListener(
+          "abort",
+          abortHandler
+        );
+      }
+    }
+  }
+}
+
+
+/* ============================================================
+   SIMPLE HTTP METHODS
+   ============================================================ */
+
+async function get(path, options = {}) {
+  return request(path, {
+    ...options,
+    method: "GET"
+  });
+}
+
+
+async function post(path, body = undefined, options = {}) {
+  return request(path, {
+    ...options,
+    method: "POST",
+    body
+  });
+}
+
+
+async function put(path, body = undefined, options = {}) {
+  return request(path, {
+    ...options,
+    method: "PUT",
+    body
+  });
+}
+
+
+async function patch(path, body = undefined, options = {}) {
+  return request(path, {
+    ...options,
+    method: "PATCH",
+    body
+  });
+}
+
+
+async function del(path, options = {}) {
+  return request(path, {
+    ...options,
+    method: "DELETE"
+  });
+}
+
+
+async function head(path, options = {}) {
+  return request(path, {
+    ...options,
+    method: "HEAD"
+  });
+}
+
+
+/* ============================================================
+   DATA SHORTCUTS
+   ============================================================ */
+
+async function getData(path, options = {}) {
+  const response =
+    await get(path, options);
+
+  return response.data;
+}
+
+
+async function postData(
+  path,
+  body = undefined,
+  options = {}
+) {
+  const response =
+    await post(path, body, options);
+
+  return response.data;
+}
+
+
+async function putData(
+  path,
+  body = undefined,
+  options = {}
+) {
+  const response =
+    await put(path, body, options);
+
+  return response.data;
+}
+
+
+async function patchData(
+  path,
+  body = undefined,
+  options = {}
+) {
+  const response =
+    await patch(path, body, options);
+
+  return response.data;
+}
+
+
+async function deleteData(
+  path,
+  options = {}
+) {
+  const response =
+    await del(path, options);
+
+  return response.data;
+}
+
+
+/* ============================================================
+   CATEGORIES
+   ============================================================ */
+
+const categoriesApi = {
+
+  list(params = {}) {
+    return getData("/categories", {
+      query: params
+    });
+  },
+
+  get(id) {
+    return getData(
+      `/categories/${encodeURIComponent(id)}`
+    );
+  },
+
+  create(payload) {
+    return postData(
+      "/categories",
+      payload
+    );
+  },
+
+  update(id, payload) {
+    return patchData(
+      `/categories/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  remove(id) {
+    return deleteData(
+      `/categories/${encodeURIComponent(id)}`
+    );
+  }
+};
+
+
+/* ============================================================
+   PUBLICATIONS
+   ============================================================ */
+
+const publicationsApi = {
+
+  list(params = {}) {
+    return getData("/publications", {
+      query: params
+    });
+  },
+
+  get(id) {
+    return getData(
+      `/publications/${encodeURIComponent(id)}`
+    );
+  },
+
+  create(payload) {
+    return postData(
+      "/publications",
+      payload
+    );
+  },
+
+  update(id, payload) {
+    return patchData(
+      `/publications/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  remove(id) {
+    return deleteData(
+      `/publications/${encodeURIComponent(id)}`
+    );
+  },
+
+  search(query, params = {}) {
+    return getData("/publications", {
+      query: {
+        ...params,
+        search: query
+      }
+    });
+  },
+
+  featured(params = {}) {
+    return getData("/publications", {
+      query: {
+        ...params,
+        featured: true
+      }
+    });
+  },
+
+  latest(params = {}) {
+    return getData("/publications", {
+      query: {
+        ...params,
+        sort: "latest"
+      }
+    });
+  },
+
+  popular(params = {}) {
+    return getData("/publications", {
+      query: {
+        ...params,
+        sort: "popular"
+      }
+    });
+  }
+};
+
+
+/* ============================================================
+   REVIEWS
+   ============================================================ */
+
+const reviewsApi = {
+
+  list(params = {}) {
+    return getData("/reviews", {
+      query: params
+    });
+  },
+
+  get(id) {
+    return getData(
+      `/reviews/${encodeURIComponent(id)}`
+    );
+  },
+
+  create(payload) {
+    return postData(
+      "/reviews",
+      payload
+    );
+  },
+
+  update(id, payload) {
+    return patchData(
+      `/reviews/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  remove(id) {
+    return deleteData(
+      `/reviews/${encodeURIComponent(id)}`
+    );
+  },
+
+  publish(id) {
+    return postData(
+      `/reviews/${encodeURIComponent(id)}/publish`
+    );
+  },
+
+  report(id, payload) {
+    return postData(
+      `/reviews/${encodeURIComponent(id)}/report`,
+      payload
+    );
+  },
+
+  helpful(id, value = true) {
+    return postData(
+      `/reviews/${encodeURIComponent(id)}/helpful`,
+      {
+        value: Boolean(value)
+      }
+    );
+  },
+
+  react(id, reactionType) {
+    return postData(
+      `/reviews/${encodeURIComponent(id)}/reactions`,
+      {
+        reaction_type: reactionType
+      }
+    );
+  },
+
+  removeReaction(id, reactionType) {
+    return del(
+      `/reviews/${encodeURIComponent(id)}/reactions/${encodeURIComponent(reactionType)}`
+    );
+  },
+
+  replies(id, params = {}) {
+    return getData(
+      `/reviews/${encodeURIComponent(id)}/replies`,
+      {
+        query: params
+      }
+    );
+  },
+
+  createReply(id, payload) {
+    return postData(
+      `/reviews/${encodeURIComponent(id)}/replies`,
+      payload
+    );
+  },
+
+  ratingSummary(targetType, targetId) {
+    return getData("/reviews/rating-summary", {
+      query: {
+        target_type: targetType,
+        target_id: targetId
+      }
+    });
+  },
+
+  metrics(targetType, targetId) {
+    return getData("/reviews/metrics", {
+      query: {
+        target_type: targetType,
+        target_id: targetId
+      }
+    });
+  }
+};
+
+
+/* ============================================================
+   REACTIONS
+   ============================================================ */
+
+const reactionsApi = {
+
+  listTypes() {
+    return getData("/reactions/types");
+  },
+
+  add(targetType, targetId, reactionType) {
+    return postData(
+      "/reactions",
+      {
+        target_type: targetType,
+        target_id: targetId,
+        reaction_type: reactionType
+      }
+    );
+  },
+
+  remove(targetType, targetId, reactionType) {
+    return del(
+      `/reactions/${encodeURIComponent(targetType)}/${encodeURIComponent(targetId)}/${encodeURIComponent(reactionType)}`
+    );
+  },
+
+  summary(targetType, targetId) {
+    return getData("/reactions/summary", {
+      query: {
+        target_type: targetType,
+        target_id: targetId
+      }
+    });
+  }
+};
+
+
+/* ============================================================
+   COMMENTS
+   ============================================================ */
+
+const commentsApi = {
+
+  list(publicationId, params = {}) {
+    return getData("/comments", {
+      query: {
+        publication_id: publicationId,
+        ...params
+      }
+    });
+  },
+
+  get(id) {
+    return getData(
+      `/comments/${encodeURIComponent(id)}`
+    );
+  },
+
+  create(payload) {
+    return postData(
+      "/comments",
+      payload
+    );
+  },
+
+  update(id, payload) {
+    return patchData(
+      `/comments/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  remove(id) {
+    return deleteData(
+      `/comments/${encodeURIComponent(id)}`
+    );
+  },
+
+  react(id, reactionType) {
+    return postData(
+      `/comments/${encodeURIComponent(id)}/reactions`,
+      {
+        reaction_type: reactionType
+      }
+    );
+  },
+
+  report(id, payload) {
+    return postData(
+      `/comments/${encodeURIComponent(id)}/report`,
+      payload
+    );
+  }
+};
+
+
+/* ============================================================
+   BOOKMARKS
+   ============================================================ */
+
+const bookmarksApi = {
+
+  list(params = {}) {
+    return getData("/bookmarks", {
+      query: params
+    });
+  },
+
+  add(publicationId) {
+    return postData(
+      "/bookmarks",
+      {
+        publication_id: publicationId
+      }
+    );
+  },
+
+  remove(publicationId) {
+    return del(
+      `/bookmarks/${encodeURIComponent(publicationId)}`
+    );
+  },
+
+  check(publicationId) {
+    return getData(
+      `/bookmarks/check/${encodeURIComponent(publicationId)}`
+    );
+  }
+};
+
+
+/* ============================================================
+   VIEWS
+   ============================================================ */
+
+const viewsApi = {
+
+  add(publicationId) {
+    return postData(
+      `/publications/${encodeURIComponent(publicationId)}/views`
+    );
+  },
+
+  unique(publicationId) {
+    return postData(
+      `/publications/${encodeURIComponent(publicationId)}/views/unique`
+    );
+  }
+};
+
+
+/* ============================================================
+   SHARES
+   ============================================================ */
+
+const sharesApi = {
+
+  create(publicationId, source = "web") {
+    return postData(
+      `/publications/${encodeURIComponent(publicationId)}/shares`,
+      {
+        source
+      }
+    );
+  }
+};
+
+
+/* ============================================================
+   REPORTS
+   ============================================================ */
+
+const reportsApi = {
+
+  create(payload) {
+    return postData(
+      "/reports",
+      payload
+    );
+  },
+
+  get(id) {
+    return getData(
+      `/reports/${encodeURIComponent(id)}`
+    );
+  },
+
+  list(params = {}) {
+    return getData("/reports", {
+      query: params
+    });
+  }
+};
+
+
+/* ============================================================
+   CHAT
+   ============================================================ */
+
+const chatApi = {
+
+  conversations(params = {}) {
+    return getData("/chat/conversations", {
+      query: params
+    });
+  },
+
+  getConversation(id) {
+    return getData(
+      `/chat/conversations/${encodeURIComponent(id)}`
+    );
+  },
+
+  createConversation(payload = {}) {
+    return postData(
+      "/chat/conversations",
+      payload
+    );
+  },
+
+  messages(conversationId, params = {}) {
+    return getData(
+      `/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        query: params
+      }
+    );
+  },
+
+  sendMessage(conversationId, payload) {
+    return postData(
+      `/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+      payload
+    );
+  },
+
+  markRead(conversationId) {
+    return postData(
+      `/chat/conversations/${encodeURIComponent(conversationId)}/read`
+    );
+  },
+
+  closeConversation(conversationId) {
+    return postData(
+      `/chat/conversations/${encodeURIComponent(conversationId)}/close`
+    );
+  }
+};
+
+
+/* ============================================================
+   NOTIFICATIONS
+   ============================================================ */
+
+const notificationsApi = {
+
+  list(params = {}) {
+    return getData("/notifications", {
+      query: params
+    });
+  },
+
+  unreadCount() {
+    return getData("/notifications/unread-count");
+  },
+
+  markRead(id) {
+    return postData(
+      `/notifications/${encodeURIComponent(id)}/read`
+    );
+  },
+
+  markAllRead() {
+    return postData(
+      "/notifications/read-all"
+    );
+  },
+
+  remove(id) {
+    return deleteData(
+      `/notifications/${encodeURIComponent(id)}`
+    );
+  }
+};
+
+
+/* ============================================================
+   PROFILE
+   ============================================================ */
+
+const profileApi = {
+
+  me() {
+    return getData("/profile/me");
+  },
+
+  get(id) {
+    return getData(
+      `/profiles/${encodeURIComponent(id)}`
+    );
+  },
+
+  update(payload) {
+    return patchData(
+      "/profile/me",
+      payload
+    );
+  },
+
+  create(payload) {
+    return postData(
+      "/profile",
+      payload
+    );
+  }
+};
+
+
+/* ============================================================
+   VISITOR / SESSION
+   ============================================================ */
+
+const visitorApi = {
+
+  identify(payload = {}) {
+    return postData(
+      "/visitor/identify",
+      payload
+    );
+  },
+
+  session(payload = {}) {
+    return postData(
+      "/visitor/session",
+      payload
+    );
+  },
+
+  heartbeat() {
+    return postData(
+      "/visitor/heartbeat"
+    );
+  }
+};
+
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+
+const searchApi = {
+
+  search(query, params = {}) {
+    return getData("/search", {
+      query: {
+        q: query,
+        ...params
+      }
+    });
+  },
+
+  suggestions(query, params = {}) {
+    return getData("/search/suggestions", {
+      query: {
+        q: query,
+        ...params
+      }
+    });
+  },
+
+  history(params = {}) {
+    return getData("/search/history", {
+      query: params
+    });
+  },
+
+  clearHistory() {
+    return deleteData("/search/history");
+  }
+};
+
+
+/* ============================================================
+   FILES
+   ============================================================ */
+
+const filesApi = {
+
+  upload(file, options = {}) {
+    const formData = new FormData();
+
+    formData.append(
+      options.fieldName || "file",
+      file
+    );
+
+    if (options.type) {
+      formData.append(
+        "type",
+        options.type
+      );
+    }
+
+    if (options.targetType) {
+      formData.append(
+        "target_type",
+        options.targetType
+      );
+    }
+
+    if (options.targetId) {
+      formData.append(
+        "target_id",
+        options.targetId
+      );
+    }
+
+    return postData(
+      "/files/upload",
+      formData
+    );
+  },
+
+  delete(id) {
+    return deleteData(
+      `/files/${encodeURIComponent(id)}`
+    );
+  }
+};
+
+
+/* ============================================================
+   ADMIN API
+   ============================================================ */
+
+const adminApi = {
+
+  login(payload) {
+    return postData(
+      "/admin/login",
+      payload
+    );
+  },
+
+  logout() {
+    return postData(
+      "/admin/logout"
+    ).finally(() => {
+      setAdminToken(null);
+    });
+  },
+
+  me() {
+    return getData("/admin/me");
+  },
+
+  dashboard(params = {}) {
+    return getData("/admin/dashboard", {
+      query: params
+    });
+  },
+
+  statistics(params = {}) {
+    return getData("/admin/statistics", {
+      query: params
+    });
+  },
+
+  activity(params = {}) {
+    return getData("/admin/activity", {
+      query: params
+    });
+  },
+
+  logs(params = {}) {
+    return getData("/admin/logs", {
+      query: params
+    });
+  },
+
+  publications(params = {}) {
+    return getData("/admin/publications", {
+      query: params
+    });
+  },
+
+  publication(id) {
+    return getData(
+      `/admin/publications/${encodeURIComponent(id)}`
+    );
+  },
+
+  updatePublication(id, payload) {
+    return patchData(
+      `/admin/publications/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  publicationAction(id, action, payload = {}) {
+    return postData(
+      `/admin/publications/${encodeURIComponent(id)}/actions`,
+      {
+        action,
+        ...payload
+      }
+    );
+  },
+
+  metrics(params = {}) {
+    return getData("/admin/metrics", {
+      query: params
+    });
+  },
+
+  updateMetrics(id, payload) {
+    return patchData(
+      `/admin/publications/${encodeURIComponent(id)}/metrics`,
+      payload
+    );
+  },
+
+  participants(params = {}) {
+    return getData("/admin/participants", {
+      query: params
+    });
+  },
+
+  participant(id) {
+    return getData(
+      `/admin/participants/${encodeURIComponent(id)}`
+    );
+  },
+
+  updateParticipant(id, payload) {
+    return patchData(
+      `/admin/participants/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  comments(params = {}) {
+    return getData("/admin/comments", {
+      query: params
+    });
+  },
+
+  comment(id) {
+    return getData(
+      `/admin/comments/${encodeURIComponent(id)}`
+    );
+  },
+
+  updateComment(id, payload) {
+    return patchData(
+      `/admin/comments/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  commentAction(id, action, payload = {}) {
+    return postData(
+      `/admin/comments/${encodeURIComponent(id)}/actions`,
+      {
+        action,
+        ...payload
+      }
+    );
+  },
+
+  reviews(params = {}) {
+    return getData("/admin/reviews", {
+      query: params
+    });
+  },
+
+  review(id) {
+    return getData(
+      `/admin/reviews/${encodeURIComponent(id)}`
+    );
+  },
+
+  updateReview(id, payload) {
+    return patchData(
+      `/admin/reviews/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  reviewAction(id, action, payload = {}) {
+    return postData(
+      `/admin/reviews/${encodeURIComponent(id)}/actions`,
+      {
+        action,
+        ...payload
+      }
+    );
+  },
+
+  reviewMetrics(params = {}) {
+    return getData("/admin/reviews/metrics", {
+      query: params
+    });
+  },
+
+  reactions(params = {}) {
+    return getData("/admin/reactions", {
+      query: params
+    });
+  },
+
+  updateReaction(id, payload) {
+    return patchData(
+      `/admin/reactions/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  reports(params = {}) {
+    return getData("/admin/reports", {
+      query: params
+    });
+  },
+
+  report(id) {
+    return getData(
+      `/admin/reports/${encodeURIComponent(id)}`
+    );
+  },
+
+  updateReport(id, payload) {
+    return patchData(
+      `/admin/reports/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  reportAction(id, action, payload = {}) {
+    return postData(
+      `/admin/reports/${encodeURIComponent(id)}/actions`,
+      {
+        action,
+        ...payload
+      }
+    );
+  },
+
+  conversations(params = {}) {
+    return getData("/admin/chat/conversations", {
+      query: params
+    });
+  },
+
+  conversation(id) {
+    return getData(
+      `/admin/chat/conversations/${encodeURIComponent(id)}`
+    );
+  },
+
+  messages(conversationId, params = {}) {
+    return getData(
+      `/admin/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+      {
+        query: params
+      }
+    );
+  },
+
+  sendMessage(conversationId, payload) {
+    return postData(
+      `/admin/chat/conversations/${encodeURIComponent(conversationId)}/messages`,
+      payload
+    );
+  },
+
+  chatAction(conversationId, action, payload = {}) {
+    return postData(
+      `/admin/chat/conversations/${encodeURIComponent(conversationId)}/actions`,
+      {
+        action,
+        ...payload
+      }
+    );
+  },
+
+  notifications(params = {}) {
+    return getData("/admin/notifications", {
+      query: params
+    });
+  },
+
+  notificationAction(id, action, payload = {}) {
+    return postData(
+      `/admin/notifications/${encodeURIComponent(id)}/actions`,
+      {
+        action,
+        ...payload
+      }
+    );
+  },
+
+  categories(params = {}) {
+    return getData("/admin/categories", {
+      query: params
+    });
+  },
+
+  updateCategory(id, payload) {
+    return patchData(
+      `/admin/categories/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  categoryAction(id, action, payload = {}) {
+    return postData(
+      `/admin/categories/${encodeURIComponent(id)}/actions`,
+      {
+        action,
+        ...payload
+      }
+    );
+  },
+
+  settings(params = {}) {
+    return getData("/admin/settings", {
+      query: params
+    });
+  },
+
+  updateSetting(key, value) {
+    return patchData(
+      `/admin/settings/${encodeURIComponent(key)}`,
+      {
+        value
+      }
+    );
+  },
+
+  features(params = {}) {
+    return getData("/admin/features", {
+      query: params
+    });
+  },
+
+  updateFeature(key, enabled) {
+    return patchData(
+      `/admin/features/${encodeURIComponent(key)}`,
+      {
+        enabled: Boolean(enabled)
+      }
+    );
+  },
+
+  admins(params = {}) {
+    return getData("/admin/admins", {
+      query: params
+    });
+  },
+
+  admin(id) {
+    return getData(
+      `/admin/admins/${encodeURIComponent(id)}`
+    );
+  },
+
+  createAdmin(payload) {
+    return postData(
+      "/admin/admins",
+      payload
+    );
+  },
+
+  updateAdmin(id, payload) {
+    return patchData(
+      `/admin/admins/${encodeURIComponent(id)}`,
+      payload
+    );
+  },
+
+  deleteAdmin(id) {
+    return deleteData(
+      `/admin/admins/${encodeURIComponent(id)}`
+    );
+  },
+
+  permissions(params = {}) {
+    return getData("/admin/permissions", {
+      query: params
+    });
+  },
+
+  updateAdminPermissions(id, permissions) {
+    return putData(
+      `/admin/admins/${encodeURIComponent(id)}/permissions`,
+      {
+        permissions
+      }
+    );
+  },
+
+  locks(params = {}) {
+    return getData("/admin/locks", {
+      query: params
+    });
+  },
+
+  lock(resourceType, resourceId, payload = {}) {
+    return postData(
+      "/admin/locks",
+      {
+        resource_type: resourceType,
+        resource_id: resourceId,
+        ...payload
+      }
+    );
+  },
+
+  unlock(resourceType, resourceId) {
+    return postData(
+      "/admin/locks/unlock",
+      {
+        resource_type: resourceType,
+        resource_id: resourceId
+      }
+    );
+  },
+
+  exportData(payload = {}) {
+    return postData(
+      "/admin/export",
+      payload
+    );
+  },
+
+  bulk(resourceType, action, ids, payload = {}) {
+    return postData(
+      "/admin/bulk",
+      {
+        resource_type: resourceType,
+        action,
+        ids,
+        ...payload
+      }
+    );
+  }
+};
+
+
+/* ============================================================
+   HEALTH
+   ============================================================ */
+
+const systemApi = {
+
+  health() {
+    return getData("/health");
+  },
+
+  apiHealth() {
+    return getData("/api/health");
+  },
+
+  info() {
+    return getData("/api");
+  }
+};
+
+
+/* ============================================================
+   UNIVERSAL API OBJECT
+   ============================================================ */
+
+const API = Object.freeze({
+
+  request,
+  get,
+  post,
+  put,
+  patch,
+  delete: del,
+  head,
+
+  getData,
+  postData,
+  putData,
+  patchData,
+  deleteData,
+
+  categories: categoriesApi,
+  publications: publicationsApi,
+  reviews: reviewsApi,
+  reactions: reactionsApi,
+  comments: commentsApi,
+  bookmarks: bookmarksApi,
+  views: viewsApi,
+  shares: sharesApi,
+  reports: reportsApi,
+  chat: chatApi,
+  notifications: notificationsApi,
+  profile: profileApi,
+  visitor: visitorApi,
+  search: searchApi,
+  files: filesApi,
+  admin: adminApi,
+  system: systemApi,
+
+  auth: {
+    getAccessToken,
+    setAccessToken,
+    getCsrfToken,
+    setCsrfToken,
+    getVisitorId,
+    setVisitorId,
+    getSessionId,
+    setSessionId,
+    getAdminToken,
+    setAdminToken,
+    clearAuth
+  },
+
+  config: API_CONFIG
+});
+
+
+/* ============================================================
+   GLOBAL EXPORTS
+   ============================================================ */
+
+window.TOApiError = ApiError;
+
+window.TOApi = API;
+
+window.API = API;
+
+window.api = API;
+
+
+/* ============================================================
+   OPTIONAL AUTO INITIALIZATION
+   ============================================================ */
+
+window.dispatchEvent(
+  new CustomEvent("to:api-ready", {
+    detail: {
+      api: API
+    }
+  })
+);
+
+
+/* ============================================================
+   DEBUG HELPERS
+   ============================================================ */
+
+if (
+  typeof window !== "undefined" &&
+  window.location &&
+  window.location.hostname === "localhost"
+) {
+  window.__TO_API_STATE__ = apiState;
+}
+
+
+/* ============================================================
+   END
+   ============================================================ */
