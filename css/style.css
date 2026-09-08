@@ -1,10 +1,8 @@
 /* =========================================================
-   ЭПИЧЕСКИЙ СТИЛЬ: ГЛУБОКИЙ ИЗУМРУД, МОЩНЫЙ КРАСНЫЙ, ЗОЛОТО
+   PREMIUM THEME FOR TAJIK OPPORTUNITIES
    ========================================================= */
-
 @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Russo+One&family=Montserrat:wght@300;400;600;700&display=swap');
 
-/* ---------------------- 1. БАЗА ---------------------- */
 * {
     margin: 0;
     padding: 0;
@@ -25,8 +23,6 @@ body {
     line-height: 1.6;
 }
 
-/* ------------------ 2. МАГИЧЕСКИЙ ФОН ------------------ */
-/* Мерцающие звезды и пыль */
 body::before {
     content: "";
     position: absolute;
@@ -50,7 +46,6 @@ body::before {
     100% { opacity: 0.3; transform: scale(1); }
 }
 
-/* Дополнительное свечение снизу (эффект гор) */
 body::after {
     content: "";
     position: absolute;
@@ -63,7 +58,6 @@ body::after {
     pointer-events: none;
 }
 
-/* ------------------ 3. ГЛАВНЫЙ ЗАГОЛОВОК (ЗОЛОТО) ------------------ */
 h1, .hero-title {
     font-family: 'Cinzel', serif;
     font-size: clamp(3rem, 8vw, 7rem);
@@ -94,7 +88,6 @@ h1, .hero-title {
     }
 }
 
-/* ------------------ 4. ПОДЗАГОЛОВКИ (СТРОГИЕ) ------------------ */
 h2 {
     font-family: 'Russo One', sans-serif;
     font-size: clamp(1.4rem, 3vw, 2.2rem);
@@ -109,7 +102,6 @@ h2 {
     margin-bottom: 30px;
 }
 
-/* ------------------ 5. РАЗДЕЛИТЕЛИ И ЛИНИИ ------------------ */
 .line {
     height: 5px;
     width: 200px;
@@ -125,7 +117,6 @@ h2 {
     50% { transform: scaleX(1.2); opacity: 1; }
 }
 
-/* ------------------ 6. ПРЕМИАЛЬНЫЕ КАРТОЧКИ (СТЕКЛО) ------------------ */
 .card {
     position: relative;
     background: rgba(16, 64, 40, 0.3);
@@ -142,7 +133,6 @@ h2 {
     overflow: hidden;
 }
 
-/* Блик как на дорогом стекле */
 .card::before {
     content: "";
     position: absolute;
@@ -155,7 +145,6 @@ h2 {
     pointer-events: none;
 }
 
-/* Золотая рамка внутри */
 .card::after {
     content: "";
     position: absolute;
@@ -165,7 +154,6 @@ h2 {
     pointer-events: none;
 }
 
-/* ------------------ 7. КНОПКИ (МОЩНЫЙ КРАСНЫЙ) ------------------ */
 .btn {
     position: relative;
     display: inline-block;
@@ -214,7 +202,6 @@ h2 {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.7);
 }
 
-/* ------------------ 8. ССЫЛКИ (ЗОЛОТО) ------------------ */
 a {
     color: #FFD700;
     text-decoration: none;
@@ -245,7 +232,6 @@ a:hover::after {
     width: 100%;
 }
 
-/* ------------------ 9. КОНТЕЙНЕРЫ И АНИМАЦИЯ ------------------ */
 .container {
     max-width: 1200px;
     margin: 0 auto;
@@ -259,7 +245,6 @@ a:hover::after {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Эффект появления карточек с задержкой */
 .card {
     animation: cardEntrance 1.5s ease-out both;
 }
@@ -269,7 +254,6 @@ a:hover::after {
     to { opacity: 1; transform: scale(1) translateY(0); }
 }
 
-/* ------------------ 10. ПАРАЛЛАКС ГОР (3D ЭФФЕКТ) ------------------ */
 .mountain-effect {
     position: absolute;
     bottom: 0;
@@ -285,7 +269,6 @@ a:hover::after {
     filter: drop-shadow(0 -10px 20px rgba(0,0,0,0.5));
 }
 
-/* ------------------ 11. АДАПТИВНОСТЬ ------------------ */
 @media (max-width: 768px) {
     .card {
         padding: 25px;
@@ -306,4 +289,4 @@ a:hover::after {
     body::before {
         background-size: 120px 120px;
     }
-      }
+}
