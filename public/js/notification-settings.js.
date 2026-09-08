@@ -1,0 +1,2687 @@
+"use strict";
+
+/* ============================================================
+   🇹🇯 TAJIK OPPORTUNITIES
+   NOTIFICATION SETTINGS
+   ------------------------------------------------------------
+   Полноценная система настроек уведомлений.
+
+   Архитектура:
+   EVENT
+      ↓
+   NOTIFICATION
+      ↓
+   DELIVERY CHANNEL
+
+   Поддерживает:
+   • глобальные настройки
+   • персональные настройки
+   • настройки администратора
+   • принудительные настройки
+   • временные настройки
+   • наследование
+   • in-app
+   • push
+   • sound
+   • vibration
+   • badge
+   • email
+   • official system chat
+   • отдельные категории
+   • отдельные события
+   • историю изменений
+   ============================================================ */
+
+(function (window, document) {
+  "use strict";
+
+  const CONFIG = {
+    api: {
+      get: "/api/notifications/settings",
+      save: "/api/notifications/settings",
+      global: "/api/admin/notifications/settings/global",
+      participant: "/api/admin/notifications/settings/participant",
+      history: "/api/admin/notifications/settings/history"
+    },
+
+    storage: {
+      local: "to_notification_settings_v1"
+    },
+
+    debounceMs: 450,
+
+    modes: {
+      INHERIT: "inherit",
+      ALLOW: "allow",
+      DENY: "deny"
+    },
+
+    channels: [
+      "in_app",
+      "push",
+      "sound",
+      "vibration",
+      "badge",
+      "email",
+      "system_chat"
+    ],
+
+    categories: [
+      {
+        id: "comments",
+        icon: "💬",
+        name: "Комментарии",
+        description: "Комментарии к вашим публикациям и ответы",
+        events: [
+          "new_comment",
+          "comment_reply",
+          "comment_mention",
+          "comment_reaction",
+          "comment_pinned",
+          "comment_edited",
+          "comment_deleted"
+        ]
+      },
+      {
+        id: "reactions",
+        icon: "❤️",
+        name: "Реакции",
+        description: "Реакции на публикации, комментарии и сообщения",
+        events: [
+          "publication_reaction",
+          "comment_reaction",
+          "message_reaction",
+          "reaction_removed"
+        ]
+      },
+      {
+        id: "reviews",
+        icon: "⭐",
+        name: "Отзывы",
+        description: "Новые отзывы, оценки и ответы",
+        events: [
+          "new_review",
+          "review_reply",
+          "review_reaction",
+          "review_approved",
+          "review_rejected"
+        ]
+      },
+      {
+        id: "shares",
+        icon: "📤",
+        name: "Поделиться",
+        description: "Когда вашу публикацию отправляют или распространяют",
+        events: [
+          "publication_shared",
+          "publication_sent",
+          "publication_link_copied"
+        ]
+      },
+      {
+        id: "publications",
+        icon: "📰",
+        name: "Публикации",
+        description: "События, связанные с вашими публикациями",
+        events: [
+          "publication_approved",
+          "publication_rejected",
+          "publication_hidden",
+          "publication_deleted",
+          "publication_edited",
+          "publication_pinned",
+          "publication_expiring",
+          "publication_expired",
+          "publication_featured"
+        ]
+      },
+      {
+        id: "chats",
+        icon: "💬",
+        name: "Чаты",
+        description: "Личные сообщения и события чатов",
+        events: [
+          "new_message",
+          "message_reply",
+          "message_mention",
+          "message_edited",
+          "message_deleted",
+          "message_pinned",
+          "new_chat",
+          "chat_closed",
+          "chat_reopened"
+        ]
+      },
+      {
+        id: "payments",
+        icon: "💰",
+        name: "Платежи",
+        description: "Платежи, запросы и подтверждения",
+        events: [
+          "payment_request",
+          "payment_received",
+          "payment_confirmed",
+          "payment_rejected",
+          "payment_refunded"
+        ]
+      },
+      {
+        id: "premium",
+        icon: "👑",
+        name: "Premium / PRO / TOP / VIP",
+        description: "Изменения платных услуг и статусов",
+        events: [
+          "premium_enabled",
+          "premium_expiring",
+          "premium_expired",
+          "pro_enabled",
+          "pro_expiring",
+          "pro_expired",
+          "top_enabled",
+          "top_expiring",
+          "top_expired",
+          "vip_enabled",
+          "vip_expiring",
+          "vip_expired",
+          "service_gifted",
+          "service_revoked"
+        ]
+      },
+      {
+        id: "levels",
+        icon: "🏆",
+        name: "Уровни",
+        description: "Изменения TO Level и достижений",
+        events: [
+          "level_up",
+          "level_changed",
+          "achievement_unlocked",
+          "badge_awarded",
+          "badge_removed"
+        ]
+      },
+      {
+        id: "participants",
+        icon: "👤",
+        name: "Участники",
+        description: "События, связанные с профилем и взаимодействиями",
+        events: [
+          "new_follower",
+          "new_following",
+          "profile_view",
+          "profile_mention",
+          "profile_updated",
+          "new_connection"
+        ]
+      },
+      {
+        id: "reports",
+        icon: "🚩",
+        name: "Жалобы",
+        description: "Статус ваших жалоб и обращений",
+        events: [
+          "report_received",
+          "report_reviewed",
+          "report_resolved",
+          "report_rejected"
+        ]
+      },
+      {
+        id: "security",
+        icon: "🔐",
+        name: "Безопасность",
+        description: "Важные события безопасности",
+        events: [
+          "new_session",
+          "session_closed",
+          "security_warning",
+          "permission_changed",
+          "profile_security_changed"
+        ]
+      },
+      {
+        id: "system",
+        icon: "⚙️",
+        name: "Системные",
+        description: "Официальные уведомления Tajik Opportunities",
+        events: [
+          "system_announcement",
+          "maintenance",
+          "service_update",
+          "policy_update",
+          "important_notice"
+        ]
+      }
+    ]
+  };
+
+  const state = {
+    loaded: false,
+    saving: false,
+    dirty: false,
+
+    mode: "participant",
+
+    participantId: null,
+
+    global: {},
+    current: {},
+    admin: {},
+    forced: {},
+
+    metadata: {
+      version: 1,
+      updatedAt: null,
+      updatedBy: null
+    },
+
+    debounceTimer: null,
+
+    listeners: new Set()
+  };
+
+  /* ==========================================================
+     HELPERS
+     ========================================================== */
+
+  function emit(event, detail) {
+    const payload = {
+      event,
+      detail: detail || {},
+      state
+    };
+
+    state.listeners.forEach(function (listener) {
+      try {
+        listener(payload);
+      } catch (error) {
+        console.error("[TO NotificationSettings] listener error:", error);
+      }
+    });
+
+    document.dispatchEvent(
+      new CustomEvent("to:notification-settings:" + event, {
+        detail: payload
+      })
+    );
+  }
+
+  function on(event, listener) {
+    if (typeof listener !== "function") return function () {};
+
+    const wrapped = function (payload) {
+      if (!payload || payload.event === event) {
+        listener(payload);
+      }
+    };
+
+    state.listeners.add(wrapped);
+
+    return function unsubscribe() {
+      state.listeners.delete(wrapped);
+    };
+  }
+
+  function clone(value) {
+    if (value === undefined || value === null) return value;
+
+    try {
+      return JSON.parse(JSON.stringify(value));
+    } catch {
+      return value;
+    }
+  }
+
+  function isObject(value) {
+    return (
+      value !== null &&
+      typeof value === "object" &&
+      !Array.isArray(value)
+    );
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
+  function normalizeMode(value) {
+    const allowed = [
+      CONFIG.modes.INHERIT,
+      CONFIG.modes.ALLOW,
+      CONFIG.modes.DENY
+    ];
+
+    return allowed.includes(value)
+      ? value
+      : CONFIG.modes.INHERIT;
+  }
+
+  function normalizeBoolean(value, fallback) {
+    if (typeof value === "boolean") return value;
+    return fallback;
+  }
+
+  function createDefaultEventSetting() {
+    return {
+      in_app: CONFIG.modes.ALLOW,
+      push: CONFIG.modes.ALLOW,
+      sound: CONFIG.modes.ALLOW,
+      vibration: CONFIG.modes.ALLOW,
+      badge: CONFIG.modes.ALLOW,
+      email: CONFIG.modes.INHERIT,
+      system_chat: CONFIG.modes.INHERIT,
+
+      enabled: true,
+
+      priority: "normal",
+      delivery: "instant",
+
+      forced: false,
+      locked: false,
+
+      temporary: false,
+      starts_at: null,
+      ends_at: null
+    };
+  }
+
+  function createDefaultCategorySetting() {
+    return {
+      enabled: true,
+
+      in_app: CONFIG.modes.ALLOW,
+      push: CONFIG.modes.ALLOW,
+      sound: CONFIG.modes.ALLOW,
+      vibration: CONFIG.modes.ALLOW,
+      badge: CONFIG.modes.ALLOW,
+      email: CONFIG.modes.INHERIT,
+      system_chat: CONFIG.modes.INHERIT,
+
+      events: {}
+    };
+  }
+
+  function createDefaultSettings() {
+    const result = {
+      version: 1,
+
+      global: {
+        enabled: true,
+
+        in_app: true,
+        push: true,
+        sound: true,
+        vibration: true,
+        badge: true,
+        email: false,
+        system_chat: true,
+
+        quiet_hours: {
+          enabled: false,
+          start: "23:00",
+          end: "07:00"
+        },
+
+        grouped_delivery: false,
+
+        categories: {}
+      },
+
+      categories: {}
+    };
+
+    CONFIG.categories.forEach(function (category) {
+      result.categories[category.id] = createDefaultCategorySetting();
+
+      category.events.forEach(function (eventId) {
+        result.categories[category.id].events[eventId] =
+          createDefaultEventSetting();
+      });
+
+      result.global.categories[category.id] = {
+        enabled: true
+      };
+    });
+
+    return result;
+  }
+
+  function normalizeSettings(input) {
+    const defaults = createDefaultSettings();
+
+    if (!isObject(input)) {
+      return defaults;
+    }
+
+    const source =
+      input.settings && isObject(input.settings)
+        ? input.settings
+        : input;
+
+    const result = Object.assign({}, defaults);
+
+    if (isObject(source.global)) {
+      result.global = Object.assign(
+        {},
+        defaults.global,
+        source.global
+      );
+
+      if (isObject(source.global.quiet_hours)) {
+        result.global.quiet_hours = Object.assign(
+          {},
+          defaults.global.quiet_hours,
+          source.global.quiet_hours
+        );
+      }
+    }
+
+    if (isObject(source.categories)) {
+      Object.keys(defaults.categories).forEach(function (categoryId) {
+        const defaultCategory =
+          defaults.categories[categoryId];
+
+        const incomingCategory =
+          source.categories[categoryId];
+
+        if (!isObject(incomingCategory)) {
+          result.categories[categoryId] = defaultCategory;
+          return;
+        }
+
+        result.categories[categoryId] = Object.assign(
+          {},
+          defaultCategory,
+          incomingCategory
+        );
+
+        result.categories[categoryId].events = {};
+
+        Object.keys(defaultCategory.events).forEach(function (eventId) {
+          result.categories[categoryId].events[eventId] =
+            Object.assign(
+              {},
+              defaultCategory.events[eventId],
+              isObject(incomingCategory.events?.[eventId])
+                ? incomingCategory.events[eventId]
+                : {}
+            );
+        });
+      });
+    }
+
+    return result;
+  }
+
+  function getCategory(categoryId) {
+    return CONFIG.categories.find(function (category) {
+      return category.id === categoryId;
+    }) || null;
+  }
+
+  function getEvent(categoryId, eventId) {
+    const category = getCategory(categoryId);
+
+    if (!category) return null;
+
+    return category.events.includes(eventId)
+      ? eventId
+      : null;
+  }
+
+  function getRawEventSetting(
+    settings,
+    categoryId,
+    eventId
+  ) {
+    const category =
+      settings?.categories?.[categoryId];
+
+    return category?.events?.[eventId] || null;
+  }
+
+  function resolveMode(
+    categoryId,
+    eventId,
+    channel
+  ) {
+    const forced =
+      state.forced?.categories?.[categoryId]?.events?.[eventId]?.[
+        channel
+      ];
+
+    if (forced === CONFIG.modes.ALLOW) {
+      return CONFIG.modes.ALLOW;
+    }
+
+    if (forced === CONFIG.modes.DENY) {
+      return CONFIG.modes.DENY;
+    }
+
+    const admin =
+      state.admin?.categories?.[categoryId]?.events?.[eventId]?.[
+        channel
+      ];
+
+    if (admin === CONFIG.modes.ALLOW) {
+      return CONFIG.modes.ALLOW;
+    }
+
+    if (admin === CONFIG.modes.DENY) {
+      return CONFIG.modes.DENY;
+    }
+
+    const current =
+      state.current?.categories?.[categoryId]?.events?.[eventId]?.[
+        channel
+      ];
+
+    if (current === CONFIG.modes.ALLOW) {
+      return CONFIG.modes.ALLOW;
+    }
+
+    if (current === CONFIG.modes.DENY) {
+      return CONFIG.modes.DENY;
+    }
+
+    const global =
+      state.global?.categories?.[categoryId]?.events?.[eventId]?.[
+        channel
+      ];
+
+    if (global === CONFIG.modes.ALLOW) {
+      return CONFIG.modes.ALLOW;
+    }
+
+    if (global === CONFIG.modes.DENY) {
+      return CONFIG.modes.DENY;
+    }
+
+    return CONFIG.modes.INHERIT;
+  }
+
+  function isLocked(
+    categoryId,
+    eventId,
+    channel
+  ) {
+    const forced =
+      state.forced?.categories?.[categoryId]?.events?.[eventId];
+
+    return Boolean(
+      forced?.locked === true ||
+      forced?.[channel] === CONFIG.modes.ALLOW ||
+      forced?.[channel] === CONFIG.modes.DENY
+    );
+  }
+
+  function canChange(
+    categoryId,
+    eventId,
+    channel
+  ) {
+    if (state.mode === "admin" || state.mode === "superadmin") {
+      return !isLocked(categoryId, eventId, channel);
+    }
+
+    return !isLocked(categoryId, eventId, channel);
+  }
+
+  function effectiveEnabled(categoryId, eventId) {
+    const event =
+      state.current?.categories?.[categoryId]?.events?.[eventId];
+
+    if (event?.enabled === false) return false;
+
+    const category =
+      state.current?.categories?.[categoryId];
+
+    if (category?.enabled === false) return false;
+
+    if (state.global?.enabled === false) return false;
+
+    return true;
+  }
+
+  function saveLocal() {
+    try {
+      localStorage.setItem(
+        CONFIG.storage.local,
+        JSON.stringify({
+          current: state.current,
+          metadata: state.metadata
+        })
+      );
+    } catch {
+      /* localStorage может быть недоступен */
+    }
+  }
+
+  function loadLocal() {
+    try {
+      const raw =
+        localStorage.getItem(CONFIG.storage.local);
+
+      if (!raw) return null;
+
+      const parsed = JSON.parse(raw);
+
+      return parsed || null;
+    } catch {
+      return null;
+    }
+  }
+
+  /* ==========================================================
+     API
+     ========================================================== */
+
+  async function request(
+    url,
+    options
+  ) {
+    const opts = Object.assign(
+      {
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json"
+        }
+      },
+      options || {}
+    );
+
+    const response = await fetch(url, opts);
+
+    let data = null;
+
+    try {
+      data = await response.json();
+    } catch {
+      data = null;
+    }
+
+    if (!response.ok) {
+      const message =
+        data?.message ||
+        data?.error ||
+        "Ошибка запроса настроек уведомлений.";
+
+      const error = new Error(message);
+      error.status = response.status;
+      error.data = data;
+
+      throw error;
+    }
+
+    return data;
+  }
+
+  async function load(options) {
+    const opts = options || {};
+
+    emit("loading");
+
+    try {
+      const local =
+        opts.useLocal === false
+          ? null
+          : loadLocal();
+
+      if (local?.current) {
+        state.current =
+          normalizeSettings(local.current);
+      }
+
+      const data = await request(CONFIG.api.get, {
+        method: "GET"
+      });
+
+      state.global =
+        normalizeSettings(
+          data?.global ||
+          data?.settings?.global ||
+          createDefaultSettings()
+        );
+
+      state.current =
+        normalizeSettings(
+          data?.current ||
+          data?.settings ||
+          state.current
+        );
+
+      state.admin =
+        normalizeSettings(
+          data?.admin ||
+          {}
+        );
+
+      state.forced =
+        normalizeSettings(
+          data?.forced ||
+          {}
+        );
+
+      state.metadata = Object.assign(
+        {},
+        state.metadata,
+        data?.metadata || {}
+      );
+
+      state.loaded = true;
+      state.dirty = false;
+
+      saveLocal();
+
+      emit("loaded", data);
+
+      return data;
+    } catch (error) {
+      state.loaded = Boolean(state.current);
+
+      emit("error", {
+        action: "load",
+        error
+      });
+
+      throw error;
+    }
+  }
+
+  async function save(options) {
+    const opts = options || {};
+
+    if (state.saving) {
+      return false;
+    }
+
+    state.saving = true;
+
+    emit("saving");
+
+    try {
+      const payload = {
+        settings: state.current,
+        participant_id: state.participantId,
+        mode: state.mode,
+        metadata: state.metadata
+      };
+
+      const data = await request(
+        opts.url || CONFIG.api.save,
+        {
+          method: "PUT",
+          body: JSON.stringify(payload)
+        }
+      );
+
+      if (data?.settings) {
+        state.current =
+          normalizeSettings(data.settings);
+      }
+
+      state.metadata = Object.assign(
+        {},
+        state.metadata,
+        data?.metadata || {},
+        {
+          updatedAt:
+            data?.metadata?.updatedAt ||
+            new Date().toISOString()
+        }
+      );
+
+      state.dirty = false;
+
+      saveLocal();
+
+      emit("saved", data);
+
+      return data;
+    } catch (error) {
+      emit("error", {
+        action: "save",
+        error
+      });
+
+      throw error;
+    } finally {
+      state.saving = false;
+    }
+  }
+
+  async function saveGlobal(settings) {
+    const payload =
+      settings || state.global;
+
+    return request(CONFIG.api.global, {
+      method: "PUT",
+      body: JSON.stringify({
+        settings: payload
+      })
+    });
+  }
+
+  async function saveParticipant(
+    participantId,
+    settings
+  ) {
+    if (!participantId) {
+      throw new Error(
+        "Не указан participant_id."
+      );
+    }
+
+    return request(CONFIG.api.participant, {
+      method: "PUT",
+      body: JSON.stringify({
+        participant_id: participantId,
+        settings: settings || state.current
+      })
+    });
+  }
+
+  async function loadHistory(
+    participantId,
+    options
+  ) {
+    const query = new URLSearchParams();
+
+    if (participantId) {
+      query.set(
+        "participant_id",
+        participantId
+      );
+    }
+
+    if (options?.category) {
+      query.set(
+        "category",
+        options.category
+      );
+    }
+
+    if (options?.event) {
+      query.set(
+        "event",
+        options.event
+      );
+    }
+
+    const url =
+      CONFIG.api.history +
+      (query.toString()
+        ? "?" + query.toString()
+        : "");
+
+    return request(url, {
+      method: "GET"
+    });
+  }
+
+  /* ==========================================================
+     SETTERS
+     ========================================================== */
+
+  function setParticipant(
+    participantId
+  ) {
+    state.participantId =
+      participantId || null;
+
+    emit("participant-changed", {
+      participantId: state.participantId
+    });
+  }
+
+  function setMode(mode) {
+    if (
+      ![
+        "participant",
+        "admin",
+        "superadmin"
+      ].includes(mode)
+    ) {
+      return false;
+    }
+
+    state.mode = mode;
+
+    emit("mode-changed", {
+      mode
+    });
+
+    return true;
+  }
+
+  function markDirty() {
+    state.dirty = true;
+
+    saveLocal();
+
+    emit("changed");
+  }
+
+  function setGlobalEnabled(enabled) {
+    state.current.global.enabled =
+      Boolean(enabled);
+
+    markDirty();
+  }
+
+  function setCategoryEnabled(
+    categoryId,
+    enabled
+  ) {
+    if (!state.current.categories?.[categoryId]) {
+      return false;
+    }
+
+    state.current.categories[categoryId].enabled =
+      Boolean(enabled);
+
+    markDirty();
+
+    return true;
+  }
+
+  function setEventEnabled(
+    categoryId,
+    eventId,
+    enabled
+  ) {
+    const event =
+      getRawEventSetting(
+        state.current,
+        categoryId,
+        eventId
+      );
+
+    if (!event) return false;
+
+    event.enabled =
+      Boolean(enabled);
+
+    markDirty();
+
+    return true;
+  }
+
+  function setChannel(
+    categoryId,
+    eventId,
+    channel,
+    mode
+  ) {
+    if (!CONFIG.channels.includes(channel)) {
+      return false;
+    }
+
+    if (!canChange(
+      categoryId,
+      eventId,
+      channel
+    )) {
+      return false;
+    }
+
+    const event =
+      getRawEventSetting(
+        state.current,
+        categoryId,
+        eventId
+      );
+
+    if (!event) return false;
+
+    event[channel] =
+      normalizeMode(mode);
+
+    markDirty();
+
+    emit("channel-changed", {
+      categoryId,
+      eventId,
+      channel,
+      mode: event[channel]
+    });
+
+    return true;
+  }
+
+  function setCategoryChannel(
+    categoryId,
+    channel,
+    mode
+  ) {
+    if (!CONFIG.channels.includes(channel)) {
+      return false;
+    }
+
+    const category =
+      state.current.categories?.[categoryId];
+
+    if (!category) return false;
+
+    category[channel] =
+      normalizeMode(mode);
+
+    markDirty();
+
+    return true;
+  }
+
+  function setPriority(
+    categoryId,
+    eventId,
+    priority
+  ) {
+    const allowed = [
+      "low",
+      "normal",
+      "high",
+      "critical"
+    ];
+
+    if (!allowed.includes(priority)) {
+      return false;
+    }
+
+    const event =
+      getRawEventSetting(
+        state.current,
+        categoryId,
+        eventId
+      );
+
+    if (!event) return false;
+
+    event.priority = priority;
+
+    markDirty();
+
+    return true;
+  }
+
+  function setDelivery(
+    categoryId,
+    eventId,
+    delivery
+  ) {
+    const allowed = [
+      "instant",
+      "grouped",
+      "digest",
+      "disabled"
+    ];
+
+    if (!allowed.includes(delivery)) {
+      return false;
+    }
+
+    const event =
+      getRawEventSetting(
+        state.current,
+        categoryId,
+        eventId
+      );
+
+    if (!event) return false;
+
+    event.delivery = delivery;
+
+    markDirty();
+
+    return true;
+  }
+
+  function setTemporary(
+    categoryId,
+    eventId,
+    enabled,
+    startsAt,
+    endsAt
+  ) {
+    const event =
+      getRawEventSetting(
+        state.current,
+        categoryId,
+        eventId
+      );
+
+    if (!event) return false;
+
+    event.temporary =
+      Boolean(enabled);
+
+    event.starts_at =
+      startsAt || null;
+
+    event.ends_at =
+      endsAt || null;
+
+    markDirty();
+
+    return true;
+  }
+
+  /* ==========================================================
+     ADMIN FORCE
+     ========================================================== */
+
+  function setAdminOverride(
+    categoryId,
+    eventId,
+    channel,
+    mode,
+    options
+  ) {
+    const opts = options || {};
+
+    if (!state.admin.categories) {
+      state.admin.categories = {};
+    }
+
+    if (!state.admin.categories[categoryId]) {
+      state.admin.categories[categoryId] =
+        createDefaultCategorySetting();
+    }
+
+    if (!state.admin.categories[categoryId].events[eventId]) {
+      state.admin.categories[categoryId].events[eventId] =
+        createDefaultEventSetting();
+    }
+
+    state.admin.categories[categoryId].events[eventId][channel] =
+      normalizeMode(mode);
+
+    if (opts.locked !== undefined) {
+      state.admin.categories[categoryId].events[eventId].locked =
+        Boolean(opts.locked);
+    }
+
+    if (opts.temporary !== undefined) {
+      state.admin.categories[categoryId].events[eventId].temporary =
+        Boolean(opts.temporary);
+    }
+
+    markDirty();
+
+    emit("admin-override-changed", {
+      categoryId,
+      eventId,
+      channel,
+      mode,
+      options: opts
+    });
+
+    return true;
+  }
+
+  function setForcedSetting(
+    categoryId,
+    eventId,
+    channel,
+    mode,
+    options
+  ) {
+    const opts = options || {};
+
+    if (!state.forced.categories) {
+      state.forced.categories = {};
+    }
+
+    if (!state.forced.categories[categoryId]) {
+      state.forced.categories[categoryId] =
+        createDefaultCategorySetting();
+    }
+
+    if (!state.forced.categories[categoryId].events[eventId]) {
+      state.forced.categories[categoryId].events[eventId] =
+        createDefaultEventSetting();
+    }
+
+    const event =
+      state.forced.categories[categoryId].events[eventId];
+
+    event[channel] =
+      normalizeMode(mode);
+
+    event.forced = true;
+
+    if (opts.locked !== undefined) {
+      event.locked =
+        Boolean(opts.locked);
+    }
+
+    if (opts.startsAt !== undefined) {
+      event.starts_at =
+        opts.startsAt || null;
+    }
+
+    if (opts.endsAt !== undefined) {
+      event.ends_at =
+        opts.endsAt || null;
+    }
+
+    emit("forced-setting-changed", {
+      categoryId,
+      eventId,
+      channel,
+      mode,
+      options: opts
+    });
+
+    return true;
+  }
+
+  /* ==========================================================
+     QUICK ACTIONS
+     ========================================================== */
+
+  function allowAll() {
+    CONFIG.categories.forEach(function (category) {
+      category.events.forEach(function (eventId) {
+        CONFIG.channels.forEach(function (channel) {
+          setChannel(
+            category.id,
+            eventId,
+            channel,
+            CONFIG.modes.ALLOW
+          );
+        });
+
+        setEventEnabled(
+          category.id,
+          eventId,
+          true
+        );
+      });
+
+      setCategoryEnabled(
+        category.id,
+        true
+      );
+    });
+
+    setGlobalEnabled(true);
+
+    return true;
+  }
+
+  function denyAll() {
+    CONFIG.categories.forEach(function (category) {
+      category.events.forEach(function (eventId) {
+        CONFIG.channels.forEach(function (channel) {
+          setChannel(
+            category.id,
+            eventId,
+            channel,
+            CONFIG.modes.DENY
+          );
+        });
+      });
+    });
+
+    return true;
+  }
+
+  function inheritAll() {
+    CONFIG.categories.forEach(function (category) {
+      category.events.forEach(function (eventId) {
+        CONFIG.channels.forEach(function (channel) {
+          setChannel(
+            category.id,
+            eventId,
+            channel,
+            CONFIG.modes.INHERIT
+          );
+        });
+      });
+    });
+
+    return true;
+  }
+
+  function reset() {
+    state.current =
+      createDefaultSettings();
+
+    state.dirty = true;
+
+    saveLocal();
+
+    emit("reset");
+
+    return state.current;
+  }
+
+  /* ==========================================================
+     READ API
+     ========================================================== */
+
+  function getSettings() {
+    return clone(state.current);
+  }
+
+  function getGlobalSettings() {
+    return clone(state.global);
+  }
+
+  function getAdminSettings() {
+    return clone(state.admin);
+  }
+
+  function getForcedSettings() {
+    return clone(state.forced);
+  }
+
+  function getCategorySettings(categoryId) {
+    return clone(
+      state.current.categories?.[categoryId] ||
+      null
+    );
+  }
+
+  function getEventSettings(
+    categoryId,
+    eventId
+  ) {
+    return clone(
+      getRawEventSetting(
+        state.current,
+        categoryId,
+        eventId
+      )
+    );
+  }
+
+  function getEffectiveChannel(
+    categoryId,
+    eventId,
+    channel
+  ) {
+    return resolveMode(
+      categoryId,
+      eventId,
+      channel
+    );
+  }
+
+  function isEnabled(
+    categoryId,
+    eventId
+  ) {
+    return effectiveEnabled(
+      categoryId,
+      eventId
+    );
+  }
+
+  function isChannelEnabled(
+    categoryId,
+    eventId,
+    channel
+  ) {
+    const mode =
+      resolveMode(
+        categoryId,
+        eventId,
+        channel
+      );
+
+    if (mode === CONFIG.modes.DENY) {
+      return false;
+    }
+
+    if (mode === CONFIG.modes.ALLOW) {
+      return true;
+    }
+
+    return true;
+  }
+
+  /* ==========================================================
+     UI
+     ========================================================== */
+
+  function createRoot(container) {
+    if (!container) {
+      container =
+        document.querySelector(
+          "[data-to-notification-settings]"
+        );
+    }
+
+    if (!container) {
+      container =
+        document.createElement("section");
+
+      container.dataset.toNotificationSettings =
+        "true";
+
+      document.body.appendChild(container);
+    }
+
+    container.classList.add(
+      "to-notification-settings"
+    );
+
+    return container;
+  }
+
+  function modeLabel(mode) {
+    switch (mode) {
+      case CONFIG.modes.ALLOW:
+        return "Разрешено";
+
+      case CONFIG.modes.DENY:
+        return "Запрещено";
+
+      default:
+        return "Наследовать";
+    }
+  }
+
+  function modeClass(mode) {
+    switch (mode) {
+      case CONFIG.modes.ALLOW:
+        return "is-allow";
+
+      case CONFIG.modes.DENY:
+        return "is-deny";
+
+      default:
+        return "is-inherit";
+    }
+  }
+
+  function renderModeSelect(
+    categoryId,
+    eventId,
+    channel,
+    value
+  ) {
+    const locked =
+      !canChange(
+        categoryId,
+        eventId,
+        channel
+      );
+
+    return `
+      <select
+        class="to-notification-setting-select ${modeClass(value)}"
+        data-setting-channel="${escapeHtml(channel)}"
+        data-category-id="${escapeHtml(categoryId)}"
+        data-event-id="${escapeHtml(eventId)}"
+        ${locked ? "disabled" : ""}
+      >
+        <option value="inherit" ${
+          value === "inherit" ? "selected" : ""
+        }>Наследовать</option>
+
+        <option value="allow" ${
+          value === "allow" ? "selected" : ""
+        }>Разрешено</option>
+
+        <option value="deny" ${
+          value === "deny" ? "selected" : ""
+        }>Запрещено</option>
+      </select>
+    `;
+  }
+
+  function renderChannelLabel(channel) {
+    const labels = {
+      in_app: "В приложении",
+      push: "Push",
+      sound: "Звук",
+      vibration: "Вибрация",
+      badge: "Badge",
+      email: "Email",
+      system_chat: "System Chat"
+    };
+
+    return labels[channel] || channel;
+  }
+
+  function renderCategory(
+    category
+  ) {
+    const settings =
+      state.current.categories[category.id];
+
+    if (!settings) return "";
+
+    const eventsHtml =
+      category.events.map(function (eventId) {
+        const event =
+          settings.events[eventId];
+
+        const channelHtml =
+          CONFIG.channels.map(function (channel) {
+            const mode =
+              event[channel] ||
+              CONFIG.modes.INHERIT;
+
+            return `
+              <div class="to-notification-channel">
+                <div class="to-notification-channel-name">
+                  ${escapeHtml(
+                    renderChannelLabel(channel)
+                  )}
+                </div>
+
+                ${renderModeSelect(
+                  category.id,
+                  eventId,
+                  channel,
+                  mode
+                )}
+              </div>
+            `;
+          }).join("");
+
+        return `
+          <div
+            class="to-notification-event"
+            data-event-row="${escapeHtml(eventId)}"
+          >
+            <div class="to-notification-event-header">
+
+              <div>
+                <div class="to-notification-event-name">
+                  ${escapeHtml(eventId)}
+                </div>
+
+                <div class="to-notification-event-meta">
+                  Приоритет:
+                  <strong>
+                    ${escapeHtml(event.priority || "normal")}
+                  </strong>
+
+                  · Доставка:
+                  <strong>
+                    ${escapeHtml(event.delivery || "instant")}
+                  </strong>
+                </div>
+              </div>
+
+              <label class="to-notification-switch">
+                <input
+                  type="checkbox"
+                  data-event-enabled="true"
+                  data-category-id="${escapeHtml(category.id)}"
+                  data-event-id="${escapeHtml(eventId)}"
+                  ${event.enabled !== false ? "checked" : ""}
+                >
+
+                <span></span>
+              </label>
+
+            </div>
+
+            <div class="to-notification-channels">
+              ${channelHtml}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+    return `
+      <section
+        class="to-notification-category"
+        data-category-id="${escapeHtml(category.id)}"
+      >
+
+        <div class="to-notification-category-header">
+
+          <div class="to-notification-category-icon">
+            ${category.icon}
+          </div>
+
+          <div class="to-notification-category-info">
+            <h3>
+              ${escapeHtml(category.name)}
+            </h3>
+
+            <p>
+              ${escapeHtml(category.description)}
+            </p>
+          </div>
+
+          <label class="to-notification-switch">
+            <input
+              type="checkbox"
+              data-category-enabled="true"
+              data-category-id="${escapeHtml(category.id)}"
+              ${settings.enabled !== false ? "checked" : ""}
+            >
+
+            <span></span>
+          </label>
+
+        </div>
+
+        <div class="to-notification-events">
+          ${eventsHtml}
+        </div>
+
+      </section>
+    `;
+  }
+
+  function render(container) {
+    const root =
+      createRoot(container);
+
+    root.innerHTML = `
+      <div class="to-notification-settings-header">
+
+        <div>
+          <div class="to-notification-settings-kicker">
+            🇹🇯 TAJIK OPPORTUNITIES
+          </div>
+
+          <h2>
+            🔔 Настройки уведомлений
+          </h2>
+
+          <p>
+            Полностью управляйте тем, какие события и каким способом
+            будут доставляться.
+          </p>
+        </div>
+
+        <div class="to-notification-settings-actions">
+
+          <button
+            type="button"
+            data-notification-action="allow-all"
+          >
+            Разрешить всё
+          </button>
+
+          <button
+            type="button"
+            data-notification-action="inherit-all"
+          >
+            Наследовать
+          </button>
+
+          <button
+            type="button"
+            data-notification-action="save"
+            class="primary"
+          >
+            Сохранить
+          </button>
+
+        </div>
+
+      </div>
+
+      <section class="to-notification-global">
+
+        <div class="to-notification-global-header">
+          <div>
+            <h3>⚙️ Общие настройки</h3>
+            <p>
+              Главные параметры уведомлений.
+            </p>
+          </div>
+
+          <label class="to-notification-switch">
+            <input
+              type="checkbox"
+              data-global-enabled="true"
+              ${
+                state.current.global.enabled !== false
+                  ? "checked"
+                  : ""
+              }
+            >
+
+            <span></span>
+          </label>
+        </div>
+
+        <div class="to-notification-global-grid">
+
+          ${CONFIG.channels.map(function (channel) {
+            const enabled =
+              state.current.global[channel] !== false;
+
+            return `
+              <label class="to-notification-global-item">
+                <span>
+                  ${escapeHtml(
+                    renderChannelLabel(channel)
+                  )}
+                </span>
+
+                <input
+                  type="checkbox"
+                  data-global-channel="${escapeHtml(channel)}"
+                  ${enabled ? "checked" : ""}
+                >
+              </label>
+            `;
+          }).join("")}
+
+        </div>
+
+        <div class="to-notification-quiet-hours">
+
+          <label>
+            <input
+              type="checkbox"
+              data-quiet-hours-enabled
+              ${
+                state.current.global.quiet_hours?.enabled
+                  ? "checked"
+                  : ""
+              }
+            >
+
+            Тихие часы
+          </label>
+
+          <input
+            type="time"
+            data-quiet-hours-start
+            value="${
+              escapeHtml(
+                state.current.global.quiet_hours?.start ||
+                "23:00"
+              )
+            }"
+          >
+
+          <span>—</span>
+
+          <input
+            type="time"
+            data-quiet-hours-end
+            value="${
+              escapeHtml(
+                state.current.global.quiet_hours?.end ||
+                "07:00"
+              )
+            }"
+          >
+
+        </div>
+
+      </section>
+
+      <div class="to-notification-inheritance-info">
+
+        <strong>
+          🔗 Приоритет настроек
+        </strong>
+
+        <span>
+          Глобально → Администратор → Участник → Принудительно
+        </span>
+
+        <small>
+          Заблокированные администратором настройки нельзя изменить
+          из пользовательского интерфейса.
+        </small>
+
+      </div>
+
+      <div class="to-notification-categories">
+        ${CONFIG.categories.map(renderCategory).join("")}
+      </div>
+
+      <div class="to-notification-settings-footer">
+
+        <span
+          class="${
+            state.dirty
+              ? "is-dirty"
+              : ""
+          }"
+        >
+          ${
+            state.dirty
+              ? "● Есть несохранённые изменения"
+              : "✓ Все изменения сохранены"
+          }
+        </span>
+
+        <button
+          type="button"
+          data-notification-action="save"
+          class="primary"
+        >
+          Сохранить настройки
+        </button>
+
+      </div>
+    `;
+
+    bindUI(root);
+
+    emit("rendered", {
+      root
+    });
+
+    return root;
+  }
+
+  function updateSelectClass(select) {
+    select.classList.remove(
+      "is-allow",
+      "is-deny",
+      "is-inherit"
+    );
+
+    select.classList.add(
+      modeClass(select.value)
+    );
+  }
+
+  function bindUI(root) {
+    root.querySelectorAll(
+      "[data-setting-channel]"
+    ).forEach(function (select) {
+      select.addEventListener(
+        "change",
+        function () {
+          const categoryId =
+            select.dataset.categoryId;
+
+          const eventId =
+            select.dataset.eventId;
+
+          const channel =
+            select.dataset.settingChannel;
+
+          setChannel(
+            categoryId,
+            eventId,
+            channel,
+            select.value
+          );
+
+          updateSelectClass(select);
+          updateFooter(root);
+        }
+      );
+    });
+
+    root.querySelectorAll(
+      "[data-category-enabled]"
+    ).forEach(function (input) {
+      input.addEventListener(
+        "change",
+        function () {
+          setCategoryEnabled(
+            input.dataset.categoryId,
+            input.checked
+          );
+
+          updateFooter(root);
+        }
+      );
+    });
+
+    root.querySelectorAll(
+      "[data-event-enabled]"
+    ).forEach(function (input) {
+      input.addEventListener(
+        "change",
+        function () {
+          setEventEnabled(
+            input.dataset.categoryId,
+            input.dataset.eventId,
+            input.checked
+          );
+
+          updateFooter(root);
+        }
+      );
+    });
+
+    root.querySelector(
+      "[data-global-enabled]"
+    )?.addEventListener(
+      "change",
+      function (event) {
+        setGlobalEnabled(
+          event.target.checked
+        );
+
+        updateFooter(root);
+      }
+    );
+
+    root.querySelectorAll(
+      "[data-global-channel]"
+    ).forEach(function (input) {
+      input.addEventListener(
+        "change",
+        function () {
+          const channel =
+            input.dataset.globalChannel;
+
+          state.current.global[channel] =
+            input.checked;
+
+          markDirty();
+
+          updateFooter(root);
+        }
+      );
+    });
+
+    root.querySelector(
+      "[data-quiet-hours-enabled]"
+    )?.addEventListener(
+      "change",
+      function (event) {
+        state.current.global.quiet_hours.enabled =
+          event.target.checked;
+
+        markDirty();
+      }
+    );
+
+    root.querySelector(
+      "[data-quiet-hours-start]"
+    )?.addEventListener(
+      "change",
+      function (event) {
+        state.current.global.quiet_hours.start =
+          event.target.value;
+
+        markDirty();
+      }
+    );
+
+    root.querySelector(
+      "[data-quiet-hours-end]"
+    )?.addEventListener(
+      "change",
+      function (event) {
+        state.current.global.quiet_hours.end =
+          event.target.value;
+
+        markDirty();
+      }
+    );
+
+    root.querySelectorAll(
+      "[data-notification-action]"
+    ).forEach(function (button) {
+      button.addEventListener(
+        "click",
+        async function () {
+          const action =
+            button.dataset.notificationAction;
+
+          if (action === "allow-all") {
+            allowAll();
+            render(root);
+            return;
+          }
+
+          if (action === "inherit-all") {
+            inheritAll();
+            render(root);
+            return;
+          }
+
+          if (action === "deny-all") {
+            denyAll();
+            render(root);
+            return;
+          }
+
+          if (action === "save") {
+            try {
+              button.disabled = true;
+
+              await save();
+
+              render(root);
+            } catch (error) {
+              console.error(
+                "[TO NotificationSettings]",
+                error
+              );
+
+              button.disabled = false;
+
+              showError(
+                root,
+                error.message
+              );
+            }
+          }
+        }
+      );
+    });
+  }
+
+  function updateFooter(root) {
+    const footer =
+      root.querySelector(
+        ".to-notification-settings-footer span"
+      );
+
+    if (!footer) return;
+
+    footer.textContent =
+      state.dirty
+        ? "● Есть несохранённые изменения"
+        : "✓ Все изменения сохранены";
+
+    footer.classList.toggle(
+      "is-dirty",
+      state.dirty
+    );
+  }
+
+  function showError(
+    root,
+    message
+  ) {
+    let box =
+      root.querySelector(
+        ".to-notification-settings-error"
+      );
+
+    if (!box) {
+      box =
+        document.createElement("div");
+
+      box.className =
+        "to-notification-settings-error";
+
+      root.prepend(box);
+    }
+
+    box.textContent =
+      message ||
+      "Произошла ошибка.";
+
+    box.style.display = "block";
+
+    window.setTimeout(function () {
+      box.style.display = "none";
+    }, 6000);
+  }
+
+  /* ==========================================================
+     ADMIN CONTROL UI
+     ========================================================== */
+
+  function renderAdminControl(container) {
+    const root =
+      createRoot(container);
+
+    root.classList.add(
+      "is-admin-control"
+    );
+
+    root.innerHTML = `
+      <div class="to-notification-admin-header">
+
+        <div>
+          <div class="to-notification-settings-kicker">
+            👑 SUPER ADMIN
+          </div>
+
+          <h2>
+            Центр управления уведомлениями
+          </h2>
+
+          <p>
+            Глобальные правила, персональные настройки,
+            принудительные ограничения и история изменений.
+          </p>
+        </div>
+
+        <div class="to-notification-admin-mode">
+          <span>Режим:</span>
+
+          <select data-admin-mode>
+            <option value="superadmin">
+              Super Admin
+            </option>
+
+            <option value="admin">
+              Admin
+            </option>
+
+            <option value="participant">
+              Participant
+            </option>
+          </select>
+        </div>
+
+      </div>
+
+      <div class="to-notification-admin-grid">
+
+        <button
+          type="button"
+          data-admin-action="global"
+        >
+          🌍 Глобальные настройки
+        </button>
+
+        <button
+          type="button"
+          data-admin-action="participant"
+        >
+          👤 Участник
+        </button>
+
+        <button
+          type="button"
+          data-admin-action="force"
+        >
+          🔒 Принудительные настройки
+        </button>
+
+        <button
+          type="button"
+          data-admin-action="history"
+        >
+          📜 История изменений
+        </button>
+
+        <button
+          type="button"
+          data-admin-action="allow-all"
+        >
+          ✅ Разрешить всё
+        </button>
+
+        <button
+          type="button"
+          data-admin-action="deny-all"
+        >
+          🚫 Запретить всё
+        </button>
+
+      </div>
+
+      <div class="to-notification-admin-participant">
+
+        <label>
+          ID участника
+          <input
+            type="text"
+            data-admin-participant-id
+            placeholder="participant_id"
+          >
+        </label>
+
+        <button
+          type="button"
+          data-admin-action="load-participant"
+        >
+          Загрузить настройки
+        </button>
+
+      </div>
+
+      <div
+        class="to-notification-admin-content"
+        data-admin-content
+      ></div>
+    `;
+
+    const modeSelect =
+      root.querySelector(
+        "[data-admin-mode]"
+      );
+
+    modeSelect.value =
+      state.mode;
+
+    modeSelect.addEventListener(
+      "change",
+      function () {
+        setMode(
+          modeSelect.value
+        );
+      }
+    );
+
+    root.querySelectorAll(
+      "[data-admin-action]"
+    ).forEach(function (button) {
+      button.addEventListener(
+        "click",
+        async function () {
+          const action =
+            button.dataset.adminAction;
+
+          if (action === "allow-all") {
+            allowAll();
+            renderAdminControl(root);
+            return;
+          }
+
+          if (action === "deny-all") {
+            denyAll();
+            renderAdminControl(root);
+            return;
+          }
+
+          if (action === "load-participant") {
+            const input =
+              root.querySelector(
+                "[data-admin-participant-id]"
+              );
+
+            const id =
+              input?.value?.trim();
+
+            if (!id) return;
+
+            try {
+              setParticipant(id);
+
+              await load({
+                useLocal: false
+              });
+
+              render(root);
+            } catch (error) {
+              showError(
+                root,
+                error.message
+              );
+            }
+
+            return;
+          }
+
+          if (action === "history") {
+            const id =
+              state.participantId;
+
+            try {
+              const history =
+                await loadHistory(id);
+
+              const content =
+                root.querySelector(
+                  "[data-admin-content]"
+                );
+
+              if (!content) return;
+
+              content.innerHTML =
+                renderHistory(
+                  history
+                );
+            } catch (error) {
+              showError(
+                root,
+                error.message
+              );
+            }
+
+            return;
+          }
+
+          if (action === "force") {
+            const content =
+              root.querySelector(
+                "[data-admin-content]"
+              );
+
+            if (content) {
+              content.innerHTML =
+                renderForceControls();
+            }
+
+            return;
+          }
+
+          if (
+            action === "global" ||
+            action === "participant"
+          ) {
+            render(root);
+          }
+        }
+      );
+    });
+
+    return root;
+  }
+
+  function renderHistory(data) {
+    const items =
+      Array.isArray(data?.items)
+        ? data.items
+        : Array.isArray(data)
+          ? data
+          : [];
+
+    if (!items.length) {
+      return `
+        <div class="to-notification-history-empty">
+          История изменений пока пуста.
+        </div>
+      `;
+    }
+
+    return `
+      <div class="to-notification-history">
+
+        ${items.map(function (item) {
+          return `
+            <article class="to-notification-history-item">
+
+              <div class="history-action">
+                ${escapeHtml(
+                  item.action ||
+                  "CHANGE"
+                )}
+              </div>
+
+              <div class="history-main">
+
+                <strong>
+                  ${escapeHtml(
+                    item.category ||
+                    "Система"
+                  )}
+                </strong>
+
+                <span>
+                  ${escapeHtml(
+                    item.event ||
+                    ""
+                  )}
+                </span>
+
+                <small>
+                  ${
+                    escapeHtml(
+                      item.updated_at ||
+                      item.created_at ||
+                      ""
+                    )
+                  }
+                </small>
+
+              </div>
+
+              <div class="history-user">
+                ${
+                  escapeHtml(
+                    item.admin_name ||
+                    item.admin_id ||
+                    ""
+                  )
+                }
+              </div>
+
+            </article>
+          `;
+        }).join("")}
+
+      </div>
+    `;
+  }
+
+  function renderForceControls() {
+    return `
+      <div class="to-notification-force-controls">
+
+        <h3>
+          🔒 Принудительные настройки
+        </h3>
+
+        <p>
+          Эти правила имеют приоритет над пользовательскими
+          настройками и могут быть заблокированы.
+        </p>
+
+        <div class="to-notification-force-table">
+
+          <div class="force-row force-head">
+            <span>Категория</span>
+            <span>Событие</span>
+            <span>Канал</span>
+            <span>Режим</span>
+          </div>
+
+          ${CONFIG.categories.map(function (category) {
+            return category.events.slice(0, 2).map(function (eventId) {
+              return `
+                <div class="force-row">
+
+                  <span>
+                    ${category.icon}
+                    ${escapeHtml(category.name)}
+                  </span>
+
+                  <span>
+                    ${escapeHtml(eventId)}
+                  </span>
+
+                  <span>
+                    <select
+                      data-force-channel
+                      data-force-category="${escapeHtml(category.id)}"
+                      data-force-event="${escapeHtml(eventId)}"
+                    >
+                      ${CONFIG.channels.map(function (channel) {
+                        return `
+                          <option value="${escapeHtml(channel)}">
+                            ${escapeHtml(
+                              renderChannelLabel(channel)
+                            )}
+                          </option>
+                        `;
+                      }).join("")}
+                    </select>
+                  </span>
+
+                  <span>
+                    <select
+                      data-force-mode
+                      data-force-category="${escapeHtml(category.id)}"
+                      data-force-event="${escapeHtml(eventId)}"
+                    >
+                      <option value="inherit">
+                        Наследовать
+                      </option>
+
+                      <option value="allow">
+                        Разрешить
+                      </option>
+
+                      <option value="deny">
+                        Запретить
+                      </option>
+                    </select>
+                  </span>
+
+                </div>
+              `;
+            }).join("");
+          }).join("")}
+
+        </div>
+
+        <button
+          type="button"
+          class="primary"
+          data-force-save
+        >
+          Сохранить принудительные правила
+        </button>
+
+      </div>
+    `;
+  }
+
+  /* ==========================================================
+     BROWSER NOTIFICATION SUPPORT
+     ========================================================== */
+
+  async function requestPushPermission() {
+    if (
+      !("Notification" in window)
+    ) {
+      return "unsupported";
+    }
+
+    if (
+      Notification.permission === "granted"
+    ) {
+      return "granted";
+    }
+
+    if (
+      Notification.permission === "denied"
+    ) {
+      return "denied";
+    }
+
+    try {
+      return await Notification.requestPermission();
+    } catch {
+      return "denied";
+    }
+  }
+
+  async function testBrowserNotification() {
+    const permission =
+      await requestPushPermission();
+
+    if (permission !== "granted") {
+      return false;
+    }
+
+    try {
+      new Notification(
+        "🇹🇯 Tajik Opportunities",
+        {
+          body:
+            "Тестовое уведомление успешно работает.",
+          tag:
+            "to-notification-test"
+        }
+      );
+
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /* ==========================================================
+     PUBLIC API
+     ========================================================== */
+
+  const API = {
+    CONFIG,
+    state,
+
+    on,
+
+    load,
+    save,
+    saveGlobal,
+    saveParticipant,
+    loadHistory,
+
+    render,
+    renderAdminControl,
+
+    setParticipant,
+    setMode,
+
+    setGlobalEnabled,
+    setCategoryEnabled,
+    setEventEnabled,
+
+    setChannel,
+    setCategoryChannel,
+
+    setPriority,
+    setDelivery,
+    setTemporary,
+
+    setAdminOverride,
+    setForcedSetting,
+
+    allowAll,
+    denyAll,
+    inheritAll,
+    reset,
+
+    getSettings,
+    getGlobalSettings,
+    getAdminSettings,
+    getForcedSettings,
+
+    getCategorySettings,
+    getEventSettings,
+
+    getEffectiveChannel,
+    isEnabled,
+    isChannelEnabled,
+
+    requestPushPermission,
+    testBrowserNotification
+  };
+
+  window.TONotificationSettings =
+    API;
+
+  window.NotificationSettings =
+    API;
+
+  /* ==========================================================
+     AUTO INITIALIZATION
+     ========================================================== */
+
+  document.addEventListener(
+    "DOMContentLoaded",
+    function () {
+      const containers =
+        document.querySelectorAll(
+          "[data-to-notification-settings]"
+        );
+
+      if (!containers.length) {
+        return;
+      }
+
+      containers.forEach(function (container) {
+        try {
+          render(container);
+        } catch (error) {
+          console.error(
+            "[TO NotificationSettings] render error:",
+            error
+          );
+        }
+      });
+    }
+  );
+
+})(window, document);
