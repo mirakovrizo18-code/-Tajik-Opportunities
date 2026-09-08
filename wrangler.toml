@@ -1,0 +1,15 @@
+name = "tajik-opportunities"
+main = "src/index.ts"
+compatibility_date = "2026-09-09"
+
+[assets]
+directory = "./public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "tajik-opportunities-db"
+database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
+
+[vars]
+ENVIRONMENT = "production"
+APP_NAME = "Tajik Opportunities"
