@@ -454,4 +454,420 @@ export function hasPermissionPattern(
 ): boolean {
   return granted.some(
     (permission) =>
-     
+      permissionMatches(
+        permission,
+        pattern,
+      ),
+  );
+}
+
+export function hasAnyPermissionPattern(
+  granted: readonly Permission[],
+  patterns: readonly string[],
+): boolean {
+  return patterns.some(
+    (pattern) =>
+      hasPermissionPattern(
+        granted,
+        pattern,
+      ),
+  );
+}
+
+export function hasAllPermissionPatterns(
+  granted: readonly Permission[],
+  patterns: readonly string[],
+): boolean {
+  return patterns.every(
+    (pattern) =>
+      hasPermissionPattern(
+        granted,
+        pattern,
+      ),
+  );
+}
+
+export function expandPermissionPatterns(
+  patterns: readonly string[],
+): Permission[] {
+  const result: Permission[] =
+    [];
+
+  for (const pattern of patterns) {
+    if (
+      pattern.endsWith(
+        ".*",
+      )
+    ) {
+      const prefix =
+        pattern.slice(
+          0,
+          -2,
+        );
+
+      for (const permission of ALL_PERMISSIONS) {
+        if (
+          permission ===
+            prefix ||
+          permission.startsWith(
+            `${prefix}.`,
+          )
+        ) {
+          result.push(
+            permission,
+          );
+        }
+      }
+    } else if (
+      ALL_PERMISSIONS.includes(
+        pattern as Permission,
+      )
+    ) {
+      result.push(
+        pattern as Permission,
+      );
+    }
+  }
+
+  return Array.from(
+    new Set(result),
+  );
+}
+
+export function validatePermissions(
+  permissions: readonly Permission[],
+): Permission[] {
+  return Array.from(
+    new Set(
+      permissions.filter(
+        (permission) =>
+          ALL_PERMISSIONS.includes(
+            permission,
+          ),
+      ),
+    ),
+  );
+}
+
+export function getPermissionName(
+  permission: Permission,
+): string {
+  return String(permission)
+    .split(".")
+    .map(
+      (part) =>
+        part
+          .replace(
+            /[_-]+/g,
+            " ",
+          )
+          .replace(
+            /\b\w/g,
+            (letter) =>
+              letter.toUpperCase(),
+          ),
+    )
+    .join(" / ");
+}
+
+export function getPermissionAction(
+  permission: Permission,
+): string {
+  const parts =
+    String(permission).split(
+      ".",
+    );
+
+  return (
+    parts[parts.length - 1] ??
+    permission
+  );
+}
+
+export function getPermissionResource(
+  permission: Permission,
+): string {
+  return (
+    String(permission).split(
+      ".",
+    )[0] ??
+    "system"
+  );
+}
+
+export function getPermissionsForResource(
+  resource: string,
+): Permission[] {
+  const prefix =
+    `${resource}.`;
+
+  return ALL_PERMISSIONS.filter(
+    (permission) =>
+      permission.startsWith(
+        prefix,
+      ),
+  );
+}
+
+export function getPermissionResources(): string[] {
+  return Array.from(
+    new Set(
+      ALL_PERMISSIONS.map(
+        getPermissionResource,
+      ),
+    ),
+  ).sort();
+}
+
+export function canManagePermission(
+  role: AdminRole,
+  permission: Permission,
+): boolean {
+  if (
+    role === "superadmin"
+  ) {
+    return true;
+  }
+
+  if (
+    permission ===
+    PERMISSIONS.SUPERADMIN.FULL_CONTROL
+  ) {
+    return false;
+  }
+
+  return roleHasPermission(
+    role,
+    permission,
+  );
+}
+
+export function canManageRole(
+  actorRole: AdminRole,
+  targetRole: AdminRole,
+): boolean {
+  if (
+    actorRole === "superadmin"
+  ) {
+    return true;
+  }
+
+  if (
+    actorRole === "admin"
+  ) {
+    return (
+      targetRole !==
+      "superadmin"
+    );
+  }
+
+  return false;
+}
+
+export function isPrivilegedRole(
+  role: AdminRole,
+): boolean {
+  return (
+    role === "superadmin" ||
+    role === "admin"
+  );
+}
+
+export function isModerationRole(
+  role: AdminRole,
+): boolean {
+  return (
+    role === "superadmin" ||
+    role === "admin" ||
+    role === "moderator"
+  );
+}
+
+export function isContentRole(
+  role: AdminRole,
+): boolean {
+  return (
+    role === "superadmin" ||
+    role === "admin" ||
+    role === "editor"
+  );
+}
+
+export function isSupportRole(
+  role: AdminRole,
+): boolean {
+  return (
+    role === "superadmin" ||
+    role === "admin" ||
+    role === "support"
+  );
+}
+
+export function isAnalyticsRole(
+  role: AdminRole,
+): boolean {
+  return (
+    role === "superadmin" ||
+    role === "admin" ||
+    role === "analyst"
+  );
+}
+
+export function getHighestRole(
+  roles: readonly AdminRole[],
+): AdminRole | null {
+  const order: AdminRole[] = [
+    "superadmin",
+    "admin",
+    "moderator",
+    "editor",
+    "support",
+    "analyst",
+  ];
+
+  for (const role of order) {
+    if (
+      roles.includes(role)
+    ) {
+      return role;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Проверка через существующие helpers
+ * из constants/permissions.ts.
+ */
+export function checkNamedPermission(
+  permissions: readonly Permission[],
+  permission: Permission,
+): boolean {
+  return hasPermission(
+    permissions,
+    permission,
+  );
+}
+
+export function checkNamedAnyPermission(
+  permissions: readonly Permission[],
+  required: readonly Permission[],
+): boolean {
+  return hasAnyPermission(
+    permissions,
+    required,
+  );
+}
+
+export function checkNamedAllPermissions(
+  permissions: readonly Permission[],
+  required: readonly Permission[],
+): boolean {
+  return hasAllPermissions(
+    permissions,
+    required,
+  );
+}
+
+/**
+ * Централизованные разрешения для
+ * контентных объектов.
+ */
+export const CONTENT_PERMISSIONS = {
+  publications: {
+    view:
+      PERMISSIONS.PUBLICATIONS.VIEW,
+    create:
+      PERMISSIONS.PUBLICATIONS.CREATE,
+    edit:
+      PERMISSIONS.PUBLICATIONS.EDIT,
+    delete:
+      PERMISSIONS.PUBLICATIONS.DELETE,
+    publish:
+      PERMISSIONS.PUBLICATIONS.PUBLISH,
+    moderate:
+      PERMISSIONS.PUBLICATIONS.MODERATE,
+    feature:
+      PERMISSIONS.PUBLICATIONS.FEATURE,
+    metrics:
+      PERMISSIONS.PUBLICATIONS.METRICS,
+  },
+
+  comments: {
+    view:
+      PERMISSIONS.COMMENTS.VIEW,
+    create:
+      PERMISSIONS.COMMENTS.CREATE,
+    edit:
+      PERMISSIONS.COMMENTS.EDIT,
+    delete:
+      PERMISSIONS.COMMENTS.DELETE,
+    moderate:
+      PERMISSIONS.COMMENTS.MODERATE,
+  },
+
+  reactions: {
+    view:
+      PERMISSIONS.REACTIONS.VIEW,
+    manage:
+      PERMISSIONS.REACTIONS.MANAGE,
+    moderate:
+      PERMISSIONS.REACTIONS.MODERATE,
+  },
+
+  reviews: {
+    view:
+      PERMISSIONS.REVIEWS.VIEW,
+    create:
+      PERMISSIONS.REVIEWS.CREATE,
+    edit:
+      PERMISSIONS.REVIEWS.EDIT,
+    delete:
+      PERMISSIONS.REVIEWS.DELETE,
+    moderate:
+      PERMISSIONS.REVIEWS.MODERATE,
+    manage:
+      PERMISSIONS.REVIEWS.MANAGE,
+    metrics:
+      PERMISSIONS.REVIEWS.METRICS,
+  },
+
+  participants: {
+    view:
+      PERMISSIONS.PARTICIPANTS.VIEW,
+    manage:
+      PERMISSIONS.PARTICIPANTS.MANAGE,
+    block:
+      PERMISSIONS.PARTICIPANTS.BLOCK,
+  },
+
+  chat: {
+    view:
+      PERMISSIONS.CHAT.VIEW,
+    send:
+      PERMISSIONS.CHAT.SEND,
+    moderate:
+      PERMISSIONS.CHAT.MODERATE,
+    manage:
+      PERMISSIONS.CHAT.MANAGE,
+  },
+
+  reports: {
+    view:
+      PERMISSIONS.REPORTS.VIEW,
+    manage:
+      PERMISSIONS.REPORTS.MANAGE,
+    resolve:
+      PERMISSIONS.REPORTS.RESOLVE,
+  },
+
+  notifications: {
+    view:
+      PERMISSIONS.NOTIFICATIONS.VIEW,
+    send:
+      PERMISSIONS.NOTIFICATIONS.SEND,
+    manage:
+      PERMISSIONS.NOTIFICATIONS.MANAGE,
+  },
+} as const;
