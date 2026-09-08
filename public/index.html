@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  >
+
+  <meta
+    name="theme-color"
+    content="#ffffff"
+  >
+
+  <meta
+    name="description"
+    content="Tajik Opportunities — вакансии, возможности, образование, стажировки, гранты, мероприятия и другие возможности в Таджикистане."
+  >
+
+  <meta
+    name="keywords"
+    content="Tajik Opportunities, Таджикистан, вакансии, работа, образование, стажировки, гранты, конкурсы, мероприятия, возможности"
+  >
+
+  <meta
+    name="author"
+    content="Tajik Opportunities"
+  >
+
+  <meta
+    name="robots"
+    content="index,follow"
+  >
+
+  <meta
+    property="og:type"
+    content="website"
+  >
+
+  <meta
+    property="og:title"
+    content="Tajik Opportunities"
+  >
+
+  <meta
+    property="og:description"
+    content="Находите работу, образование, стажировки, гранты и другие возможности в Таджикистане."
+  >
+
+  <meta
+    property="og:site_name"
+    content="Tajik Opportunities"
+  >
+
+  <title>Tajik Opportunities — Возможности Таджикистана</title>
+
+  <!-- ======================================================
+       PRELOAD / FONTS
+       ====================================================== -->
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <!-- ======================================================
+       STYLES
+       ====================================================== -->
+
+  <link
+    rel="stylesheet"
+    href="/css/main.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/components.css"
+  >
+
+  <!-- ======================================================
+       PWA
+       ====================================================== -->
+
+  <link
+    rel="manifest"
+    href="/manifest.json"
+  >
+
+  <link
+    rel="icon"
+    href="/assets/favicon.svg"
+    type="image/svg+xml"
+  >
+
+  <!-- ======================================================
+       EARLY CONFIG
+       ====================================================== -->
+
+  <script>
+    window.TAJIK_OPPORTUNITIES = {
+      appName: "Tajik Opportunities",
+      version: "2026.09",
+      language: "ru",
+      apiBase: "/api",
+      environment: "production"
+    };
+  </script>
+</head>
+
+<body>
+
+  <!-- ======================================================
+       APPLICATION ROOT
+       ====================================================== -->
+
+  <div
+    id="app"
+    class="app"
+    data-app="tajik-opportunities"
+  >
+
+    <!-- ====================================================
+         ACCESSIBILITY
+         ==================================================== -->
+
+    <a
+      class="skip-link"
+      href="#main-content"
+    >
+      Перейти к содержимому
+    </a>
+
+    <!-- ====================================================
+         HEADER
+         ==================================================== -->
+
+    <header
+      id="site-header"
+      class="site-header"
+    >
+
+      <div class="container header-inner">
+
+        <!-- LOGO -->
+
+        <a
+          href="/"
+          class="brand"
+          aria-label="Tajik Opportunities — главная"
+          data-route="/"
+        >
+
+          <span
+            class="brand-logo"
+            aria-hidden="true"
+          >
+            🇹🇯
+          </span>
+
+          <span class="brand-text">
+            <strong>Tajik</strong>
+            <span>Opportunities</span>
+          </span>
+
+        </a>
+
+        <!-- DESKTOP NAVIGATION -->
+
+        <nav
+          class="main-navigation"
+          aria-label="Основная навигация"
+        >
+
+          <a
+            href="/"
+            class="nav-link active"
+            data-route="/"
+            data-nav="home"
+          >
+            Главная
+          </a>
+
+          <a
+            href="/opportunities"
+            class="nav-link"
+            data-route="/opportunities"
+            data-nav="opportunities"
+          >
+            Возможности
+          </a>
+
+          <a
+            href="/jobs"
+            class="nav-link"
+            data-route="/jobs"
+            data-nav="jobs"
+          >
+            Работа
+          </a>
+
+          <a
+            href="/education"
+            class="nav-link"
+            data-route="/education"
+            data-nav="education"
+          >
+            Образование
+          </a>
+
+          <a
+            href="/grants"
+            class="nav-link"
+            data-route="/grants"
+            data-nav="grants"
+          >
+            Гранты
+          </a>
+
+          <a
+            href="/events"
+            class="nav-link"
+            data-route="/events"
+            data-nav="events"
+          >
+            Мероприятия
+          </a>
+
+        </nav>
+
+        <!-- HEADER ACTIONS -->
+
+        <div class="header-actions">
+
+          <button
+            id="language-button"
+            class="icon-button"
+            type="button"
+            aria-label="Выбрать язык"
+            aria-haspopup="menu"
+            aria-expanded="false"
+            data-action="language"
+          >
+            <span aria-hidden="true">🌐</span>
+            <span class="button-label">RU</span>
+          </button>
+
+          <button
+            id="notifications-button"
+            class="icon-button notification-button"
+            type="button"
+            aria-label="Уведомления"
+            aria-expanded="false"
+            data-action="notifications"
+          >
+            <span aria-hidden="true">🔔</span>
+            <span
+              id="notification-count"
+              class="notification-badge hidden"
+            >
+              0
+            </span>
+          </button>
+
+          <button
+            id="menu-button"
+            class="icon-button mobile-menu-button"
+            type="button"
+            aria-label="Открыть меню"
+            aria-controls="mobile-navigation"
+            aria-expanded="false"
+            data-action="mobile-menu"
+          >
+            <span aria-hidden="true">☰</span>
+          </button>
+
+        </div>
+
+      </div>
+
+      <!-- MOBILE NAVIGATION -->
+
+      <nav
+        id="mobile-navigation"
+        class="mobile-navigation"
+        aria-label="Мобильная навигация"
+        hidden
+      >
+
+        <a href="/" data-route="/">
+          Главная
+        </a>
+
+        <a
+          href="/opportunities"
+          data-route="/opportunities"
+        >
+          Возможности
+        </a>
+
+        <a
+          href="/jobs"
+          data-route="/jobs"
+        >
+          Работа
+        </a>
+
+        <a
+          href="/education"
+          data-route="/education"
+        >
+          Образование
+        </a>
+
+        <a
+          href="/grants"
+          data-route="/grants"
+        >
+          Гранты
+        </a>
+
+        <a
+          href="/events"
+          data-route="/events"
+        >
+          Мероприятия
+        </a>
+
+        <button
+          type="button"
+          data-action="open-chat"
+        >
+          💬 Связаться с администратором
+        </button>
+
+      </nav>
+
+    </header>
+
+    <!-- ====================================================
+         MAIN
+         ==================================================== -->
+
+    <main
+      id="main-content"
+      class="main-content"
+    >
+
+      <!-- ==================================================
+           HERO
+           ================================================== -->
+
+      <section
+        id="hero-section"
+        class="hero-section"
+        aria-labelledby="hero-title"
+      >
+
+        <div class="container hero-container">
+
+          <div class="hero-content">
+
+            <div class="hero-eyebrow">
+              🇹🇯 Платформа возможностей Таджикистана
+            </div>
+
+            <h1 id="hero-title">
+              Найдите свою
+              <span class="highlight">
+                следующую возможность
+              </span>
+            </h1>
+
+            <p class="hero-description">
+              Работа, образование, стажировки, гранты,
+              конкурсы, мероприятия и другие возможности
+              в одном месте.
+            </p>
+
+            <!-- MAIN SEARCH -->
+
+            <form
+              id="main-search-form"
+              class="main-search-form"
+              role="search"
+              autocomplete="off"
+            >
+
+              <div class="search-input-wrapper">
+
+                <span
+                  class="search-icon"
+                  aria-hidden="true"
+                >
+                  🔎
+                </span>
+
+                <input
+                  id="main-search-input"
+                  name="q"
+                  type="search"
+                  placeholder="Что вы ищете?"
+                  autocomplete="off"
+                  maxlength="300"
+                  aria-label="Поиск возможностей"
+                >
+
+                <button
+                  id="clear-search-button"
+                  class="clear-search-button hidden"
+                  type="button"
+                  aria-label="Очистить поиск"
+                  data-action="clear-search"
+                >
+                  ×
+                </button>
+
+              </div>
+
+              <div class="search-location-wrapper">
+
+                <span
+                  aria-hidden="true"
+                >
+                  📍
+                </span>
+
+                <select
+                  id="main-search-location"
+                  name="location"
+                  aria-label="Город или регион"
+                >
+
+                  <option value="">
+                    Весь Таджикистан
+                  </option>
+
+                  <option value="dushanbe">
+                    Душанбе
+                  </option>
+
+                  <option value="sughd">
+                    Согдийская область
+                  </option>
+
+                  <option value="khatlon">
+                    Хатлонская область
+                  </option>
+
+                  <option value="gbao">
+                    ГБАО
+                  </option>
+
+                  <option value="rasht">
+                    Районы республиканского подчинения
+                  </option>
+
+                </select>
+
+              </div>
+
+              <button
+                class="primary-button search-submit-button"
+                type="submit"
+              >
+                Найти
+              </button>
+
+            </form>
+
+            <!-- POPULAR SEARCHES -->
+
+            <div class="popular-searches">
+
+              <span>
+                Популярное:
+              </span>
+
+              <button
+                type="button"
+                data-search="IT"
+              >
+                IT
+              </button>
+
+              <button
+                type="button"
+                data-search="работа"
+              >
+                Работа
+              </button>
+
+              <button
+                type="button"
+                data-search="стажировка"
+              >
+                Стажировка
+              </button>
+
+              <button
+                type="button"
+                data-search="грант"
+              >
+                Гранты
+              </button>
+
+              <button
+                type="button"
+                data-search="образование"
+              >
+                Образование
+              </button>
+
+            </div>
+
+          </div>
+
+          <!-- HERO VISUAL -->
+
+          <div
+            class="hero-visual"
+            aria-hidden="true"
+          >
+
+            <div class="hero-orbit orbit-one"></div>
+            <div class="hero-orbit orbit-two"></div>
+
+            <div class="hero-card hero-card-main">
+
+              <div class="hero-card-icon">
+                🚀
+              </div>
+
+              <div>
+                <strong>
+                  Новые возможности
+                </strong>
+
+                <span>
+                  Каждый день
+                </span>
+              </div>
+
+            </div>
+
+            <div class="hero-card hero-card-small card-top">
+              💼 Работа
+            </div>
+
+            <div class="hero-card hero-card-small card-right">
+              🎓 Образование
+            </div>
+
+            <div class="hero-card hero-card-small card-bottom">
+              🏆 Гранты
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================================
+           CATEGORIES
+           ================================================== -->
+
+      <section
+        id="categories-section"
+        class="section categories-section"
+        aria-labelledby="categories-title"
+      >
+
+        <div class="container">
+
+          <div class="section-heading">
+
+            <div>
+
+              <span class="section-eyebrow">
+                Исследуйте
+              </span>
+
+              <h2 id="categories-title">
+                Категории возможностей
+              </h2>
+
+            </div>
+
+            <a
+              href="/categories"
+              class="text-link"
+              data-route="/categories"
+            >
+              Все категории →
+            </a>
+
+          </div>
+
+          <div
+            id="categories-grid"
+            class="categories-grid"
+            aria-live="polite"
+          >
+
+            <!-- JS загрузит категории -->
+
+            <div class="loading-card">
+              <div class="loading-spinner"></div>
+              <span>Загрузка категорий...</span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================================
+           FEATURED OPPORTUNITIES
+           ================================================== -->
+
+      <section
+        id="featured-section"
+        class="section opportunities-section"
+        aria-labelledby="featured-title"
+      >
+
+        <div class="container">
+
+          <div class="section-heading">
+
+            <div>
+
+              <span class="section-eyebrow">
+                Рекомендуем
+              </span>
+
+              <h2 id="featured-title">
+                Избранные возможности
+              </h2>
+
+            </div>
+
+            <a
+              href="/opportunities"
+              class="text-link"
+              data-route="/opportunities"
+            >
+              Смотреть все →
+            </a>
+
+          </div>
+
+          <div
+            id="featured-publications"
+            class="publication-grid"
+            aria-live="polite"
+          >
+
+            <div class="loading-card">
+              <div class="loading-spinner"></div>
+              <span>
+                Загружаем возможности...
+              </span>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================================
+           LATEST
+           ================================================== -->
+
+      <section
+        id="latest-section"
+        class="section latest-section"
+        aria-labelledby="latest-title"
+      >
+
+        <div class="container">
+
+          <div class="section-heading">
+
+            <div>
+
+              <span class="section-eyebrow">
+                Только что опубликовано
+              </span>
+
+              <h2 id="latest-title">
+                Последние возможности
+              </h2>
+
+            </div>
+
+            <div class="section-actions">
+
+              <button
+                class="filter-button active"
+                type="button"
+                data-filter="latest"
+              >
+                Все
+              </button>
+
+              <button
+                class="filter-button"
+                type="button"
+                data-filter="jobs"
+              >
+                Работа
+              </button>
+
+              <button
+                class="filter-button"
+                type="button"
+                data-filter="education"
+              >
+                Образование
+              </button>
+
+              <button
+                class="filter-button"
+                type="button"
+                data-filter="grants"
+              >
+                Гранты
+              </button>
+
+            </div>
+
+          </div>
+
+          <div
+            id="latest-publications"
+            class="publication-list"
+            aria-live="polite"
+          >
+
+            <div class="loading-card">
+              <div class="loading-spinner"></div>
+              <span>
+                Загрузка публикаций...
+              </span>
+            </div>
+
+          </div>
+
+          <div
+            id="latest-pagination"
+            class="pagination-container"
+          ></div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================================
+           STATISTICS
+           ================================================== -->
+
+      <section
+        id="statistics-section"
+        class="statistics-section"
+        aria-labelledby="statistics-title"
+      >
+
+        <div class="container">
+
+          <div class="statistics-inner">
+
+            <div class="statistics-heading">
+
+              <span class="section-eyebrow">
+                Tajik Opportunities
+              </span>
+
+              <h2 id="statistics-title">
+                Возможности растут каждый день
+              </h2>
+
+              <p>
+                Мы объединяем полезные предложения
+                и возможности со всей страны.
+              </p>
+
+            </div>
+
+            <div
+              id="platform-statistics"
+              class="statistics-grid"
+            >
+
+              <div class="stat-card">
+                <strong
+                  data-stat="publications"
+                >
+                  —
+                </strong>
+
+                <span>
+                  Возможностей
+                </span>
+              </div>
+
+              <div class="stat-card">
+                <strong
+                  data-stat="categories"
+                >
+                  —
+                </strong>
+
+                <span>
+                  Категорий
+                </span>
+              </div>
+
+              <div class="stat-card">
+                <strong
+                  data-stat="views"
+                >
+                  —
+                </strong>
+
+                <span>
+                  Просмотров
+                </span>
+              </div>
+
+              <div class="stat-card">
+                <strong
+                  data-stat="participants"
+                >
+                  —
+                </strong>
+
+                <span>
+                  Участников
+                </span>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================================
+           REVIEWS
+           ================================================== -->
+
+      <section
+        id="reviews-section"
+        class="section reviews-section"
+        aria-labelledby="reviews-title"
+      >
+
+        <div class="container">
+
+          <div class="section-heading">
+
+            <div>
+
+              <span class="section-eyebrow">
+                Отзывы сообщества
+              </span>
+
+              <h2 id="reviews-title">
+                Что говорят пользователи
+              </h2>
+
+            </div>
+
+            <button
+              type="button"
+              class="secondary-button"
+              data-action="open-review-form"
+            >
+              ⭐ Оставить отзыв
+            </button>
+
+          </div>
+
+          <!-- RATING SUMMARY -->
+
+          <div
+            id="reviews-summary"
+            class="reviews-summary"
+          >
+
+            <div class="rating-summary-main">
+
+              <strong
+                id="average-rating"
+                class="average-rating"
+              >
+                0.0
+              </strong>
+
+              <div class="rating-stars">
+                ★★★★★
+              </div>
+
+              <span id="total-ratings">
+                0 отзывов
+              </span>
+
+            </div>
+
+            <div
+              id="rating-distribution"
+              class="rating-distribution"
+            >
+
+              <div class="rating-row">
+                <span>5</span>
+                <div class="rating-bar">
+                  <i style="width:0%"></i>
+                </div>
+                <span>0%</span>
+              </div>
+
+              <div class="rating-row">
+                <span>4</span>
+                <div class="rating-bar">
+                  <i style="width:0%"></i>
+                </div>
+                <span>0%</span>
+              </div>
+
+              <div class="rating-row">
+                <span>3</span>
+                <div class="rating-bar">
+                  <i style="width:0%"></i>
+                </div>
+                <span>0%</span>
+              </div>
+
+              <div class="rating-row">
+                <span>2</span>
+                <div class="rating-bar">
+                  <i style="width:0%"></i>
+                </div>
+                <span>0%</span>
+              </div>
+
+              <div class="rating-row">
+                <span>1</span>
+                <div class="rating-bar">
+                  <i style="width:0%"></i>
+                </div>
+                <span>0%</span>
+              </div>
+
+            </div>
+
+          </div>
+
+          <div
+            id="homepage-reviews"
+            class="reviews-grid"
+            aria-live="polite"
+          >
+
+            <div class="empty-state">
+              <div class="empty-state-icon">
+                ⭐
+              </div>
+
+              <h3>
+                Отзывы загружаются
+              </h3>
+
+              <p>
+                Здесь появятся отзывы пользователей.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+      <!-- ==================================================
+           CTA
+           ================================================== -->
+
+      <section
+        class="cta-section"
+        aria-labelledby="cta-title"
+      >
+
+        <div class="container">
+
+          <div class="cta-inner">
+
+            <div>
+
+              <span class="section-eyebrow">
+                Есть возможность?
+              </span>
+
+              <h2 id="cta-title">
+                Поделитесь ею с другими
+              </h2>
+
+              <p>
+                Публикуйте вакансии, образовательные программы,
+                гранты, конкурсы и другие полезные предложения.
+              </p>
+
+            </div>
+
+            <button
+              type="button"
+              class="primary-button large"
+              data-action="create-publication"
+            >
+              ＋ Опубликовать возможность
+            </button>
+
+          </div>
+
+        </div>
+
+      </section>
+
+    </main>
+
+    <!-- ====================================================
+         FOOTER
+         ==================================================== -->
+
+    <footer
+      id="site-footer"
+      class="site-footer"
+    >
+
+      <div class="container">
+
+        <div class="footer-grid">
+
+          <div class="footer-brand">
+
+            <a
+              href="/"
+              class="brand"
+              data-route="/"
+            >
+
+              <span
+                class="brand-logo"
+                aria-hidden="true"
+              >
+                🇹🇯
+              </span>
+
+              <span class="brand-text">
+                <strong>Tajik</strong>
+                <span>Opportunities</span>
+              </span>
+
+            </a>
+
+            <p>
+              Платформа возможностей
+              для людей и организаций Таджикистана.
+            </p>
+
+          </div>
+
+          <div class="footer-column">
+
+            <h3>
+              Возможности
+            </h3>
+
+            <a href="/jobs">
+              Работа
+            </a>
+
+            <a href="/education">
+              Образование
+            </a>
+
+            <a href="/internships">
+              Стажировки
+            </a>
+
+            <a href="/grants">
+              Гранты
+            </a>
+
+            <a href="/competitions">
+              Конкурсы
+            </a>
+
+          </div>
+
+          <div class="footer-column">
+
+            <h3>
+              Платформа
+            </h3>
+
+            <a href="/opportunities">
+              Все возможности
+            </a>
+
+            <a href="/categories">
+              Категории
+            </a>
+
+            <a href="/about">
+              О платформе
+            </a>
+
+            <a href="/help">
+              Помощь
+            </a>
+
+            <a
+              href="/privacy"
+              data-route="/privacy"
+            >
+              Конфиденциальность
+            </a>
+
+          </div>
+
+          <div class="footer-column">
+
+            <h3>
+              Связь
+            </h3>
+
+            <button
+              type="button"
+              data-action="open-chat"
+            >
+              💬 Написать администратору
+            </button>
+
+            <a href="/contact">
+              Контакты
+            </a>
+
+            <a href="/report">
+              Сообщить о проблеме
+            </a>
+
+          </div>
+
+        </div>
+
+        <div class="footer-bottom">
+
+          <span>
+            © <span id="current-year">2026</span>
+            Tajik Opportunities
+          </span>
+
+          <span>
+            Сделано для Таджикистана 🇹🇯
+          </span>
+
+        </div>
+
+      </div>
+
+    </footer>
+
+  </div>
+
+  <!-- ======================================================
+       GLOBAL OVERLAY
+       ====================================================== -->
+
+  <div
+    id="global-overlay"
+    class="global-overlay hidden"
+    aria-hidden="true"
+  ></div>
+
+  <!-- ======================================================
+       TOAST CONTAINER
+       ====================================================== -->
+
+  <div
+    id="toast-container"
+    class="toast-container"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+  <!-- ======================================================
+       NOTIFICATION PANEL
+       ====================================================== -->
+
+  <aside
+    id="notification-panel"
+    class="side-panel notification-panel"
+    aria-labelledby="notification-panel-title"
+    hidden
+  >
+
+    <div class="side-panel-header">
+
+      <h2 id="notification-panel-title">
+        Уведомления
+      </h2>
+
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Закрыть"
+        data-action="close-notifications"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div
+      id="notification-list"
+      class="side-panel-body"
+    >
+
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          🔔
+        </div>
+
+        <h3>
+          Пока нет уведомлений
+        </h3>
+
+        <p>
+          Здесь будут появляться важные сообщения.
+        </p>
+      </div>
+
+    </div>
+
+  </aside>
+
+  <!-- ======================================================
+       LANGUAGE MENU
+       ====================================================== -->
+
+  <div
+    id="language-menu"
+    class="dropdown-menu"
+    role="menu"
+    hidden
+  >
+
+    <button
+      type="button"
+      role="menuitem"
+      data-language="ru"
+    >
+      🇷🇺 Русский
+    </button>
+
+    <button
+      type="button"
+      role="menuitem"
+      data-language="tj"
+    >
+      🇹🇯 Тоҷикӣ
+    </button>
+
+    <button
+      type="button"
+      role="menuitem"
+      data-language="en"
+    >
+      🇬🇧 English
+    </button>
+
+  </div>
+
+  <!-- ======================================================
+       REVIEW MODAL
+       ====================================================== -->
+
+  <dialog
+    id="review-modal"
+    class="modal"
+  >
+
+    <div class="modal-header">
+
+      <div>
+
+        <span class="section-eyebrow">
+          Ваше мнение важно
+        </span>
+
+        <h2>
+          Оставить отзыв
+        </h2>
+
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Закрыть"
+        data-action="close-review-form"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <form
+      id="review-form"
+      class="modal-form"
+    >
+
+      <div class="form-field">
+
+        <label>
+          Оценка
+        </label>
+
+        <div
+          id="review-rating-selector"
+          class="star-selector"
+          role="radiogroup"
+          aria-label="Оценка от 1 до 5"
+        >
+
+          <button
+            type="button"
+            data-rating="1"
+            aria-label="1 звезда"
+          >
+            ★
+          </button>
+
+          <button
+            type="button"
+            data-rating="2"
+            aria-label="2 звезды"
+          >
+            ★
+          </button>
+
+          <button
+            type="button"
+            data-rating="3"
+            aria-label="3 звезды"
+          >
+            ★
+          </button>
+
+          <button
+            type="button"
+            data-rating="4"
+            aria-label="4 звезды"
+          >
+            ★
+          </button>
+
+          <button
+            type="button"
+            data-rating="5"
+            aria-label="5 звёзд"
+            class="selected"
+          >
+            ★
+          </button>
+
+        </div>
+
+        <input
+          id="review-rating"
+          name="rating"
+          type="hidden"
+          value="5"
+        >
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="review-title">
+          Заголовок
+        </label>
+
+        <input
+          id="review-title"
+          name="title"
+          type="text"
+          maxlength="200"
+          placeholder="Короткий заголовок"
+        >
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="review-text">
+          Отзыв
+        </label>
+
+        <textarea
+          id="review-text"
+          name="text"
+          rows="6"
+          maxlength="5000"
+          required
+          placeholder="Расскажите о вашем опыте..."
+        ></textarea>
+
+        <div class="field-counter">
+          <span id="review-text-counter">
+            0
+          </span>
+          / 5000
+        </div>
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="checkbox-field">
+
+          <input
+            type="checkbox"
+            id="review-anonymous"
+            name="anonymous"
+          >
+
+          <span>
+            Опубликовать анонимно
+          </span>
+
+        </label>
+
+      </div>
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="secondary-button"
+          data-action="close-review-form"
+        >
+          Отмена
+        </button>
+
+        <button
+          type="submit"
+          class="primary-button"
+        >
+          Опубликовать отзыв
+        </button>
+
+      </div>
+
+    </form>
+
+  </dialog>
+
+  <!-- ======================================================
+       PUBLICATION MODAL
+       ====================================================== -->
+
+  <dialog
+    id="publication-modal"
+    class="modal large-modal"
+  >
+
+    <div class="modal-header">
+
+      <div>
+
+        <span class="section-eyebrow">
+          Tajik Opportunities
+        </span>
+
+        <h2>
+          Опубликовать возможность
+        </h2>
+
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Закрыть"
+        data-action="close-publication-form"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <form
+      id="publication-form"
+      class="modal-form"
+    >
+
+      <div class="form-grid">
+
+        <div class="form-field">
+
+          <label for="publication-type">
+            Тип
+          </label>
+
+          <select
+            id="publication-type"
+            name="type"
+            required
+          >
+
+            <option value="job">
+              Работа
+            </option>
+
+            <option value="education">
+              Образование
+            </option>
+
+            <option value="internship">
+              Стажировка
+            </option>
+
+            <option value="grant">
+              Грант
+            </option>
+
+            <option value="competition">
+              Конкурс
+            </option>
+
+            <option value="event">
+              Мероприятие
+            </option>
+
+            <option value="business">
+              Бизнес
+            </option>
+
+            <option value="news">
+              Новости
+            </option>
+
+            <option value="other">
+              Другое
+            </option>
+
+          </select>
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="publication-category">
+            Категория
+          </label>
+
+          <select
+            id="publication-category"
+            name="category_id"
+          >
+            <option value="">
+              Выберите категорию
+            </option>
+          </select>
+
+        </div>
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="publication-title">
+          Название
+        </label>
+
+        <input
+          id="publication-title"
+          name="title"
+          type="text"
+          maxlength="300"
+          required
+          placeholder="Название возможности"
+        >
+
+      </div>
+
+      <div class="form-field">
+
+        <label for="publication-description">
+          Описание
+        </label>
+
+        <textarea
+          id="publication-description"
+          name="description"
+          rows="8"
+          maxlength="20000"
+          required
+          placeholder="Подробное описание..."
+        ></textarea>
+
+      </div>
+
+      <div class="form-grid">
+
+        <div class="form-field">
+
+          <label for="publication-location">
+            Местоположение
+          </label>
+
+          <input
+            id="publication-location"
+            name="location"
+            type="text"
+            maxlength="300"
+            placeholder="Душанбе, Таджикистан"
+          >
+
+        </div>
+
+        <div class="form-field">
+
+          <label for="publication-organization">
+            Организация
+          </label>
+
+          <input
+            id="publication-organization"
+            name="organization"
+            type="text"
+            maxlength="300"
+            placeholder="Название организации"
+          >
+
+        </div>
+
+      </div>
+
+      <div class="form-field">
+
+        <label class="checkbox-field">
+
+          <input
+            type="checkbox"
+            name="anonymous"
+            id="publication-anonymous"
+          >
+
+          <span>
+            Скрыть имя автора
+          </span>
+
+        </label>
+
+      </div>
+
+      <div class="modal-actions">
+
+        <button
+          type="button"
+          class="secondary-button"
+          data-action="close-publication-form"
+        >
+          Отмена
+        </button>
+
+        <button
+          type="submit"
+          class="primary-button"
+        >
+          Отправить на модерацию
+        </button>
+
+      </div>
+
+    </form>
+
+  </dialog>
+
+  <!-- ======================================================
+       CHAT PANEL
+       ====================================================== -->
+
+  <aside
+    id="chat-panel"
+    class="chat-panel"
+    hidden
+    aria-labelledby="chat-title"
+  >
+
+    <div class="chat-header">
+
+      <div class="chat-agent">
+
+        <div class="chat-avatar">
+          👨‍💼
+        </div>
+
+        <div>
+
+          <strong id="chat-title">
+            Администратор
+          </strong>
+
+          <span class="chat-status">
+            <i></i>
+            Онлайн
+          </span>
+
+        </div>
+
+      </div>
+
+      <button
+        type="button"
+        class="close-button"
+        aria-label="Закрыть чат"
+        data-action="close-chat"
+      >
+        ×
+      </button>
+
+    </div>
+
+    <div
+      id="chat-messages"
+      class="chat-messages"
+      aria-live="polite"
+    >
+
+      <div class="chat-welcome">
+
+        <div class="chat-welcome-icon">
+          💬
+        </div>
+
+        <h3>
+          Здравствуйте!
+        </h3>
+
+        <p>
+          Напишите нам, если у вас есть вопрос,
+          предложение или проблема.
+        </p>
+
+      </div>
+
+    </div>
+
+    <form
+      id="chat-form"
+      class="chat-form"
+    >
+
+      <textarea
+        id="chat-input"
+        name="message"
+        rows="1"
+        maxlength="5000"
+        placeholder="Напишите сообщение..."
+        required
+      ></textarea>
+
+      <button
+        type="submit"
+        class="chat-send-button"
+        aria-label="Отправить сообщение"
+      >
+        ➤
+      </button>
+
+    </form>
+
+  </aside>
+
+  <!-- ======================================================
+       JAVASCRIPT
+       ====================================================== -->
+
+  <script
+    type="module"
+    src="/js/api.js"
+  ></script>
+
+  <script
+    type="module"
+    src="/js/app.js"
+  ></script>
+
+</body>
+    </html>
