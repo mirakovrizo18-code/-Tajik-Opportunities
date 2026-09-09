@@ -2,31 +2,31 @@
 // 🇹🇯 TAJIK OPPORTUNITIES
 // Publication Service
 // File: src/services/publications.ts
-// Version: 2026.09.09-modern-fixed-v2
+// Version: 2026.09.09-modern-fixed-v3
 //
 // PRODUCTION-READY PUBLICATION SERVICE
 //
-// Поддерживает:
+// Supports:
 // • FREE / PREMIUM / VIP / CUSTOM
 // • DRAFT / PENDING / PUBLISHED / HIDDEN / REJECTED
 // • ARCHIVED / EXPIRED / DELETED
-// • публичные номера /1 /2 /3...
-// • админские override
+// • public numbers /1 /2 /3...
+// • admin overrides
 // • PIN / FEATURED / TOP / VIP
 // • auto-delete
 // • scheduled publish
-// • редактирование
-// • история изменений
-// • медиа
-// • комментарии / реакции / отзывы
+// • editing
+// • change history
+// • media
+// • comments / reactions / reviews
 // • Share / View events
-// • огромные TEXT-счётчики
+// • huge TEXT counters
 // • decimal-safe metrics
 // • pagination
-// • поиск
-// • безопасные URL
-// • массовые операции
-// • автоматическая очистка просроченных публикаций
+// • search
+// • safe URLs
+// • bulk operations
+// • automatic expiration cleanup
 // • Cloudflare D1 compatible
 // • TypeScript strict-mode compatible
 // ============================================================
@@ -504,20 +504,6 @@ function now(): string {
 }
 
 
-function stringValue(
-  value: unknown
-): string {
-  if (
-    value === undefined ||
-    value === null
-  ) {
-    return "";
-  }
-
-  return String(value);
-}
-
-
 function nullableString(
   value: unknown
 ): string | null {
@@ -541,10 +527,29 @@ function requiredString(
   value: unknown,
   fallback = ""
 ): string {
-  return (
-    nullableString(value) ??
-    fallback
-  );
+  const result =
+    nullableString(value);
+
+  return result !== null
+    ? result
+    : fallback;
+}
+
+
+function requiredGeneratedId(
+  value: string | null | undefined,
+  message: string
+): string {
+  if (
+    typeof value !== "string" ||
+    value.length === 0
+  ) {
+    throw new Error(
+      message
+    );
+  }
+
+  return value;
 }
 
 
@@ -717,7 +722,9 @@ function parseTotal(
   value: unknown
 ): number {
   const result =
-    Number(value ?? 0);
+    Number(
+      value ?? 0
+    );
 
   return Number.isFinite(
     result
@@ -1157,13 +1164,12 @@ function safePublicationUrl(
         ""
       );
 
-    const result =
-      String(
-        generated ?? ""
-      ).trim();
-
-    if (result) {
-      return result;
+    if (
+      typeof generated ===
+      "string" &&
+      generated.trim()
+    ) {
+      return generated.trim();
     }
   } catch {
     // fallback
@@ -1263,15 +1269,10 @@ export class PublicationService {
     input: CreatePublicationInput
   ): Promise<Publication> {
     const id =
-      requiredString(
-        generatePublicationId()
-      );
-
-    if (!id) {
-      throw new Error(
+      requiredGeneratedId(
+        generatePublicationId(),
         "Не удалось сгенерировать ID публикации"
       );
-    }
 
     const createdAt =
       now();
@@ -1298,7 +1299,7 @@ export class PublicationService {
         ? "PUBLISHED"
         : normalizeStatus(
             input.status ??
-              DEFAULT_STATUS
+            DEFAULT_STATUS
           );
 
     const publicNumber =
@@ -3663,110 +3664,110 @@ export class PublicationService {
         MAX_MEDIA_PER_PUBLICATION
       );
 
-    const statements =
-      limited.map(
-        (
-          item,
-          index
-        ) => {
-          const id =
-            requiredString(
-              generateId()
-            );
+    const statements:
+      D1PreparedStatement[] = [];
 
-          if (!id) {
-            throw new Error(
-              "Не удалось сгенерировать ID медиа"
-            );
-          }
+    for (
+      let index = 0;
+      index < limited.length;
+      index++
+    ) {
+      const item =
+        limited[index];
 
-          const position =
-            Number.isFinite(
-              item.position
+      const id =
+        requiredGeneratedId(
+          generateId(),
+          "Не удалось сгенерировать ID медиа"
+        );
+
+      const position =
+        Number.isFinite(
+          item.position
+        )
+          ? Math.max(
+              0,
+              Math.floor(
+                item.position as number
+              )
             )
-              ? Math.max(
-                  0,
-                  Math.floor(
-                    item.position as number
-                  )
-                )
-              : index;
+          : index;
 
-          return this.db
-            .prepare(`
-              INSERT INTO publication_images (
-                id,
-                publication_id,
-                type,
-                url,
-                key,
-                mime_type,
-                filename,
-                size,
-                width,
-                height,
-                duration,
-                position,
-                status,
-                created_at
-              )
-              VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?,
-                ?, ?, ?, ?, ?, ?
-              )
-            `)
-            .bind(
+      statements.push(
+        this.db
+          .prepare(`
+            INSERT INTO publication_images (
               id,
-              publicationId,
-
-              nullableString(
-                item.type
-              ) ||
-                "image",
-
-              nullableString(
-                item.url
-              ),
-
-              nullableString(
-                item.key
-              ),
-
-              nullableString(
-                item.mime_type
-              ),
-
-              nullableString(
-                item.filename
-              ),
-
-              item.size !==
-              undefined
-                ? String(
-                    item.size
-                  )
-                : null,
-
-              item.width ??
-                null,
-
-              item.height ??
-                null,
-
-              item.duration ??
-                null,
-
+              publication_id,
+              type,
+              url,
+              key,
+              mime_type,
+              filename,
+              size,
+              width,
+              height,
+              duration,
               position,
+              status,
+              created_at
+            )
+            VALUES (
+              ?, ?, ?, ?, ?, ?, ?, ?,
+              ?, ?, ?, ?, ?, ?
+            )
+          `)
+          .bind(
+            id,
+            publicationId,
 
-              "ACTIVE",
+            nullableString(
+              item.type
+            ) ||
+              "image",
 
-              now()
-            );
-        }
+            nullableString(
+              item.url
+            ),
+
+            nullableString(
+              item.key
+            ),
+
+            nullableString(
+              item.mime_type
+            ),
+
+            nullableString(
+              item.filename
+            ),
+
+            item.size !== undefined
+              ? String(
+                  item.size
+                )
+              : null,
+
+            item.width ??
+              null,
+
+            item.height ??
+              null,
+
+            item.duration ??
+              null,
+
+            position,
+
+            "ACTIVE",
+
+            now()
+          )
       );
+    }
 
     if (
-      statements.length
+      statements.length > 0
     ) {
       await this.db.batch(
         statements
@@ -3852,6 +3853,12 @@ export class PublicationService {
         row.publication_id
       );
 
+    const overrideId =
+      requiredGeneratedId(
+        generateId(),
+        "Не удалось сгенерировать ID media override"
+      );
+
     await this.db
       .prepare(`
         INSERT INTO publication_media_overrides (
@@ -3867,9 +3874,7 @@ export class PublicationService {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
-        requiredString(
-          generateId()
-        ),
+        overrideId,
         publicationId,
         mediaId,
         "delete",
@@ -3897,6 +3902,12 @@ export class PublicationService {
       | string,
     changedBy: string
   ): Promise<void> {
+    const historyId =
+      requiredGeneratedId(
+        generateId(),
+        "Не удалось сгенерировать ID истории"
+      );
+
     await this.db
       .prepare(`
         INSERT INTO publication_history (
@@ -3910,9 +3921,7 @@ export class PublicationService {
         VALUES (?, ?, ?, ?, ?, ?)
       `)
       .bind(
-        requiredString(
-          generateId()
-        ),
+        historyId,
         publicationId,
         action,
         snapshot,
@@ -3973,15 +3982,10 @@ export class PublicationService {
     } = {}
   ): Promise<string> {
     const id =
-      requiredString(
-        generateId()
-      );
-
-    if (!id) {
-      throw new Error(
+      requiredGeneratedId(
+        generateId(),
         "Не удалось сгенерировать ID события share"
       );
-    }
 
     await this.db
       .prepare(`
@@ -4076,6 +4080,12 @@ export class PublicationService {
       );
     }
 
+    const viewId =
+      requiredGeneratedId(
+        generateId(),
+        "Не удалось сгенерировать ID просмотра"
+      );
+
     await this.db
       .prepare(`
         INSERT INTO publication_views (
@@ -4089,9 +4099,7 @@ export class PublicationService {
         VALUES (?, ?, ?, ?, ?, ?)
       `)
       .bind(
-        requiredString(
-          generateId()
-        ),
+        viewId,
         publicationId,
 
         nullableString(
@@ -4393,6 +4401,12 @@ export class PublicationService {
         )
         .run();
 
+      const historyId =
+        requiredGeneratedId(
+          generateId(),
+          "Не удалось сгенерировать ID истории номера"
+        );
+
       await this.db
         .prepare(`
           INSERT INTO publication_number_history (
@@ -4407,9 +4421,7 @@ export class PublicationService {
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
         .bind(
-          requiredString(
-            generateId()
-          ),
+          historyId,
           row.id,
           oldNumber,
           newNumber,
