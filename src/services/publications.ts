@@ -2,7 +2,7 @@
 // 🇹🇯 TAJIK OPPORTUNITIES
 // Publication Service
 // File: src/services/publications.ts
-// Version: 2026.09.09-modern
+// Version: 2026.09.09-modern-fixed
 //
 // PRODUCTION-READY PUBLICATION SERVICE
 //
@@ -219,6 +219,7 @@ export interface CreatePublicationInput {
   text?: string | null;
 
   type?: PublicationType;
+  status?: PublicationStatus;
   visibility?: PublicationVisibility;
   priority?: PublicationPriority;
 
@@ -499,8 +500,7 @@ const ALLOWED_PRIORITIES:
 // ============================================================
 
 function now(): string {
-  return new Date()
-    .toISOString();
+  return new Date().toISOString();
 }
 
 
@@ -559,10 +559,7 @@ function normalizeWhitespace(
   }
 
   return result
-    .replace(
-      /\s+/g,
-      " "
-    )
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -691,7 +688,7 @@ function datePlusDays(
 
   date.setUTCDate(
     date.getUTCDate() +
-      days
+    days
   );
 
   return date.toISOString();
@@ -722,10 +719,7 @@ function parseTotal(
   return Number.isFinite(
     result
   )
-    ? Math.max(
-        0,
-        result
-      )
+    ? Math.max(0, result)
     : 0;
 }
 
@@ -816,10 +810,8 @@ function mapPublication(
       ),
 
     public_number:
-      row.public_number ===
-        null ||
-      row.public_number ===
-        undefined
+      row.public_number === null ||
+      row.public_number === undefined
         ? ""
         : String(
             row.public_number
@@ -1089,30 +1081,24 @@ function mapMedia(
       ),
 
     width:
-      row.width ===
-        null ||
-      row.width ===
-        undefined
+      row.width === null ||
+      row.width === undefined
         ? null
         : finitePositiveNumber(
             row.width
           ),
 
     height:
-      row.height ===
-        null ||
-      row.height ===
-        undefined
+      row.height === null ||
+      row.height === undefined
         ? null
         : finitePositiveNumber(
             row.height
           ),
 
     duration:
-      row.duration ===
-        null ||
-      row.duration ===
-        undefined
+      row.duration === null ||
+      row.duration === undefined
         ? null
         : finitePositiveNumber(
             row.duration
@@ -1123,8 +1109,7 @@ function mapMedia(
         0,
         Math.floor(
           Number(
-            row.position ??
-              0
+            row.position ?? 0
           )
         )
       ),
@@ -1168,15 +1153,14 @@ function safePublicationUrl(
 
     const result =
       String(
-        generated ??
-          ""
+        generated ?? ""
       ).trim();
 
     if (result) {
       return result;
     }
   } catch {
-    // fallback ниже
+    // fallback
   }
 
   try {
@@ -1196,7 +1180,7 @@ function safePublicationUrl(
       )}`;
     }
   } catch {
-    // fallback ниже
+    // fallback
   }
 
   return `/${input}`;
@@ -1237,10 +1221,8 @@ export class PublicationService {
 
     if (
       !row ||
-      row.public_number ===
-        null ||
-      row.public_number ===
-        undefined
+      row.public_number === null ||
+      row.public_number === undefined
     ) {
       return 1;
     }
@@ -1306,11 +1288,12 @@ export class PublicationService {
     const status:
       PublicationStatus =
       input.source === "ADMIN" ||
-      input.source ===
-        "ACTING_MODE"
+      input.source === "ACTING_MODE"
         ? "PUBLISHED"
-        : input.status ??
-          DEFAULT_STATUS;
+        : normalizeStatus(
+            input.status ??
+              DEFAULT_STATUS
+          );
 
     const publicNumber =
       await this.getNextPublicNumber();
@@ -1324,8 +1307,7 @@ export class PublicationService {
       );
 
     if (
-      autoDelete ===
-        undefined &&
+      autoDelete === undefined &&
       type === "FREE"
     ) {
       autoDelete = true;
@@ -1343,8 +1325,7 @@ export class PublicationService {
     }
 
     if (
-      autoDelete ===
-        undefined
+      autoDelete === undefined
     ) {
       autoDelete = false;
     }
@@ -1360,10 +1341,8 @@ export class PublicationService {
       );
 
     const text =
-      input.text ===
-        null ||
-      input.text ===
-        undefined
+      input.text === null ||
+      input.text === undefined
         ? null
         : String(
             input.text
@@ -1464,9 +1443,7 @@ export class PublicationService {
           text,
 
           type,
-          normalizeStatus(
-            status
-          ),
+          status,
 
           visibility,
           priority,
@@ -1502,28 +1479,23 @@ export class PublicationService {
             input.tag_color
           ),
 
-          input.comments_enabled !==
-          false
+          input.comments_enabled !== false
             ? 1
             : 0,
 
-          input.reactions_enabled !==
-          false
+          input.reactions_enabled !== false
             ? 1
             : 0,
 
-          input.reviews_enabled !==
-          false
+          input.reviews_enabled !== false
             ? 1
             : 0,
 
-          input.sharing_enabled !==
-          false
+          input.sharing_enabled !== false
             ? 1
             : 0,
 
-          input.bookmarks_enabled !==
-          false
+          input.bookmarks_enabled !== false
             ? 1
             : 0,
 
@@ -1560,7 +1532,9 @@ export class PublicationService {
     );
 
     const publication =
-      await this.getById(id);
+      await this.getById(
+        id
+      );
 
     if (!publication) {
       throw new Error(
@@ -1596,8 +1570,15 @@ export class PublicationService {
           WHERE id = ?
           LIMIT 1
         `)
-        .bind(normalized)
-        .first<Record<string, unknown>>();
+        .bind(
+          normalized
+        )
+        .first<
+          Record<
+            string,
+            unknown
+          >
+        >();
 
     if (!row) {
       return null;
@@ -1644,8 +1625,15 @@ export class PublicationService {
           WHERE public_number = ?
           LIMIT 1
         `)
-        .bind(number)
-        .first<Record<string, unknown>>();
+        .bind(
+          number
+        )
+        .first<
+          Record<
+            string,
+            unknown
+          >
+        >();
 
     if (!row) {
       return null;
@@ -1935,7 +1923,9 @@ export class PublicationService {
           FROM publications p
           ${where}
         `)
-        .bind(...values)
+        .bind(
+          ...values
+        )
         .first<{
           total?: number | string;
         }>();
@@ -1954,7 +1944,12 @@ export class PublicationService {
           limit,
           offset
         )
-        .all<Record<string, unknown>>();
+        .all<
+          Record<
+            string,
+            unknown
+          >
+        >();
 
     const items =
       (
@@ -2080,10 +2075,8 @@ export class PublicationService {
     ) {
       add(
         "text",
-        input.text ===
-          null ||
-        input.text ===
-          undefined
+        input.text === null ||
+        input.text === undefined
           ? null
           : String(
               input.text
@@ -3864,7 +3857,9 @@ export class PublicationService {
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `)
       .bind(
-        generateId(),
+        requiredString(
+          generateId()
+        ),
         publicationId,
         mediaId,
         "delete",
@@ -3905,7 +3900,9 @@ export class PublicationService {
         VALUES (?, ?, ?, ?, ?, ?)
       `)
       .bind(
-        generateId(),
+        requiredString(
+          generateId()
+        ),
         publicationId,
         action,
         snapshot,
@@ -3966,7 +3963,15 @@ export class PublicationService {
     } = {}
   ): Promise<string> {
     const id =
-      generateId();
+      requiredString(
+        generateId()
+      );
+
+    if (!id) {
+      throw new Error(
+        "Не удалось сгенерировать ID события share"
+      );
+    }
 
     await this.db
       .prepare(`
@@ -4074,7 +4079,9 @@ export class PublicationService {
         VALUES (?, ?, ?, ?, ?, ?)
       `)
       .bind(
-        generateId(),
+        requiredString(
+          generateId()
+        ),
         publicationId,
 
         nullableString(
@@ -4177,6 +4184,11 @@ export class PublicationService {
 
     let changed = 0;
 
+    const normalizedStatus =
+      normalizeStatus(
+        status
+      );
+
     for (
       const id of
         uniqueIds
@@ -4186,9 +4198,7 @@ export class PublicationService {
           id,
           {
             status:
-              normalizeStatus(
-                status
-              ),
+              normalizedStatus,
           },
           adminId
         );
@@ -4303,8 +4313,7 @@ export class PublicationService {
       !Number.isFinite(
         deletedPublicNumber
       ) ||
-      deletedPublicNumber <
-        1
+      deletedPublicNumber < 1
     ) {
       return 0;
     }
@@ -4388,7 +4397,9 @@ export class PublicationService {
           VALUES (?, ?, ?, ?, ?, ?, ?)
         `)
         .bind(
-          generateId(),
+          requiredString(
+            generateId()
+          ),
           row.id,
           oldNumber,
           newNumber,
