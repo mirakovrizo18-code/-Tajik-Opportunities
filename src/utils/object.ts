@@ -1,783 +1,469 @@
-// ============================================================
-// 🇹🇯 TAJIK OPPORTUNITIES
-// OBJECT UTILITIES
-// Version: 2026.09.09
-// ============================================================
+/**
+ * Object Utilities
+ * Tajik Opportunities
+ *
+ * Безопасные утилиты для работы с объектами.
+ * Совместимо с TypeScript strict mode и Cloudflare Workers.
+ */
 
-// ============================================================
-// TYPES
-// ============================================================
+export type Primitive =
+  | string
+  | number
+  | bigint
+  | boolean
+  | symbol
+  | null
+  | undefined;
 
-export type AnyObject =
-  Record<string, unknown>;
+export type AnyObject = Record<string, unknown>;
 
-export type UnknownRecord =
-  Record<string, unknown>;
+export type UnknownRecord = Record<PropertyKey, unknown>;
 
-// ============================================================
-// IS OBJECT
-// ============================================================
+export type Mutable<T> = {
+  -readonly [P in keyof T]: T[P];
+};
 
-export function isObject(
-  value: unknown,
-): value is AnyObject {
-  return (
-    value !== null &&
-    typeof value === "object" &&
-    !Array.isArray(value)
-  );
+export type Nullable<T> = T | null;
+
+export type Optional<T> = T | undefined;
+
+export function isObject(value: unknown): value is object {
+  return typeof value === "object" && value !== null;
 }
-
-// ============================================================
-// IS PLAIN OBJECT
-// ============================================================
 
 export function isPlainObject(
   value: unknown,
-): value is AnyObject {
+): value is Record<string, unknown> {
   if (!isObject(value)) {
     return false;
   }
 
-  const prototype =
-    Object.getPrototypeOf(
-      value,
-    );
+  const prototype = Object.getPrototypeOf(value);
 
-  return (
-    prototype ===
-      Object.prototype ||
-    prototype === null
-  );
+  return prototype === Object.prototype || prototype === null;
 }
 
-// ============================================================
-// HAS OWN PROPERTY
-// ============================================================
+export function isArray(value: unknown): value is unknown[] {
+  return Array.isArray(value);
+}
+
+export function isPrimitive(value: unknown): value is Primitive {
+  return (
+    value === null ||
+    value === undefined ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "bigint" ||
+    typeof value === "boolean" ||
+    typeof value === "symbol"
+  );
+}
 
 export function hasOwn(
   object: object,
   key: PropertyKey,
 ): boolean {
-  return Object.prototype.hasOwnProperty.call(
-    object,
-    key,
-  );
+  return Object.prototype.hasOwnProperty.call(object, key);
 }
 
-// ============================================================
-// GET
-// ============================================================
+export function hasProperty(
+  object: unknown,
+  key: PropertyKey,
+): boolean {
+  return isObject(object) && hasOwn(object, key);
+}
 
-export function getObjectValue<T = unknown>(
+export function getProperty<T = unknown>(
   object: unknown,
   key: PropertyKey,
   fallback?: T,
-): T | undefined {
-  if (
-    object === null ||
-    typeof object !== "object"
-  ) {
+): T | unknown {
+  if (!isObject(object)) {
     return fallback;
   }
 
-  if (
-    !hasOwn(
-      object,
-      key,
-    )
-  ) {
-    return fallback;
-  }
-
-  /*
-   * PropertyKey может быть string,
-   * number или symbol.
-   *
-   * Приведение объекта к Record<PropertyKey, unknown>
-   * позволяет TypeScript корректно индексировать
-   * все допустимые ключи.
-   */
-  const record =
-    object as Record<
-      PropertyKey,
-      unknown
-    >;
-
-  const value =
-    record[key];
-
-  if (
-    value === undefined
-  ) {
-    return fallback;
-  }
-
-  return value as T;
+  return Reflect.has(object, key)
+    ? Reflect.get(object, key)
+    : fallback;
 }
 
-// ============================================================
-// SET
-// ============================================================
-
-export function setObjectValue(
-  object: AnyObject,
-  key: string,
-  value: unknown,
-): AnyObject {
-  object[key] = value;
-
-  return object;
-}
-
-// ============================================================
-// DELETE
-// ============================================================
-
-export function deleteObjectKey(
-  object: AnyObject,
-  key: string,
-): AnyObject {
-  delete object[key];
-
-  return object;
-}
-
-// ============================================================
-// PICK
-// ============================================================
-
-export function pick<T extends AnyObject>(
-  object: T,
-  keys: readonly string[],
-): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of keys
-  ) {
-    if (
-      hasOwn(
-        object,
-        key,
-      )
-    ) {
-      (
-        result as AnyObject
-      )[key] =
-        object[key];
-    }
-  }
-
-  return result;
-}
-
-// ============================================================
-// OMIT
-// ============================================================
-
-export function omit<T extends AnyObject>(
-  object: T,
-  keys: readonly string[],
-): Partial<T> {
-  const result:
-    AnyObject = {};
-
-  const excluded =
-    new Set(
-      keys,
-    );
-
-  for (
-    const key of Object.keys(
-      object,
-    )
-  ) {
-    if (
-      excluded.has(key)
-    ) {
-      continue;
-    }
-
-    result[key] =
-      object[key];
-  }
-
-  return result as Partial<T>;
-}
-
-// ============================================================
-// CLONE
-// ============================================================
-
-export function cloneObject<T>(
-  object: T,
-): T {
-  if (
-    object === null ||
-    typeof object !== "object"
-  ) {
-    return object;
-  }
-
-  if (
-    typeof structuredClone ===
-    "function"
-  ) {
-    try {
-      return structuredClone(
-        object,
-      );
-    } catch {
-      // fallback ниже
-    }
-  }
-
-  if (
-    Array.isArray(object)
-  ) {
-    return [
-      ...object,
-    ] as T;
-  }
-
-  return {
-    ...(object as AnyObject),
-  } as T;
-}
-
-// ============================================================
-// DEEP CLONE
-// ============================================================
-
-export function deepClone<T>(
-  value: T,
-): T {
-  if (
-    value === null ||
-    typeof value !== "object"
-  ) {
-    return value;
-  }
-
-  if (
-    typeof structuredClone ===
-    "function"
-  ) {
-    try {
-      return structuredClone(
-        value,
-      );
-    } catch {
-      // fallback
-    }
-  }
-
-  if (
-    Array.isArray(value)
-  ) {
-    return value.map(
-      (item) =>
-        deepClone(item),
-    ) as T;
-  }
-
-  const source =
-    value as AnyObject;
-
-  const result:
-    AnyObject = {};
-
-  for (
-    const key of Object.keys(
-      source,
-    )
-  ) {
-    result[key] =
-      deepClone(
-        source[key],
-      );
-  }
-
-  return result as T;
-}
-
-// ============================================================
-// MERGE
-// ============================================================
-
-export function mergeObjects(
-  ...objects: Array<
-    AnyObject | null | undefined
-  >
-): AnyObject {
-  const result:
-    AnyObject = {};
-
-  for (
-    const object of objects
-  ) {
-    if (
-      !isObject(object)
-    ) {
-      continue;
-    }
-
-    Object.assign(
-      result,
-      object,
-    );
-  }
-
-  return result;
-}
-
-// ============================================================
-// DEEP MERGE
-// ============================================================
-
-export function deepMerge(
-  ...objects: Array<
-    AnyObject | null | undefined
-  >
-): AnyObject {
-  const result:
-    AnyObject = {};
-
-  for (
-    const object of objects
-  ) {
-    if (
-      !isObject(object)
-    ) {
-      continue;
-    }
-
-    for (
-      const key of Object.keys(
-        object,
-      )
-    ) {
-      const value =
-        object[key];
-
-      const current =
-        result[key];
-
-      if (
-        isPlainObject(
-          current,
-        ) &&
-        isPlainObject(
-          value,
-        )
-      ) {
-        result[key] =
-          deepMerge(
-            current,
-            value,
-          );
-      } else {
-        result[key] =
-          value;
-      }
-    }
-  }
-
-  return result;
-}
-
-// ============================================================
-// KEYS
-// ============================================================
-
-export function objectKeys(
+export function getObjectValue<T>(
   object: object,
-): string[] {
-  return Object.keys(
-    object,
-  );
+  key: PropertyKey,
+  fallback?: T,
+): T | undefined {
+  const value = Reflect.get(object, key);
+
+  return value === undefined
+    ? fallback
+    : (value as T);
 }
 
-// ============================================================
-// VALUES
-// ============================================================
-
-export function objectValues<T = unknown>(
-  object: Record<
-    string,
-    T
-  >,
-): T[] {
-  return Object.values(
-    object,
-  );
+export function setProperty<T extends object>(
+  object: T,
+  key: PropertyKey,
+  value: unknown,
+): T {
+  Reflect.set(object, key, value);
+  return object;
 }
 
-// ============================================================
-// ENTRIES
-// ============================================================
-
-export function objectEntries<T = unknown>(
-  object: Record<
-    string,
-    T
-  >,
-): Array<
-  [string, T]
-> {
-  return Object.entries(
-    object,
-  );
+export function deleteProperty<T extends object>(
+  object: T,
+  key: PropertyKey,
+): boolean {
+  return Reflect.deleteProperty(object, key);
 }
 
-// ============================================================
-// FROM ENTRIES
-// ============================================================
+export function pick<
+  T extends Record<PropertyKey, unknown>,
+  K extends keyof T,
+>(
+  object: T,
+  keys: readonly K[],
+): Pick<T, K> {
+  const result = {} as Pick<T, K>;
 
-export function objectFromEntries<T = unknown>(
-  entries:
-    | Iterable<
-        readonly [
-          string,
-          T,
-        ]
-      >
-    | Array<
-        readonly [
-          string,
-          T,
-        ]
-      >,
-): Record<string, T> {
-  return Object.fromEntries(
-    entries,
-  ) as Record<
-    string,
-    T
+  for (const key of keys) {
+    if (hasOwn(object, key)) {
+      result[key] = object[key];
+    }
+  }
+
+  return result;
+}
+
+export function omit<
+  T extends Record<PropertyKey, unknown>,
+  K extends keyof T,
+>(
+  object: T,
+  keys: readonly K[],
+): Omit<T, K> {
+  const excluded = new Set<PropertyKey>(keys);
+  const result = {} as Omit<T, K>;
+
+  for (const key of Reflect.ownKeys(object)) {
+    if (!excluded.has(key)) {
+      Reflect.set(result, key, Reflect.get(object, key));
+    }
+  }
+
+  return result;
+}
+
+export function removeUndefined<T extends AnyObject>(
+  object: T,
+): Partial<T> {
+  const result: Partial<T> = {};
+
+  for (const [key, value] of Object.entries(object)) {
+    if (value !== undefined) {
+      result[key as keyof T] = value as T[keyof T];
+    }
+  }
+
+  return result;
+}
+
+export function removeNull<T extends AnyObject>(
+  object: T,
+): Partial<T> {
+  const result: Partial<T> = {};
+
+  for (const [key, value] of Object.entries(object)) {
+    if (value !== null) {
+      result[key as keyof T] = value as T[keyof T];
+    }
+  }
+
+  return result;
+}
+
+export function sanitizeObject<T extends AnyObject>(
+  object: T,
+): Partial<T> {
+  const result: Partial<T> = {};
+
+  for (const [key, value] of Object.entries(object)) {
+    if (value !== null && value !== undefined) {
+      result[key as keyof T] = value as T[keyof T];
+    }
+  }
+
+  return result;
+}
+
+export function objectKeys<T extends object>(
+  object: T,
+): Array<keyof T> {
+  return Object.keys(object) as Array<keyof T>;
+}
+
+export function objectValues<T extends object>(
+  object: T,
+): Array<T[keyof T]> {
+  return Object.values(object) as Array<T[keyof T]>;
+}
+
+export function objectEntries<T extends object>(
+  object: T,
+): Array<[keyof T, T[keyof T]]> {
+  return Object.entries(object) as Array<
+    [keyof T, T[keyof T]]
   >;
 }
 
-// ============================================================
-// IS EMPTY
-// ============================================================
-
-export function isEmptyObject(
-  object: unknown,
-): boolean {
-  if (
-    !isObject(object)
-  ) {
-    return true;
-  }
-
-  return (
-    Object.keys(
-      object,
-    ).length === 0
-  );
+export function objectSize(object: object): number {
+  return Reflect.ownKeys(object).length;
 }
 
-// ============================================================
-// SIZE
-// ============================================================
-
-export function objectSize(
-  object: unknown,
-): number {
-  if (
-    !isObject(object)
-  ) {
-    return 0;
-  }
-
-  return Object.keys(
-    object,
-  ).length;
+export function isEmptyObject(object: object): boolean {
+  return objectSize(object) === 0;
 }
 
-// ============================================================
-// MAP VALUES
-// ============================================================
+export function clone<T>(value: T): T {
+  if (typeof structuredClone === "function") {
+    return structuredClone(value);
+  }
 
-export function mapObjectValues<T, R>(
-  object: Record<
-    string,
-    T
-  >,
-  mapper: (
-    value: T,
-    key: string,
-  ) => R,
-): Record<
-  string,
-  R
-> {
-  const result:
-    Record<
-      string,
-      R
-    > = {};
+  if (Array.isArray(value)) {
+    return [...value] as T;
+  }
 
-  for (
-    const [key, value]
-    of Object.entries(
-      object,
-    )
-  ) {
-    result[key] =
-      mapper(
-        value,
-        key,
-      );
+  if (isPlainObject(value)) {
+    return { ...value } as T;
+  }
+
+  return value;
+}
+
+export function deepClone<T>(value: T): T {
+  return structuredClone(value);
+}
+
+export function merge<
+  T extends Record<string, unknown>,
+  U extends Record<string, unknown>,
+>(
+  first: T,
+  second: U,
+): T & U {
+  return {
+    ...first,
+    ...second,
+  } as T & U;
+}
+
+export function deepMerge<T extends AnyObject>(
+  target: T,
+  ...sources: AnyObject[]
+): T {
+  const result = deepClone(target);
+
+  for (const source of sources) {
+    mergeInto(result, source);
   }
 
   return result;
 }
 
-// ============================================================
-// FILTER
-// ============================================================
+function mergeInto(
+  target: AnyObject,
+  source: AnyObject,
+): void {
+  for (const [key, sourceValue] of Object.entries(source)) {
+    const targetValue = target[key];
 
-export function filterObject<T>(
-  object: Record<
-    string,
-    T
-  >,
-  predicate: (
-    value: T,
-    key: string,
-  ) => boolean,
-): Record<
-  string,
-  T
-> {
-  const result:
-    Record<
-      string,
-      T
-    > = {};
+    if (
+      isPlainObject(targetValue) &&
+      isPlainObject(sourceValue)
+    ) {
+      mergeInto(targetValue, sourceValue);
+      continue;
+    }
 
-  for (
-    const [key, value]
-    of Object.entries(
+    target[key] = deepClone(sourceValue);
+  }
+}
+
+export function mapObject<
+  T extends AnyObject,
+  R,
+>(
+  object: T,
+  callback: (
+    value: T[keyof T],
+    key: keyof T,
+    object: T,
+  ) => R,
+): Record<string, R> {
+  const result: Record<string, R> = {};
+
+  for (const [key, value] of Object.entries(object)) {
+    result[key] = callback(
+      value as T[keyof T],
+      key as keyof T,
       object,
-    )
-  ) {
+    );
+  }
+
+  return result;
+}
+
+export function filterObject<T extends AnyObject>(
+  object: T,
+  predicate: (
+    value: T[keyof T],
+    key: keyof T,
+    object: T,
+  ) => boolean,
+): Partial<T> {
+  const result: Partial<T> = {};
+
+  for (const [key, value] of Object.entries(object)) {
     if (
       predicate(
-        value,
-        key,
+        value as T[keyof T],
+        key as keyof T,
+        object,
       )
     ) {
-      result[key] =
-        value;
+      result[key as keyof T] = value as T[keyof T];
     }
   }
 
   return result;
 }
 
-// ============================================================
-// FIND
-// ============================================================
-
-export function findObjectValue<T>(
-  object: Record<
-    string,
-    T
-  >,
+export function findObjectValue<T extends AnyObject>(
+  object: T,
   predicate: (
-    value: T,
-    key: string,
+    value: T[keyof T],
+    key: keyof T,
   ) => boolean,
-): T | undefined {
-  for (
-    const [key, value]
-    of Object.entries(
-      object,
-    )
-  ) {
+): T[keyof T] | undefined {
+  for (const [key, value] of Object.entries(object)) {
     if (
       predicate(
-        value,
-        key,
+        value as T[keyof T],
+        key as keyof T,
       )
     ) {
-      return value;
+      return value as T[keyof T];
     }
   }
 
   return undefined;
 }
 
-// ============================================================
-// FREEZE
-// ============================================================
-
-export function freezeObject<T>(
-  object: T,
-): Readonly<T> {
-  return Object.freeze(
-    object,
-  );
+export function freeze<T>(value: T): Readonly<T> {
+  return Object.freeze(value);
 }
 
-// ============================================================
-// SAFE JSON OBJECT
-// ============================================================
+export function deepFreeze<T>(value: T): Readonly<T> {
+  if (!isObject(value)) {
+    return value;
+  }
 
-export function toSafeObject(
+  for (const key of Reflect.ownKeys(value)) {
+    const nested = Reflect.get(value, key);
+
+    if (isObject(nested) && !Object.isFrozen(nested)) {
+      deepFreeze(nested);
+    }
+  }
+
+  return Object.freeze(value);
+}
+
+export function safeJsonParse<T = unknown>(
+  value: string,
+  fallback?: T,
+): T | undefined {
+  try {
+    return JSON.parse(value) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export function safeJsonStringify(
   value: unknown,
-): AnyObject {
-  if (
-    !isObject(value)
-  ) {
-    return {};
+  fallback = "",
+): string {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return fallback;
   }
-
-  return {
-    ...value,
-  };
 }
 
-// ============================================================
-// REMOVE UNDEFINED
-// ============================================================
-
-export function removeUndefined<
-  T extends AnyObject,
->(
-  object: T,
-): Partial<T> {
-  const result:
-    AnyObject = {};
-
-  for (
-    const [key, value]
-    of Object.entries(
-      object,
-    )
-  ) {
-    if (
-      value === undefined
-    ) {
-      continue;
-    }
-
-    result[key] =
-      value;
-  }
-
-  return result as Partial<T>;
+export function fromEntries<K extends PropertyKey, V>(
+  entries: Iterable<readonly [K, V]>,
+): Record<K, V> {
+  return Object.fromEntries(entries) as Record<K, V>;
 }
 
-// ============================================================
-// REMOVE NULL
-// ============================================================
+export function invertObject(
+  object: Record<string, string>,
+): Record<string, string> {
+  const result: Record<string, string> = {};
 
-export function removeNull<
-  T extends AnyObject,
->(
-  object: T,
-): Partial<T> {
-  const result:
-    AnyObject = {};
-
-  for (
-    const [key, value]
-    of Object.entries(
-      object,
-    )
-  ) {
-    if (
-      value === null
-    ) {
-      continue;
-    }
-
-    result[key] =
-      value;
-  }
-
-  return result as Partial<T>;
-}
-
-// ============================================================
-// SANITIZE OBJECT
-// ============================================================
-
-export function sanitizeObject(
-  object: unknown,
-): AnyObject {
-  if (
-    !isObject(object)
-  ) {
-    return {};
-  }
-
-  const result:
-    AnyObject = {};
-
-  for (
-    const [key, value]
-    of Object.entries(
-      object,
-    )
-  ) {
-    if (
-      value === undefined
-    ) {
-      continue;
-    }
-
-    result[key] =
-      value;
+  for (const [key, value] of Object.entries(object)) {
+    result[value] = key;
   }
 
   return result;
 }
 
-// ============================================================
-// DEFAULT EXPORT
-// ============================================================
+export function compactObject<T extends AnyObject>(
+  object: T,
+): Partial<T> {
+  const result: Partial<T> = {};
 
-export default {
-  isObject,
-  isPlainObject,
+  for (const [key, value] of Object.entries(object)) {
+    if (value) {
+      result[key as keyof T] = value as T[keyof T];
+    }
+  }
 
-  hasOwn,
+  return result;
+}
 
-  getObjectValue,
-  setObjectValue,
-  deleteObjectKey,
+export function equals(
+  first: unknown,
+  second: unknown,
+): boolean {
+  if (Object.is(first, second)) {
+    return true;
+  }
 
-  pick,
-  omit,
+  if (
+    !isPlainObject(first) ||
+    !isPlainObject(second)
+  ) {
+    return false;
+  }
 
-  cloneObject,
-  deepClone,
+  const firstKeys = Reflect.ownKeys(first);
+  const secondKeys = Reflect.ownKeys(second);
 
-  mergeObjects,
-  deepMerge,
+  if (firstKeys.length !== secondKeys.length) {
+    return false;
+  }
 
-  objectKeys,
-  objectValues,
-  objectEntries,
-  objectFromEntries,
+  for (const key of firstKeys) {
+    if (
+      !Reflect.has(second, key) ||
+      !equals(
+        Reflect.get(first, key),
+        Reflect.get(second, key),
+      )
+    ) {
+      return false;
+    }
+  }
 
-  isEmptyObject,
-  objectSize,
-
-  mapObjectValues,
-  filterObject,
-  findObjectValue,
-
-  freezeObject,
-
-  toSafeObject,
-  removeUndefined,
-  removeNull,
-  sanitizeObject,
-};
+  return true;
+}
