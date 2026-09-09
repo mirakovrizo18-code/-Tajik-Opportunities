@@ -1,14 +1,20 @@
+// ============================================================
+// 🇹🇯 TAJIK OPPORTUNITIES
+// METRICS / ANALYTICS UTILITIES
+// Version: 2026.09 PRODUCTION
+// ============================================================
+
 import {
   addMetric,
   subtractMetric,
   compareDecimalStrings,
   metricToString,
   formatMetric,
-  percentage,
-  ratio,
-  average,
-  sum,
 } from "./number";
+
+// ============================================================
+// TYPES
+// ============================================================
 
 export type MetricValue =
   | number
@@ -98,6 +104,10 @@ export interface RatingSummary {
   percentages: RatingDistribution;
 }
 
+// ============================================================
+// METRIC KEYS
+// ============================================================
+
 export const METRIC_KEYS: MetricKey[] = [
   "views",
   "unique_views",
@@ -116,6 +126,10 @@ export const METRIC_KEYS: MetricKey[] = [
   "clicks",
   "external_clicks",
 ];
+
+// ============================================================
+// DEFAULT METRICS
+// ============================================================
 
 export const DEFAULT_METRICS: NormalizedMetrics = {
   views: "0",
@@ -136,6 +150,10 @@ export const DEFAULT_METRICS: NormalizedMetrics = {
   external_clicks: "0",
 };
 
+// ============================================================
+// INTERNAL HELPERS
+// ============================================================
+
 function normalizeMetricValue(
   value: MetricValue | null | undefined,
 ): string {
@@ -144,74 +162,225 @@ function normalizeMetricValue(
   );
 }
 
+/**
+ * Converts a metric to a JavaScript number only when
+ * a normal numeric calculation is required.
+ *
+ * Huge counters remain stored as decimal strings.
+ */
+function metricToNumber(
+  value: MetricValue,
+): number {
+  const normalized =
+    normalizeMetricValue(value);
+
+  const number =
+    Number(normalized);
+
+  if (
+    !Number.isFinite(number)
+  ) {
+    return Number.MAX_VALUE;
+  }
+
+  return number;
+}
+
+/**
+ * Safe percentage calculation for huge decimal counters.
+ *
+ * The actual counters remain exact strings.
+ * Only the final percentage is represented as number.
+ */
+function metricPercentage(
+  value: MetricValue,
+  total: MetricValue,
+): number {
+  const valueNumber =
+    metricToNumber(value);
+
+  const totalNumber =
+    metricToNumber(total);
+
+  if (
+    !Number.isFinite(valueNumber) ||
+    !Number.isFinite(totalNumber) ||
+    totalNumber === 0
+  ) {
+    return 0;
+  }
+
+  return (
+    (valueNumber / totalNumber) *
+    100
+  );
+}
+
+/**
+ * Safe ratio calculation.
+ */
+function metricRatio(
+  numerator: MetricValue,
+  denominator: MetricValue,
+): number {
+  const numeratorNumber =
+    metricToNumber(numerator);
+
+  const denominatorNumber =
+    metricToNumber(denominator);
+
+  if (
+    !Number.isFinite(numeratorNumber) ||
+    !Number.isFinite(denominatorNumber) ||
+    denominatorNumber === 0
+  ) {
+    return 0;
+  }
+
+  return (
+    numeratorNumber /
+    denominatorNumber
+  );
+}
+
+/**
+ * Exact decimal-string sum.
+ *
+ * Does not use JavaScript number arithmetic.
+ */
+function sumMetricValues(
+  values: readonly MetricValue[],
+): string {
+  let result = "0";
+
+  for (const value of values) {
+    result = addMetric(
+      result,
+      normalizeMetricValue(value),
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Difference between two metrics.
+ */
+function difference(
+  after: string,
+  before: string,
+): string {
+  if (
+    compareDecimalStrings(
+      after,
+      before,
+    ) >= 0
+  ) {
+    return subtractMetric(
+      after,
+      before,
+    );
+  }
+
+  return `-${subtractMetric(
+    before,
+    after,
+  )}`;
+}
+
+// ============================================================
+// NORMALIZATION
+// ============================================================
+
 export function normalizeMetrics(
   metrics: Metrics = {},
 ): NormalizedMetrics {
   return {
-    views: normalizeMetricValue(
-      metrics.views,
-    ),
+    views:
+      normalizeMetricValue(
+        metrics.views,
+      ),
+
     unique_views:
       normalizeMetricValue(
         metrics.unique_views,
       ),
-    likes: normalizeMetricValue(
-      metrics.likes,
-    ),
+
+    likes:
+      normalizeMetricValue(
+        metrics.likes,
+      ),
+
     reactions:
       normalizeMetricValue(
         metrics.reactions,
       ),
+
     comments:
       normalizeMetricValue(
         metrics.comments,
       ),
+
     reviews:
       normalizeMetricValue(
         metrics.reviews,
       ),
+
     ratings:
       normalizeMetricValue(
         metrics.ratings,
       ),
+
     bookmarks:
       normalizeMetricValue(
         metrics.bookmarks,
       ),
+
     shares:
       normalizeMetricValue(
         metrics.shares,
       ),
+
     sends:
       normalizeMetricValue(
         metrics.sends,
       ),
+
     reports:
       normalizeMetricValue(
         metrics.reports,
       ),
+
     contacts:
       normalizeMetricValue(
         metrics.contacts,
       ),
+
     applications:
       normalizeMetricValue(
         metrics.applications,
       ),
+
     downloads:
       normalizeMetricValue(
         metrics.downloads,
       ),
+
     clicks:
       normalizeMetricValue(
         metrics.clicks,
       ),
+
     external_clicks:
       normalizeMetricValue(
         metrics.external_clicks,
       ),
   };
 }
+
+// ============================================================
+// GET / SET
+// ============================================================
 
 export function getMetric(
   metrics: Metrics,
@@ -228,17 +397,17 @@ export function setMetric(
   value: MetricValue,
 ): NormalizedMetrics {
   const result =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
   result[key] =
-    normalizeMetricValue(
-      value,
-    );
+    normalizeMetricValue(value);
 
   return result;
 }
+
+// ============================================================
+// SINGLE METRIC INCREMENT / DECREMENT
+// ============================================================
 
 export function incrementMetric(
   metrics: Metrics,
@@ -246,14 +415,12 @@ export function incrementMetric(
   amount: MetricValue = 1,
 ): NormalizedMetrics {
   const result =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
   result[key] =
     addMetric(
       result[key],
-      amount,
+      normalizeMetricValue(amount),
     );
 
   return result;
@@ -265,17 +432,13 @@ export function decrementMetric(
   amount: MetricValue = 1,
 ): NormalizedMetrics {
   const result =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
   const current =
     result[key];
 
   const delta =
-    normalizeMetricValue(
-      amount,
-    );
+    normalizeMetricValue(amount);
 
   if (
     compareDecimalStrings(
@@ -295,6 +458,10 @@ export function decrementMetric(
   return result;
 }
 
+// ============================================================
+// APPLY ABSOLUTE CHANGES
+// ============================================================
+
 export function applyMetricChanges(
   metrics: Metrics,
   changes: Partial<
@@ -305,9 +472,7 @@ export function applyMetricChanges(
   >,
 ): MetricsUpdate {
   const current =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
   const result = {
     ...current,
@@ -316,9 +481,7 @@ export function applyMetricChanges(
   const history: MetricChange[] =
     [];
 
-  for (
-    const key of METRIC_KEYS
-  ) {
+  for (const key of METRIC_KEYS) {
     if (
       changes[key] ===
       undefined
@@ -341,18 +504,10 @@ export function applyMetricChanges(
       before,
       after,
       delta:
-        compareDecimalStrings(
+        difference(
           after,
           before,
-        ) >= 0
-          ? subtractMetric(
-              after,
-              before,
-            )
-          : `-${subtractMetric(
-              before,
-              after,
-            )}`,
+        ),
     });
   }
 
@@ -361,6 +516,10 @@ export function applyMetricChanges(
     metrics: result,
   };
 }
+
+// ============================================================
+// INCREMENT MULTIPLE METRICS
+// ============================================================
 
 export function incrementMetrics(
   metrics: Metrics,
@@ -372,9 +531,7 @@ export function incrementMetrics(
   >,
 ): MetricsUpdate {
   const current =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
   const result = {
     ...current,
@@ -383,9 +540,7 @@ export function incrementMetrics(
   const history: MetricChange[] =
     [];
 
-  for (
-    const key of METRIC_KEYS
-  ) {
+  for (const key of METRIC_KEYS) {
     if (
       changes[key] ===
       undefined
@@ -423,6 +578,10 @@ export function incrementMetrics(
   };
 }
 
+// ============================================================
+// DECREMENT MULTIPLE METRICS
+// ============================================================
+
 export function decrementMetrics(
   metrics: Metrics,
   changes: Partial<
@@ -433,9 +592,7 @@ export function decrementMetrics(
   >,
 ): MetricsUpdate {
   const current =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
   const result = {
     ...current,
@@ -444,9 +601,7 @@ export function decrementMetrics(
   const history: MetricChange[] =
     [];
 
-  for (
-    const key of METRIC_KEYS
-  ) {
+  for (const key of METRIC_KEYS) {
     if (
       changes[key] ===
       undefined
@@ -492,6 +647,10 @@ export function decrementMetrics(
   };
 }
 
+// ============================================================
+// MERGE METRICS
+// ============================================================
+
 export function mergeMetrics(
   ...values: Metrics[]
 ): NormalizedMetrics {
@@ -500,13 +659,9 @@ export function mergeMetrics(
 
   for (const metrics of values) {
     const normalized =
-      normalizeMetrics(
-        metrics,
-      );
+      normalizeMetrics(metrics);
 
-    for (
-      const key of METRIC_KEYS
-    ) {
+    for (const key of METRIC_KEYS) {
       result[key] =
         addMetric(
           result[key],
@@ -518,15 +673,17 @@ export function mergeMetrics(
   return result;
 }
 
+// ============================================================
+// TOTAL METRICS
+// ============================================================
+
 export function totalMetrics(
   metrics: Metrics,
 ): string {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return sum(
+  return sumMetricValues(
     METRIC_KEYS.map(
       (key) =>
         normalized[key],
@@ -534,15 +691,17 @@ export function totalMetrics(
   );
 }
 
+// ============================================================
+// ENGAGEMENT
+// ============================================================
+
 export function engagementCount(
   metrics: Metrics,
 ): string {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return sum([
+  return sumMetricValues([
     normalized.likes,
     normalized.reactions,
     normalized.comments,
@@ -553,161 +712,151 @@ export function engagementCount(
   ]);
 }
 
+// ============================================================
+// RATES
+// ============================================================
+
 export function interactionRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    engagementCount(
-      normalized,
-    ),
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      engagementCount(
+        normalized,
+      ),
+      normalized.views,
+    ) * 100
+  );
 }
 
 export function reactionRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    normalized.reactions,
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      normalized.reactions,
+      normalized.views,
+    ) * 100
+  );
 }
 
 export function commentRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    normalized.comments,
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      normalized.comments,
+      normalized.views,
+    ) * 100
+  );
 }
 
 export function reviewRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    normalized.reviews,
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      normalized.reviews,
+      normalized.views,
+    ) * 100
+  );
 }
 
 export function shareRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    normalized.shares,
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      normalized.shares,
+      normalized.views,
+    ) * 100
+  );
 }
 
 export function applicationRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    normalized.applications,
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      normalized.applications,
+      normalized.views,
+    ) * 100
+  );
 }
 
 export function clickRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    normalized.clicks,
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      normalized.clicks,
+      normalized.views,
+    ) * 100
+  );
 }
 
 export function uniqueViewRate(
   metrics: Metrics,
 ): number {
   const normalized =
-    normalizeMetrics(
-      metrics,
-    );
+    normalizeMetrics(metrics);
 
-  return ratio(
-    normalized.unique_views,
-    normalized.views,
-  ) * 100;
+  return (
+    metricRatio(
+      normalized.unique_views,
+      normalized.views,
+    ) * 100
+  );
 }
+
+// ============================================================
+// DIFFERENCES
+// ============================================================
 
 export function metricDifference(
   a: MetricValue,
   b: MetricValue,
 ): string {
-  const first =
-    normalizeMetricValue(a);
-
-  const second =
-    normalizeMetricValue(b);
-
-  if (
-    compareDecimalStrings(
-      first,
-      second,
-    ) >= 0
-  ) {
-    return subtractMetric(
-      first,
-      second,
-    );
-  }
-
-  return `-${subtractMetric(
-    second,
-    first,
-  )}`;
+  return difference(
+    normalizeMetricValue(a),
+    normalizeMetricValue(b),
+  );
 }
+
+// ============================================================
+// PERCENTAGE CHANGE
+// ============================================================
 
 export function metricPercentageChange(
   oldValue: MetricValue,
   newValue: MetricValue,
 ): number {
   const oldMetric =
-    normalizeMetricValue(
-      oldValue,
-    );
+    normalizeMetricValue(oldValue);
 
   const newMetric =
-    normalizeMetricValue(
-      newValue,
-    );
+    normalizeMetricValue(newValue);
 
   if (
     compareDecimalStrings(
@@ -724,7 +873,7 @@ export function metricPercentageChange(
   }
 
   return (
-    ratio(
+    metricRatio(
       metricDifference(
         newMetric,
         oldMetric,
@@ -734,39 +883,50 @@ export function metricPercentageChange(
   );
 }
 
+// ============================================================
+// METRIC SHARE
+// ============================================================
+
 export function metricShare(
   value: MetricValue,
   total: MetricValue,
 ): number {
-  return (
-    ratio(
-      normalizeMetricValue(
-        value,
-      ),
-      normalizeMetricValue(
-        total,
-      ),
-    ) * 100
+  return metricPercentage(
+    normalizeMetricValue(value),
+    normalizeMetricValue(total),
   );
 }
+
+// ============================================================
+// FORMATTING
+// ============================================================
 
 export function formatMetricValue(
   value: MetricValue,
 ): string {
   return formatMetric(
-    normalizeMetricValue(
-      value,
-    ),
+    normalizeMetricValue(value),
   );
 }
 
 export function formatMetricPercent(
-  value: MetricValue,
+  value: number,
 ): string {
-  return `${formatMetricValue(
+  if (
+    !Number.isFinite(value)
+  ) {
+    return "0%";
+  }
+
+  return `${roundRating(
     value,
+    2,
   )}%`;
 }
+
+// ============================================================
+// RATINGS
+// ============================================================
 
 export function calculateRatingAverage(
   ratings: RatingDistribution,
@@ -782,14 +942,19 @@ export function calculateRatingAverage(
     return 0;
   }
 
-  return (
+  const weighted =
     ratings.one * 1 +
     ratings.two * 2 +
     ratings.three * 3 +
     ratings.four * 4 +
-    ratings.five * 5
-  ) / total;
+    ratings.five * 5;
+
+  return weighted / total;
 }
+
+// ============================================================
+// RATING SUMMARY
+// ============================================================
 
 export function createRatingSummary(
   ratings: RatingDistribution,
@@ -801,53 +966,89 @@ export function createRatingSummary(
     ratings.four +
     ratings.five;
 
-  const percentages = {
-    one: percentage(
-      ratings.one,
-      count,
-    ),
-    two: percentage(
-      ratings.two,
-      count,
-    ),
-    three: percentage(
-      ratings.three,
-      count,
-    ),
-    four: percentage(
-      ratings.four,
-      count,
-    ),
-    five: percentage(
-      ratings.five,
-      count,
-    ),
-  };
+  const percentages: RatingDistribution =
+    {
+      one:
+        count === 0
+          ? 0
+          : (ratings.one /
+              count) *
+            100,
+
+      two:
+        count === 0
+          ? 0
+          : (ratings.two /
+              count) *
+            100,
+
+      three:
+        count === 0
+          ? 0
+          : (ratings.three /
+              count) *
+            100,
+
+      four:
+        count === 0
+          ? 0
+          : (ratings.four /
+              count) *
+            100,
+
+      five:
+        count === 0
+          ? 0
+          : (ratings.five /
+              count) *
+            100,
+    };
 
   return {
-    count:
-      String(count),
+    count: String(count),
+
     average:
       calculateRatingAverage(
         ratings,
       ),
-    distribution:
-      ratings,
+
+    distribution: {
+      ...ratings,
+    },
+
     percentages,
   };
 }
+
+// ============================================================
+// RATING ROUNDING
+// ============================================================
 
 export function roundRating(
   value: number,
   precision = 2,
 ): number {
+  if (
+    !Number.isFinite(value)
+  ) {
+    return 0;
+  }
+
+  const safePrecision =
+    Math.max(
+      0,
+      Math.min(
+        10,
+        Math.trunc(
+          precision,
+        ),
+      ),
+    );
+
   const factor =
     Math.pow(
       10,
-      Math.max(
-        0,
-        precision,
-      ),
+      safePrecision,
     );
 
   return (
@@ -857,6 +1058,10 @@ export function roundRating(
   );
 }
 
+// ============================================================
+// RATING NORMALIZATION
+// ============================================================
+
 export function normalizeRating(
   value: unknown,
 ): number {
@@ -864,9 +1069,7 @@ export function normalizeRating(
     Number(value);
 
   if (
-    !Number.isFinite(
-      numeric,
-    )
+    !Number.isFinite(numeric)
   ) {
     return 0;
   }
@@ -875,12 +1078,14 @@ export function normalizeRating(
     5,
     Math.max(
       0,
-      Math.round(
-        numeric,
-      ),
+      Math.round(numeric),
     ),
   );
 }
+
+// ============================================================
+// RATING VALIDATION
+// ============================================================
 
 export function isValidRating(
   value: unknown,
@@ -888,13 +1093,15 @@ export function isValidRating(
   return (
     typeof value ===
       "number" &&
-    Number.isInteger(
-      value,
-    ) &&
+    Number.isInteger(value) &&
     value >= 1 &&
     value <= 5
   );
 }
+
+// ============================================================
+// EMPTY DISTRIBUTION
+// ============================================================
 
 export function createEmptyRatingDistribution(): RatingDistribution {
   return {
@@ -906,6 +1113,10 @@ export function createEmptyRatingDistribution(): RatingDistribution {
   };
 }
 
+// ============================================================
+// ADD RATING
+// ============================================================
+
 export function addRatingToDistribution(
   distribution: RatingDistribution,
   rating: number,
@@ -914,24 +1125,40 @@ export function addRatingToDistribution(
     ...distribution,
   };
 
-  if (!isValidRating(rating)) {
+  if (
+    !isValidRating(rating)
+  ) {
     return result;
   }
 
-  if (rating === 1) {
-    result.one++;
-  } else if (rating === 2) {
-    result.two++;
-  } else if (rating === 3) {
-    result.three++;
-  } else if (rating === 4) {
-    result.four++;
-  } else if (rating === 5) {
-    result.five++;
+  switch (rating) {
+    case 1:
+      result.one++;
+      break;
+
+    case 2:
+      result.two++;
+      break;
+
+    case 3:
+      result.three++;
+      break;
+
+    case 4:
+      result.four++;
+      break;
+
+    case 5:
+      result.five++;
+      break;
   }
 
   return result;
 }
+
+// ============================================================
+// REMOVE RATING
+// ============================================================
 
 export function removeRatingFromDistribution(
   distribution: RatingDistribution,
@@ -941,39 +1168,60 @@ export function removeRatingFromDistribution(
     ...distribution,
   };
 
-  if (!isValidRating(rating)) {
+  if (
+    !isValidRating(rating)
+  ) {
     return result;
   }
 
-  if (rating === 1) {
-    result.one = Math.max(
-      0,
-      result.one - 1,
-    );
-  } else if (rating === 2) {
-    result.two = Math.max(
-      0,
-      result.two - 1,
-    );
-  } else if (rating === 3) {
-    result.three = Math.max(
-      0,
-      result.three - 1,
-    );
-  } else if (rating === 4) {
-    result.four = Math.max(
-      0,
-      result.four - 1,
-    );
-  } else if (rating === 5) {
-    result.five = Math.max(
-      0,
-      result.five - 1,
-    );
+  switch (rating) {
+    case 1:
+      result.one =
+        Math.max(
+          0,
+          result.one - 1,
+        );
+      break;
+
+    case 2:
+      result.two =
+        Math.max(
+          0,
+          result.two - 1,
+        );
+      break;
+
+    case 3:
+      result.three =
+        Math.max(
+          0,
+          result.three - 1,
+        );
+      break;
+
+    case 4:
+      result.four =
+        Math.max(
+          0,
+          result.four - 1,
+        );
+      break;
+
+    case 5:
+      result.five =
+        Math.max(
+          0,
+          result.five - 1,
+        );
+      break;
   }
 
   return result;
 }
+
+// ============================================================
+// AVERAGE
+// ============================================================
 
 export function calculateAverage(
   values: readonly MetricValue[],
@@ -984,16 +1232,27 @@ export function calculateAverage(
     return 0;
   }
 
-  return average(
-    values.map((value) =>
+  let total = 0;
+
+  for (const value of values) {
+    const numeric =
       Number(
-        normalizeMetricValue(
-          value,
-        ),
-      ),
-    ),
-  );
+        normalizeMetricValue(value),
+      );
+
+    if (
+      Number.isFinite(numeric)
+    ) {
+      total += numeric;
+    }
+  }
+
+  return total / values.length;
 }
+
+// ============================================================
+// COMPARISON
+// ============================================================
 
 export function compareMetrics(
   a: MetricValue,
@@ -1005,14 +1264,16 @@ export function compareMetrics(
   );
 }
 
+// ============================================================
+// ZERO / POSITIVE / NEGATIVE
+// ============================================================
+
 export function isZeroMetric(
   value: MetricValue,
 ): boolean {
   return (
     compareDecimalStrings(
-      normalizeMetricValue(
-        value,
-      ),
+      normalizeMetricValue(value),
       "0",
     ) === 0
   );
@@ -1023,9 +1284,7 @@ export function isPositiveMetric(
 ): boolean {
   return (
     compareDecimalStrings(
-      normalizeMetricValue(
-        value,
-      ),
+      normalizeMetricValue(value),
       "0",
     ) > 0
   );
@@ -1036,24 +1295,30 @@ export function isNegativeMetric(
 ): boolean {
   return (
     compareDecimalStrings(
-      normalizeMetricValue(
-        value,
-      ),
+      normalizeMetricValue(value),
       "0",
     ) < 0
   );
 }
 
+// ============================================================
+// KEYS
+// ============================================================
+
 export function metricKeys(): MetricKey[] {
-  return [...METRIC_KEYS];
+  return [
+    ...METRIC_KEYS,
+  ];
 }
 
 export function hasMetricKey(
   value: string,
 ): value is MetricKey {
-  return (
-    METRIC_KEYS.includes(
-      value as MetricKey,
-    )
+  return METRIC_KEYS.includes(
+    value as MetricKey,
   );
-    }
+}
+
+// ============================================================
+// END
+// ============================================================
