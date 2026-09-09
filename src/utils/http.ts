@@ -158,6 +158,7 @@ export const CONTENT_TYPE = {
 
 export const REQUEST_HEADERS = {
   CONTENT_TYPE: "Content-Type",
+  CONTENT_LENGTH: "Content-Length",
   ACCEPT: "Accept",
   AUTHORIZATION: "Authorization",
   USER_AGENT: "User-Agent",
@@ -190,6 +191,13 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 
 // ============================================================
 // INTERNAL FETCH COMPATIBILITY
+// ============================================================
+//
+// В Cloudflare Workers Request может иметь generic-параметры,
+// отличающиеся от стандартного DOM Request.
+//
+// Поэтому внутренний fetch-layer намеренно принимает unknown.
+// Это устраняет конфликт типов между Workers и DOM lib.
 // ============================================================
 
 type CompatibleFetch = (
@@ -482,9 +490,10 @@ export function getContentType(
 export function getContentLength(
   response: Response,
 ): number | null {
-  const value = response.headers.get(
-    "Content-Length",
-  );
+  const value =
+    response.headers.get(
+      REQUEST_HEADERS.CONTENT_LENGTH,
+    );
 
   if (!value) {
     return null;
@@ -500,7 +509,8 @@ export function getContentLength(
 export function isJsonResponse(
   response: Response,
 ): boolean {
-  const contentType = getContentType(response);
+  const contentType =
+    getContentType(response);
 
   return (
     contentType.includes(
@@ -513,7 +523,8 @@ export function isJsonResponse(
 export function isTextResponse(
   response: Response,
 ): boolean {
-  const contentType = getContentType(response);
+  const contentType =
+    getContentType(response);
 
   return (
     contentType.startsWith("text/") ||
@@ -778,7 +789,10 @@ export function createUrlEncodedForm(
       continue;
     }
 
-    form.set(key, String(value));
+    form.set(
+      key,
+      String(value),
+    );
   }
 
   return form;
@@ -945,7 +959,10 @@ export function extractErrorMessage(
     typeof data === "object"
   ) {
     const value =
-      data as Record<string, unknown>;
+      data as Record<
+        string,
+        unknown
+      >;
 
     if (
       typeof value.message ===
@@ -1324,10 +1341,7 @@ export async function fetchJson<
 
         if (
           options.signal !==
-            undefined &&
-          !shouldUseTimeout(
-            options.timeoutMs,
-          )
+          undefined
         ) {
           fetchInit = {
             signal:
@@ -2060,9 +2074,7 @@ export function setPublicCache(
 ): Headers {
   const maxAge =
     typeof maxAgeSeconds === "number" &&
-    Number.isFinite(
-      maxAgeSeconds,
-    )
+    Number.isFinite(maxAgeSeconds)
       ? Math.max(
           0,
           Math.floor(
@@ -2365,12 +2377,15 @@ export function getResponseUrl(
 export function isEmptyResponse(
   response: Response,
 ): boolean {
+  const contentLength =
+    response.headers.get(
+      REQUEST_HEADERS.CONTENT_LENGTH,
+    );
+
   return (
     response.status ===
       HTTP_STATUS.NO_CONTENT ||
-    response.headers.get(
-      REQUEST_HEADERS.CONTENT_LENGTH,
-    ) === "0"
+    contentLength === "0"
   );
 }
 
