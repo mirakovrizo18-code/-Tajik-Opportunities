@@ -191,6 +191,42 @@ export const DEFAULT_RETRY_MAX_DELAY_MS = 5000;
 export const DEFAULT_TIMEOUT_MS = 30_000;
 
 // ============================================================
+// INTERNAL FETCH COMPATIBILITY
+// ============================================================
+//
+// Cloudflare Workers и TypeScript lib.dom могут иметь разные
+// generic Request-типы.
+//
+// Внутренне приводим только сам Request перед fetch.
+// Публичная API-архитектура при этом не меняется.
+// ============================================================
+
+type CompatibleFetchInput =
+  Parameters<typeof fetch>[0];
+
+function executeFetch(
+  input:
+    | string
+    | URL
+    | Request,
+  init?: RequestInit,
+): Promise<Response> {
+  if (
+    input instanceof Request
+  ) {
+    return fetch(
+      input as unknown as CompatibleFetchInput,
+      init,
+    );
+  }
+
+  return fetch(
+    input,
+    init,
+  );
+}
+
+// ============================================================
 // METHOD HELPERS
 // ============================================================
 
@@ -1165,7 +1201,8 @@ export async function httpRequest<
       );
   }
 
-  let request: Request;
+  let request:
+    | Request;
 
   if (
     input instanceof Request
@@ -1191,7 +1228,7 @@ export async function httpRequest<
   }
 
   const response =
-    await fetch(
+    await executeFetch(
       request,
     );
 
@@ -1438,7 +1475,7 @@ export async function fetchJson<
             );
 
       const response =
-        await fetch(
+        await executeFetch(
           request,
         );
 
@@ -1541,7 +1578,7 @@ export async function fetchJsonResponse<
         );
 
   const response =
-    await fetch(
+    await executeFetch(
       request,
     );
 
@@ -1690,7 +1727,9 @@ export async function httpHead(
       },
     );
 
-  return fetch(request);
+  return executeFetch(
+    request,
+  );
 }
 
 // ============================================================
@@ -2314,17 +2353,20 @@ export async function fetchBinary(
   url: string | URL,
   options: HttpRequestOptions = {},
 ): Promise<ArrayBuffer> {
+  const request =
+    createHttpRequest(
+      url,
+      {
+        ...options,
+        method:
+          options.method ??
+          "GET",
+      },
+    );
+
   const response =
-    await fetch(
-      createHttpRequest(
-        url,
-        {
-          ...options,
-          method:
-            options.method ??
-            "GET",
-        },
-      ),
+    await executeFetch(
+      request,
     );
 
   if (
@@ -2355,17 +2397,20 @@ export async function fetchBlob(
   url: string | URL,
   options: HttpRequestOptions = {},
 ): Promise<Blob> {
+  const request =
+    createHttpRequest(
+      url,
+      {
+        ...options,
+        method:
+          options.method ??
+          "GET",
+      },
+    );
+
   const response =
-    await fetch(
-      createHttpRequest(
-        url,
-        {
-          ...options,
-          method:
-            options.method ??
-            "GET",
-        },
-      ),
+    await executeFetch(
+      request,
     );
 
   if (
