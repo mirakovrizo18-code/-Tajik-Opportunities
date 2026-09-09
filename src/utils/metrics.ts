@@ -1,47 +1,20 @@
-//
-// ============================================================
-// 🇹🇯 TAJIK OPPORTUNITIES
-// METRICS UTILITY
-// Version: 2026.09.09
-//
-// Поддерживает:
-// • обычные числа
-// • bigint
-// • огромные значения в виде строк
-// • просмотры
-// • реакции
-// • комментарии
-// • отзывы
-// • shares
-// • saves
-// • applications
-// • clicks
-// • unique views
-// • рейтинги 1–5
-// • распределение рейтингов
-// • проценты
-// • сравнение метрик
-//
-// ВАЖНО:
-// Метрики хранятся как DecimalString.
-// Нельзя использовать Number() для больших
-// значений, если нужна математическая точность.
-// ============================================================
+/* ============================================================
+   TAJIK OPPORTUNITIES
+   METRICS UTILITY
+   Production-safe decimal metric helpers
 
-// ============================================================
-// BASIC TYPES
-// ============================================================
+   Supports:
+   • number
+   • bigint
+   • decimal strings
+   • huge counters
+   • ratings
+   • percentages
+   • ratios
+   • distributions
+   ============================================================ */
 
-export type MetricValue =
-  | number
-  | bigint
-  | string;
-
-export type DecimalString = string;
-
-// ============================================================
-// METRIC KEYS
-// ============================================================
+export type MetricValue = number | bigint | string;
 
 export type MetricKey =
   | "views"
@@ -52,1763 +25,851 @@ export type MetricKey =
   | "replies"
   | "shares"
   | "saves"
-  | "bookmarks"
-  | "reviews"
-  | "ratings"
   | "applications"
   | "clicks"
-  | "contacts"
-  | "followers"
-  | "mentions"
   | "reports"
-  | "impressions"
-  | "engagements"
-  | "positive_engagements"
-  | "negative_engagements";
+  | "hides"
+  | "favorites"
+  | "followers"
+  | "participants"
+  | "messages"
+  | "reviews"
+  | "rating_count"
+  | "rating_sum"
+  | "positive"
+  | "negative"
+  | string;
 
-// ============================================================
-// METRICS
-// ============================================================
+export type Metrics = Record<string, MetricValue>;
 
-export interface Metrics {
-  views?: MetricValue;
-  unique_views?: MetricValue;
-
-  likes?: MetricValue;
-  reactions?: MetricValue;
-
-  comments?: MetricValue;
-  replies?: MetricValue;
-
-  shares?: MetricValue;
-  saves?: MetricValue;
-  bookmarks?: MetricValue;
-
-  reviews?: MetricValue;
-  ratings?: MetricValue;
-
-  applications?: MetricValue;
-  clicks?: MetricValue;
-  contacts?: MetricValue;
-
-  followers?: MetricValue;
-  mentions?: MetricValue;
-
-  reports?: MetricValue;
-
-  impressions?: MetricValue;
-
-  engagements?: MetricValue;
-  positive_engagements?: MetricValue;
-  negative_engagements?: MetricValue;
-
-  [key: string]:
-    | MetricValue
-    | undefined;
-}
-
-// ============================================================
-// NORMALIZED METRICS
-// ============================================================
-
-export type NormalizedMetrics =
-  Record<
-    string,
-    DecimalString
-  >;
-
-// ============================================================
-// METRIC CHANGE
-// ============================================================
+export type NormalizedMetrics = Record<string, string>;
 
 export interface MetricChange {
-  key: MetricKey | string;
-
-  previous: DecimalString;
-  current: DecimalString;
-  difference: DecimalString;
-
-  percentage: number | null;
-
-  increased: boolean;
-  decreased: boolean;
-  unchanged: boolean;
+  key: MetricKey;
+  before: string;
+  after: string;
+  delta: string;
 }
 
-// ============================================================
-// METRICS UPDATE
-// ============================================================
-
-export type MetricsUpdate =
-  Partial<Metrics>;
-
-// ============================================================
-// RATING DISTRIBUTION
-// ============================================================
+export interface MetricsUpdate {
+  [key: string]: MetricValue | null | undefined;
+}
 
 export interface RatingDistribution {
-  1: DecimalString;
-  2: DecimalString;
-  3: DecimalString;
-  4: DecimalString;
-  5: DecimalString;
+  [rating: string]: string;
 }
-
-// ============================================================
-// RATING SUMMARY
-// ============================================================
 
 export interface RatingSummary {
-  average: number;
-  total: DecimalString;
-
+  average: string;
+  count: string;
+  sum: string;
   distribution: RatingDistribution;
-
-  oneStar: DecimalString;
-  twoStar: DecimalString;
-  threeStar: DecimalString;
-  fourStar: DecimalString;
-  fiveStar: DecimalString;
 }
 
-// ============================================================
-// CONSTANTS
-// ============================================================
+/* ------------------------------------------------------------
+   INTERNAL DECIMAL HELPERS
+   ------------------------------------------------------------ */
 
-const ZERO = "0";
-
-const MAX_SAFE_INTEGER_STRING =
-  "9007199254740991";
-
-// ============================================================
-// INTERNAL DECIMAL HELPERS
-// ============================================================
-
-function cleanDecimal(
-  value: MetricValue | null | undefined,
-): DecimalString {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return ZERO;
-  }
+function clean(value: MetricValue | null | undefined): string {
+  if (value === null || value === undefined) return "0";
 
   if (typeof value === "bigint") {
-    return value < 0n
-      ? "0"
-      : value.toString();
+    return value.toString();
   }
 
   if (typeof value === "number") {
-    if (
-      !Number.isFinite(value)
-    ) {
-      return ZERO;
-    }
+    if (!Number.isFinite(value)) return "0";
 
-    if (
-      value <= 0
-    ) {
-      return ZERO;
-    }
-
-    if (
-      Number.isInteger(value) &&
-      Number.isSafeInteger(value)
-    ) {
+    if (Number.isInteger(value)) {
       return String(value);
     }
 
-    /*
-     * Для нецелых чисел метрики
-     * должны всё равно становиться
-     * целыми счётчиками.
-     */
-    return String(
-      Math.max(
-        0,
-        Math.trunc(value),
-      ),
-    );
+    return String(value);
   }
 
-  const text =
-    value.trim();
+  const text = String(value).trim();
 
-  if (!text) {
-    return ZERO;
+  if (!text) return "0";
+
+  if (!/^-?\d+(?:\.\d+)?$/.test(text)) {
+    return "0";
   }
 
-  /*
-   * Поддерживаем только
-   * положительные целые DecimalString.
-   */
-  if (
-    !/^\d+$/.test(text)
-  ) {
-    return ZERO;
-  }
-
-  const normalized =
-    text.replace(
-      /^0+(?=\d)/,
-      "",
-    );
-
-  return normalized || ZERO;
+  return normalizeDecimal(text);
 }
 
-// ============================================================
-// BIGINT CONVERSION
-// ============================================================
+function normalizeDecimal(value: string): string {
+  let negative = false;
+  let text = value.trim();
 
-function toBigInt(
+  if (text.startsWith("-")) {
+    negative = true;
+    text = text.slice(1);
+  }
+
+  const parts = text.split(".");
+  let integerPart = parts[0] || "0";
+  let decimalPart = parts[1] || "";
+
+  integerPart = integerPart.replace(/^0+(?=\d)/, "");
+  decimalPart = decimalPart.replace(/0+$/, "");
+
+  const result =
+    decimalPart.length > 0
+      ? `${integerPart}.${decimalPart}`
+      : integerPart;
+
+  if (result === "0") return "0";
+
+  return negative ? `-${result}` : result;
+}
+
+function splitDecimal(value: string): {
+  negative: boolean;
+  integer: string;
+  fraction: string;
+} {
+  const normalized = normalizeDecimal(value);
+
+  const negative = normalized.startsWith("-");
+  const absolute = negative ? normalized.slice(1) : normalized;
+
+  const parts = absolute.split(".");
+
+  return {
+    negative,
+    integer: parts[0] || "0",
+    fraction: parts[1] || "",
+  };
+}
+
+function compareAbs(a: string, b: string): number {
+  const aa = normalizeDecimal(a);
+  const bb = normalizeDecimal(b);
+
+  const pa = splitDecimal(aa);
+  const pb = splitDecimal(bb);
+
+  if (pa.integer.length !== pb.integer.length) {
+    return pa.integer.length > pb.integer.length ? 1 : -1;
+  }
+
+  if (pa.integer !== pb.integer) {
+    return pa.integer > pb.integer ? 1 : -1;
+  }
+
+  const max = Math.max(pa.fraction.length, pb.fraction.length);
+
+  const fa = pa.fraction.padEnd(max, "0");
+  const fb = pb.fraction.padEnd(max, "0");
+
+  if (fa === fb) return 0;
+
+  return fa > fb ? 1 : -1;
+}
+
+function addPositive(a: string, b: string): string {
+  const pa = splitDecimal(a);
+  const pb = splitDecimal(b);
+
+  const scale = Math.max(
+    pa.fraction.length,
+    pb.fraction.length,
+  );
+
+  const ai = BigInt(
+    `${pa.integer}${pa.fraction.padEnd(scale, "0")}`,
+  );
+
+  const bi = BigInt(
+    `${pb.integer}${pb.fraction.padEnd(scale, "0")}`,
+  );
+
+  const sum = ai + bi;
+
+  if (scale === 0) {
+    return sum.toString();
+  }
+
+  const raw = sum.toString().padStart(scale + 1, "0");
+
+  const integerPart = raw.slice(0, -scale) || "0";
+  const fractionPart = raw.slice(-scale);
+
+  return normalizeDecimal(
+    `${integerPart}.${fractionPart}`,
+  );
+}
+
+function subtractPositive(a: string, b: string): string {
+  const comparison = compareAbs(a, b);
+
+  if (comparison === 0) return "0";
+
+  const pa = splitDecimal(a);
+  const pb = splitDecimal(b);
+
+  const scale = Math.max(
+    pa.fraction.length,
+    pb.fraction.length,
+  );
+
+  const ai = BigInt(
+    `${pa.integer}${pa.fraction.padEnd(scale, "0")}`,
+  );
+
+  const bi = BigInt(
+    `${pb.integer}${pb.fraction.padEnd(scale, "0")}`,
+  );
+
+  const result = comparison > 0
+    ? ai - bi
+    : bi - ai;
+
+  const raw = result.toString();
+
+  if (scale === 0) {
+    return raw;
+  }
+
+  const padded = raw.padStart(scale + 1, "0");
+
+  const integerPart = padded.slice(0, -scale) || "0";
+  const fractionPart = padded.slice(-scale);
+
+  const absolute = normalizeDecimal(
+    `${integerPart}.${fractionPart}`,
+  );
+
+  return comparison > 0 ? absolute : `-${absolute}`;
+}
+
+/* ------------------------------------------------------------
+   PUBLIC DECIMAL OPERATIONS
+   ------------------------------------------------------------ */
+
+export function metricToString(
   value: MetricValue | null | undefined,
-): bigint {
-  const normalized =
-    cleanDecimal(value);
+): string {
+  return clean(value);
+}
 
-  try {
-    return BigInt(
-      normalized,
+export function addMetric(
+  a: MetricValue | null | undefined,
+  b: MetricValue | null | undefined,
+): string {
+  const aa = clean(a);
+  const bb = clean(b);
+
+  const sa = splitDecimal(aa);
+  const sb = splitDecimal(bb);
+
+  if (sa.negative === sb.negative) {
+    const result = addPositive(
+      sa.negative ? aa.slice(1) : aa,
+      sb.negative ? bb.slice(1) : bb,
     );
-  } catch {
-    return 0n;
-  }
-}
 
-function fromBigInt(
-  value: bigint,
-): DecimalString {
-  if (value <= 0n) {
-    return ZERO;
+    return sa.negative ? `-${result}` : result;
   }
 
-  return value.toString();
+  const absA = sa.negative ? aa.slice(1) : aa;
+  const absB = sb.negative ? bb.slice(1) : bb;
+
+  const comparison = compareAbs(absA, absB);
+
+  if (comparison === 0) return "0";
+
+  if (comparison > 0) {
+    const result = subtractPositive(absA, absB);
+    return sa.negative ? `-${result}` : result;
+  }
+
+  const result = subtractPositive(absB, absA);
+  return sb.negative ? `-${result}` : result;
 }
 
-// ============================================================
-// NORMALIZE
-// ============================================================
+export function subtractMetric(
+  a: MetricValue | null | undefined,
+  b: MetricValue | null | undefined,
+): string {
+  const bb = clean(b);
+
+  if (bb.startsWith("-")) {
+    return addMetric(a, bb.slice(1));
+  }
+
+  return addMetric(a, `-${bb}`);
+}
+
+export function compareDecimalStrings(
+  a: MetricValue | null | undefined,
+  b: MetricValue | null | undefined,
+): number {
+  const aa = clean(a);
+  const bb = clean(b);
+
+  const sa = splitDecimal(aa);
+  const sb = splitDecimal(bb);
+
+  if (sa.negative && !sb.negative) return -1;
+  if (!sa.negative && sb.negative) return 1;
+
+  const comparison = compareAbs(
+    sa.negative ? aa.slice(1) : aa,
+    sb.negative ? bb.slice(1) : bb,
+  );
+
+  return sa.negative ? -comparison : comparison;
+}
+
+export function incrementMetric(
+  value: MetricValue | null | undefined,
+  amount: MetricValue = 1,
+): string {
+  return addMetric(value, amount);
+}
+
+export function decrementMetric(
+  value: MetricValue | null | undefined,
+  amount: MetricValue = 1,
+): string {
+  return subtractMetric(value, amount);
+}
+
+/* ------------------------------------------------------------
+   NORMALIZATION
+   ------------------------------------------------------------ */
 
 export function normalizeMetricValue(
   value: MetricValue | null | undefined,
-): DecimalString {
-  return cleanDecimal(
-    value,
-  );
+): string {
+  return clean(value);
 }
-
-// ============================================================
-// NORMALIZE METRICS
-// ============================================================
 
 export function normalizeMetrics(
-  metrics:
-    | Metrics
-    | null
-    | undefined,
+  metrics: Metrics | null | undefined,
 ): NormalizedMetrics {
-  const result:
-    NormalizedMetrics = {};
+  const result: NormalizedMetrics = {};
 
-  if (!metrics) {
-    return result;
-  }
+  if (!metrics) return result;
 
-  for (
-    const [key, value]
-    of Object.entries(metrics)
-  ) {
-    if (
-      value === undefined
-    ) {
-      continue;
-    }
-
-    result[key] =
-      normalizeMetricValue(
-        value,
-      );
+  for (const [key, value] of Object.entries(metrics)) {
+    result[key] = clean(value);
   }
 
   return result;
 }
-
-// ============================================================
-// GET METRIC
-// ============================================================
 
 export function getMetric(
-  metrics:
-    | Metrics
-    | NormalizedMetrics
-    | null
-    | undefined,
-  key:
-    | MetricKey
-    | string,
-): DecimalString {
-  if (!metrics) {
-    return ZERO;
-  }
+  metrics: Metrics | null | undefined,
+  key: MetricKey,
+): string {
+  if (!metrics) return "0";
 
-  return normalizeMetricValue(
-    metrics[key],
-  );
+  return clean(metrics[String(key)]);
 }
-
-// ============================================================
-// SET METRIC
-// ============================================================
 
 export function setMetric(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-  key:
-    | MetricKey
-    | string,
+  metrics: Metrics,
+  key: MetricKey,
   value: MetricValue,
-): NormalizedMetrics {
-  const result =
-    normalizeMetrics(
-      metrics,
-    );
-
-  result[key] =
-    normalizeMetricValue(
-      value,
-    );
-
-  return result;
+): Metrics {
+  return {
+    ...metrics,
+    [String(key)]: clean(value),
+  };
 }
 
-// ============================================================
-// ADD METRIC
-// ============================================================
-
-export function addMetric(
-  a: MetricValue,
-  b: MetricValue,
-): DecimalString {
-  return fromBigInt(
-    toBigInt(a) +
-      toBigInt(b),
-  );
-}
-
-// ============================================================
-// SUBTRACT METRIC
-// ============================================================
-
-export function subtractMetric(
-  a: MetricValue,
-  b: MetricValue,
-): DecimalString {
-  const result =
-    toBigInt(a) -
-    toBigInt(b);
-
-  return fromBigInt(
-    result,
-  );
-}
-
-// ============================================================
-// COMPARE
-// ============================================================
-
-export function compareMetricValues(
-  a: MetricValue,
-  b: MetricValue,
-): -1 | 0 | 1 {
-  const left =
-    toBigInt(a);
-
-  const right =
-    toBigInt(b);
-
-  if (left < right) {
-    return -1;
-  }
-
-  if (left > right) {
-    return 1;
-  }
-
-  return 0;
-}
-
-// ============================================================
-// COMPATIBILITY ALIAS
-// ============================================================
-
-export function compareDecimalStrings(
-  a: MetricValue,
-  b: MetricValue,
-): -1 | 0 | 1 {
-  return compareMetricValues(
-    a,
-    b,
-  );
-}
-
-// ============================================================
-// INCREMENT
-// ============================================================
-
-export function incrementMetric(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-  key:
-    | MetricKey
-    | string,
-  amount: MetricValue = 1,
-): NormalizedMetrics {
-  const result =
-    normalizeMetrics(
-      metrics,
-    );
-
-  result[key] =
-    addMetric(
-      result[key] ?? ZERO,
-      amount,
-    );
-
-  return result;
-}
-
-// ============================================================
-// DECREMENT
-// ============================================================
-
-export function decrementMetric(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-  key:
-    | MetricKey
-    | string,
-  amount: MetricValue = 1,
-): NormalizedMetrics {
-  const result =
-    normalizeMetrics(
-      metrics,
-    );
-
-  result[key] =
-    subtractMetric(
-      result[key] ?? ZERO,
-      amount,
-    );
-
-  return result;
-}
-
-// ============================================================
-// APPLY CHANGES
-// ============================================================
+/* ------------------------------------------------------------
+   BULK OPERATIONS
+   ------------------------------------------------------------ */
 
 export function applyMetricChanges(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-  changes:
-    | MetricsUpdate
-    | null
-    | undefined,
-): NormalizedMetrics {
-  const result =
-    normalizeMetrics(
-      metrics,
-    );
+  metrics: Metrics,
+  changes: MetricsUpdate,
+): Metrics {
+  const result: Metrics = {
+    ...metrics,
+  };
 
-  if (!changes) {
-    return result;
-  }
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === null || value === undefined) continue;
 
-  for (
-    const [key, value]
-    of Object.entries(changes)
-  ) {
-    if (
-      value === undefined
-    ) {
-      continue;
-    }
-
-    result[key] =
-      normalizeMetricValue(
-        value,
-      );
+    result[key] = clean(value);
   }
 
   return result;
 }
-
-// ============================================================
-// INCREMENT MANY
-// ============================================================
 
 export function incrementMetrics(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-  changes:
-    | MetricsUpdate
-    | null
-    | undefined,
-): NormalizedMetrics {
-  const result =
-    normalizeMetrics(
-      metrics,
-    );
+  metrics: Metrics,
+  changes: MetricsUpdate,
+): Metrics {
+  const result: Metrics = {
+    ...metrics,
+  };
 
-  if (!changes) {
-    return result;
-  }
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === null || value === undefined) continue;
 
-  for (
-    const [key, value]
-    of Object.entries(changes)
-  ) {
-    if (
-      value === undefined
-    ) {
-      continue;
-    }
-
-    result[key] =
-      addMetric(
-        result[key] ?? ZERO,
-        value,
-      );
-  }
-
-  return result;
-}
-
-// ============================================================
-// DECREMENT MANY
-// ============================================================
-
-export function decrementMetrics(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-  changes:
-    | MetricsUpdate
-    | null
-    | undefined,
-): NormalizedMetrics {
-  const result =
-    normalizeMetrics(
-      metrics,
-    );
-
-  if (!changes) {
-    return result;
-  }
-
-  for (
-    const [key, value]
-    of Object.entries(changes)
-  ) {
-    if (
-      value === undefined
-    ) {
-      continue;
-    }
-
-    result[key] =
-      subtractMetric(
-        result[key] ?? ZERO,
-        value,
-      );
-  }
-
-  return result;
-}
-
-// ============================================================
-// MERGE
-// ============================================================
-
-export function mergeMetrics(
-  ...items: Array<
-    | Metrics
-    | NormalizedMetrics
-    | null
-    | undefined
-  >
-): NormalizedMetrics {
-  const result:
-    NormalizedMetrics = {};
-
-  for (
-    const item of items
-  ) {
-    if (!item) {
-      continue;
-    }
-
-    for (
-      const [key, value]
-      of Object.entries(item)
-    ) {
-      if (
-        value === undefined
-      ) {
-        continue;
-      }
-
-      result[key] =
-        normalizeMetricValue(
-          value,
-        );
-    }
-  }
-
-  return result;
-}
-
-// ============================================================
-// SUM
-// ============================================================
-
-export function sumMetrics(
-  metrics:
-    | Metrics
-    | NormalizedMetrics
-    | null
-    | undefined,
-): DecimalString {
-  if (!metrics) {
-    return ZERO;
-  }
-
-  let total = 0n;
-
-  for (
-    const value
-    of Object.values(metrics)
-  ) {
-    total += toBigInt(
+    result[key] = addMetric(
+      result[key],
       value,
     );
   }
 
-  return fromBigInt(
-    total,
-  );
+  return result;
 }
 
-// Compatibility
-export function totalMetrics(
-  metrics:
-    | Metrics
-    | NormalizedMetrics
-    | null
-    | undefined,
-): DecimalString {
-  return sumMetrics(
-    metrics,
-  );
-}
+export function decrementMetrics(
+  metrics: Metrics,
+  changes: MetricsUpdate,
+): Metrics {
+  const result: Metrics = {
+    ...metrics,
+  };
 
-// ============================================================
-// ENGAGEMENT COUNT
-// ============================================================
+  for (const [key, value] of Object.entries(changes)) {
+    if (value === null || value === undefined) continue;
 
-export function engagementCount(
-  metrics:
-    | Metrics
-    | NormalizedMetrics
-    | null
-    | undefined,
-): DecimalString {
-  if (!metrics) {
-    return ZERO;
-  }
-
-  const keys: MetricKey[] = [
-    "likes",
-    "reactions",
-    "comments",
-    "replies",
-    "shares",
-    "saves",
-    "bookmarks",
-    "reviews",
-    "applications",
-    "clicks",
-  ];
-
-  let total = 0n;
-
-  for (
-    const key of keys
-  ) {
-    total += toBigInt(
-      metrics[key],
+    result[key] = subtractMetric(
+      result[key],
+      value,
     );
   }
 
-  return fromBigInt(
-    total,
-  );
+  return result;
 }
 
-// ============================================================
-// RATIO
-// ============================================================
+export function mergeMetrics(
+  ...metricsList: Array<Metrics | null | undefined>
+): Metrics {
+  const result: Metrics = {};
+
+  for (const metrics of metricsList) {
+    if (!metrics) continue;
+
+    for (const [key, value] of Object.entries(metrics)) {
+      result[key] = addMetric(
+        result[key],
+        value,
+      );
+    }
+  }
+
+  return result;
+}
+
+export function totalMetrics(
+  metrics: Metrics | null | undefined,
+): string {
+  if (!metrics) return "0";
+
+  let total = "0";
+
+  for (const value of Object.values(metrics)) {
+    total = addMetric(total, value);
+  }
+
+  return total;
+}
+
+/* ------------------------------------------------------------
+   RATIOS / PERCENTAGES
+   ------------------------------------------------------------ */
+
+function decimalNumber(value: MetricValue): number {
+  const n = Number(clean(value));
+
+  if (!Number.isFinite(n)) return 0;
+
+  return n;
+}
 
 export function ratio(
   numerator: MetricValue,
   denominator: MetricValue,
 ): number {
-  const top =
-    toBigInt(
-      numerator,
-    );
+  const n = decimalNumber(numerator);
+  const d = decimalNumber(denominator);
 
-  const bottom =
-    toBigInt(
-      denominator,
-    );
+  if (d === 0) return 0;
 
-  if (
-    bottom === 0n
-  ) {
-    return 0;
-  }
-
-  /*
-   * Для процента/коэффициента
-   * Number используется только
-   * после ограничения результата.
-   *
-   * Сами счётчики остаются
-   * BigInt/строками.
-   */
-  const topString =
-    top.toString();
-
-  const bottomString =
-    bottom.toString();
-
-  const topNumber =
-    topString.length >
-    MAX_SAFE_INTEGER_STRING.length
-      ? Number.MAX_VALUE
-      : Number(topString);
-
-  const bottomNumber =
-    bottomString.length >
-    MAX_SAFE_INTEGER_STRING.length
-      ? Number.MAX_VALUE
-      : Number(bottomString);
-
-  if (
-    !Number.isFinite(
-      topNumber,
-    ) ||
-    !Number.isFinite(
-      bottomNumber,
-    ) ||
-    bottomNumber === 0
-  ) {
-    /*
-     * Для одинаково огромных
-     * значений возвращаем 1.
-     */
-    if (
-      top === bottom
-    ) {
-      return 1;
-    }
-
-    return top > bottom
-      ? 1
-      : 0;
-  }
-
-  return (
-    topNumber /
-    bottomNumber
-  );
+  return n / d;
 }
-
-// ============================================================
-// PERCENTAGE
-// ============================================================
 
 export function percentage(
   numerator: MetricValue,
   denominator: MetricValue,
   decimals = 2,
 ): number {
-  const value =
-    ratio(
-      numerator,
-      denominator,
-    ) * 100;
+  const value = ratio(numerator, denominator) * 100;
 
-  if (
-    !Number.isFinite(
-      value,
-    )
-  ) {
-    return 0;
-  }
-
-  const factor =
-    Math.pow(
-      10,
-      Math.max(
-        0,
-        Math.min(
-          12,
-          decimals,
-        ),
-      ),
-    );
-
-  return (
-    Math.round(
-      value * factor,
-    ) / factor
+  return Number(
+    value.toFixed(Math.max(0, decimals)),
   );
 }
-
-// ============================================================
-// RATE HELPERS
-// ============================================================
 
 export function interactionRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
+  metrics: Metrics,
 ): number {
+  const interactions = addMetric(
+    addMetric(getMetric(metrics, "reactions"), getMetric(metrics, "comments")),
+    addMetric(getMetric(metrics, "shares"), getMetric(metrics, "saves")),
+  );
+
   return percentage(
-    engagementCount(
-      metrics,
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    interactions,
+    getMetric(metrics, "views"),
   );
 }
 
-export function reactionRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): number {
+export function reactionRate(metrics: Metrics): number {
   return percentage(
-    getMetric(
-      metrics,
-      "reactions",
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    getMetric(metrics, "reactions"),
+    getMetric(metrics, "views"),
   );
 }
 
-export function commentRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): number {
+export function commentRate(metrics: Metrics): number {
   return percentage(
-    getMetric(
-      metrics,
-      "comments",
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    getMetric(metrics, "comments"),
+    getMetric(metrics, "views"),
   );
 }
 
-export function reviewRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): number {
+export function reviewRate(metrics: Metrics): number {
   return percentage(
-    getMetric(
-      metrics,
-      "reviews",
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    getMetric(metrics, "reviews"),
+    getMetric(metrics, "views"),
   );
 }
 
-export function shareRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): number {
+export function shareRate(metrics: Metrics): number {
   return percentage(
-    getMetric(
-      metrics,
-      "shares",
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    getMetric(metrics, "shares"),
+    getMetric(metrics, "views"),
   );
 }
 
-export function applicationRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): number {
+export function applicationRate(metrics: Metrics): number {
   return percentage(
-    getMetric(
-      metrics,
-      "applications",
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    getMetric(metrics, "applications"),
+    getMetric(metrics, "views"),
   );
 }
 
-export function clickRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): number {
+export function clickRate(metrics: Metrics): number {
   return percentage(
-    getMetric(
-      metrics,
-      "clicks",
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    getMetric(metrics, "clicks"),
+    getMetric(metrics, "views"),
   );
 }
 
-export function uniqueViewRate(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): number {
+export function uniqueViewRate(metrics: Metrics): number {
   return percentage(
-    getMetric(
-      metrics,
-      "unique_views",
-    ),
-    getMetric(
-      metrics,
-      "views",
-    ),
+    getMetric(metrics, "unique_views"),
+    getMetric(metrics, "views"),
   );
 }
 
-// ============================================================
-// DIFFERENCE
-// ============================================================
+export function engagementCount(
+  metrics: Metrics,
+): string {
+  let result = "0";
+
+  const keys = [
+    "reactions",
+    "comments",
+    "replies",
+    "shares",
+    "saves",
+    "applications",
+    "clicks",
+  ];
+
+  for (const key of keys) {
+    result = addMetric(
+      result,
+      getMetric(metrics, key),
+    );
+  }
+
+  return result;
+}
+
+/* ------------------------------------------------------------
+   DIFFERENCES
+   ------------------------------------------------------------ */
 
 export function metricDifference(
   current: MetricValue,
   previous: MetricValue,
-): DecimalString {
-  const currentValue =
-    toBigInt(
-      current,
-    );
-
-  const previousValue =
-    toBigInt(
-      previous,
-    );
-
-  return fromBigInt(
-    currentValue -
-      previousValue,
-  );
+): string {
+  return subtractMetric(current, previous);
 }
-
-// ============================================================
-// PERCENT CHANGE
-// ============================================================
 
 export function metricPercentageChange(
   current: MetricValue,
   previous: MetricValue,
 ): number {
-  const previousValue =
-    toBigInt(
-      previous,
-    );
+  const oldValue = clean(previous);
 
-  if (
-    previousValue === 0n
-  ) {
-    return 0;
+  if (oldValue === "0") {
+    return clean(current) === "0" ? 0 : 100;
   }
 
   return percentage(
-    metricDifference(
-      current,
-      previous,
-    ),
-    previousValue,
+    subtractMetric(current, previous),
+    oldValue,
   );
 }
-
-// ============================================================
-// METRIC SHARE
-// ============================================================
 
 export function metricShare(
   value: MetricValue,
   total: MetricValue,
 ): number {
-  return percentage(
-    value,
-    total,
-  );
+  return percentage(value, total);
 }
 
-// ============================================================
-// FORMAT
-// ============================================================
+/* ------------------------------------------------------------
+   FORMATTING
+   ------------------------------------------------------------ */
 
-export function metricToString(
+export function formatMetricValue(
   value: MetricValue,
-): DecimalString {
-  return normalizeMetricValue(
-    value,
-  );
-}
+): string {
+  const normalized = clean(value);
 
-// ============================================================
-// HUMAN FORMAT
-// ============================================================
+  const n = Number(normalized);
+
+  if (!Number.isFinite(n)) {
+    return normalized;
+  }
+
+  return new Intl.NumberFormat("ru-RU").format(n);
+}
 
 export function formatMetric(
   value: MetricValue,
 ): string {
-  const normalized =
-    normalizeMetricValue(
-      value,
-    );
-
-  const length =
-    normalized.length;
-
-  if (
-    length <= 3
-  ) {
-    return normalized;
-  }
-
-  if (
-    length <= 6
-  ) {
-    return (
-      normalized.slice(
-        0,
-        -3,
-      ) +
-      "K"
-    );
-  }
-
-  if (
-    length <= 9
-  ) {
-    return (
-      normalized.slice(
-        0,
-        -6,
-      ) +
-      "M"
-    );
-  }
-
-  if (
-    length <= 12
-  ) {
-    return (
-      normalized.slice(
-        0,
-        -9,
-      ) +
-      "B"
-    );
-  }
-
-  if (
-    length <= 15
-  ) {
-    return (
-      normalized.slice(
-        0,
-        -12,
-      ) +
-      "T"
-    );
-  }
-
-  /*
-   * Для очень больших значений
-   * показываем точное число,
-   * чтобы администратор мог увидеть
-   * реальное значение.
-   */
-  return normalized;
+  return formatMetricValue(value);
 }
-
-// ============================================================
-// FORMAT PERCENT
-// ============================================================
 
 export function formatMetricPercent(
   value: number,
   decimals = 2,
 ): string {
-  if (
-    !Number.isFinite(
-      value,
-    )
-  ) {
-    return "0%";
-  }
-
-  const factor =
-    Math.pow(
-      10,
-      Math.max(
-        0,
-        Math.min(
-          12,
-          decimals,
-        ),
-      ),
-    );
-
-  const rounded =
-    Math.round(
-      value * factor,
-    ) / factor;
-
-  return `${rounded}%`;
+  return `${value.toFixed(decimals)}%`;
 }
 
-// ============================================================
-// RATING DISTRIBUTION
-// ============================================================
+/* ------------------------------------------------------------
+   RATINGS
+   ------------------------------------------------------------ */
 
-export function createEmptyRatingDistribution():
-  RatingDistribution {
-  return {
-    1: ZERO,
-    2: ZERO,
-    3: ZERO,
-    4: ZERO,
-    5: ZERO,
-  };
-}
-
-// ============================================================
-// CALCULATE RATING AVERAGE
-// ============================================================
-
-export function calculateAverage(
-  values:
-    | MetricValue[]
-    | null
-    | undefined,
-): number {
-  if (
-    !values ||
-    values.length === 0
-  ) {
-    return 0;
-  }
-
-  let total = 0;
-  let count = 0;
-
-  for (
-    const value of values
-  ) {
-    const numeric =
-      Number(
-        normalizeMetricValue(
-          value,
-        ),
-      );
-
-    if (
-      !Number.isFinite(
-        numeric,
-      )
-    ) {
-      continue;
-    }
-
-    total += numeric;
-    count++;
-  }
-
-  if (
-    count === 0
-  ) {
-    return 0;
-  }
-
-  return total / count;
-}
-
-// Compatibility
-export function average(
-  values:
-    | MetricValue[]
-    | null
-    | undefined,
-): number {
-  return calculateAverage(
-    values,
+export function addRating(
+  distribution: RatingDistribution,
+  rating: number,
+): RatingDistribution {
+  const safeRating = Math.min(
+    5,
+    Math.max(1, Math.round(rating)),
   );
-}
 
-// ============================================================
-// RATING SUMMARY
-// ============================================================
+  const key = String(safeRating);
 
-export function calculateRatingSummary(
-  distribution:
-    | Partial<RatingDistribution>
-    | null
-    | undefined,
-): RatingSummary {
-  const result =
-    createEmptyRatingDistribution();
-
-  if (distribution) {
-    for (
-      const key of [
-        1,
-        2,
-        3,
-        4,
-        5,
-      ] as const
-    ) {
-      result[key] =
-        normalizeMetricValue(
-          distribution[key],
-        );
-    }
-  }
-
-  let total = 0n;
-  let weighted = 0n;
-
-  for (
-    const rating of [
+  return {
+    ...distribution,
+    [key]: addMetric(
+      distribution[key],
       1,
-      2,
-      3,
-      4,
-      5,
-    ] as const
-  ) {
-    const count =
-      toBigInt(
-        result[rating],
-      );
-
-    total += count;
-
-    weighted +=
-      count *
-      BigInt(
-        rating,
-      );
-  }
-
-  let averageValue = 0;
-
-  if (
-    total > 0n
-  ) {
-    /*
-     * Для среднего рейтинга
-     * точность до 2 знаков.
-     */
-    const weightedNumber =
-      Number(
-        weighted.toString(),
-      );
-
-    const totalNumber =
-      Number(
-        total.toString(),
-      );
-
-    if (
-      Number.isFinite(
-        weightedNumber,
-      ) &&
-      Number.isFinite(
-        totalNumber,
-      ) &&
-      totalNumber !== 0
-    ) {
-      averageValue =
-        Math.round(
-          (
-            weightedNumber /
-            totalNumber
-          ) *
-            100,
-        ) / 100;
-    }
-  }
-
-  return {
-    average:
-      averageValue,
-
-    total:
-      fromBigInt(
-        total,
-      ),
-
-    distribution:
-      result,
-
-    oneStar:
-      result[1],
-
-    twoStar:
-      result[2],
-
-    threeStar:
-      result[3],
-
-    fourStar:
-      result[4],
-
-    fiveStar:
-      result[5],
+    ),
   };
 }
 
-// ============================================================
-// RATING FROM VALUES
-// ============================================================
+export function ratingSum(
+  distribution: RatingDistribution,
+): string {
+  let result = "0";
 
-export function ratingSummaryFromValues(
-  ratings:
-    | MetricValue[]
-    | null
-    | undefined,
-): RatingSummary {
-  const distribution =
-    createEmptyRatingDistribution();
-
-  if (!ratings) {
-    return calculateRatingSummary(
+  for (let rating = 1; rating <= 5; rating++) {
+    const count = getMetric(
       distribution,
+      String(rating),
     );
-  }
 
-  for (
-    const value of ratings
-  ) {
-    const numeric =
-      Number(
-        normalizeMetricValue(
-          value,
-        ),
-      );
-
-    if (
-      !Number.isInteger(
-        numeric,
-      )
-    ) {
-      continue;
-    }
-
-    if (
-      numeric < 1 ||
-      numeric > 5
-    ) {
-      continue;
-    }
-
-    const rating =
-      numeric as
-        | 1
-        | 2
-        | 3
-        | 4
-        | 5;
-
-    distribution[rating] =
-      addMetric(
-        distribution[rating],
-        1,
-      );
-  }
-
-  return calculateRatingSummary(
-    distribution,
-  );
-}
-
-// ============================================================
-// COMPARE METRICS
-// ============================================================
-
-export function compareMetrics(
-  current:
-    | Metrics
-    | NormalizedMetrics,
-  previous:
-    | Metrics
-    | NormalizedMetrics,
-): MetricChange[] {
-  const keys =
-    new Set<string>([
-      ...Object.keys(
-        current ?? {},
-      ),
-      ...Object.keys(
-        previous ?? {},
-      ),
-    ]);
-
-  const result:
-    MetricChange[] = [];
-
-  for (
-    const key of keys
-  ) {
-    const currentValue =
-      getMetric(
-        current,
-        key,
-      );
-
-    const previousValue =
-      getMetric(
-        previous,
-        key,
-      );
-
-    const comparison =
-      compareMetricValues(
-        currentValue,
-        previousValue,
-      );
-
-    result.push({
-      key,
-
-      previous:
-        previousValue,
-
-      current:
-        currentValue,
-
-      difference:
-        metricDifference(
-          currentValue,
-          previousValue,
-        ),
-
-      percentage:
-        metricPercentageChange(
-          currentValue,
-          previousValue,
-        ),
-
-      increased:
-        comparison > 0,
-
-      decreased:
-        comparison < 0,
-
-      unchanged:
-        comparison === 0,
-    });
+    result = addMetric(
+      result,
+      multiplyMetric(count, rating),
+    );
   }
 
   return result;
 }
 
-// ============================================================
-// ZERO / POSITIVE / NEGATIVE
-// ============================================================
+export function multiplyMetric(
+  value: MetricValue,
+  multiplier: MetricValue,
+): string {
+  const a = decimalNumber(value);
+  const b = decimalNumber(multiplier);
+
+  if (
+    Number.isSafeInteger(a) &&
+    Number.isSafeInteger(b)
+  ) {
+    return (
+      BigInt(Math.trunc(a)) *
+      BigInt(Math.trunc(b))
+    ).toString();
+  }
+
+  return String(a * b);
+}
+
+export function calculateAverage(
+  values: Array<MetricValue>,
+): string {
+  if (values.length === 0) return "0";
+
+  let total = "0";
+
+  for (const value of values) {
+    total = addMetric(total, value);
+  }
+
+  return String(
+    decimalNumber(total) / values.length,
+  );
+}
+
+export function buildRatingSummary(
+  distribution: RatingDistribution,
+): RatingSummary {
+  let count = "0";
+
+  for (const value of Object.values(distribution)) {
+    count = addMetric(count, value);
+  }
+
+  const sum = ratingSum(distribution);
+
+  const average =
+    count === "0"
+      ? "0"
+      : String(
+          decimalNumber(sum) /
+            decimalNumber(count),
+        );
+
+  return {
+    average,
+    count,
+    sum,
+    distribution: {
+      ...distribution,
+    },
+  };
+}
+
+export function calculateRatingSummary(
+  ratings: number[],
+): RatingSummary {
+  const distribution: RatingDistribution = {};
+
+  for (let i = 1; i <= 5; i++) {
+    distribution[String(i)] = "0";
+  }
+
+  for (const rating of ratings) {
+    const safe = Math.min(
+      5,
+      Math.max(1, Math.round(rating)),
+    );
+
+    distribution[String(safe)] = addMetric(
+      distribution[String(safe)],
+      1,
+    );
+  }
+
+  return buildRatingSummary(distribution);
+}
+
+/* ------------------------------------------------------------
+   COMPARISON
+   ------------------------------------------------------------ */
+
+export function compareMetrics(
+  a: Metrics,
+  b: Metrics,
+): Record<string, number> {
+  const keys = new Set([
+    ...Object.keys(a),
+    ...Object.keys(b),
+  ]);
+
+  const result: Record<string, number> = {};
+
+  for (const key of keys) {
+    result[key] = compareDecimalStrings(
+      a[key],
+      b[key],
+    );
+  }
+
+  return result;
+}
 
 export function isZeroMetric(
-  value: MetricValue,
+  value: MetricValue | null | undefined,
 ): boolean {
-  return (
-    toBigInt(
-      value,
-    ) === 0n
-  );
+  return clean(value) === "0";
 }
 
 export function isPositiveMetric(
-  value: MetricValue,
+  value: MetricValue | null | undefined,
 ): boolean {
-  return (
-    toBigInt(
-      value,
-    ) > 0n
-  );
+  return compareDecimalStrings(value, "0") > 0;
 }
 
 export function isNegativeMetric(
-  value: MetricValue,
+  value: MetricValue | null | undefined,
 ): boolean {
-  /*
-   * Метрики системы не должны
-   * быть отрицательными.
-   *
-   * Поэтому функция сохранена
-   * для совместимости и всегда
-   * возвращает false.
-   */
-  return false;
+  return compareDecimalStrings(value, "0") < 0;
 }
-
-// ============================================================
-// KEYS
-// ============================================================
 
 export function metricKeys(
-  metrics:
-    | Metrics
-    | NormalizedMetrics
-    | null
-    | undefined,
+  metrics: Metrics | null | undefined,
 ): string[] {
-  if (!metrics) {
-    return [];
-  }
-
-  return Object.keys(
-    metrics,
-  );
+  return metrics ? Object.keys(metrics) : [];
 }
-
-// ============================================================
-// HAS KEY
-// ============================================================
 
 export function hasMetricKey(
-  metrics:
-    | Metrics
-    | NormalizedMetrics
-    | null
-    | undefined,
-  key:
-    | MetricKey
-    | string,
+  metrics: Metrics | null | undefined,
+  key: MetricKey,
 ): boolean {
-  if (!metrics) {
-    return false;
-  }
-
-  return Object.prototype.hasOwnProperty.call(
+  return !!metrics && Object.prototype.hasOwnProperty.call(
     metrics,
-    key,
+    String(key),
   );
 }
-
-// ============================================================
-// SUM VALUES
-// ============================================================
 
 export function sum(
-  values:
-    | MetricValue[]
-    | null
-    | undefined,
-): DecimalString {
-  if (
-    !values ||
-    values.length === 0
-  ) {
-    return ZERO;
+  values: Array<MetricValue>,
+): string {
+  let result = "0";
+
+  for (const value of values) {
+    result = addMetric(result, value);
   }
-
-  let total = 0n;
-
-  for (
-    const value of values
-  ) {
-    total += toBigInt(
-      value,
-    );
-  }
-
-  return fromBigInt(
-    total,
-  );
-}
-
-// ============================================================
-// DEFAULT METRICS
-// ============================================================
-
-export function createEmptyMetrics():
-  NormalizedMetrics {
-  return {
-    views: ZERO,
-    unique_views: ZERO,
-
-    likes: ZERO,
-    reactions: ZERO,
-
-    comments: ZERO,
-    replies: ZERO,
-
-    shares: ZERO,
-    saves: ZERO,
-    bookmarks: ZERO,
-
-    reviews: ZERO,
-    ratings: ZERO,
-
-    applications: ZERO,
-    clicks: ZERO,
-    contacts: ZERO,
-
-    followers: ZERO,
-    mentions: ZERO,
-
-    reports: ZERO,
-    impressions: ZERO,
-
-    engagements: ZERO,
-    positive_engagements: ZERO,
-    negative_engagements: ZERO,
-  };
-}
-
-// ============================================================
-// UPDATE ENGAGEMENTS
-// ============================================================
-
-export function recalculateEngagements(
-  metrics:
-    | Metrics
-    | NormalizedMetrics,
-): NormalizedMetrics {
-  const result =
-    normalizeMetrics(
-      metrics,
-    );
-
-  const engagement =
-    engagementCount(
-      result,
-    );
-
-  result.engagements =
-    engagement;
 
   return result;
 }
 
-// ============================================================
-// EXPORT DEFAULT
-// ============================================================
-
-export default {
-  normalizeMetricValue,
-  normalizeMetrics,
-
-  getMetric,
-  setMetric,
-
-  addMetric,
-  subtractMetric,
-
-  compareMetricValues,
-  compareDecimalStrings,
-
-  incrementMetric,
-  decrementMetric,
-
-  applyMetricChanges,
-  incrementMetrics,
-  decrementMetrics,
-
-  mergeMetrics,
-  sumMetrics,
-  totalMetrics,
-
-  engagementCount,
-
-  ratio,
-  percentage,
-
-  interactionRate,
-  reactionRate,
-  commentRate,
-  reviewRate,
-  shareRate,
-  applicationRate,
-  clickRate,
-  uniqueViewRate,
-
-  metricDifference,
-  metricPercentageChange,
-  metricShare,
-
-  metricToString,
-  formatMetric,
-  formatMetricPercent,
-
-  createEmptyRatingDistribution,
-  calculateAverage,
-  average,
-
-  calculateRatingSummary,
-  ratingSummaryFromValues,
-
-  compareMetrics,
-
-  isZeroMetric,
-  isPositiveMetric,
-  isNegativeMetric,
-
-  metricKeys,
-  hasMetricKey,
-
-  sum,
-
-  createEmptyMetrics,
-  recalculateEngagements,
-};
+export function average(
+  values: Array<MetricValue>,
+): string {
+  return calculateAverage(values);
+      }
