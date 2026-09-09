@@ -4,52 +4,41 @@
 // Version: 2026.09.10
 // ============================================================
 //
-// Центральный модуль конфигурации и типизации подсистемы отзывов.
+// Центральный модуль констант и типов системы отзывов.
 //
-// Основные задачи:
-// - статусы и жизненный цикл отзывов
-// - типы отзывов и ответов
-// - рейтинги
-// - авторы и режимы видимости
-// - источники данных
-// - верификация
-// - модерация
-// - жалобы
-// - реакции
-// - сортировка
-// - поиск
-// - фильтрация
-// - метрики
-// - счётчики
-// - история
-// - уведомления
-// - права доступа
-// - bulk operations
-// - экспорт / импорт
-// - feature flags
-// - безопасные переходы состояний
-// - backward compatibility
+// Принципы:
+// - стабильный public API;
+// - backward compatibility;
+// - строгая типизация;
+// - минимум дублирования;
+// - безопасные validators/normalizers;
+// - единый lifecycle отзывов;
+// - готовность к большим services/reviews.ts;
+// - отсутствие зависимости от БД / HTTP / runtime.
 //
-// ВАЖНО:
-// Файл не содержит бизнес-логику БД и не зависит от services.
-// Он является стабильным API-слоем для остальных модулей.
+// Этот файл содержит только:
+// - constants;
+// - literal types;
+// - validators;
+// - normalizers;
+// - pure helpers.
+//
 // ============================================================
 
 // ============================================================
-// BASIC LANGUAGE TYPES
+// LANGUAGE
 // ============================================================
-
-export type ReviewLanguage =
-  | "ru"
-  | "tj";
 
 export const REVIEW_LANGUAGES = {
   RU: "ru",
   TJ: "tj",
 } as const;
 
+export type ReviewLanguage =
+  (typeof REVIEW_LANGUAGES)[keyof typeof REVIEW_LANGUAGES];
+
 // ============================================================
-// REVIEW TYPES
+// REVIEW TYPE
 // ============================================================
 
 export const REVIEW_TYPES = {
@@ -62,7 +51,7 @@ export type ReviewType =
   (typeof REVIEW_TYPES)[keyof typeof REVIEW_TYPES];
 
 // ============================================================
-// REVIEW STATUSES
+// REVIEW STATUS
 // ============================================================
 
 export const REVIEW_STATUSES = {
@@ -73,8 +62,6 @@ export const REVIEW_STATUSES = {
   REJECTED: "rejected",
   DELETED: "deleted",
   ARCHIVED: "archived",
-
-  // Compatibility with moderation services.
   SPAM: "spam",
 } as const;
 
@@ -85,20 +72,15 @@ export type ReviewStatusValue =
   ReviewStatus;
 
 // ============================================================
-// STATUS GROUPS
+// STATUS COLLECTIONS
 // ============================================================
 
 export const REVIEW_PUBLIC_STATUSES = [
   REVIEW_STATUSES.PUBLISHED,
 ] as const;
 
-export const REVIEW_ACTIVE_STATUSES = [
-  REVIEW_STATUSES.PENDING,
+export const REVIEW_VISIBLE_STATUSES = [
   REVIEW_STATUSES.PUBLISHED,
-  REVIEW_STATUSES.HIDDEN,
-  REVIEW_STATUSES.REJECTED,
-  REVIEW_STATUSES.ARCHIVED,
-  REVIEW_STATUSES.SPAM,
 ] as const;
 
 export const REVIEW_MODERATION_STATUSES = [
@@ -112,6 +94,10 @@ export const REVIEW_MODERATION_STATUSES = [
 ] as const;
 
 export const REVIEW_DELETED_STATUSES = [
+  REVIEW_STATUSES.DELETED,
+] as const;
+
+export const REVIEW_TERMINAL_STATUSES = [
   REVIEW_STATUSES.DELETED,
 ] as const;
 
@@ -147,37 +133,99 @@ export const REVIEW_STATUS_LABELS_TJ: Record<
   spam: "Спам",
 };
 
-// ============================================================
-// STATUS DESCRIPTIONS
-// ============================================================
-
 export const REVIEW_STATUS_DESCRIPTIONS: Record<
   ReviewStatus,
   string
 > = {
   draft:
-    "Отзыв ещё не отправлен на публикацию и находится в черновике.",
+    "Отзыв находится в черновике и ещё не отправлен на публикацию.",
 
   pending:
     "Отзыв ожидает проверки модератором.",
 
   published:
-    "Отзыв доступен пользователям.",
+    "Отзыв опубликован и доступен пользователям.",
 
   hidden:
-    "Отзыв временно скрыт от обычных пользователей.",
+    "Отзыв временно скрыт от публичного просмотра.",
 
   rejected:
     "Отзыв отклонён модерацией.",
 
   deleted:
-    "Отзыв помечен как удалённый.",
+    "Отзыв удалён.",
 
   archived:
     "Отзыв перенесён в архив.",
 
   spam:
-    "Отзыв распознан или помечен как спам.",
+    "Отзыв помечен как спам.",
+};
+
+// ============================================================
+// STATUS TRANSITIONS
+// ============================================================
+
+export const REVIEW_STATUS_TRANSITIONS: Record<
+  ReviewStatus,
+  readonly ReviewStatus[]
+> = {
+  draft: [
+    REVIEW_STATUSES.PENDING,
+    REVIEW_STATUSES.DELETED,
+  ],
+
+  pending: [
+    REVIEW_STATUSES.PUBLISHED,
+    REVIEW_STATUSES.REJECTED,
+    REVIEW_STATUSES.HIDDEN,
+    REVIEW_STATUSES.SPAM,
+    REVIEW_STATUSES.DELETED,
+  ],
+
+  published: [
+    REVIEW_STATUSES.HIDDEN,
+    REVIEW_STATUSES.SPAM,
+    REVIEW_STATUSES.ARCHIVED,
+    REVIEW_STATUSES.DELETED,
+  ],
+
+  hidden: [
+    REVIEW_STATUSES.PUBLISHED,
+    REVIEW_STATUSES.REJECTED,
+    REVIEW_STATUSES.SPAM,
+    REVIEW_STATUSES.ARCHIVED,
+    REVIEW_STATUSES.DELETED,
+  ],
+
+  rejected: [
+    REVIEW_STATUSES.PENDING,
+    REVIEW_STATUSES.PUBLISHED,
+    REVIEW_STATUSES.SPAM,
+    REVIEW_STATUSES.ARCHIVED,
+    REVIEW_STATUSES.DELETED,
+  ],
+
+  deleted: [
+    REVIEW_STATUSES.PENDING,
+    REVIEW_STATUSES.PUBLISHED,
+    REVIEW_STATUSES.HIDDEN,
+    REVIEW_STATUSES.ARCHIVED,
+  ],
+
+  archived: [
+    REVIEW_STATUSES.PENDING,
+    REVIEW_STATUSES.PUBLISHED,
+    REVIEW_STATUSES.DELETED,
+  ],
+
+  spam: [
+    REVIEW_STATUSES.PENDING,
+    REVIEW_STATUSES.PUBLISHED,
+    REVIEW_STATUSES.HIDDEN,
+    REVIEW_STATUSES.ARCHIVED,
+    REVIEW_STATUSES.DELETED,
+  ],
 };
 
 // ============================================================
@@ -188,7 +236,6 @@ export const REVIEW_ACTIONS = {
   CREATE: "create",
   UPDATE: "update",
   EDIT: "edit",
-
   SUBMIT: "submit",
 
   APPROVE: "approve",
@@ -249,11 +296,11 @@ export const REVIEW_ACTIONS = {
   CHANGE_SOURCE:
     "change_source",
 
-  CHANGE_VERIFICATION:
-    "change_verification",
-
   CHANGE_TARGET:
     "change_target",
+
+  CHANGE_VERIFICATION:
+    "change_verification",
 } as const;
 
 export type ReviewAction =
@@ -340,16 +387,12 @@ export type ReviewRating =
   (typeof REVIEW_RATINGS)[keyof typeof REVIEW_RATINGS];
 
 export const REVIEW_RATING_VALUES: ReviewRating[] = [
-  REVIEW_RATINGS.ONE,
-  REVIEW_RATINGS.TWO,
-  REVIEW_RATINGS.THREE,
-  REVIEW_RATINGS.FOUR,
-  REVIEW_RATINGS.FIVE,
+  1,
+  2,
+  3,
+  4,
+  5,
 ];
-
-// ============================================================
-// RATING LABELS
-// ============================================================
 
 export const REVIEW_RATING_LABELS: Record<
   ReviewRating,
@@ -422,7 +465,8 @@ export const REVIEW_RATING_DISTRIBUTION_KEYS = {
   5: "rating_5",
 } as const;
 
-export function createEmptyRatingDistribution(): ReviewRatingDistribution {
+export function createEmptyRatingDistribution():
+  ReviewRatingDistribution {
   return {
     1: 0,
     2: 0,
@@ -450,34 +494,9 @@ export function normalizeRatingDistribution(
   };
 }
 
-export function calculateRatingAverage(
-  distribution: ReviewRatingDistribution,
-): number {
-  const total =
-    distribution[1] +
-    distribution[2] +
-    distribution[3] +
-    distribution[4] +
-    distribution[5];
-
-  if (total <= 0) {
-    return 0;
-  }
-
-  const sum =
-    distribution[1] * 1 +
-    distribution[2] * 2 +
-    distribution[3] * 3 +
-    distribution[4] * 4 +
-    distribution[5] * 5;
-
-  return Number(
-    (sum / total).toFixed(2),
-  );
-}
-
 export function getRatingDistributionTotal(
-  distribution: ReviewRatingDistribution,
+  distribution:
+    ReviewRatingDistribution,
 ): number {
   return (
     distribution[1] +
@@ -488,8 +507,64 @@ export function getRatingDistributionTotal(
   );
 }
 
+export function calculateRatingAverage(
+  distribution:
+    ReviewRatingDistribution,
+): number {
+  const total =
+    getRatingDistributionTotal(
+      distribution,
+    );
+
+  if (total <= 0) {
+    return 0;
+  }
+
+  const weighted =
+    distribution[1] * 1 +
+    distribution[2] * 2 +
+    distribution[3] * 3 +
+    distribution[4] * 4 +
+    distribution[5] * 5;
+
+  return Number(
+    (weighted / total).toFixed(2),
+  );
+}
+
+export function addRatingToDistribution(
+  distribution:
+    ReviewRatingDistribution,
+  rating: ReviewRating,
+  amount = 1,
+): ReviewRatingDistribution {
+  return {
+    ...distribution,
+    [rating]:
+      distribution[rating] +
+      normalizeCounter(amount),
+  };
+}
+
+export function removeRatingFromDistribution(
+  distribution:
+    ReviewRatingDistribution,
+  rating: ReviewRating,
+  amount = 1,
+): ReviewRatingDistribution {
+  return {
+    ...distribution,
+    [rating]: Math.max(
+      0,
+      distribution[rating] -
+        normalizeCounter(amount),
+    ),
+  };
+}
+
 export function getRatingPercentage(
-  distribution: ReviewRatingDistribution,
+  distribution:
+    ReviewRatingDistribution,
   rating: ReviewRating,
 ): number {
   const total =
@@ -508,40 +583,6 @@ export function getRatingPercentage(
       100
     ).toFixed(2),
   );
-}
-
-export function addRatingToDistribution(
-  distribution: ReviewRatingDistribution,
-  rating: ReviewRating,
-  amount = 1,
-): ReviewRatingDistribution {
-  const safeAmount =
-    normalizeCounter(amount);
-
-  return {
-    ...distribution,
-    [rating]:
-      distribution[rating] +
-      safeAmount,
-  };
-}
-
-export function removeRatingFromDistribution(
-  distribution: ReviewRatingDistribution,
-  rating: ReviewRating,
-  amount = 1,
-): ReviewRatingDistribution {
-  const safeAmount =
-    normalizeCounter(amount);
-
-  return {
-    ...distribution,
-    [rating]: Math.max(
-      0,
-      distribution[rating] -
-        safeAmount,
-    ),
-  };
 }
 
 // ============================================================
@@ -567,7 +608,7 @@ export const REVIEW_SOURCE_TYPES = {
 export type ReviewSourceType =
   (typeof REVIEW_SOURCE_TYPES)[keyof typeof REVIEW_SOURCE_TYPES];
 
-// Legacy compatibility.
+// Compatibility aliases.
 export const REVIEW_SOURCES =
   REVIEW_SOURCE_TYPES;
 
@@ -591,12 +632,71 @@ export const REVIEW_VERIFICATION_STATES = {
 export type ReviewVerificationState =
   (typeof REVIEW_VERIFICATION_STATES)[keyof typeof REVIEW_VERIFICATION_STATES];
 
-// Legacy compatibility.
 export const REVIEW_VERIFICATION_TYPES =
   REVIEW_VERIFICATION_STATES;
 
 export type ReviewVerificationType =
   ReviewVerificationState;
+
+// ============================================================
+// SORTING
+// ============================================================
+
+export const REVIEW_SORTS = {
+  NEWEST: "newest",
+  OLDEST: "oldest",
+
+  HIGHEST_RATING:
+    "highest_rating",
+
+  LOWEST_RATING:
+    "lowest_rating",
+
+  MOST_HELPFUL:
+    "most_helpful",
+
+  MOST_REACTIONS:
+    "most_reactions",
+
+  MOST_REPORTED:
+    "most_reported",
+
+  MOST_DISCUSSION:
+    "most_discussion",
+
+  FEATURED:
+    "featured",
+
+  PINNED:
+    "pinned",
+} as const;
+
+export type ReviewSort =
+  (typeof REVIEW_SORTS)[keyof typeof REVIEW_SORTS];
+
+export const REVIEW_SORT_DIRECTIONS = {
+  ASC: "asc",
+  DESC: "desc",
+} as const;
+
+export type ReviewSortDirection =
+  (typeof REVIEW_SORT_DIRECTIONS)[keyof typeof REVIEW_SORT_DIRECTIONS];
+
+export const REVIEW_SORT_FIELD_MAP: Record<
+  ReviewSort,
+  string
+> = {
+  newest: "created_at",
+  oldest: "created_at",
+  highest_rating: "rating",
+  lowest_rating: "rating",
+  most_helpful: "helpful_count",
+  most_reactions: "reactions_count",
+  most_reported: "reports_count",
+  most_discussion: "replies_count",
+  featured: "featured",
+  pinned: "pinned",
+};
 
 // ============================================================
 // REPORT TYPES
@@ -632,8 +732,7 @@ export const REVIEW_REPORT_TYPES = {
   MANIPULATED_RATING:
     "manipulated_rating",
 
-  OTHER:
-    "other",
+  OTHER: "other",
 } as const;
 
 export type ReviewReportType =
@@ -691,8 +790,14 @@ export type ReviewReportAction =
 // ============================================================
 // MODERATION ACTIONS
 // ============================================================
+//
+// REVIEW намеренно присутствует: старый сервис использует
+// REVIEW как действие постановки жалобы/объекта на модерацию.
+// ============================================================
 
 export const REVIEW_MODERATION_ACTIONS = {
+  REVIEW: "review",
+
   APPROVE: "approve",
   REJECT: "reject",
 
@@ -770,84 +875,7 @@ export type ReviewModerationReason =
   (typeof REVIEW_MODERATION_REASONS)[keyof typeof REVIEW_MODERATION_REASONS];
 
 // ============================================================
-// SORTS
-// ============================================================
-
-export const REVIEW_SORTS = {
-  NEWEST: "newest",
-  OLDEST: "oldest",
-
-  HIGHEST_RATING:
-    "highest_rating",
-
-  LOWEST_RATING:
-    "lowest_rating",
-
-  MOST_HELPFUL:
-    "most_helpful",
-
-  MOST_REACTIONS:
-    "most_reactions",
-
-  MOST_REPORTED:
-    "most_reported",
-
-  MOST_DISCUSSION:
-    "most_discussion",
-
-  FEATURED:
-    "featured",
-
-  PINNED:
-    "pinned",
-} as const;
-
-export type ReviewSort =
-  (typeof REVIEW_SORTS)[keyof typeof REVIEW_SORTS];
-
-export const REVIEW_SORT_DIRECTIONS = {
-  ASC: "asc",
-  DESC: "desc",
-} as const;
-
-export type ReviewSortDirection =
-  (typeof REVIEW_SORT_DIRECTIONS)[keyof typeof REVIEW_SORT_DIRECTIONS];
-
-// ============================================================
-// SORT FIELD MAP
-// ============================================================
-
-export const REVIEW_SORT_FIELD_MAP: Record<
-  ReviewSort,
-  string
-> = {
-  newest: "created_at",
-  oldest: "created_at",
-
-  highest_rating: "rating",
-  lowest_rating: "rating",
-
-  most_helpful:
-    "helpful_count",
-
-  most_reactions:
-    "reactions_count",
-
-  most_reported:
-    "reports_count",
-
-  most_discussion:
-    "replies_count",
-
-  featured:
-    "featured",
-
-  pinned:
-    "pinned",
-};
-
-// ============================================================
-// REACTION TARGETS
+// REACTIONS
 // ============================================================
 
 export const REVIEW_REACTION_TARGETS = {
@@ -857,6 +885,17 @@ export const REVIEW_REACTION_TARGETS = {
 
 export type ReviewReactionTarget =
   (typeof REVIEW_REACTION_TARGETS)[keyof typeof REVIEW_REACTION_TARGETS];
+
+export const REVIEW_REACTION_TYPES = {
+  LIKE: "like",
+  HELPFUL: "helpful",
+  THANKS: "thanks",
+  SUPPORT: "support",
+  INTERESTING: "interesting",
+} as const;
+
+export type ReviewReactionType =
+  (typeof REVIEW_REACTION_TYPES)[keyof typeof REVIEW_REACTION_TYPES];
 
 // ============================================================
 // METRICS
@@ -1012,7 +1051,7 @@ export type ReviewSearchField =
   (typeof REVIEW_SEARCH_FIELDS)[number];
 
 // ============================================================
-// EDITABLE ADMIN FIELDS
+// ADMIN EDITABLE FIELDS
 // ============================================================
 
 export const REVIEW_EDITABLE_ADMIN_FIELDS = [
@@ -1049,11 +1088,12 @@ export type ReviewEditableAdminField =
   (typeof REVIEW_EDITABLE_ADMIN_FIELDS)[number];
 
 // ============================================================
-// HISTORY
+// HISTORY ACTIONS
 // ============================================================
 
 export const REVIEW_HISTORY_ACTIONS = {
   CREATED: "created",
+
   UPDATED: "updated",
   EDITED: "edited",
 
@@ -1155,7 +1195,7 @@ export type ReviewBulkAction =
   (typeof REVIEW_BULK_ACTIONS)[keyof typeof REVIEW_BULK_ACTIONS];
 
 // ============================================================
-// EVENTS
+// EVENT TYPES
 // ============================================================
 
 export const REVIEW_EVENT_TYPES = {
@@ -1418,28 +1458,15 @@ export const REVIEW_ADMIN_ACTIONS = {
 
   EDIT_TEXT: "edit_text",
   EDIT_TITLE: "edit_title",
-
-  EDIT_RATING:
-    "edit_rating",
-
-  EDIT_AUTHOR:
-    "edit_author",
-
-  EDIT_STATUS:
-    "edit_status",
-
-  EDIT_DATE:
-    "edit_date",
-
+  EDIT_RATING: "edit_rating",
+  EDIT_AUTHOR: "edit_author",
+  EDIT_STATUS: "edit_status",
+  EDIT_DATE: "edit_date",
   EDIT_VISIBILITY:
     "edit_visibility",
 
-  SET_VIEWS:
-    "set_views",
-
-  SET_HELPFUL:
-    "set_helpful",
-
+  SET_VIEWS: "set_views",
+  SET_HELPFUL: "set_helpful",
   SET_NOT_HELPFUL:
     "set_not_helpful",
 
@@ -1461,11 +1488,8 @@ export const REVIEW_ADMIN_ACTIONS = {
   REMOVE_REACTION:
     "remove_reaction",
 
-  VERIFY:
-    "verify",
-
-  UNVERIFY:
-    "unverify",
+  VERIFY: "verify",
+  UNVERIFY: "unverify",
 
   RESTORE_VERSION:
     "restore_version",
@@ -1473,8 +1497,7 @@ export const REVIEW_ADMIN_ACTIONS = {
   VIEW_HISTORY:
     "view_history",
 
-  EXPORT:
-    "export",
+  EXPORT: "export",
 } as const;
 
 export type ReviewAdminAction =
@@ -1485,11 +1508,11 @@ export type ReviewAdminAction =
 // ============================================================
 
 export const REVIEW_DEFAULTS = {
-  STATUS:
-    REVIEW_STATUSES.PENDING,
-
   TYPE:
     REVIEW_TYPES.REVIEW,
+
+  STATUS:
+    REVIEW_STATUSES.PENDING,
 
   AUTHOR_MODE:
     REVIEW_AUTHOR_MODES.PUBLIC,
@@ -1541,17 +1564,14 @@ export const REVIEW_LIMITS = {
   TEXT_MAX: 5000,
 
   SHORT_TEXT_MAX: 500,
-
   PREVIEW_MAX: 300,
 
   IMAGES_MAX: 10,
 
   REPLIES_MAX: 100,
-
   REPLY_MAX: 100,
 
   MENTIONS_MAX: 20,
-
   LINKS_MAX: 20,
 
   REACTIONS_PER_REVIEW:
@@ -1563,9 +1583,8 @@ export const REVIEW_LIMITS = {
   EDIT_WINDOW_MINUTES:
     60 * 24 * 7,
 
-  MAX_RATING: 5,
-
   MIN_RATING: 1,
+  MAX_RATING: 5,
 
   PAGE_MAX: 100,
 
@@ -1577,12 +1596,73 @@ export const REVIEW_LIMITS = {
 } as const;
 
 // ============================================================
+// SEARCH LIMITS
+// ============================================================
+
+export const REVIEW_SEARCH_LIMITS = {
+  MIN_QUERY_LENGTH: 1,
+  MAX_QUERY_LENGTH: 200,
+  MAX_RESULTS: 100,
+  MAX_TERMS: 20,
+} as const;
+
+// ============================================================
+// REPORT DEFAULTS
+// ============================================================
+
+export const REVIEW_REPORT_DEFAULTS = {
+  STATUS:
+    REVIEW_REPORT_STATUSES.OPEN,
+
+  PRIORITY:
+    REVIEW_REPORT_PRIORITIES.NORMAL,
+
+  TYPE:
+    REVIEW_REPORT_TYPES.OTHER,
+} as const;
+
+// ============================================================
+// MODERATION DEFAULTS
+// ============================================================
+
+export const REVIEW_MODERATION_DEFAULTS = {
+  STATUS:
+    REVIEW_STATUSES.PENDING,
+
+  ACTION:
+    REVIEW_MODERATION_ACTIONS.REVIEW,
+
+  REASON:
+    REVIEW_MODERATION_REASONS.OTHER,
+} as const;
+
+// ============================================================
+// QUERY DEFAULTS
+// ============================================================
+
+export const REVIEW_QUERY_DEFAULTS = {
+  PAGE:
+    REVIEW_DEFAULTS.PAGE,
+
+  LIMIT:
+    REVIEW_DEFAULTS.LIMIT,
+
+  MAX_LIMIT:
+    REVIEW_DEFAULTS.MAX_LIMIT,
+
+  SORT:
+    REVIEW_SORTS.NEWEST,
+
+  DIRECTION:
+    REVIEW_SORT_DIRECTIONS.DESC,
+} as const;
+
+// ============================================================
 // EXPORT FIELDS
 // ============================================================
 
 export const REVIEW_EXPORT_FIELDS = [
   "id",
-
   "type",
 
   "target_type",
@@ -1594,7 +1674,6 @@ export const REVIEW_EXPORT_FIELDS = [
 
   "title",
   "text",
-
   "rating",
 
   "status",
@@ -1619,57 +1698,26 @@ export const REVIEW_EXPORT_FIELDS = [
 ] as const;
 
 // ============================================================
-// FEATURE FLAGS
+// FEATURES
 // ============================================================
 
 export const REVIEW_FEATURES = {
-  ANONYMOUS:
-    true,
-
-  REPLIES:
-    true,
-
-  REACTIONS:
-    true,
-
-  REPORTS:
-    true,
-
-  VERIFICATION:
-    true,
-
-  MODERATION:
-    true,
-
-  HISTORY:
-    true,
-
-  FEATURED:
-    true,
-
-  PINNED:
-    true,
-
-  SEARCH:
-    true,
-
-  FILTERS:
-    true,
-
-  ANALYTICS:
-    true,
-
-  EXPORT:
-    true,
-
-  IMPORT:
-    true,
-
-  NOTIFICATIONS:
-    true,
-
-  BULK_OPERATIONS:
-    true,
+  ANONYMOUS: true,
+  REPLIES: true,
+  REACTIONS: true,
+  REPORTS: true,
+  VERIFICATION: true,
+  MODERATION: true,
+  HISTORY: true,
+  FEATURED: true,
+  PINNED: true,
+  SEARCH: true,
+  FILTERS: true,
+  ANALYTICS: true,
+  EXPORT: true,
+  IMPORT: true,
+  NOTIFICATIONS: true,
+  BULK_OPERATIONS: true,
 } as const;
 
 // ============================================================
@@ -1858,18 +1906,87 @@ export function isValidReviewModerationAction(
   );
 }
 
-export function isReviewPublic(
-  status: unknown,
-  visibility:
-    | ReviewVisibility
-    | undefined =
-      REVIEW_VISIBILITY.PUBLIC,
-): boolean {
+export function isValidReviewMetric(
+  value: unknown,
+): value is ReviewMetric {
   return (
-    status ===
-      REVIEW_STATUSES.PUBLISHED &&
-    visibility ===
-      REVIEW_VISIBILITY.PUBLIC
+    typeof value ===
+      "string" &&
+    Object.values(
+      REVIEW_METRICS,
+    ).includes(
+      value as ReviewMetric,
+    )
+  );
+}
+
+export function isValidReviewPermission(
+  value: unknown,
+): value is ReviewPermission {
+  return (
+    typeof value ===
+      "string" &&
+    Object.values(
+      REVIEW_PERMISSIONS,
+    ).includes(
+      value as ReviewPermission,
+    )
+  );
+}
+
+export function isValidReviewAction(
+  value: unknown,
+): value is ReviewAction {
+  return (
+    typeof value ===
+      "string" &&
+    Object.values(
+      REVIEW_ACTIONS,
+    ).includes(
+      value as ReviewAction,
+    )
+  );
+}
+
+export function isValidReviewAdminAction(
+  value: unknown,
+): value is ReviewAdminAction {
+  return (
+    typeof value ===
+      "string" &&
+    Object.values(
+      REVIEW_ADMIN_ACTIONS,
+    ).includes(
+      value as ReviewAdminAction,
+    )
+  );
+}
+
+export function isValidReviewBulkAction(
+  value: unknown,
+): value is ReviewBulkAction {
+  return (
+    typeof value ===
+      "string" &&
+    Object.values(
+      REVIEW_BULK_ACTIONS,
+    ).includes(
+      value as ReviewBulkAction,
+    )
+  );
+}
+
+export function isValidReviewHistoryAction(
+  value: unknown,
+): value is ReviewHistoryAction {
+  return (
+    typeof value ===
+      "string" &&
+    Object.values(
+      REVIEW_HISTORY_ACTIONS,
+    ).includes(
+      value as ReviewHistoryAction,
+    )
   );
 }
 
@@ -1880,17 +1997,19 @@ export function isReviewPublic(
 export function normalizeReviewRating(
   value: unknown,
 ): ReviewRating {
-  const rating =
+  const numeric =
     Number(value);
 
   if (
-    !Number.isFinite(rating)
+    !Number.isFinite(
+      numeric,
+    )
   ) {
     return REVIEW_RATINGS.FIVE;
   }
 
   const rounded =
-    Math.round(rating);
+    Math.round(numeric);
 
   if (
     rounded <
@@ -1996,8 +2115,91 @@ export function normalizeReviewText(
     );
 }
 
+export function normalizeReviewSearchQuery(
+  value: unknown,
+): string {
+  if (
+    typeof value !==
+    "string"
+  ) {
+    return "";
+  }
+
+  return value
+    .trim()
+    .replace(
+      /\s+/g,
+      " ",
+    )
+    .slice(
+      0,
+      REVIEW_SEARCH_LIMITS.MAX_QUERY_LENGTH,
+    );
+}
+
 // ============================================================
-// PRESENTATION
+// COUNTER HELPERS
+// ============================================================
+
+export function normalizeCounter(
+  value: unknown,
+): number {
+  const number =
+    typeof value ===
+      "number"
+      ? value
+      : Number(value);
+
+  if (
+    !Number.isFinite(
+      number,
+    ) ||
+    number < 0
+  ) {
+    return 0;
+  }
+
+  return Math.floor(
+    number,
+  );
+}
+
+export function normalizeBoolean(
+  value: unknown,
+  fallback = false,
+): boolean {
+  if (
+    typeof value ===
+    "boolean"
+  ) {
+    return value;
+  }
+
+  if (
+    value === true ||
+    value === 1 ||
+    value === "1" ||
+    value === "true" ||
+    value === "yes"
+  ) {
+    return true;
+  }
+
+  if (
+    value === false ||
+    value === 0 ||
+    value === "0" ||
+    value === "false" ||
+    value === "no"
+  ) {
+    return false;
+  }
+
+  return fallback;
+}
+
+// ============================================================
+// PRESENTATION HELPERS
 // ============================================================
 
 export function ratingToStars(
@@ -2014,10 +2216,10 @@ export function ratingToStars(
 export function getRatingLabel(
   rating: ReviewRating,
   language:
-    ReviewLanguage = "ru",
+    ReviewLanguage = REVIEW_LANGUAGES.RU,
 ): string {
   return language ===
-    "tj"
+    REVIEW_LANGUAGES.TJ
     ? REVIEW_RATING_LABELS_TJ[
         rating
       ]
@@ -2029,10 +2231,10 @@ export function getRatingLabel(
 export function getRatingDescription(
   rating: ReviewRating,
   language:
-    ReviewLanguage = "ru",
+    ReviewLanguage = REVIEW_LANGUAGES.RU,
 ): string {
   return language ===
-    "tj"
+    REVIEW_LANGUAGES.TJ
     ? REVIEW_RATING_DESCRIPTIONS_TJ[
         rating
       ]
@@ -2044,10 +2246,10 @@ export function getRatingDescription(
 export function getReviewStatusLabel(
   status: ReviewStatus,
   language:
-    ReviewLanguage = "ru",
+    ReviewLanguage = REVIEW_LANGUAGES.RU,
 ): string {
   return language ===
-    "tj"
+    REVIEW_LANGUAGES.TJ
     ? REVIEW_STATUS_LABELS_TJ[
         status
       ]
@@ -2056,19 +2258,51 @@ export function getReviewStatusLabel(
       ];
 }
 
-export function getReviewStatusDescription(
-  status: ReviewStatus,
-): string {
+// ============================================================
+// PUBLICITY HELPERS
+// ============================================================
+
+export function isPublicReviewStatus(
+  value: unknown,
+): value is "published" {
   return (
-    REVIEW_STATUS_DESCRIPTIONS[
-      status
-    ]
+    value ===
+    REVIEW_STATUSES.PUBLISHED
   );
 }
 
-// ============================================================
-// LIFECYCLE RULES
-// ============================================================
+export function isDeletedReviewStatus(
+  value: unknown,
+): value is "deleted" {
+  return (
+    value ===
+    REVIEW_STATUSES.DELETED
+  );
+}
+
+export function isSpamReviewStatus(
+  value: unknown,
+): value is "spam" {
+  return (
+    value ===
+    REVIEW_STATUSES.SPAM
+  );
+}
+
+export function isReviewPublic(
+  status: unknown,
+  visibility:
+    | ReviewVisibility
+    | undefined =
+      REVIEW_VISIBILITY.PUBLIC,
+): boolean {
+  return (
+    status ===
+      REVIEW_STATUSES.PUBLISHED &&
+    visibility ===
+      REVIEW_VISIBILITY.PUBLIC
+  );
+}
 
 export function canReviewBePublic(
   status: ReviewStatus,
@@ -2081,6 +2315,41 @@ export function canReviewBePublic(
       REVIEW_STATUSES.PUBLISHED &&
     visibility ===
       REVIEW_VISIBILITY.PUBLIC
+  );
+}
+
+export function shouldReviewAppearInPublicFeed(
+  status: ReviewStatus,
+  visibility: ReviewVisibility,
+  deleted = false,
+): boolean {
+  if (deleted) {
+    return false;
+  }
+
+  return canReviewBePublic(
+    status,
+    visibility,
+  );
+}
+
+// ============================================================
+// LIFECYCLE HELPERS
+// ============================================================
+
+export function canTransitionReviewStatus(
+  from: ReviewStatus,
+  to: ReviewStatus,
+): boolean {
+  if (from === to) {
+    return true;
+  }
+
+  return (
+    REVIEW_STATUS_TRANSITIONS[
+      from
+    ]?.includes(to) ??
+    false
   );
 }
 
@@ -2133,205 +2402,7 @@ export function canModerateReview(
 }
 
 // ============================================================
-// STATUS TRANSITIONS
-// ============================================================
-
-export const REVIEW_STATUS_TRANSITIONS: Record<
-  ReviewStatus,
-  readonly ReviewStatus[]
-> = {
-  draft: [
-    REVIEW_STATUSES.PENDING,
-    REVIEW_STATUSES.DELETED,
-  ],
-
-  pending: [
-    REVIEW_STATUSES.PUBLISHED,
-    REVIEW_STATUSES.REJECTED,
-    REVIEW_STATUSES.HIDDEN,
-    REVIEW_STATUSES.SPAM,
-    REVIEW_STATUSES.DELETED,
-  ],
-
-  published: [
-    REVIEW_STATUSES.HIDDEN,
-    REVIEW_STATUSES.SPAM,
-    REVIEW_STATUSES.DELETED,
-    REVIEW_STATUSES.ARCHIVED,
-  ],
-
-  hidden: [
-    REVIEW_STATUSES.PUBLISHED,
-    REVIEW_STATUSES.REJECTED,
-    REVIEW_STATUSES.SPAM,
-    REVIEW_STATUSES.DELETED,
-    REVIEW_STATUSES.ARCHIVED,
-  ],
-
-  rejected: [
-    REVIEW_STATUSES.PENDING,
-    REVIEW_STATUSES.PUBLISHED,
-    REVIEW_STATUSES.SPAM,
-    REVIEW_STATUSES.DELETED,
-    REVIEW_STATUSES.ARCHIVED,
-  ],
-
-  deleted: [
-    REVIEW_STATUSES.PENDING,
-    REVIEW_STATUSES.PUBLISHED,
-    REVIEW_STATUSES.HIDDEN,
-    REVIEW_STATUSES.ARCHIVED,
-  ],
-
-  archived: [
-    REVIEW_STATUSES.PENDING,
-    REVIEW_STATUSES.PUBLISHED,
-    REVIEW_STATUSES.DELETED,
-  ],
-
-  spam: [
-    REVIEW_STATUSES.PENDING,
-    REVIEW_STATUSES.PUBLISHED,
-    REVIEW_STATUSES.HIDDEN,
-    REVIEW_STATUSES.DELETED,
-    REVIEW_STATUSES.ARCHIVED,
-  ],
-};
-
-export function canTransitionReviewStatus(
-  from: ReviewStatus,
-  to: ReviewStatus,
-): boolean {
-  if (from === to) {
-    return true;
-  }
-
-  return (
-    REVIEW_STATUS_TRANSITIONS[
-      from
-    ]?.includes(to) ??
-    false
-  );
-}
-
-// ============================================================
-// EDIT WINDOW
-// ============================================================
-
-export function isWithinReviewEditWindow(
-  createdAt:
-    | string
-    | number
-    | Date,
-  now = Date.now(),
-): boolean {
-  const timestamp =
-    createdAt instanceof Date
-      ? createdAt.getTime()
-      : typeof createdAt ===
-        "number"
-      ? createdAt
-      : Date.parse(
-          createdAt,
-        );
-
-  if (
-    !Number.isFinite(
-      timestamp,
-    )
-  ) {
-    return false;
-  }
-
-  const ageMinutes =
-    (now - timestamp) /
-    60_000;
-
-  return (
-    ageMinutes >= 0 &&
-    ageMinutes <=
-      REVIEW_LIMITS.EDIT_WINDOW_MINUTES
-  );
-}
-
-// ============================================================
-// BOOLEAN NORMALIZATION
-// ============================================================
-
-export function normalizeBoolean(
-  value: unknown,
-  fallback = false,
-): boolean {
-  if (
-    typeof value ===
-    "boolean"
-  ) {
-    return value;
-  }
-
-  if (
-    value === 1 ||
-    value === "1" ||
-    value === "true" ||
-    value === "yes"
-  ) {
-    return true;
-  }
-
-  if (
-    value === 0 ||
-    value === "0" ||
-    value === "false" ||
-    value === "no"
-  ) {
-    return false;
-  }
-
-  return fallback;
-}
-
-// ============================================================
-// COUNTER NORMALIZATION
-// ============================================================
-
-export function normalizeCounter(
-  value: unknown,
-): number {
-  const number =
-    typeof value ===
-    "number"
-      ? value
-      : Number(value);
-
-  if (
-    !Number.isFinite(number) ||
-    number < 0
-  ) {
-    return 0;
-  }
-
-  return Math.floor(
-    number,
-  );
-}
-
-// ============================================================
-// COUNTER VALIDATION
-// ============================================================
-
-export function isValidReviewCounter(
-  value: unknown,
-): value is number {
-  return (
-    typeof value ===
-      "number" &&
-    Number.isFinite(value) &&
-    value >= 0
-  );
-}
-
-// ============================================================
-// FEATURE / FLAGS
+// FEATURE HELPERS
 // ============================================================
 
 export function isFeaturedReview(
@@ -2355,6 +2426,112 @@ export function isVerifiedReview(
 ): boolean {
   return normalizeBoolean(
     value,
+  );
+}
+
+export function getReviewFeatureState(
+  pinned: unknown,
+  featured: unknown,
+): ReviewFeatureState {
+  if (
+    isPinnedReview(pinned)
+  ) {
+    return REVIEW_FEATURE_STATES.PINNED;
+  }
+
+  if (
+    isFeaturedReview(featured)
+  ) {
+    return REVIEW_FEATURE_STATES.FEATURED;
+  }
+
+  return REVIEW_FEATURE_STATES.NORMAL;
+}
+
+// ============================================================
+// AUTHOR HELPERS
+// ============================================================
+
+export function isPublicAuthorMode(
+  value: unknown,
+): value is "public" {
+  return (
+    value ===
+    REVIEW_AUTHOR_MODES.PUBLIC
+  );
+}
+
+export function isAnonymousAuthorMode(
+  value: unknown,
+): value is "anonymous" {
+  return (
+    value ===
+    REVIEW_AUTHOR_MODES.ANONYMOUS
+  );
+}
+
+export function isHiddenAuthorMode(
+  value: unknown,
+): value is "hidden" {
+  return (
+    value ===
+    REVIEW_AUTHOR_MODES.HIDDEN
+  );
+}
+
+// ============================================================
+// EDIT WINDOW
+// ============================================================
+
+export function isWithinReviewEditWindow(
+  createdAt:
+    | string
+    | number
+    | Date,
+  now = Date.now(),
+): boolean {
+  const timestamp =
+    createdAt instanceof Date
+      ? createdAt.getTime()
+      : typeof createdAt ===
+          "number"
+        ? createdAt
+        : Date.parse(
+            createdAt,
+          );
+
+  if (
+    !Number.isFinite(
+      timestamp,
+    )
+  ) {
+    return false;
+  }
+
+  const ageMinutes =
+    (now - timestamp) /
+    60_000;
+
+  return (
+    ageMinutes >= 0 &&
+    ageMinutes <=
+      REVIEW_LIMITS.EDIT_WINDOW_MINUTES
+  );
+}
+
+// ============================================================
+// SEARCH HELPERS
+// ============================================================
+
+export function isValidReviewSearchField(
+  value: unknown,
+): value is ReviewSearchField {
+  return (
+    typeof value ===
+      "string" &&
+    (
+      REVIEW_SEARCH_FIELDS as readonly string[]
+    ).includes(value)
   );
 }
 
@@ -2405,205 +2582,97 @@ export function getReviewSortField(
 export function getReviewSortDirection(
   sort: ReviewSort,
 ): ReviewSortDirection {
-  if (
-    sort ===
-      REVIEW_SORTS.OLDEST ||
-    sort ===
-      REVIEW_SORTS.LOWEST_RATING
-  ) {
-    return REVIEW_SORT_DIRECTIONS.ASC;
+  switch (sort) {
+    case REVIEW_SORTS.OLDEST:
+    case REVIEW_SORTS.LOWEST_RATING:
+      return REVIEW_SORT_DIRECTIONS.ASC;
+
+    default:
+      return REVIEW_SORT_DIRECTIONS.DESC;
   }
-
-  return REVIEW_SORT_DIRECTIONS.DESC;
 }
 
 // ============================================================
-// ENUM VALIDATORS
+// BULK HELPERS
 // ============================================================
 
-export function isReviewAction(
+export function isBulkReviewActionAllowed(
+  action: ReviewBulkAction,
+  status: ReviewStatus,
+): boolean {
+  switch (action) {
+    case REVIEW_BULK_ACTIONS.DELETE:
+      return canDeleteReview(
+        status,
+      );
+
+    case REVIEW_BULK_ACTIONS.RESTORE:
+      return canRestoreReview(
+        status,
+      );
+
+    case REVIEW_BULK_ACTIONS.APPROVE:
+      return (
+        status ===
+          REVIEW_STATUSES.PENDING ||
+        status ===
+          REVIEW_STATUSES.REJECTED ||
+        status ===
+          REVIEW_STATUSES.HIDDEN
+      );
+
+    case REVIEW_BULK_ACTIONS.REJECT:
+    case REVIEW_BULK_ACTIONS.HIDE:
+    case REVIEW_BULK_ACTIONS.SPAM:
+      return canModerateReview(
+        status,
+      );
+
+    default:
+      return (
+        status !==
+        REVIEW_STATUSES.DELETED
+      );
+  }
+}
+
+// ============================================================
+// STATUS LIST HELPERS
+// ============================================================
+
+export function isActiveReviewStatus(
+  status: ReviewStatus,
+): boolean {
+  return (
+    status !==
+    REVIEW_STATUSES.DELETED
+  );
+}
+
+export function isTerminalReviewStatus(
+  status: ReviewStatus,
+): boolean {
+  return (
+    (
+      REVIEW_TERMINAL_STATUSES as readonly ReviewStatus[]
+    ).includes(status)
+  );
+}
+
+// ============================================================
+// GENERIC VALUE HELPERS
+// ============================================================
+
+export function isNonEmptyString(
   value: unknown,
-): value is ReviewAction {
+): value is string {
   return (
     typeof value ===
       "string" &&
-    Object.values(
-      REVIEW_ACTIONS,
-    ).includes(
-      value as ReviewAction,
-    )
+    value.trim().length >
+      0
   );
 }
-
-export function isReviewAdminAction(
-  value: unknown,
-): value is ReviewAdminAction {
-  return (
-    typeof value ===
-      "string" &&
-    Object.values(
-      REVIEW_ADMIN_ACTIONS,
-    ).includes(
-      value as ReviewAdminAction,
-    )
-  );
-}
-
-export function isReviewBulkAction(
-  value: unknown,
-): value is ReviewBulkAction {
-  return (
-    typeof value ===
-      "string" &&
-    Object.values(
-      REVIEW_BULK_ACTIONS,
-    ).includes(
-      value as ReviewBulkAction,
-    )
-  );
-}
-
-export function isReviewMetric(
-  value: unknown,
-): value is ReviewMetric {
-  return (
-    typeof value ===
-      "string" &&
-    Object.values(
-      REVIEW_METRICS,
-    ).includes(
-      value as ReviewMetric,
-    )
-  );
-}
-
-export function isReviewPermission(
-  value: unknown,
-): value is ReviewPermission {
-  return (
-    typeof value ===
-      "string" &&
-    Object.values(
-      REVIEW_PERMISSIONS,
-    ).includes(
-      value as ReviewPermission,
-    )
-  );
-}
-
-export function isReviewHistoryAction(
-  value: unknown,
-): value is ReviewHistoryAction {
-  return (
-    typeof value ===
-      "string" &&
-    Object.values(
-      REVIEW_HISTORY_ACTIONS,
-    ).includes(
-      value as ReviewHistoryAction,
-    )
-  );
-}
-
-// ============================================================
-// ARRAYS / LISTS
-// ============================================================
-
-export const REVIEW_ALL_STATUSES: ReviewStatus[] =
-  Object.values(
-    REVIEW_STATUSES,
-  );
-
-export const REVIEW_ALL_TYPES: ReviewType[] =
-  Object.values(
-    REVIEW_TYPES,
-  );
-
-export const REVIEW_ALL_SORTS: ReviewSort[] =
-  Object.values(
-    REVIEW_SORTS,
-  );
-
-export const REVIEW_ALL_RATINGS: ReviewRating[] =
-  [...REVIEW_RATING_VALUES];
-
-export const REVIEW_ALL_SOURCES: ReviewSource[] =
-  Object.values(
-    REVIEW_SOURCES,
-  );
-
-export const REVIEW_ALL_VERIFICATION_TYPES: ReviewVerificationType[] =
-  Object.values(
-    REVIEW_VERIFICATION_TYPES,
-  );
-
-// ============================================================
-// DEFAULT REPORT SETTINGS
-// ============================================================
-
-export const REVIEW_REPORT_DEFAULTS = {
-  STATUS:
-    REVIEW_REPORT_STATUSES.OPEN,
-
-  PRIORITY:
-    REVIEW_REPORT_PRIORITIES.NORMAL,
-
-  TYPE:
-    REVIEW_REPORT_TYPES.OTHER,
-} as const;
-
-// ============================================================
-// DEFAULT MODERATION SETTINGS
-// ============================================================
-
-export const REVIEW_MODERATION_DEFAULTS = {
-  STATUS:
-    REVIEW_STATUSES.PENDING,
-
-  ACTION:
-    REVIEW_MODERATION_ACTIONS.REVIEW,
-
-  REASON:
-    REVIEW_MODERATION_REASONS.OTHER,
-} as const;
-
-// ============================================================
-// REVIEW QUERY DEFAULTS
-// ============================================================
-
-export const REVIEW_QUERY_DEFAULTS = {
-  PAGE:
-    REVIEW_DEFAULTS.PAGE,
-
-  LIMIT:
-    REVIEW_DEFAULTS.LIMIT,
-
-  MAX_LIMIT:
-    REVIEW_DEFAULTS.MAX_LIMIT,
-
-  SORT:
-    REVIEW_SORTS.NEWEST,
-
-  DIRECTION:
-    REVIEW_SORT_DIRECTIONS.DESC,
-} as const;
-
-// ============================================================
-// SEARCH LIMITS
-// ============================================================
-
-export const REVIEW_SEARCH_LIMITS = {
-  MIN_QUERY_LENGTH: 1,
-  MAX_QUERY_LENGTH: 200,
-
-  MAX_RESULTS: 100,
-
-  MAX_TERMS: 20,
-} as const;
-
-// ============================================================
-// TEXT QUALITY HELPERS
-// ============================================================
 
 export function isValidReviewTitle(
   value: unknown,
@@ -2615,13 +2684,13 @@ export function isValidReviewTitle(
     return false;
   }
 
-  const title =
+  const normalized =
     value.trim();
 
   return (
-    title.length >=
+    normalized.length >=
       REVIEW_LIMITS.TITLE_MIN &&
-    title.length <=
+    normalized.length <=
       REVIEW_LIMITS.TITLE_MAX
   );
 }
@@ -2636,234 +2705,49 @@ export function isValidReviewText(
     return false;
   }
 
-  const text =
+  const normalized =
     value.trim();
 
   return (
-    text.length >=
+    normalized.length >=
       REVIEW_LIMITS.TEXT_MIN &&
-    text.length <=
+    normalized.length <=
       REVIEW_LIMITS.TEXT_MAX
   );
 }
 
 // ============================================================
-// SEARCH QUERY NORMALIZATION
+// COLLECTIONS
 // ============================================================
 
-export function normalizeReviewSearchQuery(
-  value: unknown,
-): string {
-  if (
-    typeof value !==
-    "string"
-  ) {
-    return "";
-  }
-
-  return value
-    .trim()
-    .replace(
-      /\s+/g,
-      " ",
-    )
-    .slice(
-      0,
-      REVIEW_SEARCH_LIMITS.MAX_QUERY_LENGTH,
-    );
-}
-
-// ============================================================
-// ID / VALUE HELPERS
-// ============================================================
-
-export function isNonEmptyString(
-  value: unknown,
-): value is string {
-  return (
-    typeof value ===
-      "string" &&
-    value.trim().length >
-      0
+export const REVIEW_ALL_STATUSES: ReviewStatus[] =
+  Object.values(
+    REVIEW_STATUSES,
   );
-}
 
-// ============================================================
-// REVIEW PUBLICITY HELPERS
-// ============================================================
-
-export function shouldReviewAppearInPublicFeed(
-  status: ReviewStatus,
-  visibility:
-    ReviewVisibility,
-  deleted = false,
-): boolean {
-  if (deleted) {
-    return false;
-  }
-
-  return (
-    status ===
-      REVIEW_STATUSES.PUBLISHED &&
-    visibility ===
-      REVIEW_VISIBILITY.PUBLIC
+export const REVIEW_ALL_TYPES: ReviewType[] =
+  Object.values(
+    REVIEW_TYPES,
   );
-}
 
-// ============================================================
-// REVIEW OWNERSHIP HELPERS
-// ============================================================
+export const REVIEW_ALL_RATINGS: ReviewRating[] =
+  [...REVIEW_RATING_VALUES];
 
-export function isAnonymousAuthorMode(
-  mode: ReviewAuthorMode,
-): boolean {
-  return (
-    mode ===
-    REVIEW_AUTHOR_MODES.ANONYMOUS
+export const REVIEW_ALL_SORTS: ReviewSort[] =
+  Object.values(
+    REVIEW_SORTS,
   );
-}
 
-export function isHiddenAuthorMode(
-  mode: ReviewAuthorMode,
-): boolean {
-  return (
-    mode ===
-    REVIEW_AUTHOR_MODES.HIDDEN
+export const REVIEW_ALL_SOURCES: ReviewSource[] =
+  Object.values(
+    REVIEW_SOURCES,
   );
-}
 
-export function isPublicAuthorMode(
-  mode: ReviewAuthorMode,
-): boolean {
-  return (
-    mode ===
-    REVIEW_AUTHOR_MODES.PUBLIC
+export const REVIEW_ALL_VERIFICATION_TYPES: ReviewVerificationType[] =
+  Object.values(
+    REVIEW_VERIFICATION_TYPES,
   );
-}
 
 // ============================================================
-// FEATURE STATE HELPERS
-// ============================================================
-
-export function getReviewFeatureState(
-  pinned: unknown,
-  featured: unknown,
-): ReviewFeatureState {
-  if (
-    isPinnedReview(pinned)
-  ) {
-    return REVIEW_FEATURE_STATES.PINNED;
-  }
-
-  if (
-    isFeaturedReview(featured)
-  ) {
-    return REVIEW_FEATURE_STATES.FEATURED;
-  }
-
-  return REVIEW_FEATURE_STATES.NORMAL;
-}
-
-// ============================================================
-// RATING DISPLAY HELPERS
-// ============================================================
-
-export function clampReviewRating(
-  value: unknown,
-): ReviewRating {
-  return normalizeReviewRating(
-    value,
-  );
-}
-
-// ============================================================
-// FINAL VALIDATION
-// ============================================================
-
-export function isReviewValueValid(
-  input: {
-    status?: unknown;
-    type?: unknown;
-    rating?: unknown;
-    targetType?: unknown;
-    authorMode?: unknown;
-    visibility?: unknown;
-    source?: unknown;
-  },
-): boolean {
-  if (
-    input.status !==
-      undefined &&
-    !isValidReviewStatus(
-      input.status,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    input.type !==
-      undefined &&
-    !isValidReviewType(
-      input.type,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    input.rating !==
-      undefined &&
-    !isValidReviewRating(
-      input.rating,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    input.targetType !==
-      undefined &&
-    !isValidReviewTargetType(
-      input.targetType,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    input.authorMode !==
-      undefined &&
-    !isValidReviewAuthorMode(
-      input.authorMode,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    input.visibility !==
-      undefined &&
-    !isValidReviewVisibility(
-      input.visibility,
-    )
-  ) {
-    return false;
-  }
-
-  if (
-    input.source !==
-      undefined &&
-    !isValidReviewSource(
-      input.source,
-    )
-  ) {
-    return false;
-  }
-
-  return true;
-}
-
-// ============================================================
-// END OF REVIEW CONSTANTS
+// END
 // ============================================================
