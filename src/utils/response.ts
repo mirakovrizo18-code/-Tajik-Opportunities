@@ -91,56 +91,41 @@ reset?: number | string;
 retryAfter?: number;
 }
 
-const DEFAULT_CACHE_CONTROL =
-"no-store, max-age=0";
+const DEFAULT_CACHE_CONTROL = "no-store, max-age=0";
 
 const DEFAULT_SECURITY_HEADERS: Record<string, string> = {
 "X-Content-Type-Options": "nosniff",
 "X-Frame-Options": "DENY",
 "Referrer-Policy": "strict-origin-when-cross-origin",
-"Permissions-Policy":
-"camera=(), microphone=(), geolocation=()",
-"Cross-Origin-Resource-Policy":
-"cross-origin",
+"Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+"Cross-Origin-Resource-Policy": "cross-origin",
 };
 
-export function corsHeaders(
-_request?: Request,
-): Record<string, string> {
+export function corsHeaders(_request?: Request): Record<string, string> {
 return {
 "Access-Control-Allow-Origin": "*",
-
-```
 "Access-Control-Allow-Methods":
-  "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-
-"Access-Control-Allow-Headers":
-  [
-    "Content-Type",
-    "Authorization",
-    "X-Requested-With",
-    "X-Request-ID",
-    "Accept",
-    "Origin",
-    "Cache-Control",
-  ].join(", "),
-
-"Access-Control-Expose-Headers":
-  [
-    "X-Request-ID",
-    "X-API-Version",
-    "X-Response-Time",
-    "ETag",
-    "X-RateLimit-Limit",
-    "X-RateLimit-Remaining",
-    "X-RateLimit-Reset",
-    "Retry-After",
-  ].join(", "),
-
-"Access-Control-Max-Age":
-  "86400",
-```
-
+"GET,POST,PUT,PATCH,DELETE,OPTIONS",
+"Access-Control-Allow-Headers": [
+"Content-Type",
+"Authorization",
+"X-Requested-With",
+"X-Request-ID",
+"Accept",
+"Origin",
+"Cache-Control",
+].join(", "),
+"Access-Control-Expose-Headers": [
+"X-Request-ID",
+"X-API-Version",
+"X-Response-Time",
+"ETag",
+"X-RateLimit-Limit",
+"X-RateLimit-Remaining",
+"X-RateLimit-Reset",
+"Retry-After",
+].join(", "),
+"Access-Control-Max-Age": "86400",
 };
 }
 
@@ -161,13 +146,10 @@ headers.set(
 
 headers.set(
 "Cache-Control",
-options?.cacheControl ??
-DEFAULT_CACHE_CONTROL,
+options?.cacheControl ?? DEFAULT_CACHE_CONTROL,
 );
 
-for (const [key, value] of Object.entries(
-corsHeaders(),
-)) {
+for (const [key, value] of Object.entries(corsHeaders())) {
 headers.set(key, value);
 }
 
@@ -178,35 +160,23 @@ headers.set(key, value);
 }
 
 if (options?.etag) {
-headers.set(
-"ETag",
-options.etag,
-);
+headers.set("ETag", options.etag);
 }
 
-if (
-typeof options?.durationMs ===
-"number"
-) {
+if (typeof options?.durationMs === "number") {
 headers.set(
 "X-Response-Time",
-`${Math.max(
-        0,
-        Math.round(options.durationMs),
-      )}ms`,
+`${Math.max(0, Math.round(options.durationMs))}ms`,
 );
 }
 
 if (extra) {
-const extraHeaders =
-new Headers(extra);
+const extraHeaders = new Headers(extra);
 
 ```
-extraHeaders.forEach(
-  (value, key) => {
-    headers.set(key, value);
-  },
-);
+extraHeaders.forEach((value, key) => {
+  headers.set(key, value);
+});
 ```
 
 }
@@ -214,30 +184,21 @@ extraHeaders.forEach(
 return headers;
 }
 
-function serialize(
-body: unknown,
-): string {
-return JSON.stringify(
-body,
-(_key, value) => {
-if (
-typeof value === "bigint"
-) {
+function serialize(body: unknown): string {
+return JSON.stringify(body, (_key, value) => {
+if (typeof value === "bigint") {
 return value.toString();
 }
 
 ```
-  if (
-    value instanceof Date
-  ) {
-    return value.toISOString();
-  }
+if (value instanceof Date) {
+  return value.toISOString();
+}
 
-  return value;
-},
+return value;
 ```
 
-);
+});
 }
 
 function buildMeta(
@@ -248,72 +209,46 @@ const meta: Record<string, unknown> = {
 };
 
 if (options?.pagination) {
-meta.pagination =
-normalizePagination(
+meta.pagination = normalizePagination(
 options.pagination,
 );
 }
 
-if (
-typeof options?.durationMs ===
-"number"
-) {
+if (typeof options?.durationMs === "number") {
 meta.durationMs = Math.max(
 0,
 Math.round(options.durationMs),
 );
 }
 
-return Object.keys(meta).length > 0
-? meta
-: undefined;
+return Object.keys(meta).length > 0 ? meta : undefined;
 }
 
 function normalizePagination(
 pagination: PaginationMeta,
 ): PaginationMeta {
 const page =
-typeof pagination.page ===
-"number" &&
+typeof pagination.page === "number" &&
 Number.isFinite(pagination.page)
-? Math.max(
-1,
-Math.floor(pagination.page),
-)
+? Math.max(1, Math.floor(pagination.page))
 : undefined;
 
 const limit =
-typeof pagination.limit ===
-"number" &&
+typeof pagination.limit === "number" &&
 Number.isFinite(pagination.limit)
-? Math.max(
-1,
-Math.floor(pagination.limit),
-)
+? Math.max(1, Math.floor(pagination.limit))
 : undefined;
 
 const total =
-typeof pagination.total ===
-"number" &&
+typeof pagination.total === "number" &&
 Number.isFinite(pagination.total)
-? Math.max(
-0,
-Math.floor(pagination.total),
-)
+? Math.max(0, Math.floor(pagination.total))
 : undefined;
 
 const totalPages =
-typeof pagination.totalPages ===
-"number" &&
-Number.isFinite(
-pagination.totalPages,
-)
-? Math.max(
-0,
-Math.floor(
-pagination.totalPages,
-),
-)
+typeof pagination.totalPages === "number" &&
+Number.isFinite(pagination.totalPages)
+? Math.max(0, Math.floor(pagination.totalPages))
 : undefined;
 
 const calculatedTotalPages =
@@ -323,74 +258,38 @@ limit > 0
 ? Math.ceil(total / limit)
 : totalPages;
 
-const finalTotalPages =
-calculatedTotalPages;
+const finalTotalPages = calculatedTotalPages;
 
 const hasNext =
 pagination.hasNext ??
-(
-page !== undefined &&
+(page !== undefined &&
 finalTotalPages !== undefined
 ? page < finalTotalPages
-: false
-);
+: false);
 
 const hasPrevious =
 pagination.hasPrevious ??
-(
-page !== undefined
-? page > 1
-: false
-);
+(page !== undefined ? page > 1 : false);
 
 const nextPage =
 pagination.nextPage ??
-(
-hasNext &&
-page !== undefined
-? page + 1
-: null
-);
+(hasNext && page !== undefined ? page + 1 : null);
 
 const previousPage =
 pagination.previousPage ??
-(
-hasPrevious &&
-page !== undefined
-? page - 1
-: null
-);
+(hasPrevious && page !== undefined ? page - 1 : null);
 
 return {
-...(page !== undefined
-? { page }
-: {}),
-
-```
-...(limit !== undefined
-  ? { limit }
-  : {}),
-
-...(total !== undefined
-  ? { total }
-  : {}),
-
+...(page !== undefined ? { page } : {}),
+...(limit !== undefined ? { limit } : {}),
+...(total !== undefined ? { total } : {}),
 ...(finalTotalPages !== undefined
-  ? {
-      totalPages:
-        finalTotalPages,
-    }
-  : {}),
-
+? { totalPages: finalTotalPages }
+: {}),
 hasNext,
-
 hasPrevious,
-
 nextPage,
-
 previousPage,
-```
-
 };
 }
 
@@ -398,34 +297,18 @@ function createBody<T>(
 data: T,
 options?: ResponseOptions,
 ): ApiResponseBody<T> {
-const meta =
-buildMeta(options);
+const meta = buildMeta(options);
 
 return {
 success: true,
 data,
-
-```
-...(meta
-  ? { meta }
-  : {}),
-
+...(meta ? { meta } : {}),
 ...(options?.requestId
-  ? {
-      requestId:
-        options.requestId,
-    }
-  : {}),
-
-...(options?.includeTimestamp !==
-  false
-  ? {
-      timestamp:
-        new Date().toISOString(),
-    }
-  : {}),
-```
-
+? { requestId: options.requestId }
+: {}),
+...(options?.includeTimestamp !== false
+? { timestamp: new Date().toISOString() }
+: {}),
 };
 }
 
@@ -434,29 +317,19 @@ data: T,
 status = 200,
 options?: ResponseOptions,
 ): Response {
-const body =
-createBody(
-data,
-options,
-);
+const body = createBody(data, options);
 
-return new Response(
-serialize(body),
-{
+return new Response(serialize(body), {
 status,
 headers: createHeaders(
 options?.headers,
 {
-cacheControl:
-options?.cacheControl,
-etag:
-options?.etag,
-durationMs:
-options?.durationMs,
+cacheControl: options?.cacheControl,
+etag: options?.etag,
+durationMs: options?.durationMs,
 },
 ),
-},
-);
+});
 }
 
 export function successResponse<T = unknown>(
@@ -465,57 +338,38 @@ status = 200,
 headers?: HeadersInit,
 requestId?: string,
 ): Response {
-return jsonResponse(
-data,
-status,
-{
+return jsonResponse(data, status, {
 headers,
 requestId,
-},
-);
+});
 }
 
-function defaultErrorCode(
-status: number,
-): string {
+function defaultErrorCode(status: number): string {
 switch (status) {
 case 400:
 return "BAD_REQUEST";
-
-```
 case 401:
-  return "UNAUTHORIZED";
-
+return "UNAUTHORIZED";
 case 403:
-  return "FORBIDDEN";
-
+return "FORBIDDEN";
 case 404:
-  return "NOT_FOUND";
-
+return "NOT_FOUND";
 case 405:
-  return "METHOD_NOT_ALLOWED";
-
+return "METHOD_NOT_ALLOWED";
 case 409:
-  return "CONFLICT";
-
+return "CONFLICT";
 case 410:
-  return "GONE";
-
+return "GONE";
 case 415:
-  return "UNSUPPORTED_MEDIA_TYPE";
-
+return "UNSUPPORTED_MEDIA_TYPE";
 case 422:
-  return "VALIDATION_ERROR";
-
+return "VALIDATION_ERROR";
 case 429:
-  return "RATE_LIMITED";
-
+return "RATE_LIMITED";
 default:
-  return status >= 500
-    ? "INTERNAL_ERROR"
-    : "REQUEST_ERROR";
-```
-
+return status >= 500
+? "INTERNAL_ERROR"
+: "REQUEST_ERROR";
 }
 }
 
@@ -525,8 +379,7 @@ status = 500,
 options?: ErrorResponseOptions,
 ): Response {
 const code =
-options?.code ??
-defaultErrorCode(status);
+options?.code ?? defaultErrorCode(status);
 
 const error: NonNullable<
 ApiResponseBody["error"]
@@ -534,341 +387,225 @@ ApiResponseBody["error"]
 > = {
 > code,
 > message,
-
-```
-...(options?.details !==
-  undefined
-  ? {
-      details:
-        options.details,
-    }
-  : {}),
-```
-
-};
+> ...(options?.details !== undefined
+> ? { details: options.details }
+> : {}),
+> };
 
 const body: ApiResponseBody = {
 success: false,
-
-```
 error,
-
 ...(options?.meta
-  ? {
-      meta:
-        options.meta,
-    }
-  : {}),
-
+? { meta: options.meta }
+: {}),
 ...(options?.requestId
-  ? {
-      requestId:
-        options.requestId,
-    }
-  : {}),
-
-...(options?.includeTimestamp !==
-  false
-  ? {
-      timestamp:
-        new Date().toISOString(),
-    }
-  : {}),
-```
-
+? { requestId: options.requestId }
+: {}),
+...(options?.includeTimestamp !== false
+? { timestamp: new Date().toISOString() }
+: {}),
 };
 
-return new Response(
-serialize(body),
-{
+return new Response(serialize(body), {
 status,
-headers: createHeaders(
-options?.headers,
-),
-},
-);
+headers: createHeaders(options?.headers),
+});
 }
 
 export function badRequestResponse(
-message =
-"Некорректный запрос",
+message = "Некорректный запрос",
 details?: unknown,
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-400,
-{
+return errorResponse(message, 400, {
 code: "BAD_REQUEST",
 details,
 requestId,
-},
-);
+});
 }
 
 export function unauthorizedResponse(
-message =
-"Требуется авторизация",
+message = "Требуется авторизация",
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-401,
-{
+return errorResponse(message, 401, {
 code: "UNAUTHORIZED",
 requestId,
-},
-);
+});
 }
 
 export function forbiddenResponse(
-message =
-"Доступ запрещён",
+message = "Доступ запрещён",
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-403,
-{
+return errorResponse(message, 403, {
 code: "FORBIDDEN",
 requestId,
-},
-);
+});
 }
 
 export function notFoundResponse(
-message =
-"Ресурс не найден",
+message = "Ресурс не найден",
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-404,
-{
+return errorResponse(message, 404, {
 code: "NOT_FOUND",
 requestId,
-},
-);
+});
 }
 
 export function conflictResponse(
-message =
-"Конфликт данных",
+message = "Конфликт данных",
 details?: unknown,
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-409,
-{
+return errorResponse(message, 409, {
 code: "CONFLICT",
 details,
 requestId,
-},
-);
+});
 }
 
 export function goneResponse(
-message =
-"Ресурс больше недоступен",
+message = "Ресурс больше недоступен",
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-410,
-{
+return errorResponse(message, 410, {
 code: "GONE",
 requestId,
-},
-);
+});
 }
 
 export function unsupportedMediaTypeResponse(
-message =
-"Неподдерживаемый тип данных",
+message = "Неподдерживаемый тип данных",
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-415,
-{
-code:
-"UNSUPPORTED_MEDIA_TYPE",
+return errorResponse(message, 415, {
+code: "UNSUPPORTED_MEDIA_TYPE",
 requestId,
-},
-);
+});
 }
 
 export function validationErrorResponse(
-message =
-"Ошибка проверки данных",
+message = "Ошибка проверки данных",
 details?: unknown,
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-422,
-{
-code:
-"VALIDATION_ERROR",
+return errorResponse(message, 422, {
+code: "VALIDATION_ERROR",
 details,
 requestId,
-},
-);
+});
 }
 
 export function tooManyRequestsResponse(
-message =
-"Слишком много запросов",
+message = "Слишком много запросов",
 requestId?: string,
 retryAfter?: number,
 ): Response {
-return errorResponse(
-message,
-429,
-{
+return errorResponse(message, 429, {
 code: "RATE_LIMITED",
 requestId,
 headers:
 retryAfter !== undefined
 ? {
-"Retry-After":
-String(
+"Retry-After": String(
 Math.max(
 0,
-Math.floor(
-retryAfter,
-),
+Math.floor(retryAfter),
 ),
 ),
 }
 : undefined,
-},
-);
+});
 }
 
 export function serverErrorResponse(
-message =
-"Внутренняя ошибка сервера",
+message = "Внутренняя ошибка сервера",
 details?: unknown,
 requestId?: string,
 ): Response {
-return errorResponse(
-message,
-500,
-{
-code:
-"INTERNAL_ERROR",
+return errorResponse(message, 500, {
+code: "INTERNAL_ERROR",
 details,
 requestId,
-},
-);
+});
 }
 
 export function methodNotAllowedResponse(
-allowedMethods:
-string[] = ["GET"],
+allowedMethods: string[] = ["GET"],
 requestId?: string,
 ): Response {
 return errorResponse(
 "Метод запроса не поддерживается",
 405,
 {
-code:
-"METHOD_NOT_ALLOWED",
-
-```
-  details: {
-    allowedMethods,
-  },
-
-  headers: {
-    Allow:
-      allowedMethods.join(
-        ", ",
-      ),
-  },
-
-  requestId,
+code: "METHOD_NOT_ALLOWED",
+details: {
+allowedMethods,
 },
-```
-
+headers: {
+Allow: allowedMethods.join(", "),
+},
+requestId,
+},
 );
 }
 
 export function getRequestContext(
 request: Request,
 ): RequestContext {
-const url =
-new URL(request.url);
+const url = new URL(request.url);
 
 const cf = (
 request as Request & {
-cf?: Record<
-string,
-unknown
->;
+cf?: Record<string, unknown>;
 }
 ).cf;
 
 const requestId =
-request.headers.get(
-"X-Request-ID",
-) ||
+request.headers.get("X-Request-ID") ||
 crypto.randomUUID();
 
 const forwardedFor =
-request.headers.get(
-"X-Forwarded-For",
-);
+request.headers.get("X-Forwarded-For");
 
 return {
 requestId,
 
 ```
 ip:
-  request.headers.get(
-    "CF-Connecting-IP",
-  ) ||
+  request.headers.get("CF-Connecting-IP") ||
   (
     forwardedFor
-      ? forwardedFor
-          .split(",")[0]
-          ?.trim()
+      ? forwardedFor.split(",")[0]?.trim()
       : null
   ),
 
 userAgent:
-  request.headers.get(
-    "User-Agent",
-  ),
+  request.headers.get("User-Agent"),
 
 country:
-  typeof cf?.country ===
-  "string"
+  typeof cf?.country === "string"
     ? cf.country
     : null,
 
 city:
-  typeof cf?.city ===
-  "string"
+  typeof cf?.city === "string"
     ? cf.city
     : null,
 
 colo:
-  typeof cf?.colo ===
-  "string"
+  typeof cf?.colo === "string"
     ? cf.colo
     : null,
 
 method:
   request.method.toUpperCase(),
 
-url:
-  request.url,
+url: request.url,
 
-path:
-  url.pathname,
+path: url.pathname,
 ```
 
 };
@@ -878,10 +615,7 @@ export function responseWithHeaders(
 response: Response,
 headers?: HeadersInit,
 ): Response {
-const merged =
-new Headers(
-response.headers,
-);
+const merged = new Headers(response.headers);
 
 for (const [key, value] of Object.entries(
 corsHeaders(),
@@ -900,85 +634,56 @@ merged.set(key, value);
 }
 
 if (headers) {
-const extra =
-new Headers(headers);
+const extra = new Headers(headers);
 
 ```
-extra.forEach(
-  (value, key) => {
-    merged.set(key, value);
-  },
-);
+extra.forEach((value, key) => {
+  merged.set(key, value);
+});
 ```
 
 }
 
-return new Response(
-response.body,
-{
-status:
-response.status,
-
-```
-  statusText:
-    response.statusText,
-
-  headers: merged,
-},
-```
-
-);
+return new Response(response.body, {
+status: response.status,
+statusText: response.statusText,
+headers: merged,
+});
 }
 
-export async function readJson<
-T = unknown,
-
-> (
-> request: Request,
-> ): Promise<T> {
-> const contentType =
-> request.headers.get(
-> "Content-Type",
-> ) || "";
+export async function readJson<T = unknown>(
+request: Request,
+): Promise<T> {
+const contentType =
+request.headers.get("Content-Type") || "";
 
 if (
 contentType &&
 !contentType
 .toLowerCase()
-.includes(
-"application/json",
-)
+.includes("application/json")
 ) {
-throw new Error(
-"Expected application/json",
-);
+throw new Error("Expected application/json");
 }
 
-return (
-(await request.json()) as T
-);
+return (await request.json()) as T;
 }
 
-export async function tryReadJson<
-T = unknown,
+export async function tryReadJson<T = unknown>(
+request: Request,
+): Promise<
+| {
+success: true;
+data: T;
+}
+| {
+success: false;
+error: string;
+}
 
-> (
-> request: Request,
-> ): Promise<
-> | {
-> success: true;
-> data: T;
-> }
-> | {
-> success: false;
-> error: string;
-> }
 > {
 > try {
-> const data =
-> await readJson<T>(
-> request,
-> );
+> const data = await readJson<T>(request);
 
 ```
 return {
@@ -1002,105 +707,65 @@ export function isJsonRequest(
 request: Request,
 ): boolean {
 const contentType =
-request.headers.get(
-"Content-Type",
-) || "";
+request.headers.get("Content-Type") || "";
 
 return contentType
 .toLowerCase()
-.includes(
-"application/json",
-);
+.includes("application/json");
 }
 
 export function withRequestId(
 response: Response,
 requestId: string,
 ): Response {
-return responseWithHeaders(
-response,
-{
-"X-Request-ID":
-requestId,
-},
-);
+return responseWithHeaders(response, {
+"X-Request-ID": requestId,
+});
 }
 
 export function withApiVersion(
 response: Response,
 version: string,
 ): Response {
-return responseWithHeaders(
-response,
-{
-"X-API-Version":
-version,
-},
-);
+return responseWithHeaders(response, {
+"X-API-Version": version,
+});
 }
 
 export function withRateLimit(
 response: Response,
 options: RateLimitOptions,
 ): Response {
-const headers: Record<
-string,
-string
+const headers: Record<string, string> = {};
 
-> = {};
-
-if (
-options.limit !== undefined
-) {
-headers[
-"X-RateLimit-Limit"
-] = String(
+if (options.limit !== undefined) {
+headers["X-RateLimit-Limit"] = String(
 Math.max(
 0,
-Math.floor(
-options.limit,
-),
+Math.floor(options.limit),
 ),
 );
 }
 
-if (
-options.remaining !==
-undefined
-) {
-headers[
-"X-RateLimit-Remaining"
-] = String(
+if (options.remaining !== undefined) {
+headers["X-RateLimit-Remaining"] = String(
 Math.max(
 0,
-Math.floor(
-options.remaining,
-),
+Math.floor(options.remaining),
 ),
 );
 }
 
-if (
-options.reset !== undefined
-) {
-headers[
-"X-RateLimit-Reset"
-] = String(
-options.reset,
-);
+if (options.reset !== undefined) {
+headers["X-RateLimit-Reset"] =
+String(options.reset);
 }
 
-if (
-options.retryAfter !==
-undefined
-) {
-headers["Retry-After"] =
-String(
+if (options.retryAfter !== undefined) {
+headers["Retry-After"] = String(
 Math.max(
 0,
-Math.floor(
-options.retryAfter,
-),
+Math.floor(options.retryAfter),
 ),
 );
 }
@@ -1114,17 +779,11 @@ headers,
 export function noContentResponse(
 headers?: HeadersInit,
 ): Response {
-const merged =
-createHeaders(headers);
+const merged = createHeaders(headers);
 
-merged.delete(
-"Content-Type",
-);
+merged.delete("Content-Type");
 
-merged.set(
-"Cache-Control",
-"no-store",
-);
+merged.set("Cache-Control", "no-store");
 
 return new Response(null, {
 status: 204,
@@ -1135,8 +794,7 @@ headers: merged,
 export function optionsResponse(): Response {
 return new Response(null, {
 status: 204,
-headers:
-createHeaders(),
+headers: createHeaders(),
 });
 }
 
@@ -1149,31 +807,21 @@ status:
 | 307
 | 308 = 302,
 ): Response {
-const headers =
-new Headers();
+const headers = new Headers();
 
 for (const [key, value] of Object.entries(
 corsHeaders(),
 )) {
-headers.set(
-key,
-value,
-);
+headers.set(key, value);
 }
 
 for (const [key, value] of Object.entries(
 DEFAULT_SECURITY_HEADERS,
 )) {
-headers.set(
-key,
-value,
-);
+headers.set(key, value);
 }
 
-headers.set(
-"Location",
-location,
-);
+headers.set("Location", location);
 
 return new Response(null, {
 status,
@@ -1186,8 +834,7 @@ text: string,
 status = 200,
 headers?: HeadersInit,
 ): Response {
-const merged =
-new Headers();
+const merged = new Headers();
 
 merged.set(
 "Content-Type",
@@ -1212,29 +859,20 @@ merged.set(key, value);
 }
 
 if (headers) {
-const extra =
-new Headers(headers);
+const extra = new Headers(headers);
 
 ```
-extra.forEach(
-  (value, key) => {
-    merged.set(
-      key,
-      value,
-    );
-  },
-);
+extra.forEach((value, key) => {
+  merged.set(key, value);
+});
 ```
 
 }
 
-return new Response(
-text,
-{
+return new Response(text, {
 status,
 headers: merged,
-},
-);
+});
 }
 
 export function htmlResponse(
@@ -1242,8 +880,7 @@ html: string,
 status = 200,
 headers?: HeadersInit,
 ): Response {
-const merged =
-new Headers();
+const merged = new Headers();
 
 merged.set(
 "Content-Type",
@@ -1268,44 +905,32 @@ merged.set(key, value);
 }
 
 if (headers) {
-const extra =
-new Headers(headers);
+const extra = new Headers(headers);
 
 ```
-extra.forEach(
-  (value, key) => {
-    merged.set(
-      key,
-      value,
-    );
-  },
-);
+extra.forEach((value, key) => {
+  merged.set(key, value);
+});
 ```
 
 }
 
-return new Response(
-html,
-{
+return new Response(html, {
 status,
 headers: merged,
-},
-);
+});
 }
 
 export async function createEtag(
 value: unknown,
 ): Promise<string> {
-const serialized =
-serialize(value);
+const serialized = serialize(value);
 
-const data =
-new TextEncoder().encode(
+const data = new TextEncoder().encode(
 serialized,
 );
 
-const digest =
-await crypto.subtle.digest(
+const digest = await crypto.subtle.digest(
 "SHA-256",
 data,
 );
@@ -1314,9 +939,7 @@ const hash = Array.from(
 new Uint8Array(digest),
 )
 .map((byte) =>
-byte
-.toString(16)
-.padStart(2, "0"),
+byte.toString(16).padStart(2, "0"),
 )
 .join("");
 
@@ -1328,9 +951,7 @@ request: Request,
 etag: string,
 ): boolean {
 const clientEtag =
-request.headers.get(
-"If-None-Match",
-);
+request.headers.get("If-None-Match");
 
 if (!clientEtag) {
 return false;
@@ -1340,9 +961,7 @@ return (
 clientEtag === etag ||
 clientEtag
 .split(",")
-.map((value) =>
-value.trim(),
-)
+.map((value) => value.trim())
 .includes(etag)
 );
 }
@@ -1352,14 +971,12 @@ etag: string,
 ): Response {
 return new Response(null, {
 status: 304,
-headers:
-createHeaders(
+headers: createHeaders(
 {
 ETag: etag,
 },
 {
-cacheControl:
-"public, max-age=60",
+cacheControl: "public, max-age=60",
 etag,
 },
 ),
@@ -1386,17 +1003,15 @@ export function addResponseTiming(
 response: Response,
 startedAt: number,
 ): Response {
-const duration =
-Date.now() - startedAt;
+const duration = Date.now() - startedAt;
 
 return responseWithHeaders(
 response,
 {
-"X-Response-Time":
-`${Math.max(
-          0,
-          duration,
-        )}ms`,
+"X-Response-Time": `${Math.max(
+        0,
+        duration,
+      )}ms`,
 },
 );
 }
