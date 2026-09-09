@@ -1,4 +1,3 @@
-```ts
 // ============================================================
 // 🇹🇯 TAJIK OPPORTUNITIES
 // SECURITY UTILITIES
@@ -64,9 +63,7 @@ export function generateCsrfToken(): string {
 /**
  * Создает security token.
  */
-export function generateSecurityToken(
-  byteLength = 32
-): string {
+export function generateSecurityToken(byteLength = 32): string {
   return createToken(byteLength);
 }
 
@@ -82,10 +79,7 @@ export function isValidToken(
     return false;
   }
 
-  if (
-    token.length < minLength ||
-    token.length > maxLength
-  ) {
+  if (token.length < minLength || token.length > maxLength) {
     return false;
   }
 
@@ -237,12 +231,7 @@ export function validateRequestOrigin(
   try {
     const refererOrigin = new URL(referer).origin;
 
-    if (
-      isAllowedOrigin(
-        refererOrigin,
-        allowedOrigins
-      )
-    ) {
+    if (isAllowedOrigin(refererOrigin, allowedOrigins)) {
       return {
         allowed: true,
       };
@@ -340,7 +329,7 @@ export function validateUserAgent(
 }
 
 /**
- * Простейшее обнаружение очевидных bot/scanner signatures.
+ * Простейшее обнаружение bot/scanner signatures.
  */
 export function detectSuspiciousUserAgent(
   userAgent: string | null
@@ -463,6 +452,10 @@ export function validateContentType(
 
 /**
  * Простая in-memory rate limiter.
+ *
+ * В production для распределенного rate limiting
+ * следует использовать Cloudflare Rate Limiting/WAF
+ * или отдельное хранилище.
  */
 const rateLimitStore = new Map<
   string,
@@ -512,6 +505,7 @@ export function checkRateLimit(
   current.count += 1;
 
   const allowed = current.count <= limit;
+
   const remaining = Math.max(
     0,
     limit - current.count
@@ -650,6 +644,9 @@ export function validatePasswordStrength(
 
 /**
  * Создает PBKDF2 password hash.
+ *
+ * Важно:
+ * пароль никогда не должен храниться в открытом виде.
  */
 export async function hashPassword(
   password: string,
@@ -673,7 +670,6 @@ export async function hashPassword(
   }
 
   const salt = randomBase64Url(32);
-
   const encoder = new TextEncoder();
 
   const keyMaterial =
@@ -813,6 +809,9 @@ export async function verifySessionBinding(
 
 /**
  * Получает безопасный IP-префикс.
+ *
+ * IPv4: первые 3 октета.
+ * IPv6: первые 4 группы.
  */
 export function getIpPrefix(
   ip: string
@@ -878,11 +877,14 @@ export function securityHeaders(): Record<
   return {
     "X-Content-Type-Options": "nosniff",
     "X-Frame-Options": "DENY",
-    "Referrer-Policy": "strict-origin-when-cross-origin",
+    "Referrer-Policy":
+      "strict-origin-when-cross-origin",
     "Permissions-Policy":
       "camera=(), microphone=(), geolocation=()",
-    "Cross-Origin-Opener-Policy": "same-origin",
-    "Cross-Origin-Resource-Policy": "same-origin",
+    "Cross-Origin-Opener-Policy":
+      "same-origin",
+    "Cross-Origin-Resource-Policy":
+      "same-origin",
   };
 }
 
@@ -1027,10 +1029,7 @@ export function extractBearerToken(
 }
 
 /**
- * Совместимое имя для существующего auth middleware.
- *
- * Не создаёт новую логику:
- * использует уже существующий extractBearerToken().
+ * Совместимый alias для middleware/auth.ts.
  */
 export function getBearerToken(
   request: Request
@@ -1176,6 +1175,10 @@ export function safeHeader(
 
 /**
  * Проверяет подозрительный SQL-паттерн.
+ *
+ * Это НЕ замена prepared statements.
+ * Основная защита от SQL injection —
+ * исключительно параметризованные запросы.
  */
 export function looksLikeSqlInjection(
   value: unknown
@@ -1208,6 +1211,9 @@ export function looksLikeSqlInjection(
 
 /**
  * Проверяет очевидные XSS-паттерны.
+ *
+ * Это дополнительный фильтр.
+ * Основная защита — HTML escaping и CSP.
  */
 export function looksLikeXss(
   value: unknown
@@ -1276,38 +1282,23 @@ export function inspectUserInput(
   };
 }
 
-// ============================================================
-// ADMIN REQUEST CONTEXT
-// ============================================================
-
 /**
- * Извлекает минимальный контекст администратора
+ * Возвращает минимальный контекст администратора
  * из HTTP-запроса.
  *
- * Это compatibility helper для существующего
- * auth middleware. Проверка существования
- * администратора выполняется в auth.ts через БД.
+ * Используется middleware/auth.ts.
  */
 export function getRequestAdminContext(
   request: Request
 ): RequestAdminContext {
-  const token =
-    getBearerToken(request);
+  const token = getBearerToken(request);
 
   const adminId =
     request.headers.get("X-Admin-ID")?.trim() || null;
 
   return {
-    authenticated:
-      Boolean(token || adminId),
-
+    authenticated: Boolean(token || adminId),
     adminId,
-
     token,
   };
 }
-
-// ============================================================
-// END
-// ============================================================
-```
