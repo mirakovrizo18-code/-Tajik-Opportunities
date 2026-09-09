@@ -4,6 +4,10 @@
 // Version: 2026.09
 // ============================================================
 
+// ============================================================
+// APP
+// ============================================================
+
 export const APP = {
   NAME: "Tajik Opportunities",
   SHORT_NAME: "TO",
@@ -58,30 +62,97 @@ export const APP = {
 } as const;
 
 // ============================================================
+// INTERNATIONALIZATION
+// ============================================================
+
+export const LANGUAGES = {
+  RU: "ru",
+  TJ: "tj",
+  EN: "en",
+  FA: "fa",
+} as const;
+
+export type Language =
+  typeof LANGUAGES[keyof typeof LANGUAGES];
+
+export const LANGUAGE_METADATA = {
+  ru: {
+    code: "ru",
+    name: "Русский",
+    nativeName: "Русский",
+    direction: "ltr",
+  },
+
+  tj: {
+    code: "tj",
+    name: "Таджикский",
+    nativeName: "Тоҷикӣ",
+    direction: "ltr",
+  },
+
+  en: {
+    code: "en",
+    name: "Английский",
+    nativeName: "English",
+    direction: "ltr",
+  },
+
+  fa: {
+    code: "fa",
+    name: "Персидский",
+    nativeName: "فارسی",
+    direction: "rtl",
+  },
+} as const;
+
+export const I18N = {
+  DEFAULT_LANGUAGE: "ru",
+
+  FALLBACK_LANGUAGE: "ru",
+
+  SUPPORTED_LANGUAGES: [
+    "ru",
+    "tj",
+    "en",
+    "fa",
+  ] as const,
+
+  RTL_LANGUAGES: [
+    "fa",
+  ] as const,
+
+  LTR_LANGUAGES: [
+    "ru",
+    "tj",
+    "en",
+  ] as const,
+
+  COOKIE_NAME: "to_language",
+
+  STORAGE_KEY: "to_language",
+
+  HTML_LANG_ATTRIBUTE: true,
+
+  HTML_DIR_ATTRIBUTE: true,
+} as const;
+
+// ============================================================
 // API
 // ============================================================
 
 export const API = {
   PREFIX: "/api",
 
-  ROOT: "/api",
-
   HEALTH: "/api/health",
-
   CATEGORIES: "/api/categories",
-
   PUBLICATIONS: "/api/publications",
-  PUBLICATION: "/api/publications",
 
   AUTH: "/api/auth",
   VISITOR: "/api/visitor",
   PROFILE: "/api/profile",
-  PROFILES: "/api/profiles",
-  USERS: "/api/users",
 
   COMMENTS: "/api/comments",
   REACTIONS: "/api/reactions",
-  REVIEWS: "/api/reviews",
   BOOKMARKS: "/api/bookmarks",
   SHARES: "/api/shares",
   VIEWS: "/api/views",
@@ -98,45 +169,25 @@ export const API = {
   SEARCH: "/api/search",
   ACTIVITY: "/api/activity",
 
-  LEVELS: "/api/levels",
-  BADGES: "/api/badges",
-
-  PAYMENTS: "/api/payments",
-  PREMIUM: "/api/premium",
-  PRO: "/api/pro",
-  TOP: "/api/top",
-  VIP: "/api/vip",
-
-  SETTINGS: "/api/settings",
-  FEATURES: "/api/features",
-
-  MEDIA: "/api/media",
-
   ADMIN: "/api/admin",
   ADMIN_LOGIN: "/api/admin/login",
   ADMIN_LOGOUT: "/api/admin/logout",
   ADMIN_ME: "/api/admin/me",
   ADMIN_DASHBOARD: "/api/admin/dashboard",
-  ADMIN_SEARCH: "/api/admin/search",
+
   ADMIN_PARTICIPANTS: "/api/admin/participants",
   ADMIN_PUBLICATIONS: "/api/admin/publications",
   ADMIN_COMMENTS: "/api/admin/comments",
   ADMIN_REVIEWS: "/api/admin/reviews",
+  ADMIN_REPORTS: "/api/admin/reports",
   ADMIN_CHATS: "/api/admin/chats",
   ADMIN_NOTIFICATIONS: "/api/admin/notifications",
-  ADMIN_REPORTS: "/api/admin/reports",
-  ADMIN_MODERATION: "/api/admin/moderation",
   ADMIN_PAYMENTS: "/api/admin/payments",
-  ADMIN_LEVELS: "/api/admin/levels",
-  ADMIN_BADGES: "/api/admin/badges",
-  ADMIN_ANALYTICS: "/api/admin/analytics",
+  ADMIN_SETTINGS: "/api/admin/settings",
+  ADMIN_PERMISSIONS: "/api/admin/permissions",
   ADMIN_ACTIVITY: "/api/admin/activity",
   ADMIN_AUDIT: "/api/admin/audit",
-  ADMIN_SECURITY: "/api/admin/security",
-  ADMIN_PERMISSIONS: "/api/admin/permissions",
   ADMIN_FEATURES: "/api/admin/features",
-  ADMIN_SETTINGS: "/api/admin/settings",
-  ADMIN_SYSTEM: "/api/admin/system",
 } as const;
 
 // ============================================================
@@ -162,13 +213,10 @@ export const HTTP = {
 
     BAD_REQUEST: 400,
     UNAUTHORIZED: 401,
-    PAYMENT_REQUIRED: 402,
     FORBIDDEN: 403,
     NOT_FOUND: 404,
     METHOD_NOT_ALLOWED: 405,
-    NOT_ACCEPTABLE: 406,
     CONFLICT: 409,
-    GONE: 410,
     UNPROCESSABLE_ENTITY: 422,
     TOO_MANY_REQUESTS: 429,
 
@@ -176,17 +224,20 @@ export const HTTP = {
     NOT_IMPLEMENTED: 501,
     BAD_GATEWAY: 502,
     SERVICE_UNAVAILABLE: 503,
-    GATEWAY_TIMEOUT: 504,
   },
 } as const;
 
+export type HttpMethod =
+  typeof HTTP.METHODS[keyof typeof HTTP.METHODS];
+
 // ============================================================
-// HEADERS
+// HTTP HEADERS
 // ============================================================
 
 export const HEADERS = {
   REQUEST_ID: "X-Request-ID",
   CONTENT_TYPE: "Content-Type",
+  CONTENT_LENGTH: "Content-Length",
   ACCEPT: "Accept",
   AUTHORIZATION: "Authorization",
   COOKIE: "Cookie",
@@ -194,13 +245,13 @@ export const HEADERS = {
   CACHE_CONTROL: "Cache-Control",
   ETAG: "ETag",
   IF_NONE_MATCH: "If-None-Match",
-  LOCATION: "Location",
   ORIGIN: "Origin",
   REFERER: "Referer",
   USER_AGENT: "User-Agent",
   X_FORWARDED_FOR: "X-Forwarded-For",
-  X_REAL_IP: "X-Real-IP",
   CF_CONNECTING_IP: "CF-Connecting-IP",
+  CF_RAY: "CF-Ray",
+  CF_COUNTRY: "CF-IPCountry",
 } as const;
 
 // ============================================================
@@ -208,7 +259,7 @@ export const HEADERS = {
 // ============================================================
 
 export const CONTENT_TYPES = {
-  JSON: "application/json; charset=utf-8",
+  JSON: "application/json",
   TEXT: "text/plain; charset=utf-8",
   HTML: "text/html; charset=utf-8",
   FORM: "application/x-www-form-urlencoded",
@@ -224,15 +275,6 @@ export const CONTENT_TYPES = {
   DOC: "application/msword",
   DOCX:
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-
-  MP3: "audio/mpeg",
-  WAV: "audio/wav",
-  OGG_AUDIO: "audio/ogg",
-
-  MP4: "video/mp4",
-  WEBM: "video/webm",
-
-  ZIP: "application/zip",
 } as const;
 
 // ============================================================
@@ -244,41 +286,60 @@ export const SECURITY = {
 
   VISITOR_ID_LENGTH: 64,
   SESSION_ID_LENGTH: 128,
+
   ADMIN_SESSION_ID_LENGTH: 128,
 
   MIN_ADMIN_PASSWORD_LENGTH: 12,
 
   MAX_LOGIN_ATTEMPTS: 10,
+
   LOGIN_WINDOW_MINUTES: 15,
 
   SESSION_DURATION_DAYS: 30,
+
   ADMIN_SESSION_DURATION_HOURS: 12,
 
   PASSWORD_RESET_MINUTES: 30,
+
   EMAIL_VERIFICATION_MINUTES: 30,
 
   RATE_LIMIT_WINDOW_SECONDS: 60,
 
   MAX_REQUESTS_PER_WINDOW: 120,
+
   MAX_AUTH_REQUESTS_PER_WINDOW: 20,
+
   MAX_ADMIN_REQUESTS_PER_WINDOW: 300,
 
   MAX_MESSAGE_REQUESTS_PER_WINDOW: 60,
+
   MAX_PUBLICATION_REQUESTS_PER_WINDOW: 30,
+
   MAX_COMMENT_REQUESTS_PER_WINDOW: 60,
+
   MAX_REACTION_REQUESTS_PER_WINDOW: 120,
+
   MAX_REPORT_REQUESTS_PER_WINDOW: 20,
 
   MAX_SEARCH_REQUESTS_PER_WINDOW: 60,
-  MAX_UPLOAD_REQUESTS_PER_WINDOW: 20,
+
+  MAX_UPLOAD_REQUESTS_PER_WINDOW: 30,
+
+  MAX_NOTIFICATION_REQUESTS_PER_WINDOW: 120,
 
   CSRF_TOKEN_LENGTH: 64,
 
   API_TOKEN_LENGTH: 128,
 
-  MAX_IP_ENTRIES: 10000,
+  PASSWORD_HASH_ITERATIONS: 310000,
 
-  PASSWORD_HASH_ITERATIONS: 100000,
+  PBKDF2_HASH_LENGTH: 32,
+
+  MAX_SESSION_AGE_SECONDS:
+    60 * 60 * 24 * 30,
+
+  MAX_ADMIN_SESSION_AGE_SECONDS:
+    60 * 60 * 12,
 } as const;
 
 // ============================================================
@@ -310,6 +371,15 @@ export const COOKIES = {
     HTTP_ONLY: true,
     SECURE: true,
     SAME_SITE: "Strict",
+    PATH: "/admin",
+  },
+
+  LANGUAGE: {
+    NAME: "to_language",
+    MAX_AGE: 60 * 60 * 24 * 365,
+    HTTP_ONLY: false,
+    SECURE: true,
+    SAME_SITE: "Lax",
     PATH: "/",
   },
 } as const;
@@ -324,9 +394,11 @@ export const CACHE = {
   CATEGORIES_SECONDS: 300,
 
   PROFILE_SECONDS: 30,
+
   SEARCH_SECONDS: 15,
 
   ADMIN_DASHBOARD_SECONDS: 10,
+
   NOTIFICATIONS_SECONDS: 5,
 
   NO_CACHE: 0,
@@ -338,23 +410,39 @@ export const CACHE = {
 
 export const FILE_LIMITS = {
   MAX_UPLOAD_SIZE_MB: 20,
-  MAX_IMAGE_SIZE_MB: 10,
-  MAX_AVATAR_SIZE_MB: 5,
-  MAX_DOCUMENT_SIZE_MB: 20,
+  MAX_UPLOAD_SIZE_BYTES: 20 * 1024 * 1024,
 
-  MAX_VIDEO_SIZE_MB: 100,
+  MAX_IMAGE_SIZE_MB: 10,
+  MAX_IMAGE_SIZE_BYTES: 10 * 1024 * 1024,
+
+  MAX_VIDEO_SIZE_MB: 200,
+  MAX_VIDEO_SIZE_BYTES: 200 * 1024 * 1024,
+
   MAX_AUDIO_SIZE_MB: 50,
-  MAX_VOICE_SIZE_MB: 30,
+  MAX_AUDIO_SIZE_BYTES: 50 * 1024 * 1024,
+
+  MAX_VOICE_SIZE_MB: 25,
+  MAX_VOICE_SIZE_BYTES: 25 * 1024 * 1024,
+
+  MAX_AVATAR_SIZE_MB: 5,
+  MAX_AVATAR_SIZE_BYTES: 5 * 1024 * 1024,
+
+  MAX_DOCUMENT_SIZE_MB: 20,
+  MAX_DOCUMENT_SIZE_BYTES: 20 * 1024 * 1024,
 
   MAX_FILES_PER_PUBLICATION: 50,
+
   MAX_FILES_PER_MESSAGE: 10,
 
   MAX_PROFILE_IMAGES: 10,
 
-  MAX_IMAGE_WIDTH: 10000,
-  MAX_IMAGE_HEIGHT: 10000,
+  MAX_PHOTOS_PER_PUBLICATION: 50,
 
-  MAX_FILENAME_LENGTH: 255,
+  MAX_VIDEOS_PER_PUBLICATION: 10,
+
+  MAX_DOCUMENTS_PER_PUBLICATION: 20,
+
+  MAX_ATTACHMENTS_PER_MESSAGE: 10,
 } as const;
 
 export const ALLOWED_IMAGE_TYPES = [
@@ -362,13 +450,6 @@ export const ALLOWED_IMAGE_TYPES = [
   "image/png",
   "image/webp",
   "image/gif",
-] as const;
-
-export const ALLOWED_DOCUMENT_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "text/plain",
 ] as const;
 
 export const ALLOWED_VIDEO_TYPES = [
@@ -384,6 +465,14 @@ export const ALLOWED_AUDIO_TYPES = [
   "audio/ogg",
   "audio/webm",
   "audio/mp4",
+  "audio/aac",
+] as const;
+
+export const ALLOWED_DOCUMENT_TYPES = [
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "text/plain",
 ] as const;
 
 // ============================================================
@@ -418,13 +507,23 @@ export const CONTENT_LIMITS = {
   NOTIFICATION_TITLE_MAX: 300,
   NOTIFICATION_BODY_MAX: 5000,
 
+  PUBLICATION_TITLE_MIN: 1,
   PUBLICATION_TITLE_MAX: 300,
+
+  PUBLICATION_TEXT_MIN: 1,
   PUBLICATION_TEXT_MAX: 50000,
 
   LINK_MAX: 5000,
 
   TAG_MAX: 100,
-  MAX_TAGS: 50,
+
+  TAGS_PER_PUBLICATION: 30,
+
+  POLL_QUESTION_MAX: 1000,
+
+  POLL_OPTIONS_MAX: 50,
+
+  PROFILE_LINKS_MAX: 20,
 } as const;
 
 // ============================================================
@@ -443,10 +542,10 @@ export const PAGINATION = {
   CHAT_DEFAULT_LIMIT: 50,
   CHAT_MAX_LIMIT: 100,
 
-  COMMENT_DEFAULT_LIMIT: 30,
+  COMMENT_DEFAULT_LIMIT: 50,
   COMMENT_MAX_LIMIT: 100,
 
-  NOTIFICATION_DEFAULT_LIMIT: 30,
+  NOTIFICATION_DEFAULT_LIMIT: 50,
   NOTIFICATION_MAX_LIMIT: 100,
 } as const;
 
@@ -460,42 +559,9 @@ export const SORT_DIRECTION = {
 } as const;
 
 export type SortDirection =
-  typeof SORT_DIRECTION[keyof typeof SORT_DIRECTION];
-
-export const SORT = {
-  ASC: "asc",
-  DESC: "desc",
-
-  NEWEST: "newest",
-  OLDEST: "oldest",
-
-  POPULAR: "popular",
-  TRENDING: "trending",
-
-  RELEVANT: "relevant",
-
-  MOST_VIEWED: "most_viewed",
-  MOST_REACTED: "most_reacted",
-  MOST_COMMENTED: "most_commented",
-  MOST_SHARED: "most_shared",
-  MOST_SAVED: "most_saved",
-
-  RATING_HIGH: "rating_high",
-  RATING_LOW: "rating_low",
-} as const;
-
-// ============================================================
-// LANGUAGES
-// ============================================================
-
-export const LANGUAGES = {
-  RU: "ru",
-  TJ: "tj",
-  EN: "en",
-} as const;
-
-export type Language =
-  typeof LANGUAGES[keyof typeof LANGUAGES];
+  typeof SORT_DIRECTION[
+    keyof typeof SORT_DIRECTION
+  ];
 
 // ============================================================
 // USER INTERFACE
@@ -511,18 +577,20 @@ export const UI = {
   DEFAULT_THEME: "system",
 
   MOBILE_BREAKPOINT: 768,
+
   TABLET_BREAKPOINT: 1024,
+
   DESKTOP_BREAKPOINT: 1280,
 
-  MAX_CONTENT_WIDTH: 1400,
+  RTL_LANGUAGES: [
+    "fa",
+  ] as const,
 
-  TOAST_DURATION_MS: 4000,
-
-  MODAL_ANIMATION_MS: 200,
-
-  SEARCH_DEBOUNCE_MS: 300,
-
-  AUTOSAVE_INTERVAL_MS: 5000,
+  LTR_LANGUAGES: [
+    "ru",
+    "tj",
+    "en",
+  ] as const,
 } as const;
 
 // ============================================================
@@ -546,8 +614,6 @@ export const SEARCH = {
     "country",
     "region",
     "city",
-    "category",
-    "tags",
   ],
 
   SEARCHABLE_PROFILE_FIELDS: [
@@ -561,27 +627,16 @@ export const SEARCH = {
 
   SEARCHABLE_COMMENT_FIELDS: [
     "text",
-    "author_name",
-    "username",
+  ],
+
+  SEARCHABLE_REVIEW_FIELDS: [
+    "title",
+    "text",
   ],
 
   SEARCHABLE_CHAT_FIELDS: [
-    "message",
-    "author_name",
-    "username",
+    "text",
   ],
-
-  TYPES: [
-    "all",
-    "publications",
-    "participants",
-    "comments",
-    "companies",
-    "categories",
-    "chats",
-    "reviews",
-    "saved",
-  ] as const,
 } as const;
 
 // ============================================================
@@ -592,51 +647,40 @@ export const CHAT = {
   MAX_MESSAGE_LENGTH: 10000,
 
   MAX_MESSAGES_PER_PAGE: 100,
+
   DEFAULT_MESSAGES_PER_PAGE: 50,
 
   MAX_CONVERSATIONS_PER_PAGE: 50,
 
+  DEFAULT_CONVERSATIONS_PER_PAGE: 20,
+
   MAX_ATTACHMENTS_PER_MESSAGE: 10,
 
-  MAX_REPLY_DEPTH: 10,
+  MAX_MESSAGE_EDIT_MINUTES: 60,
 
-  EDIT_WINDOW_MINUTES: 0,
+  MAX_MESSAGE_DELETE_MINUTES: 60,
 
-  MAX_PINNED_MESSAGES: 100,
+  MAX_FORWARD_COUNT: 100,
 
-  MAX_MESSAGE_REACTIONS: 100,
+  MAX_REPLY_DEPTH: 50,
+
+  MAX_SEARCH_RESULTS: 100,
 
   TYPING_TIMEOUT_SECONDS: 10,
 
   ONLINE_TIMEOUT_SECONDS: 60,
 
-  READ_RECEIPT_ENABLED: true,
+  LAST_SEEN_UPDATE_SECONDS: 30,
 
-  DELIVERY_RECEIPT_ENABLED: true,
+  MAX_PINNED_MESSAGES: 100,
 
-  FEATURES: {
-    TEXT: true,
-    PHOTO: true,
-    VIDEO: true,
-    VOICE: true,
-    AUDIO: true,
-    DOCUMENT: true,
-    LINK: true,
+  MAX_ADMIN_NOTES_PER_CONVERSATION: 100,
 
-    REPLY: true,
-    FORWARD: true,
-    EDIT: true,
-    DELETE: true,
-    PIN: true,
-    REACTION: true,
+  SYSTEM_CHAT_ENABLED: true,
 
-    SEARCH: true,
-    UNREAD: true,
-    READ_STATUS: true,
+  ADMIN_CHAT_ENABLED: true,
 
-    ADMIN_NOTES: true,
-    ADMIN_ACTING_MODE: true,
-  },
+  USER_TO_USER_CHAT_ENABLED: false,
 } as const;
 
 // ============================================================
@@ -644,59 +688,99 @@ export const CHAT = {
 // ============================================================
 
 export const NOTIFICATIONS = {
-  DEFAULT_LIMIT: 30,
-  MAX_LIMIT: 100,
+  DEFAULT_PAGE_SIZE: 50,
+
+  MAX_PAGE_SIZE: 100,
 
   MAX_TITLE_LENGTH: 300,
+
   MAX_BODY_LENGTH: 5000,
+
+  MAX_UNREAD_BADGE: 999,
 
   RETENTION_DAYS: 365,
 
-  CHANNELS: [
-    "in_app",
-    "push",
-    "email",
-    "sound",
-    "vibration",
-    "badge",
-    "system_chat",
-  ] as const,
+  ADMIN_RETENTION_DAYS: 730,
 
-  CATEGORIES: [
-    "reports",
-    "participants",
-    "comments",
-    "publications",
-    "chats",
-    "reactions",
-    "reviews",
-    "shares",
-    "payments",
-    "premium",
-    "pro",
-    "top",
-    "vip",
-    "levels",
-    "system",
-    "statistics",
-    "activity",
-    "security",
-    "all",
-  ] as const,
+  CHANNELS: {
+    IN_APP: "in_app",
+    PUSH: "push",
+    EMAIL: "email",
+    SOUND: "sound",
+    VIBRATION: "vibration",
+    SYSTEM_CHAT: "system_chat",
+    BADGE: "badge",
+  },
 
-  PRIORITIES: [
-    "low",
-    "normal",
-    "high",
-    "urgent",
-    "critical",
-  ] as const,
+  PRIORITIES: {
+    LOW: "low",
+    NORMAL: "normal",
+    HIGH: "high",
+    URGENT: "urgent",
+    CRITICAL: "critical",
+  },
 
-  DELIVERY: [
-    "instant",
-    "grouped",
-    "silent",
-  ] as const,
+  CATEGORIES: {
+    REPORTS: "reports",
+    PARTICIPANTS: "participants",
+    COMMENTS: "comments",
+    PUBLICATIONS: "publications",
+    CHATS: "chats",
+    REACTIONS: "reactions",
+    REVIEWS: "reviews",
+    SHARES: "shares",
+    PAYMENTS: "payments",
+    PREMIUM: "premium",
+    VIP: "vip",
+    PRO: "pro",
+    TOP: "top",
+    LEVELS: "levels",
+    SYSTEM: "system",
+    STATISTICS: "statistics",
+    ACTIVITY: "activity",
+    SECURITY: "security",
+  },
+
+  EVENTS: {
+    NEW_REPORT: "new_report",
+    REPORT_UPDATED: "report_updated",
+
+    NEW_PARTICIPANT: "new_participant",
+    PARTICIPANT_UPDATED: "participant_updated",
+    PARTICIPANT_BLOCKED: "participant_blocked",
+    PARTICIPANT_UNBLOCKED: "participant_unblocked",
+
+    NEW_COMMENT: "new_comment",
+    COMMENT_REPLY: "comment_reply",
+    COMMENT_REACTION: "comment_reaction",
+
+    NEW_PUBLICATION: "new_publication",
+    PUBLICATION_APPROVED: "publication_approved",
+    PUBLICATION_REJECTED: "publication_rejected",
+    PUBLICATION_EDITED: "publication_edited",
+
+    NEW_MESSAGE: "new_message",
+    MESSAGE_REPLY: "message_reply",
+
+    NEW_REACTION: "new_reaction",
+    NEW_REVIEW: "new_review",
+
+    NEW_SHARE: "new_share",
+
+    PAYMENT_RECEIVED: "payment_received",
+    PAYMENT_CONFIRMED: "payment_confirmed",
+
+    PREMIUM_REQUEST: "premium_request",
+    VIP_REQUEST: "vip_request",
+    PRO_REQUEST: "pro_request",
+    TOP_REQUEST: "top_request",
+
+    LEVEL_CHANGED: "level_changed",
+    BADGE_GRANTED: "badge_granted",
+
+    SYSTEM_MESSAGE: "system_message",
+    SECURITY_ALERT: "security_alert",
+  },
 } as const;
 
 // ============================================================
@@ -707,21 +791,24 @@ export const COMMENTS = {
   MIN_LENGTH: 1,
   MAX_LENGTH: 5000,
 
-  MAX_REPLY_DEPTH: 20,
+  MAX_REPLY_DEPTH: 50,
+
+  DEFAULT_PAGE_SIZE: 50,
+  MAX_PAGE_SIZE: 100,
 
   MAX_REACTIONS_PER_COMMENT: 100,
 
-  MAX_PINNED_COMMENTS_PER_PUBLICATION: 10,
+  EDIT_WINDOW_MINUTES: 60,
 
-  FEATURES: {
-    REPLIES: true,
-    REACTIONS: true,
-    EDIT: true,
-    DELETE: true,
-    PIN: true,
-    REPORT: true,
-    MENTIONS: true,
-  },
+  MAX_MENTIONS: 20,
+
+  ALLOW_GUEST_COMMENTS: true,
+
+  ALLOW_REPLIES: true,
+
+  ALLOW_REACTIONS: true,
+
+  ALLOW_REPORTS: true,
 } as const;
 
 // ============================================================
@@ -731,7 +818,19 @@ export const COMMENTS = {
 export const REACTIONS = {
   DEFAULT: "like",
 
-  TYPES: [
+  MAX_PER_USER_PER_TARGET: 1,
+
+  MAX_CUSTOM_TYPES: 100,
+
+  PUBLICATION_ENABLED: true,
+
+  COMMENT_ENABLED: true,
+
+  REVIEW_ENABLED: true,
+
+  MESSAGE_ENABLED: true,
+
+  ALLOWED_TYPES: [
     "like",
     "love",
     "useful",
@@ -744,15 +843,6 @@ export const REACTIONS = {
     "celebrate",
     "thanks",
   ] as const,
-
-  MAX_PER_USER_PER_TARGET: 1,
-
-  TARGETS: [
-    "publication",
-    "comment",
-    "review",
-    "message",
-  ] as const,
 } as const;
 
 // ============================================================
@@ -762,20 +852,17 @@ export const REACTIONS = {
 export const VIEWS = {
   UNIQUE_SESSION_WINDOW_MINUTES: 30,
 
-  COUNT_REPEAT_VIEWS: true,
+  UNIQUE_VISITOR_WINDOW_MINUTES: 30,
 
-  TRACK_FIELDS: [
-    "publication_id",
-    "visitor_id",
-    "session_id",
-    "user_id",
-    "ip_hash",
-    "country",
-    "region",
-    "city",
-    "referrer",
-    "user_agent",
-  ] as const,
+  MAX_EVENTS_PER_MINUTE: 60,
+
+  TRACK_PUBLICATIONS: true,
+
+  TRACK_PROFILES: true,
+
+  TRACK_MEDIA: true,
+
+  TRACK_LINKS: true,
 } as const;
 
 // ============================================================
@@ -783,163 +870,103 @@ export const VIEWS = {
 // ============================================================
 
 export const PUBLICATIONS = {
-  DEFAULT_TYPE: "free",
-
-  TYPES: [
-    "free",
-    "premium",
-    "vip",
-    "custom",
-  ] as const,
-
-  STATUSES: [
-    "draft",
-    "pending",
-    "approved",
-    "published",
-    "rejected",
-    "hidden",
-    "archived",
-    "deleted",
-  ] as const,
-
-  VISIBILITY: [
-    "public",
-    "unlisted",
-    "private",
-  ] as const,
-
-  PRIORITIES: [
-    "normal",
-    "high",
-    "top",
-    "urgent",
-  ] as const,
-
-  DEFAULT_PRIORITY: "normal",
-
-  FREE_AUTO_DELETE_DAYS: 10,
-
-  PREMIUM_DEFAULT_PRICE: 10,
-  VIP_DEFAULT_PRICE: 20,
-
   DEFAULT_PAGE_SIZE: 20,
+
   MAX_PAGE_SIZE: 100,
 
   MAX_MEDIA: 50,
 
+  MAX_IMAGES: 50,
+
+  MAX_VIDEOS: 10,
+
+  MAX_DOCUMENTS: 20,
+
+  MAX_LINKS: 20,
+
+  MAX_TAGS: 30,
+
+  FREE_AUTO_DELETE_DAYS: 10,
+
+  PREMIUM_AUTO_DELETE: false,
+
+  VIP_AUTO_DELETE: false,
+
+  DEFAULT_TYPE: "free",
+
+  DEFAULT_VISIBILITY: "public",
+
+  DEFAULT_PRIORITY: 0,
+
   MAX_TITLE_LENGTH: 300,
+
   MAX_TEXT_LENGTH: 50000,
 
-  FEATURES: {
-    COMMENTS: true,
-    REACTIONS: true,
-    REVIEWS: true,
-    SHARES: true,
-    BOOKMARKS: true,
-    VIEWS: true,
+  MAX_COMPANY_LENGTH: 300,
 
-    POLLS: true,
-    LINKS: true,
-    DOCUMENTS: true,
+  MAX_LOCATION_LENGTH: 300,
 
-    PIN: true,
-    FEATURED: true,
+  MAX_SALARY_LENGTH: 200,
 
-    ADMIN_OVERRIDE: true,
-    ADMIN_ACTING_MODE: true,
-  },
+  MAX_CONTACT_LENGTH: 1000,
 
-  PUBLIC_URL_PREFIX: "/",
+  MAX_APPLICATION_TEXT_LENGTH: 10000,
+
+  ALLOW_EDIT_BEFORE_MODERATION: true,
+
+  ALLOW_ADMIN_OVERRIDE: true,
+
+  ALLOW_ADMIN_PIN: true,
+
+  ALLOW_ADMIN_FEATURED: true,
+
+  ALLOW_ADMIN_CUSTOM_TYPE: true,
 } as const;
 
 // ============================================================
-// REVIEWS
+// ADMIN
 // ============================================================
 
-export const REVIEWS = {
-  MIN_RATING: 1,
-  MAX_RATING: 5,
+export const ADMIN = {
+  SESSION_DURATION_HOURS: 12,
 
-  MIN_TEXT_LENGTH: 1,
-  MAX_TEXT_LENGTH: 10000,
+  MAX_SESSIONS_PER_ADMIN: 10,
 
-  MAX_TITLE_LENGTH: 300,
+  DEFAULT_PAGE_SIZE: 50,
 
-  MAX_REPLIES: 100,
+  MAX_PAGE_SIZE: 200,
 
-  ALLOW_ANONYMOUS: true,
+  SEARCH_MIN_LENGTH: 1,
 
-  FEATURES: {
-    RATING: true,
-    REPLIES: true,
-    REACTIONS: true,
-    REPORTS: true,
-    VERIFICATION: true,
-    PIN: true,
-    MODERATION: true,
-  },
-} as const;
+  SEARCH_MAX_LENGTH: 300,
 
-// ============================================================
-// SHARE
-// ============================================================
+  MAX_BULK_ACTION_ITEMS: 500,
 
-export const SHARE = {
-  TYPES: [
-    "copy_link",
-    "private_chat",
-    "participant",
-    "system_share",
-    "image",
-    "external",
-  ] as const,
+  ACTING_MODE_ENABLED: true,
 
-  TRACK_SOURCE: true,
+  INTERNAL_NOTES_ENABLED: true,
 
-  COUNT_COPIED_LINKS: true,
+  AUDIT_LOG_ENABLED: true,
 
-  FEATURES: {
-    COPY_LINK: true,
-    SEND_TO_CHAT: true,
-    SEND_TO_PARTICIPANT: true,
-    SYSTEM_SHARE: true,
-    SHARE_AS_IMAGE: true,
-  },
-} as const;
+  CONFIRM_DANGEROUS_ACTIONS: true,
 
-// ============================================================
-// PROFILES
-// ============================================================
+  REQUIRE_STRONG_CONFIRMATION_FOR_DELETE: true,
 
-export const PROFILE = {
-  USERNAME_MIN_LENGTH: 3,
-  USERNAME_MAX_LENGTH: 50,
+  ALLOW_IMPERSONATION: true,
 
-  NAME_MIN_LENGTH: 1,
-  NAME_MAX_LENGTH: 100,
+  ALLOW_ADMIN_ACTING_MODE: true,
 
-  BIO_MAX_LENGTH: 2000,
+  ALLOW_ADMIN_INITIATE_CHAT: true,
 
-  MAX_AVATAR_SIZE_MB: 5,
+  ALLOW_ADMIN_MANAGE_NOTIFICATIONS: true,
 
-  MAX_PROFILE_IMAGES: 10,
+  ALLOW_ADMIN_MANAGE_PERMISSIONS: true,
 
-  FEATURES: {
-    AVATAR: true,
-    BIO: true,
-    PUBLICATIONS: true,
-    COMMENTS: true,
-    REVIEWS: true,
-    REACTIONS: true,
-    SAVED: true,
-    HISTORY: true,
-    FOLLOWERS: true,
-    FOLLOWING: true,
-    BADGES: true,
-    LEVEL: true,
-    STATS: true,
-  },
+  ALLOW_ADMIN_MANAGE_LEVELS: true,
+
+  ALLOW_ADMIN_MANAGE_PRICES: true,
+
+  ALLOW_ADMIN_MANAGE_FEATURE_FLAGS: true,
 } as const;
 
 // ============================================================
@@ -948,285 +975,231 @@ export const PROFILE = {
 
 export const LEVELS = {
   MIN: 0,
+
   MAX: 12,
 
-  PUBLIC_MIN: 1,
+  DISPLAY_MIN: 1,
 
-  DEFAULT: 0,
+  HIDDEN_LEVEL: 0,
 
-  DISPLAY_ZERO: false,
+  DEFAULT_LEVEL: 0,
 
-  NAMES: {
-    1: "Новичок",
-    2: "Участник",
-    3: "Активный",
-    4: "Продвинутый",
-    5: "Доверенный",
-    6: "Опытный",
-    7: "Проверенный участник",
-    8: "Авторитетный",
-    9: "Профессионал",
-    10: "Лидер",
-    11: "Элита",
-    12: "Global",
-  },
+  MAX_DISPLAY_LEVEL: 12,
 
-  MODES: [
-    "automatic",
-    "manual",
-    "hybrid",
+  NAMES: [
+    "Новичок",
+    "Участник",
+    "Активный",
+    "Продвинутый",
+    "Доверенный",
+    "Опытный",
+    "Проверенный участник",
+    "Авторитетный",
+    "Профессионал",
+    "Лидер",
+    "Элита",
+    "Global",
   ] as const,
 } as const;
 
 // ============================================================
-// SERVICES / PLANS
+// SERVICES / MONETIZATION
 // ============================================================
 
 export const SERVICES = {
-  FREE: "free",
-  TOP: "top",
-  PREMIUM: "premium",
-  PRO: "pro",
-  VIP: "vip",
-} as const;
+  PREMIUM: {
+    CODE: "premium",
+    DEFAULT_PRICE: "10",
+    CURRENCY: "TJS",
+  },
 
-export const PRICES = {
-  PREMIUM: 10,
-  VIP: 20,
+  VIP: {
+    CODE: "vip",
+    DEFAULT_PRICE: "20",
+    CURRENCY: "TJS",
+  },
 
-  TOP_3_MONTHS: 30,
-  TOP_1_YEAR: 100,
+  TOP: {
+    CODE: "top",
+    DEFAULT_PRICE_3_MONTHS: "30",
+    DEFAULT_PRICE_1_YEAR: "100",
+    CURRENCY: "TJS",
+  },
 
-  PRO_3_MONTHS: 50,
-  PRO_1_YEAR: 120,
+  PRO: {
+    CODE: "pro",
+    DEFAULT_PRICE_3_MONTHS: "50",
+    DEFAULT_PRICE_1_YEAR: "120",
+    CURRENCY: "TJS",
+  },
 } as const;
 
 // ============================================================
-// ADMIN
+// RATINGS
 // ============================================================
 
-export const ADMIN = {
-  SESSION_HOURS: 12,
+export const RATINGS = {
+  MIN: 1,
 
-  DEFAULT_ROLE: "support",
+  MAX: 5,
 
-  ROLES: [
-    "superadmin",
-    "admin",
-    "moderator",
-    "editor",
-    "support",
+  DEFAULT: 5,
+
+  ALLOWED: [
+    1,
+    2,
+    3,
+    4,
+    5,
   ] as const,
-
-  SECTIONS: [
-    "dashboard",
-    "participants",
-    "publications",
-    "comments",
-    "reviews",
-    "chats",
-    "notifications",
-    "reports",
-    "moderation",
-    "payments",
-    "premium",
-    "pro",
-    "top",
-    "vip",
-    "levels",
-    "badges",
-    "categories",
-    "analytics",
-    "activity",
-    "audit",
-    "security",
-    "permissions",
-    "feature_flags",
-    "settings",
-    "system",
-  ] as const,
-
-  CONFIRM_DANGEROUS_ACTIONS: true,
-
-  AUDIT_ALL_ACTIONS: true,
-
-  ACTING_MODE: true,
-
-  INTERNAL_NOTES: true,
 } as const;
 
 // ============================================================
-// ADMIN SECTIONS
+// REPORTS
 // ============================================================
 
-export const ADMIN_SECTIONS = {
-  DASHBOARD: "dashboard",
-  PARTICIPANTS: "participants",
-  PUBLICATIONS: "publications",
-  COMMENTS: "comments",
-  REVIEWS: "reviews",
-  CHATS: "chats",
-  NOTIFICATIONS: "notifications",
-  REPORTS: "reports",
-  MODERATION: "moderation",
-  PAYMENTS: "payments",
-  PREMIUM: "premium",
-  PRO: "pro",
-  TOP: "top",
-  VIP: "vip",
-  LEVELS: "levels",
-  BADGES: "badges",
-  CATEGORIES: "categories",
-  ANALYTICS: "analytics",
-  ACTIVITY: "activity",
-  AUDIT: "audit",
-  SECURITY: "security",
-  PERMISSIONS: "permissions",
-  FEATURE_FLAGS: "feature_flags",
-  SETTINGS: "settings",
-  SYSTEM: "system",
+export const REPORTS = {
+  MAX_REASON_LENGTH: 5000,
+
+  DEFAULT_PAGE_SIZE: 50,
+
+  MAX_PAGE_SIZE: 200,
+
+  PRIVATE: true,
+
+  SHOW_PUBLIC_REPORT_MARKER: false,
+
+  NOTIFY_ADMIN: true,
+
+  ALLOW_REPORTER_STATUS: true,
 } as const;
 
 // ============================================================
-// BULK ACTIONS
+// SHARING
 // ============================================================
 
-export const BULK_ACTIONS = {
-  APPROVE: "approve",
-  REJECT: "reject",
-  PUBLISH: "publish",
-  HIDE: "hide",
-  ARCHIVE: "archive",
-  DELETE: "delete",
-  RESTORE: "restore",
+export const SHARES = {
+  ENABLED: true,
 
-  PIN: "pin",
-  UNPIN: "unpin",
+  COPY_LINK_ENABLED: true,
 
-  FEATURE: "feature",
-  UNFEATURE: "unfeature",
+  SYSTEM_SHARE_ENABLED: true,
 
-  BLOCK: "block",
-  UNBLOCK: "unblock",
+  CHAT_SHARE_ENABLED: true,
 
-  MARK_READ: "mark_read",
-  MARK_UNREAD: "mark_unread",
+  IMAGE_SHARE_ENABLED: true,
 
-  EXPORT: "export",
+  TRACK_SOURCE: true,
+
+  TRACK_USER: true,
+
+  TRACK_TIME: true,
 } as const;
 
 // ============================================================
-// AUDIT
+// DATABASE
 // ============================================================
 
-export const AUDIT = {
-  ACTIONS: [
-    "create",
-    "update",
-    "delete",
-    "restore",
-    "approve",
-    "reject",
-    "publish",
-    "hide",
-    "archive",
-    "pin",
-    "unpin",
-    "block",
-    "unblock",
-    "grant",
-    "revoke",
-    "login",
-    "logout",
-    "impersonate",
-    "acting_mode",
-    "system_change",
-  ] as const,
+export const DATABASE = {
+  NAME: "tajik-opportunities-db",
 
-  RETENTION_DAYS: 3650,
+  DEFAULT_BATCH_SIZE: 100,
 
-  STORE_IP_HASH: true,
-  STORE_USER_AGENT: true,
-  STORE_REQUEST_ID: true,
+  MAX_BATCH_SIZE: 1000,
+
+  QUERY_TIMEOUT_MS: 10000,
+
+  TRANSACTION_RETRY_COUNT: 3,
+
+  MIGRATION_TABLE: "schema_migrations",
 } as const;
 
 // ============================================================
-// FEATURE FLAGS
+// FEATURES
 // ============================================================
 
 export const FEATURES = {
-  CHAT: true,
-  PRIVATE_ADMIN_CHAT: true,
-  SYSTEM_CHAT: true,
+  REGISTRATION: true,
+
+  USERNAME_SYSTEM: true,
+
+  PROFILES: true,
 
   PUBLICATIONS: true,
+
   COMMENTS: true,
+
+  REPLIES: true,
+
   REACTIONS: true,
+
   REVIEWS: true,
-  SHARES: true,
+
+  RATINGS: true,
+
   BOOKMARKS: true,
+
+  SHARES: true,
+
   VIEWS: true,
 
   SEARCH: true,
-  SMART_SEARCH: true,
+
+  PRIVATE_CHAT: true,
+
+  SYSTEM_CHAT: true,
+
+  ADMIN_CHAT: true,
+
+  MEDIA_UPLOADS: true,
+
+  VIDEO: true,
+
+  AUDIO: true,
+
+  VOICE: true,
+
+  DOCUMENTS: true,
 
   NOTIFICATIONS: true,
+
   PUSH_NOTIFICATIONS: true,
+
   EMAIL_NOTIFICATIONS: true,
 
-  LEVELS: true,
-  BADGES: true,
-
   PREMIUM: true,
+
   PRO: true,
+
   TOP: true,
+
   VIP: true,
 
-  POLLS: true,
+  LEVELS: true,
 
-  AI_CENTER: false,
-
-  LIVE: false,
+  BADGES: true,
 
   ACTIVITY_MONITOR: true,
 
   ADMIN_ACTING_MODE: true,
 
-  ADMIN_FULL_CONTROL: true,
+  SMART_FEED: true,
 
-  MAINTENANCE_MODE: false,
-} as const;
+  SMART_SEARCH: true,
 
-// ============================================================
-// DEFAULT FEATURES
-// ============================================================
+  RECOMMENDATIONS: true,
 
-export const DEFAULT_FEATURES = {
-  publications: true,
-  comments: true,
-  reactions: true,
-  reviews: true,
-  shares: true,
-  bookmarks: true,
-  views: true,
+  POLLS: true,
 
-  chat: true,
-  privateAdminChat: true,
-  systemChat: true,
+  FOLLOWING: true,
 
-  notifications: true,
-  pushNotifications: true,
+  SAVED_FOLDERS: true,
 
-  search: true,
-  levels: true,
-  badges: true,
+  AI_CENTER: false,
 
-  premium: true,
-  pro: true,
-  top: true,
-  vip: true,
+  LIVE: false,
 
-  maintenanceMode: false,
+  INTERNATIONAL_MODE: true,
 } as const;
 
 // ============================================================
@@ -1239,18 +1212,21 @@ export const SYSTEM_SETTINGS = {
   REGISTRATION_ENABLED: "registration_enabled",
 
   PUBLICATIONS_ENABLED: "publications_enabled",
+
   COMMENTS_ENABLED: "comments_enabled",
-  REVIEWS_ENABLED: "reviews_enabled",
+
   REACTIONS_ENABLED: "reactions_enabled",
 
-  CHAT_ENABLED: "chat_enabled",
-  PRIVATE_ADMIN_CHAT_ENABLED: "private_admin_chat_enabled",
-  SYSTEM_CHAT_ENABLED: "system_chat_enabled",
+  REVIEWS_ENABLED: "reviews_enabled",
 
-  MEDIA_UPLOAD_ENABLED: "media_upload_enabled",
+  CHAT_ENABLED: "chat_enabled",
+
+  MEDIA_UPLOADS_ENABLED: "media_uploads_enabled",
 
   NOTIFICATIONS_ENABLED: "notifications_enabled",
+
   PUSH_NOTIFICATIONS_ENABLED: "push_notifications_enabled",
+
   EMAIL_NOTIFICATIONS_ENABLED: "email_notifications_enabled",
 
   SEARCH_ENABLED: "search_enabled",
@@ -1258,161 +1234,22 @@ export const SYSTEM_SETTINGS = {
   PAYMENTS_ENABLED: "payments_enabled",
 
   PREMIUM_ENABLED: "premium_enabled",
+
   PRO_ENABLED: "pro_enabled",
+
   TOP_ENABLED: "top_enabled",
+
   VIP_ENABLED: "vip_enabled",
 
   LEVELS_ENABLED: "levels_enabled",
+
   BADGES_ENABLED: "badges_enabled",
 
-  MAX_UPLOAD_SIZE_MB: "max_upload_size_mb",
+  SHARING_ENABLED: "sharing_enabled",
 
-  FREE_PUBLICATION_AUTO_DELETE_DAYS:
-    "free_publication_auto_delete_days",
+  REPORTS_ENABLED: "reports_enabled",
 
-  DEFAULT_LANGUAGE: "default_language",
-
-  DEFAULT_TIMEZONE: "default_timezone",
-} as const;
-
-// ============================================================
-// NOTIFICATION SETTINGS
-// ============================================================
-
-export const NOTIFICATION_SETTINGS = {
-  CATEGORIES: [
-    "reports",
-    "participants",
-    "comments",
-    "publications",
-    "chats",
-    "reactions",
-    "reviews",
-    "shares",
-    "payments",
-    "premium",
-    "pro",
-    "top",
-    "vip",
-    "levels",
-    "system",
-    "statistics",
-    "activity",
-    "security",
-  ] as const,
-
-  CHANNELS: [
-    "in_app",
-    "push",
-    "email",
-    "sound",
-    "vibration",
-    "badge",
-    "system_chat",
-  ] as const,
-
-  MODES: [
-    "instant",
-    "grouped",
-    "silent",
-  ] as const,
-
-  DEFAULT_ENABLED: true,
-
-  FORCED_SECURITY_NOTIFICATIONS: true,
-
-  ALLOW_PARTICIPANT_OVERRIDE: true,
-
-  ADMIN_CAN_DISABLE_PER_USER: true,
-
-  ADMIN_CAN_DISABLE_GLOBALLY: true,
-} as const;
-
-// ============================================================
-// DATABASE
-// ============================================================
-
-export const DATABASE = {
-  MAX_QUERY_PARAMS: 100,
-
-  DEFAULT_TRANSACTION_RETRIES: 3,
-
-  BUSY_TIMEOUT_MS: 5000,
-
-  TABLES: {
-    VISITORS: "visitors",
-    VISITOR_SESSIONS: "visitor_sessions",
-
-    USERS_PROFILES: "users_profiles",
-
-    CATEGORIES: "categories",
-
-    PUBLICATIONS: "publications",
-    PUBLICATION_IMAGES: "publication_images",
-    PUBLICATION_HISTORY: "publication_history",
-    PUBLICATION_METRICS: "publication_metrics",
-    PUBLICATION_METRIC_TOTALS: "publication_metric_totals",
-
-    COMMENTS: "comments",
-    COMMENT_HISTORY: "comment_history",
-
-    REVIEWS: "reviews",
-    REVIEW_HISTORY: "review_history",
-    REVIEW_REPLIES: "review_replies",
-    REVIEW_REACTIONS: "review_reactions",
-
-    REACTIONS: "reactions",
-
-    BOOKMARKS: "bookmarks",
-    SHARES: "shares",
-    PUBLICATION_SHARE_EVENTS: "publication_share_events",
-    PUBLICATION_VIEWS: "publication_views",
-
-    REPORTS: "reports",
-    REPORT_HISTORY: "report_history",
-
-    CONVERSATIONS: "conversations",
-    CONVERSATION_PARTICIPANTS: "conversation_participants",
-    MESSAGES: "messages",
-    MESSAGE_READS: "message_reads",
-    MESSAGE_REACTIONS: "message_reactions",
-
-    NOTIFICATIONS: "notifications",
-    USER_NOTIFICATION_SETTINGS: "user_notification_settings",
-    NOTIFICATION_GLOBAL_SETTINGS:
-      "notification_global_settings",
-
-    USER_ACTIVITY: "user_activity",
-
-    ADMIN_ACTIVITY_LOGS: "admin_activity_logs",
-
-    SYSTEM_SETTINGS: "system_settings",
-    FEATURE_FLAGS: "feature_flags",
-
-    ADMIN_USERS: "admin_users",
-    ADMIN_SESSIONS: "admin_sessions",
-    ADMIN_PERMISSIONS: "admin_permissions",
-    ADMIN_ROLE_PERMISSIONS: "admin_role_permissions",
-
-    PARTICIPANT_PRESENCE: "participant_presence",
-
-    SEARCH_INDEX_ENTRIES: "search_index_entries",
-
-    FEATURE_FLAG_OVERRIDES: "feature_flag_overrides",
-
-    ADMIN_ACTING_SESSIONS: "admin_acting_sessions",
-  },
-} as const;
-
-// ============================================================
-// ENVIRONMENTS
-// ============================================================
-
-export const ENVIRONMENTS = {
-  DEVELOPMENT: "development",
-  PREVIEW: "preview",
-  STAGING: "staging",
-  PRODUCTION: "production",
+  ADMIN_ACTING_MODE_ENABLED: "admin_acting_mode_enabled",
 } as const;
 
 // ============================================================
@@ -1422,43 +1259,47 @@ export const ENVIRONMENTS = {
 export const ERROR_CODES = {
   UNKNOWN: "UNKNOWN_ERROR",
 
-  VALIDATION: "VALIDATION_ERROR",
-  INVALID_REQUEST: "INVALID_REQUEST",
+  BAD_REQUEST: "BAD_REQUEST",
+
+  VALIDATION_ERROR: "VALIDATION_ERROR",
 
   UNAUTHORIZED: "UNAUTHORIZED",
+
   FORBIDDEN: "FORBIDDEN",
 
   NOT_FOUND: "NOT_FOUND",
+
   CONFLICT: "CONFLICT",
 
   RATE_LIMITED: "RATE_LIMITED",
+
+  INTERNAL_ERROR: "INTERNAL_ERROR",
 
   DATABASE_ERROR: "DATABASE_ERROR",
 
   NETWORK_ERROR: "NETWORK_ERROR",
 
-  FILE_TOO_LARGE: "FILE_TOO_LARGE",
-  INVALID_FILE_TYPE: "INVALID_FILE_TYPE",
+  MEDIA_ERROR: "MEDIA_ERROR",
 
-  PUBLICATION_NOT_FOUND: "PUBLICATION_NOT_FOUND",
-  COMMENT_NOT_FOUND: "COMMENT_NOT_FOUND",
-  REVIEW_NOT_FOUND: "REVIEW_NOT_FOUND",
+  PUBLICATION_ERROR: "PUBLICATION_ERROR",
 
-  USER_NOT_FOUND: "USER_NOT_FOUND",
+  COMMENT_ERROR: "COMMENT_ERROR",
 
-  USERNAME_TAKEN: "USERNAME_TAKEN",
+  REACTION_ERROR: "REACTION_ERROR",
 
-  CHAT_NOT_FOUND: "CHAT_NOT_FOUND",
-  MESSAGE_NOT_FOUND: "MESSAGE_NOT_FOUND",
+  REVIEW_ERROR: "REVIEW_ERROR",
 
-  NOTIFICATION_NOT_FOUND:
-    "NOTIFICATION_NOT_FOUND",
+  CHAT_ERROR: "CHAT_ERROR",
 
-  PERMISSION_DENIED: "PERMISSION_DENIED",
+  NOTIFICATION_ERROR: "NOTIFICATION_ERROR",
 
-  ADMIN_AUTH_FAILED: "ADMIN_AUTH_FAILED",
+  PERMISSION_ERROR: "PERMISSION_ERROR",
 
-  MAINTENANCE_MODE: "MAINTENANCE_MODE",
+  ADMIN_ERROR: "ADMIN_ERROR",
+
+  SECURITY_ERROR: "SECURITY_ERROR",
+
+  MAINTENANCE: "MAINTENANCE",
 } as const;
 
 // ============================================================
@@ -1467,64 +1308,66 @@ export const ERROR_CODES = {
 
 export const RESPONSE = {
   SUCCESS: "success",
+
   ERROR: "error",
 
-  DEFAULT_ERROR_MESSAGE:
-    "Произошла внутренняя ошибка сервера.",
+  DATA: "data",
 
-  DEFAULT_NOT_FOUND_MESSAGE:
-    "Запрашиваемый ресурс не найден.",
+  MESSAGE: "message",
 
-  DEFAULT_FORBIDDEN_MESSAGE:
-    "У вас недостаточно прав для выполнения этого действия.",
+  CODE: "code",
 
-  DEFAULT_UNAUTHORIZED_MESSAGE:
-    "Необходима авторизация.",
+  DETAILS: "details",
+
+  FIELDS: "fields",
+
+  REQUEST_ID: "requestId",
+
+  META: "meta",
+
+  PAGINATION: "pagination",
+
+  TOTAL: "total",
+
+  LIMIT: "limit",
+
+  OFFSET: "offset",
+
+  HAS_MORE: "hasMore",
 } as const;
 
 // ============================================================
-// CATEGORIES
+// AUDIT
 // ============================================================
 
-export const CATEGORIES = {
-  JOBS: "jobs",
-  EDUCATION: "education",
-  INTERNSHIPS: "internships",
-  GRANTS: "grants",
-  SCHOLARSHIPS: "scholarships",
-  COMPETITIONS: "competitions",
-  EVENTS: "events",
-  BUSINESS: "business",
-  INVESTMENT: "investment",
-  SERVICES: "services",
-  PROJECTS: "projects",
-  COLLABORATION: "collaboration",
-  ANNOUNCEMENTS: "announcements",
-  INTERNATIONAL: "international",
-} as const;
+export const AUDIT = {
+  ENABLED: true,
 
-// ============================================================
-// TAJIKISTAN
-// ============================================================
+  RETENTION_DAYS: 730,
 
-export const TAJIKISTAN = {
-  COUNTRY_CODE: "TJ",
-  COUNTRY_NAME: "Tajikistan",
+  TRACK_IP: true,
 
-  CURRENCY: "TJS",
-  CURRENCY_NAME: "Somoni",
+  TRACK_USER_AGENT: true,
 
-  TIMEZONE: "Asia/Dushanbe",
+  TRACK_REQUEST_ID: true,
 
-  LANGUAGE: "tg",
+  TRACK_ADMIN_ACTIONS: true,
 
-  REGIONS: [
-    "Dushanbe",
-    "Sughd",
-    "Khatlon",
-    "Gorno-Badakhshan Autonomous Province",
-    "Districts of Republican Subordination",
-  ] as const,
+  TRACK_PERMISSION_CHANGES: true,
+
+  TRACK_PROFILE_CHANGES: true,
+
+  TRACK_PUBLICATION_CHANGES: true,
+
+  TRACK_COMMENT_ACTIONS: true,
+
+  TRACK_REVIEW_ACTIONS: true,
+
+  TRACK_CHAT_ACTIONS: true,
+
+  TRACK_NOTIFICATION_ACTIONS: true,
+
+  TRACK_ACTING_MODE: true,
 } as const;
 
 // ============================================================
@@ -1534,300 +1377,168 @@ export const TAJIKISTAN = {
 export const ROUTES = {
   HOME: "/",
 
+  ADMIN: "/admin",
+
   PUBLICATIONS: "/publications",
+
   PUBLICATION: "/publication",
+
+  COMMENTS: "/comments",
 
   PROFILE: "/profile",
 
   SEARCH: "/search",
 
   CHAT: "/chat",
-  CHATS: "/chats",
 
   NOTIFICATIONS: "/notifications",
 
-  SAVED: "/saved",
-
   SETTINGS: "/settings",
 
-  ADMIN: "/admin",
+  HEALTH: "/health",
 } as const;
 
 // ============================================================
-// URL
+// TAJIKISTAN
 // ============================================================
 
-export const URLS = {
-  PUBLICATION_PATTERN: /^\/\d+$/,
+export const TAJIKISTAN = {
+  COUNTRY_CODE: "TJ",
 
-  USERNAME_PATTERN: /^[a-zA-Z0-9_.-]{3,50}$/,
+  COUNTRY_NAME: "Tajikistan",
 
-  SLUG_PATTERN: /^[a-z0-9-]+$/i,
+  COUNTRY_NAME_RU: "Таджикистан",
+
+  COUNTRY_NAME_TJ: "Тоҷикистон",
+
+  COUNTRY_NAME_EN: "Tajikistan",
+
+  COUNTRY_NAME_FA: "تاجیکستان",
+
+  CURRENCY: "TJS",
+
+  CURRENCY_SYMBOL: "SM",
+
+  TIMEZONE: "Asia/Dushanbe",
+
+  PHONE_CODE: "+992",
+
+  DEFAULT_LANGUAGE: "ru",
+
+  LANGUAGES: [
+    "ru",
+    "tj",
+    "en",
+    "fa",
+  ] as const,
 } as const;
 
 // ============================================================
-// MEDIA
+// ENVIRONMENTS
 // ============================================================
 
-export const MEDIA = {
-  TYPES: {
-    IMAGE: "image",
-    VIDEO: "video",
-    AUDIO: "audio",
-    VOICE: "voice",
-    DOCUMENT: "document",
-    FILE: "file",
-  },
-
-  VISIBILITY: {
-    PUBLIC: "public",
-    PRIVATE: "private",
-    ADMIN_ONLY: "admin_only",
-  },
-
-  STORAGE: {
-    R2: "r2",
-    EXTERNAL: "external",
-  },
+export const ENVIRONMENTS = {
+  DEVELOPMENT: "development",
+  STAGING: "staging",
+  PRODUCTION: "production",
+  TEST: "test",
 } as const;
 
+export type Environment =
+  typeof ENVIRONMENTS[
+    keyof typeof ENVIRONMENTS
+  ];
+
 // ============================================================
-// PUBLICATION NUMBERING
+// DEFAULTS
 // ============================================================
 
-export const PUBLICATION_NUMBERING = {
-  START: 1,
+export const DEFAULTS = {
+  LANGUAGE: "ru",
 
-  MIN: 1,
+  COUNTRY: "Tajikistan",
 
-  URL_TYPE: "number",
+  TIMEZONE: "Asia/Dushanbe",
 
-  SEQUENTIAL: true,
+  PAGE_SIZE: 20,
 
-  REUSE_DELETED_NUMBERS: false,
+  ADMIN_PAGE_SIZE: 50,
 
-  RENUMBER_AFTER_DELETE: true,
+  LEVEL: 0,
+
+  PUBLICATION_TYPE: "free",
+
+  PUBLICATION_VISIBILITY: "public",
+
+  PUBLICATION_PRIORITY: 0,
+
+  REACTION: "like",
+
+  RATING: 5,
+
+  NOTIFICATION_PRIORITY: "normal",
+
+  CHAT_PAGE_SIZE: 50,
 } as const;
-
-// ============================================================
-// ACTING MODE
-// ============================================================
-
-export const ACTING_MODE = {
-  ENABLED: true,
-
-  REQUIRE_ADMIN_PERMISSION: true,
-
-  REQUIRE_CONFIRMATION: true,
-
-  AUDIT_REQUIRED: true,
-
-  SHOW_ADMIN_MARKER: true,
-
-  ALLOW_POSTS: true,
-  ALLOW_COMMENTS: true,
-  ALLOW_REACTIONS: true,
-  ALLOW_REVIEWS: true,
-  ALLOW_MESSAGES: true,
-} as const;
-
-// ============================================================
-// PRESENCE
-// ============================================================
-
-export const PRESENCE = {
-  ONLINE_TIMEOUT_SECONDS: 60,
-
-  LAST_SEEN_ENABLED: true,
-
-  ADMIN_MONITORING_ENABLED: true,
-
-  STORE_TECHNICAL_ACTIVITY: true,
-
-  STORE_IP_HASH_ONLY: true,
-} as const;
-
-// ============================================================
-// SECURITY / PRIVACY
-// ============================================================
-
-export const PRIVACY = {
-  REPORTS_PRIVATE: true,
-
-  REPORT_AUTHOR_VISIBLE_TO_PUBLIC: false,
-
-  ADMIN_NOTES_VISIBLE_TO_PARTICIPANT: false,
-
-  ADMIN_ACTIVITY_AUDITABLE: true,
-
-  TECHNICAL_ID_ADMIN_ONLY: true,
-
-  LAST_SEEN_ADMIN_ACCESS: true,
-
-  ACTING_MODE_PUBLICLY_MARKED: true,
-} as const;
-
-// ============================================================
-// APPLICATION MODES
-// ============================================================
-
-export const MODES = {
-  USER: "user",
-  ADMIN: "admin",
-  MODERATOR: "moderator",
-  SUPPORT: "support",
-  EDITOR: "editor",
-
-  ACTING_AS_PARTICIPANT: "acting_as_participant",
-} as const;
-
-// ============================================================
-// DEFAULT SYSTEM CONFIGURATION
-// ============================================================
-
-export const DEFAULT_SYSTEM_CONFIG = {
-  app_name: APP.NAME,
-  environment: APP.ENVIRONMENT,
-
-  default_language: APP.DEFAULT_LANGUAGE,
-  timezone: APP.TIMEZONE,
-
-  maintenance_mode: false,
-
-  registration_enabled: true,
-
-  publications_enabled: true,
-  comments_enabled: true,
-  reviews_enabled: true,
-  reactions_enabled: true,
-
-  chat_enabled: true,
-  private_admin_chat_enabled: true,
-  system_chat_enabled: true,
-
-  media_upload_enabled: true,
-
-  notifications_enabled: true,
-  push_notifications_enabled: true,
-  email_notifications_enabled: true,
-
-  search_enabled: true,
-
-  payments_enabled: true,
-
-  premium_enabled: true,
-  pro_enabled: true,
-  top_enabled: true,
-  vip_enabled: true,
-
-  levels_enabled: true,
-  badges_enabled: true,
-
-  free_publication_auto_delete_days:
-    PUBLICATIONS.FREE_AUTO_DELETE_DAYS,
-
-  premium_price: PRICES.PREMIUM,
-  vip_price: PRICES.VIP,
-} as const;
-
-// ============================================================
-// TYPE HELPERS
-// ============================================================
-
-export type AppLanguage =
-  typeof APP.SUPPORTED_LANGUAGES[number];
-
-export type HttpMethod =
-  typeof HTTP.METHODS[keyof typeof HTTP.METHODS];
-
-export type NotificationChannel =
-  typeof NOTIFICATIONS.CHANNELS[number];
-
-export type NotificationCategory =
-  typeof NOTIFICATIONS.CATEGORIES[number];
-
-export type PublicationType =
-  typeof PUBLICATIONS.TYPES[number];
-
-export type PublicationStatus =
-  typeof PUBLICATIONS.STATUSES[number];
-
-export type ReactionType =
-  typeof REACTIONS.TYPES[number];
-
-export type ChatMode =
-  typeof MODES[keyof typeof MODES];
-
-export type AdminRole =
-  typeof ADMIN.ROLES[number];
-
-export type ServiceType =
-  typeof SERVICES[keyof typeof SERVICES];
 
 // ============================================================
 // VALIDATION HELPERS
 // ============================================================
 
 export function isSupportedLanguage(
-  value: string,
-): value is AppLanguage {
+  value: unknown,
+): value is Language {
   return (
-    APP.SUPPORTED_LANGUAGES as readonly string[]
-  ).includes(value);
+    typeof value === "string" &&
+    (
+      value === "ru" ||
+      value === "tj" ||
+      value === "en" ||
+      value === "fa"
+    )
+  );
 }
 
-export function isValidPublicationType(
-  value: string,
-): value is PublicationType {
-  return (
-    PUBLICATIONS.TYPES as readonly string[]
-  ).includes(value);
+export function isRTL(
+  language: string,
+): boolean {
+  return language === "fa";
 }
 
-export function isValidPublicationStatus(
-  value: string,
-): value is PublicationStatus {
-  return (
-    PUBLICATIONS.STATUSES as readonly string[]
-  ).includes(value);
+export function getLanguageDirection(
+  language: string,
+): "ltr" | "rtl" {
+  return isRTL(language) ? "rtl" : "ltr";
 }
 
-export function isValidReactionType(
-  value: string,
-): value is ReactionType {
-  return (
-    REACTIONS.TYPES as readonly string[]
-  ).includes(value);
+export function getLanguageMetadata(
+  language: string,
+) {
+  if (isSupportedLanguage(language)) {
+    return LANGUAGE_METADATA[language];
+  }
+
+  return LANGUAGE_METADATA.ru;
 }
 
-export function isValidAdminRole(
-  value: string,
-): value is AdminRole {
-  return (
-    ADMIN.ROLES as readonly string[]
-  ).includes(value);
+export function normalizeLanguage(
+  language: unknown,
+): Language {
+  if (typeof language !== "string") {
+    return LANGUAGES.RU;
+  }
+
+  const normalized = language
+    .trim()
+    .toLowerCase()
+    .split("-")[0];
+
+  if (isSupportedLanguage(normalized)) {
+    return normalized;
+  }
+
+  return LANGUAGES.RU;
 }
-
-// ============================================================
-// NUMERIC HELPERS
-// ============================================================
-
-export const NUMBERS = {
-  MIN_LEVEL: LEVELS.MIN,
-  MAX_LEVEL: LEVELS.MAX,
-
-  MIN_RATING: REVIEWS.MIN_RATING,
-  MAX_RATING: REVIEWS.MAX_RATING,
-
-  MIN_PUBLICATION_NUMBER:
-    PUBLICATION_NUMBERING.MIN,
-
-  DEFAULT_PAGE_SIZE:
-    PAGINATION.DEFAULT_LIMIT,
-
-  MAX_PAGE_SIZE:
-    PAGINATION.MAX_LIMIT,
-} as const;
 
 // ============================================================
 // END
