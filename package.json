@@ -1,14 +1,18 @@
 {
   "name": "tajik-opportunities",
-  "version": "1.0.0",
+  "version": "2026.09.09",
   "private": true,
   "type": "module",
+  "description": "Tajik Opportunities — advanced social platform for opportunities, publications, profiles, chat and administration.",
   "scripts": {
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck",
+    "build": "npm run typecheck"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260909.0",
     "typescript": "^5.8.3",
     "wrangler": "^4.0.0"
   }
