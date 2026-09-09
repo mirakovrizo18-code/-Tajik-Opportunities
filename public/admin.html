@@ -1,0 +1,3048 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, maximum-scale=1.0"
+  >
+
+  <meta
+    name="theme-color"
+    content="#101820"
+  >
+
+  <meta
+    name="robots"
+    content="noindex,nofollow,noarchive"
+  >
+
+  <title>Tajik Opportunities — Admin Control Center</title>
+
+  <link
+    rel="stylesheet"
+    href="/css/admin.css"
+  >
+
+  <link
+    rel="stylesheet"
+    href="/css/chat.css"
+  >
+</head>
+
+<body>
+
+<div
+  id="adminApp"
+  class="admin-app"
+  data-page="admin"
+>
+
+  <!-- ======================================================
+       MOBILE OVERLAY
+       ====================================================== -->
+
+  <div
+    id="adminSidebarOverlay"
+    class="admin-sidebar-overlay"
+    aria-hidden="true"
+  ></div>
+
+
+  <!-- ======================================================
+       MAIN LAYOUT
+       ====================================================== -->
+
+  <div class="admin-layout">
+
+
+    <!-- ====================================================
+         SIDEBAR
+         ==================================================== -->
+
+    <aside
+      id="adminSidebar"
+      class="admin-sidebar"
+      aria-label="Административная навигация"
+    >
+
+      <!-- BRAND -->
+
+      <div class="admin-sidebar-header">
+
+        <div class="admin-brand">
+
+          <div class="admin-brand-logo">
+            🇹🇯
+          </div>
+
+          <div class="admin-brand-text">
+
+            <div class="admin-brand-title">
+              Tajik Opportunities
+            </div>
+
+            <div class="admin-brand-subtitle">
+              ADMIN CONTROL CENTER
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <!-- NAVIGATION -->
+
+      <nav
+        id="adminNavigation"
+        class="admin-sidebar-nav"
+      >
+
+        <!-- MAIN -->
+
+        <div class="admin-sidebar-section">
+          Основное
+        </div>
+
+        <button
+          type="button"
+          class="admin-nav-item active"
+          data-admin-section="dashboard"
+        >
+          <span class="admin-nav-icon">📊</span>
+          <span class="admin-nav-label">Dashboard</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="participants"
+        >
+          <span class="admin-nav-icon">👥</span>
+          <span class="admin-nav-label">Участники</span>
+          <span
+            id="participantsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="publications"
+        >
+          <span class="admin-nav-icon">📰</span>
+          <span class="admin-nav-label">Публикации</span>
+          <span
+            id="publicationsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="comments"
+        >
+          <span class="admin-nav-icon">💬</span>
+          <span class="admin-nav-label">Комментарии</span>
+          <span
+            id="commentsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="reviews"
+        >
+          <span class="admin-nav-icon">⭐</span>
+          <span class="admin-nav-label">Отзывы</span>
+          <span
+            id="reviewsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <!-- COMMUNICATION -->
+
+        <div class="admin-sidebar-section">
+          Общение
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="chats"
+        >
+          <span class="admin-nav-icon">💬</span>
+          <span class="admin-nav-label">Чаты</span>
+          <span
+            id="chatsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="notifications"
+        >
+          <span class="admin-nav-icon">🔔</span>
+          <span class="admin-nav-label">Уведомления</span>
+          <span
+            id="notificationsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="shares"
+        >
+          <span class="admin-nav-icon">📤</span>
+          <span class="admin-nav-label">Поделиться</span>
+        </button>
+
+
+        <!-- MODERATION -->
+
+        <div class="admin-sidebar-section">
+          Модерация
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="reports"
+        >
+          <span class="admin-nav-icon">🚩</span>
+          <span class="admin-nav-label">Жалобы</span>
+          <span
+            id="reportsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="moderation"
+        >
+          <span class="admin-nav-icon">🛡️</span>
+          <span class="admin-nav-label">Модерация</span>
+        </button>
+
+
+        <!-- SERVICES -->
+
+        <div class="admin-sidebar-section">
+          Сервисы
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="payments"
+        >
+          <span class="admin-nav-icon">💰</span>
+          <span class="admin-nav-label">Платежи</span>
+          <span
+            id="paymentsNavBadge"
+            class="admin-nav-badge hidden"
+          >0</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="premium"
+        >
+          <span class="admin-nav-icon">💎</span>
+          <span class="admin-nav-label">Premium</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="pro"
+        >
+          <span class="admin-nav-icon">🚀</span>
+          <span class="admin-nav-label">PRO</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="top"
+        >
+          <span class="admin-nav-icon">🏆</span>
+          <span class="admin-nav-label">TOP</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="vip"
+        >
+          <span class="admin-nav-icon">👑</span>
+          <span class="admin-nav-label">VIP</span>
+        </button>
+
+
+        <!-- LEVELS -->
+
+        <div class="admin-sidebar-section">
+          Система
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="levels"
+        >
+          <span class="admin-nav-icon">🎖️</span>
+          <span class="admin-nav-label">TO Levels</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="badges"
+        >
+          <span class="admin-nav-icon">🏅</span>
+          <span class="admin-nav-label">Значки</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="categories"
+        >
+          <span class="admin-nav-icon">🗂️</span>
+          <span class="admin-nav-label">Категории</span>
+        </button>
+
+
+        <!-- ANALYTICS -->
+
+        <div class="admin-sidebar-section">
+          Аналитика
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="analytics"
+        >
+          <span class="admin-nav-icon">📈</span>
+          <span class="admin-nav-label">Аналитика</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="activity"
+        >
+          <span class="admin-nav-icon">🕐</span>
+          <span class="admin-nav-label">Активность</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="audit"
+        >
+          <span class="admin-nav-icon">📜</span>
+          <span class="admin-nav-label">Audit Log</span>
+        </button>
+
+
+        <!-- SECURITY -->
+
+        <div class="admin-sidebar-section">
+          Безопасность
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="security"
+        >
+          <span class="admin-nav-icon">🔐</span>
+          <span class="admin-nav-label">Безопасность</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="permissions"
+        >
+          <span class="admin-nav-icon">🔑</span>
+          <span class="admin-nav-label">Разрешения</span>
+        </button>
+
+
+        <!-- SETTINGS -->
+
+        <div class="admin-sidebar-section">
+          Управление
+        </div>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="feature-flags"
+        >
+          <span class="admin-nav-icon">🧪</span>
+          <span class="admin-nav-label">Feature Flags</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="settings"
+        >
+          <span class="admin-nav-icon">⚙️</span>
+          <span class="admin-nav-label">Настройки</span>
+        </button>
+
+
+        <button
+          type="button"
+          class="admin-nav-item"
+          data-admin-section="system"
+        >
+          <span class="admin-nav-icon">🖥️</span>
+          <span class="admin-nav-label">Система</span>
+        </button>
+
+      </nav>
+
+
+      <!-- SIDEBAR FOOTER -->
+
+      <div class="admin-sidebar-footer">
+
+        <div class="admin-user-mini">
+
+          <div
+            id="adminMiniAvatar"
+            class="admin-user-avatar"
+          >
+            👑
+          </div>
+
+          <div class="admin-user-info">
+
+            <div
+              id="adminMiniName"
+              class="admin-user-name"
+            >
+              Super Administrator
+            </div>
+
+            <div
+              id="adminMiniRole"
+              class="admin-user-role"
+            >
+              SUPER ADMIN
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </aside>
+
+
+    <!-- ====================================================
+         MAIN
+         ==================================================== -->
+
+    <main class="admin-main">
+
+
+      <!-- ==================================================
+           HEADER
+           ================================================== -->
+
+      <header class="admin-header">
+
+        <div class="admin-header-left">
+
+          <button
+            id="adminSidebarToggle"
+            type="button"
+            class="admin-sidebar-toggle"
+            aria-label="Открыть меню"
+          >
+            ☰
+          </button>
+
+
+          <div>
+
+            <h1
+              id="adminPageTitle"
+              class="admin-page-title"
+            >
+              Dashboard
+            </h1>
+
+            <div
+              id="adminPageSubtitle"
+              class="admin-page-subtitle"
+            >
+              Центр управления Tajik Opportunities
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <div class="admin-header-actions">
+
+          <!-- GLOBAL SEARCH -->
+
+          <button
+            id="adminGlobalSearchButton"
+            type="button"
+            class="admin-btn admin-btn-icon"
+            title="Супер поиск"
+          >
+            🔎
+          </button>
+
+
+          <!-- NOTIFICATIONS -->
+
+          <button
+            id="adminNotificationsButton"
+            type="button"
+            class="admin-btn admin-btn-icon"
+            title="Уведомления"
+          >
+            🔔
+          </button>
+
+
+          <!-- OPEN SITE -->
+
+          <a
+            href="/"
+            class="admin-btn"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            🌐 Сайт
+          </a>
+
+
+          <!-- ADMIN MENU -->
+
+          <div class="admin-dropdown">
+
+            <button
+              id="adminAccountButton"
+              type="button"
+              class="admin-btn admin-btn-icon"
+              title="Аккаунт администратора"
+            >
+              👑
+            </button>
+
+            <div
+              id="adminAccountMenu"
+              class="admin-dropdown-menu hidden"
+            >
+
+              <button
+                type="button"
+                class="admin-dropdown-item"
+                data-admin-action="profile"
+              >
+                👤 Профиль администратора
+              </button>
+
+              <button
+                type="button"
+                class="admin-dropdown-item"
+                data-admin-action="security"
+              >
+                🔐 Безопасность
+              </button>
+
+              <button
+                type="button"
+                class="admin-dropdown-item danger"
+                data-admin-action="logout"
+              >
+                🚪 Выйти
+              </button>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </header>
+
+
+      <!-- ==================================================
+           ACTING AS PARTICIPANT BANNER
+           ================================================== -->
+
+      <div
+        id="adminActingBanner"
+        class="admin-acting-banner hidden"
+      >
+
+        <div class="admin-acting-icon">
+          🎭
+        </div>
+
+        <div class="admin-acting-content">
+
+          <div class="admin-acting-title">
+            Вы действуете от имени участника
+          </div>
+
+          <div
+            id="adminActingUser"
+            class="admin-acting-user"
+          >
+            —
+          </div>
+
+        </div>
+
+        <div class="admin-acting-actions">
+
+          <button
+            id="adminSwitchActingProfile"
+            type="button"
+            class="admin-btn admin-btn-sm"
+          >
+            🔄 Переключить профиль
+          </button>
+
+          <button
+            id="adminEndActingMode"
+            type="button"
+            class="admin-btn admin-btn-sm admin-btn-danger"
+          >
+            Завершить режим
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <!-- ==================================================
+           CONTENT
+           ================================================== -->
+
+      <div class="admin-content">
+
+
+        <!-- =================================================
+             DASHBOARD
+             ================================================= -->
+
+        <section
+          id="adminSectionDashboard"
+          class="admin-section"
+          data-admin-page="dashboard"
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                Панель управления
+              </h2>
+
+              <div class="admin-section-description">
+                Полный обзор платформы в реальном времени.
+              </div>
+
+            </div>
+
+            <div class="admin-toolbar-right">
+
+              <button
+                type="button"
+                class="admin-btn admin-btn-sm"
+                data-admin-action="refresh-dashboard"
+              >
+                🔄 Обновить
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <!-- STATISTICS -->
+
+          <div class="admin-dashboard-grid">
+
+            <div class="admin-card admin-stat-card">
+
+              <div class="admin-stat-top">
+
+                <div class="admin-stat-icon">
+                  👥
+                </div>
+
+                <span class="admin-badge admin-badge-primary">
+                  Участники
+                </span>
+
+              </div>
+
+              <div
+                id="dashboardParticipants"
+                class="admin-stat-value"
+              >
+                0
+              </div>
+
+              <div class="admin-stat-label">
+                Всего участников
+              </div>
+
+              <div
+                id="dashboardParticipantsChange"
+                class="admin-stat-change positive"
+              >
+                —
+              </div>
+
+            </div>
+
+
+            <div class="admin-card admin-stat-card">
+
+              <div class="admin-stat-top">
+
+                <div class="admin-stat-icon">
+                  📰
+                </div>
+
+                <span class="admin-badge admin-badge-primary">
+                  Посты
+                </span>
+
+              </div>
+
+              <div
+                id="dashboardPublications"
+                class="admin-stat-value"
+              >
+                0
+              </div>
+
+              <div class="admin-stat-label">
+                Публикации
+              </div>
+
+              <div
+                id="dashboardPendingPublications"
+                class="admin-stat-change"
+              >
+                Ожидают модерации: 0
+              </div>
+
+            </div>
+
+
+            <div class="admin-card admin-stat-card">
+
+              <div class="admin-stat-top">
+
+                <div class="admin-stat-icon">
+                  💬
+                </div>
+
+                <span class="admin-badge admin-badge-success">
+                  Чаты
+                </span>
+
+              </div>
+
+              <div
+                id="dashboardMessages"
+                class="admin-stat-value"
+              >
+                0
+              </div>
+
+              <div class="admin-stat-label">
+                Сообщения
+              </div>
+
+              <div
+                id="dashboardUnreadMessages"
+                class="admin-stat-change"
+              >
+                Непрочитано: 0
+              </div>
+
+            </div>
+
+
+            <div class="admin-card admin-stat-card">
+
+              <div class="admin-stat-top">
+
+                <div class="admin-stat-icon">
+                  🚩
+                </div>
+
+                <span class="admin-badge admin-badge-danger">
+                  Модерация
+                </span>
+
+              </div>
+
+              <div
+                id="dashboardReports"
+                class="admin-stat-value"
+              >
+                0
+              </div>
+
+              <div class="admin-stat-label">
+                Новые жалобы
+              </div>
+
+              <div
+                id="dashboardCriticalReports"
+                class="admin-stat-change negative"
+              >
+                Критических: 0
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- DASHBOARD ROW -->
+
+          <div class="admin-grid admin-grid-main admin-section">
+
+            <div class="admin-card">
+
+              <div class="admin-card-header">
+
+                <div>
+
+                  <h3 class="admin-card-title">
+                    Активность платформы
+                  </h3>
+
+                  <div class="admin-card-subtitle">
+                    Последние действия
+                  </div>
+
+                </div>
+
+                <button
+                  type="button"
+                  class="admin-btn admin-btn-sm"
+                  data-admin-action="open-activity"
+                >
+                  Все действия
+                </button>
+
+              </div>
+
+              <div
+                id="dashboardActivity"
+                class="admin-card-body"
+              >
+
+                <div class="admin-loading">
+                  <div class="admin-spinner"></div>
+                </div>
+
+              </div>
+
+            </div>
+
+
+            <div class="admin-card">
+
+              <div class="admin-card-header">
+
+                <div>
+
+                  <h3 class="admin-card-title">
+                    Быстрые действия
+                  </h3>
+
+                  <div class="admin-card-subtitle">
+                    Основные операции администратора
+                  </div>
+
+                </div>
+
+              </div>
+
+              <div class="admin-card-body">
+
+                <div class="admin-grid">
+
+                  <button
+                    type="button"
+                    class="admin-btn admin-btn-primary admin-btn-block"
+                    data-admin-action="search-participant"
+                  >
+                    🔎 Найти участника
+                  </button>
+
+                  <button
+                    type="button"
+                    class="admin-btn admin-btn-block"
+                    data-admin-action="new-publication"
+                  >
+                    📰 Создать публикацию
+                  </button>
+
+                  <button
+                    type="button"
+                    class="admin-btn admin-btn-block"
+                    data-admin-action="open-chats"
+                  >
+                    💬 Открыть чаты
+                  </button>
+
+                  <button
+                    type="button"
+                    class="admin-btn admin-btn-warning admin-btn-block"
+                    data-admin-action="open-reports"
+                  >
+                    🚩 Проверить жалобы
+                  </button>
+
+                  <button
+                    type="button"
+                    class="admin-btn admin-btn-purple admin-btn-block"
+                    data-admin-action="select-acting-profile"
+                  >
+                    🎭 Действовать от имени участника
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- METRICS -->
+
+          <div class="admin-card admin-section">
+
+            <div class="admin-card-header">
+
+              <div>
+
+                <h3 class="admin-card-title">
+                  Ключевые показатели
+                </h3>
+
+                <div class="admin-card-subtitle">
+                  Все основные метрики платформы
+                </div>
+
+              </div>
+
+            </div>
+
+            <div
+              id="dashboardMetrics"
+              class="admin-card-body"
+            >
+
+              <div class="admin-metrics-grid">
+
+                <div class="admin-metric">
+                  <div class="admin-metric-label">
+                    Просмотры
+                  </div>
+                  <div
+                    id="metricViews"
+                    class="admin-metric-value"
+                  >0</div>
+                </div>
+
+                <div class="admin-metric">
+                  <div class="admin-metric-label">
+                    Реакции
+                  </div>
+                  <div
+                    id="metricReactions"
+                    class="admin-metric-value"
+                  >0</div>
+                </div>
+
+                <div class="admin-metric">
+                  <div class="admin-metric-label">
+                    Комментарии
+                  </div>
+                  <div
+                    id="metricComments"
+                    class="admin-metric-value"
+                  >0</div>
+                </div>
+
+                <div class="admin-metric">
+                  <div class="admin-metric-label">
+                    Сохранения
+                  </div>
+                  <div
+                    id="metricBookmarks"
+                    class="admin-metric-value"
+                  >0</div>
+                </div>
+
+                <div class="admin-metric">
+                  <div class="admin-metric-label">
+                    Поделились
+                  </div>
+                  <div
+                    id="metricShares"
+                    class="admin-metric-value"
+                  >0</div>
+                </div>
+
+                <div class="admin-metric">
+                  <div class="admin-metric-label">
+                    Отзывы
+                  </div>
+                  <div
+                    id="metricReviews"
+                    class="admin-metric-value"
+                  >0</div>
+                </div>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PARTICIPANTS
+             ================================================= -->
+
+        <section
+          id="adminSectionParticipants"
+          class="admin-section"
+          data-admin-page="participants"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                Участники
+              </h2>
+
+              <div class="admin-section-description">
+                Поиск, просмотр и полное управление профилями.
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              class="admin-btn admin-btn-purple"
+              data-admin-action="select-acting-profile"
+            >
+              🎭 Действовать от имени
+            </button>
+
+          </div>
+
+
+          <div class="admin-toolbar">
+
+            <div class="admin-toolbar-left">
+
+              <div class="admin-search">
+
+                <span class="admin-search-icon">
+                  🔎
+                </span>
+
+                <input
+                  id="adminParticipantSearch"
+                  class="admin-search-input"
+                  type="search"
+                  placeholder="Username, имя, ID, технический ID..."
+                  autocomplete="off"
+                >
+
+              </div>
+
+              <select
+                id="adminParticipantStatusFilter"
+                class="admin-select"
+              >
+                <option value="">Все статусы</option>
+                <option value="active">Активные</option>
+                <option value="blocked">Заблокированные</option>
+                <option value="deleted">Удалённые</option>
+              </select>
+
+              <select
+                id="adminParticipantLevelFilter"
+                class="admin-select"
+              >
+                <option value="">Все уровни</option>
+                <option value="0">Lv. 0</option>
+                <option value="1">Lv. 1</option>
+                <option value="2">Lv. 2</option>
+                <option value="3">Lv. 3</option>
+                <option value="4">Lv. 4</option>
+                <option value="5">Lv. 5</option>
+                <option value="6">Lv. 6</option>
+                <option value="7">Lv. 7</option>
+                <option value="8">Lv. 8</option>
+                <option value="9">Lv. 9</option>
+                <option value="10">Lv. 10</option>
+                <option value="11">Lv. 11</option>
+                <option value="12">Lv. 12</option>
+              </select>
+
+            </div>
+
+            <div class="admin-toolbar-right">
+
+              <button
+                type="button"
+                class="admin-btn"
+                data-admin-action="refresh-participants"
+              >
+                🔄
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-card admin-section">
+
+            <div class="admin-table-wrap">
+
+              <table class="admin-table">
+
+                <thead>
+
+                  <tr>
+
+                    <th>Участник</th>
+                    <th>ID</th>
+                    <th>Уровень</th>
+                    <th>Сервис</th>
+                    <th>Статус</th>
+                    <th>Последняя активность</th>
+                    <th></th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody
+                  id="adminParticipantsTable"
+                >
+
+                  <tr>
+
+                    <td
+                      colspan="7"
+                      class="admin-loading"
+                    >
+
+                      <div class="admin-spinner"></div>
+
+                    </td>
+
+                  </tr>
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+            <div
+              id="adminParticipantsPagination"
+              class="admin-pagination"
+            ></div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PUBLICATIONS
+             ================================================= -->
+
+        <section
+          id="adminSectionPublications"
+          class="admin-section"
+          data-admin-page="publications"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                Публикации
+              </h2>
+
+              <div class="admin-section-description">
+                Полное управление публикациями и их состоянием.
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              class="admin-btn admin-btn-primary"
+              data-admin-action="new-publication"
+            >
+              ＋ Новая публикация
+            </button>
+
+          </div>
+
+
+          <div class="admin-toolbar">
+
+            <div class="admin-toolbar-left">
+
+              <div class="admin-search">
+
+                <span class="admin-search-icon">
+                  🔎
+                </span>
+
+                <input
+                  id="adminPublicationSearch"
+                  class="admin-search-input"
+                  type="search"
+                  placeholder="Найти публикацию..."
+                >
+
+              </div>
+
+              <select
+                id="adminPublicationStatusFilter"
+                class="admin-select"
+              >
+                <option value="">Все статусы</option>
+                <option value="draft">Черновики</option>
+                <option value="pending">На модерации</option>
+                <option value="published">Опубликованные</option>
+                <option value="hidden">Скрытые</option>
+                <option value="rejected">Отклонённые</option>
+                <option value="deleted">Удалённые</option>
+              </select>
+
+              <select
+                id="adminPublicationTypeFilter"
+                class="admin-select"
+              >
+                <option value="">Все типы</option>
+                <option value="free">FREE</option>
+                <option value="premium">PREMIUM</option>
+                <option value="vip">VIP</option>
+                <option value="custom">CUSTOM</option>
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="adminPublicationsContainer"
+            class="admin-grid admin-section"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             COMMENTS
+             ================================================= -->
+
+        <section
+          id="adminSectionComments"
+          class="admin-section"
+          data-admin-page="comments"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                Комментарии
+              </h2>
+
+              <div class="admin-section-description">
+                Комментарии, ответы, реакции и модерация.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-toolbar">
+
+            <div class="admin-search">
+
+              <span class="admin-search-icon">
+                🔎
+              </span>
+
+              <input
+                id="adminCommentSearch"
+                class="admin-search-input"
+                type="search"
+                placeholder="Поиск комментария..."
+              >
+
+            </div>
+
+            <select
+              id="adminCommentStatusFilter"
+              class="admin-select"
+            >
+              <option value="">Все</option>
+              <option value="published">Опубликованные</option>
+              <option value="hidden">Скрытые</option>
+              <option value="deleted">Удалённые</option>
+            </select>
+
+          </div>
+
+
+          <div class="admin-card admin-section">
+
+            <div class="admin-table-wrap">
+
+              <table class="admin-table">
+
+                <thead>
+
+                  <tr>
+                    <th>Автор</th>
+                    <th>Комментарий</th>
+                    <th>Публикация</th>
+                    <th>Реакции</th>
+                    <th>Ответы</th>
+                    <th>Статус</th>
+                    <th></th>
+                  </tr>
+
+                </thead>
+
+                <tbody id="adminCommentsTable"></tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             REVIEWS
+             ================================================= -->
+
+        <section
+          id="adminSectionReviews"
+          class="admin-section"
+          data-admin-page="reviews"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                ⭐ Отзывы и рейтинги
+              </h2>
+
+              <div class="admin-section-description">
+                Рейтинги 1–5, отзывы, ответы, реакции и модерация.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-toolbar">
+
+            <div class="admin-toolbar-left">
+
+              <div class="admin-search">
+
+                <span class="admin-search-icon">
+                  🔎
+                </span>
+
+                <input
+                  id="adminReviewSearch"
+                  class="admin-search-input"
+                  type="search"
+                  placeholder="Поиск отзывов..."
+                >
+
+              </div>
+
+              <select
+                id="adminReviewRatingFilter"
+                class="admin-select"
+              >
+                <option value="">Все оценки</option>
+                <option value="5">★★★★★</option>
+                <option value="4">★★★★</option>
+                <option value="3">★★★</option>
+                <option value="2">★★</option>
+                <option value="1">★</option>
+              </select>
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="adminReviewsContainer"
+            class="admin-grid admin-section"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             CHATS
+             ================================================= -->
+
+        <section
+          id="adminSectionChats"
+          class="admin-section"
+          data-admin-page="chats"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                💬 Чаты
+              </h2>
+
+              <div class="admin-section-description">
+                Личные диалоги, системный чат и сообщения.
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              class="admin-btn admin-btn-primary"
+              data-admin-action="new-chat"
+            >
+              ＋ Новый чат
+            </button>
+
+          </div>
+
+
+          <div
+            id="adminChatContainer"
+            class="admin-chat-layout"
+          >
+
+            <div
+              id="adminChatList"
+              class="admin-chat-list"
+            ></div>
+
+
+            <div class="admin-chat-center">
+
+              <div
+                id="adminChatHeader"
+                class="admin-chat-header"
+              >
+                Выберите диалог
+              </div>
+
+              <div
+                id="adminChatMessages"
+                class="admin-chat-messages"
+              >
+
+                <div class="admin-empty">
+
+                  <div class="admin-empty-icon">
+                    💬
+                  </div>
+
+                  <div class="admin-empty-title">
+                    Чат не выбран
+                  </div>
+
+                  <div class="admin-empty-text">
+                    Выберите диалог слева для просмотра сообщений.
+                  </div>
+
+                </div>
+
+              </div>
+
+              <div class="admin-chat-composer">
+
+                <textarea
+                  id="adminChatInput"
+                  class="admin-textarea"
+                  placeholder="Введите сообщение..."
+                  rows="1"
+                ></textarea>
+
+                <button
+                  id="adminChatSend"
+                  type="button"
+                  class="admin-btn admin-btn-primary"
+                >
+                  ➤
+                </button>
+
+              </div>
+
+            </div>
+
+
+            <aside
+              id="adminChatDetails"
+              class="admin-card-body"
+            >
+
+              <div class="admin-empty">
+
+                <div class="admin-empty-icon">
+                  👤
+                </div>
+
+                <div class="admin-empty-title">
+                  Информация
+                </div>
+
+                <div class="admin-empty-text">
+                  Здесь появится профиль участника и данные диалога.
+                </div>
+
+              </div>
+
+            </aside>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             NOTIFICATIONS
+             ================================================= -->
+
+        <section
+          id="adminSectionNotifications"
+          class="admin-section"
+          data-admin-page="notifications"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                🔔 Центр уведомлений
+              </h2>
+
+              <div class="admin-section-description">
+                Все уведомления и события платформы.
+              </div>
+
+            </div>
+
+            <div class="admin-toolbar-right">
+
+              <button
+                type="button"
+                class="admin-btn admin-btn-sm"
+                data-admin-action="mark-all-notifications-read"
+              >
+                ✓ Прочитать всё
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-notification-category-grid">
+
+            <div class="admin-notification-category">
+              <div class="admin-notification-category-icon">🚩</div>
+              <div class="admin-notification-category-info">
+                <div class="admin-notification-category-name">
+                  Жалобы
+                </div>
+                <div
+                  id="notificationCountReports"
+                  class="admin-notification-category-count"
+                >0</div>
+              </div>
+            </div>
+
+            <div class="admin-notification-category">
+              <div class="admin-notification-category-icon">👥</div>
+              <div class="admin-notification-category-info">
+                <div class="admin-notification-category-name">
+                  Участники
+                </div>
+                <div
+                  id="notificationCountParticipants"
+                  class="admin-notification-category-count"
+                >0</div>
+              </div>
+            </div>
+
+            <div class="admin-notification-category">
+              <div class="admin-notification-category-icon">📰</div>
+              <div class="admin-notification-category-info">
+                <div class="admin-notification-category-name">
+                  Публикации
+                </div>
+                <div
+                  id="notificationCountPublications"
+                  class="admin-notification-category-count"
+                >0</div>
+              </div>
+            </div>
+
+            <div class="admin-notification-category">
+              <div class="admin-notification-category-icon">💬</div>
+              <div class="admin-notification-category-info">
+                <div class="admin-notification-category-name">
+                  Чаты
+                </div>
+                <div
+                  id="notificationCountChats"
+                  class="admin-notification-category-count"
+                >0</div>
+              </div>
+            </div>
+
+            <div class="admin-notification-category">
+              <div class="admin-notification-category-icon">❤️</div>
+              <div class="admin-notification-category-info">
+                <div class="admin-notification-category-name">
+                  Реакции
+                </div>
+                <div
+                  id="notificationCountReactions"
+                  class="admin-notification-category-count"
+                >0</div>
+              </div>
+            </div>
+
+            <div class="admin-notification-category">
+              <div class="admin-notification-category-icon">⭐</div>
+              <div class="admin-notification-category-info">
+                <div class="admin-notification-category-name">
+                  Отзывы
+                </div>
+                <div
+                  id="notificationCountReviews"
+                  class="admin-notification-category-count"
+                >0</div>
+              </div>
+            </div>
+
+          </div>
+
+
+          <div class="admin-card admin-section">
+
+            <div
+              id="adminNotificationsList"
+              class="admin-card-body"
+            ></div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             REPORTS
+             ================================================= -->
+
+        <section
+          id="adminSectionReports"
+          class="admin-section"
+          data-admin-page="reports"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                🚩 Жалобы
+              </h2>
+
+              <div class="admin-section-description">
+                Жалобы полностью приватны для обычных участников.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-toolbar">
+
+            <select
+              id="adminReportStatusFilter"
+              class="admin-select"
+            >
+              <option value="">Все статусы</option>
+              <option value="pending">Новые</option>
+              <option value="reviewing">На рассмотрении</option>
+              <option value="resolved">Решённые</option>
+              <option value="rejected">Отклонённые</option>
+            </select>
+
+            <select
+              id="adminReportPriorityFilter"
+              class="admin-select"
+            >
+              <option value="">Все приоритеты</option>
+              <option value="low">Низкий</option>
+              <option value="normal">Обычный</option>
+              <option value="high">Высокий</option>
+              <option value="critical">Критический</option>
+            </select>
+
+          </div>
+
+
+          <div class="admin-card admin-section">
+
+            <div class="admin-table-wrap">
+
+              <table class="admin-table">
+
+                <thead>
+                  <tr>
+                    <th>Приоритет</th>
+                    <th>Причина</th>
+                    <th>Объект</th>
+                    <th>Отправитель</th>
+                    <th>Дата</th>
+                    <th>Статус</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="adminReportsTable"></tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             MODERATION
+             ================================================= -->
+
+        <section
+          id="adminSectionModeration"
+          class="admin-section"
+          data-admin-page="moderation"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                🛡️ Модерация
+              </h2>
+
+              <div class="admin-section-description">
+                Единый центр публикаций, комментариев, отзывов и жалоб.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-moderation-layout">
+
+            <div class="admin-card">
+
+              <div class="admin-card-header">
+                <div>
+                  <h3 class="admin-card-title">
+                    Очередь модерации
+                  </h3>
+                </div>
+              </div>
+
+              <div
+                id="adminModerationQueue"
+                class="admin-card-body admin-moderation-queue"
+              ></div>
+
+            </div>
+
+
+            <div class="admin-card">
+
+              <div class="admin-card-header">
+                <div>
+                  <h3 class="admin-card-title">
+                    Действия
+                  </h3>
+                </div>
+              </div>
+
+              <div
+                id="adminModerationActions"
+                class="admin-card-body"
+              ></div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PAYMENTS
+             ================================================= -->
+
+        <section
+          id="adminSectionPayments"
+          class="admin-section"
+          data-admin-page="payments"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                💰 Платежи
+              </h2>
+
+              <div class="admin-section-description">
+                Ручное подтверждение платежей и назначение услуг.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div class="admin-card">
+
+            <div class="admin-table-wrap">
+
+              <table class="admin-table">
+
+                <thead>
+                  <tr>
+                    <th>Участник</th>
+                    <th>Услуга</th>
+                    <th>Цена</th>
+                    <th>Срок</th>
+                    <th>Статус</th>
+                    <th>Дата</th>
+                    <th></th>
+                  </tr>
+                </thead>
+
+                <tbody id="adminPaymentsTable"></tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             PREMIUM / PRO / TOP / VIP
+             ================================================= -->
+
+        <section
+          id="adminSectionPremium"
+          class="admin-section"
+          data-admin-page="premium"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                💎 Premium
+              </h2>
+              <div class="admin-section-description">
+                Управление Premium-публикациями и доступом.
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            id="adminPremiumContainer"
+            class="admin-service-grid"
+          ></div>
+
+        </section>
+
+
+        <section
+          id="adminSectionPro"
+          class="admin-section"
+          data-admin-page="pro"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🚀 PRO
+              </h2>
+              <div class="admin-section-description">
+                Участники PRO и индивидуальные права.
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            id="adminProContainer"
+            class="admin-service-grid"
+          ></div>
+
+        </section>
+
+
+        <section
+          id="adminSectionTop"
+          class="admin-section"
+          data-admin-page="top"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🏆 TOP
+              </h2>
+              <div class="admin-section-description">
+                Управление статусом TOP и его сроком.
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            id="adminTopContainer"
+            class="admin-service-grid"
+          ></div>
+
+        </section>
+
+
+        <section
+          id="adminSectionVip"
+          class="admin-section"
+          data-admin-page="vip"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                👑 VIP
+              </h2>
+              <div class="admin-section-description">
+                Управление VIP-публикациями и индивидуальными правами.
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            id="adminVipContainer"
+            class="admin-service-grid"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             LEVELS
+             ================================================= -->
+
+        <section
+          id="adminSectionLevels"
+          class="admin-section"
+          data-admin-page="levels"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+
+              <h2 class="admin-section-title">
+                🎖️ TO Levels
+              </h2>
+
+              <div class="admin-section-description">
+                12 уровней Tajik Opportunities. Lv.0 скрыт.
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              class="admin-btn admin-btn-primary"
+              data-admin-action="edit-level-settings"
+            >
+              ⚙️ Настройки уровней
+            </button>
+
+          </div>
+
+
+          <div
+            id="adminLevelGrid"
+            class="admin-level-grid"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             BADGES
+             ================================================= -->
+
+        <section
+          id="adminSectionBadges"
+          class="admin-section"
+          data-admin-page="badges"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🏅 Значки и достижения
+              </h2>
+              <div class="admin-section-description">
+                Создание и управление достижениями.
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="admin-btn admin-btn-primary"
+              data-admin-action="new-badge"
+            >
+              ＋ Создать значок
+            </button>
+
+          </div>
+
+          <div
+            id="adminBadgesContainer"
+            class="admin-grid admin-grid-3"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             CATEGORIES
+             ================================================= -->
+
+        <section
+          id="adminSectionCategories"
+          class="admin-section"
+          data-admin-page="categories"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🗂️ Категории
+              </h2>
+              <div class="admin-section-description">
+                Управление категориями возможностей.
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="admin-btn admin-btn-primary"
+              data-admin-action="new-category"
+            >
+              ＋ Категория
+            </button>
+
+          </div>
+
+          <div
+            id="adminCategoriesContainer"
+            class="admin-grid admin-grid-3"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             ANALYTICS
+             ================================================= -->
+
+        <section
+          id="adminSectionAnalytics"
+          class="admin-section"
+          data-admin-page="analytics"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                📈 Аналитика
+              </h2>
+              <div class="admin-section-description">
+                Подробная статистика платформы.
+              </div>
+            </div>
+
+          </div>
+
+          <div class="admin-card">
+
+            <div class="admin-card-body">
+
+              <div
+                id="adminAnalyticsChart"
+                class="admin-chart"
+              >
+                График аналитики будет загружен здесь.
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             ACTIVITY
+             ================================================= -->
+
+        <section
+          id="adminSectionActivity"
+          class="admin-section"
+          data-admin-page="activity"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🕐 Активность участников
+              </h2>
+              <div class="admin-section-description">
+                Online, last seen и сервисная активность.
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            id="adminActivityContainer"
+            class="admin-card"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             AUDIT
+             ================================================= -->
+
+        <section
+          id="adminSectionAudit"
+          class="admin-section"
+          data-admin-page="audit"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                📜 Audit Log
+              </h2>
+              <div class="admin-section-description">
+                Кто, когда и какое действие выполнил.
+              </div>
+            </div>
+
+          </div>
+
+          <div class="admin-card">
+
+            <div
+              id="adminAuditList"
+              class="admin-card-body admin-audit-list"
+            ></div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             SECURITY
+             ================================================= -->
+
+        <section
+          id="adminSectionSecurity"
+          class="admin-section"
+          data-admin-page="security"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🔐 Безопасность
+              </h2>
+              <div class="admin-section-description">
+                Сессии, доступ, безопасность и контроль системы.
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            id="adminSecurityContainer"
+            class="admin-grid admin-grid-2"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             PERMISSIONS
+             ================================================= -->
+
+        <section
+          id="adminSectionPermissions"
+          class="admin-section"
+          data-admin-page="permissions"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🔑 Разрешения
+              </h2>
+
+              <div class="admin-section-description">
+                Глобальные роли, индивидуальные права и Inherit / Allow / Deny.
+              </div>
+
+            </div>
+
+          </div>
+
+          <div
+            id="adminPermissionsContainer"
+            class="admin-card"
+          >
+
+            <div class="admin-card-body">
+
+              <div class="admin-permission-grid">
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =================================================
+             FEATURE FLAGS
+             ================================================= -->
+
+        <section
+          id="adminSectionFeatureFlags"
+          class="admin-section"
+          data-admin-page="feature-flags"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🧪 Feature Flags
+              </h2>
+              <div class="admin-section-description">
+                Включение и отключение функций глобально или для отдельных участников.
+              </div>
+            </div>
+
+          </div>
+
+          <div
+            id="adminFeatureFlagsContainer"
+            class="admin-grid admin-grid-2"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             SETTINGS
+             ================================================= -->
+
+        <section
+          id="adminSectionSettings"
+          class="admin-section"
+          data-admin-page="settings"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                ⚙️ Настройки
+              </h2>
+
+              <div class="admin-section-description">
+                Все системные настройки платформы.
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="adminSettingsContainer"
+            class="admin-grid admin-grid-2"
+          ></div>
+
+        </section>
+
+
+        <!-- =================================================
+             SYSTEM
+             ================================================= -->
+
+        <section
+          id="adminSectionSystem"
+          class="admin-section"
+          data-admin-page="system"
+          hidden
+        >
+
+          <div class="admin-section-header">
+
+            <div>
+              <h2 class="admin-section-title">
+                🖥️ Система
+              </h2>
+
+              <div class="admin-section-description">
+                Состояние Worker, D1, хранилищ и системных функций.
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              class="admin-btn"
+              data-admin-action="system-health"
+            >
+              🔄 Проверить
+            </button>
+
+          </div>
+
+
+          <div
+            id="adminSystemContainer"
+            class="admin-grid admin-grid-3"
+          ></div>
+
+
+          <div class="admin-danger-zone admin-section">
+
+            <div class="admin-card-header">
+
+              <div>
+
+                <div class="admin-danger-zone-title">
+                  Опасная зона
+                </div>
+
+                <div class="admin-danger-zone-text">
+                  Критические действия требуют подтверждения.
+                </div>
+
+              </div>
+
+            </div>
+
+            <div class="admin-card-body">
+
+              <div class="admin-grid admin-grid-2">
+
+                <button
+                  type="button"
+                  class="admin-btn admin-btn-danger"
+                  data-admin-action="maintenance-mode"
+                >
+                  🚧 Режим обслуживания
+                </button>
+
+                <button
+                  type="button"
+                  class="admin-btn admin-btn-danger"
+                  data-admin-action="emergency-lock"
+                >
+                  🔒 Экстренная блокировка
+                </button>
+
+              </div>
+
+            </div>
+
+          </div>
+
+        </section>
+
+      </div>
+
+    </main>
+
+  </div>
+
+
+  <!-- ======================================================
+       GLOBAL SEARCH MODAL
+       ====================================================== -->
+
+  <div
+    id="adminSearchModal"
+    class="admin-modal-root"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="adminSearchModalTitle"
+  >
+
+    <div class="admin-modal admin-modal-lg">
+
+      <div class="admin-modal-header">
+
+        <h2
+          id="adminSearchModalTitle"
+          class="admin-modal-title"
+        >
+          🔎 Супер поиск
+        </h2>
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          data-admin-close-modal="adminSearchModal"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="admin-modal-body">
+
+        <div class="admin-search">
+
+          <span class="admin-search-icon">
+            🔎
+          </span>
+
+          <input
+            id="adminGlobalSearchInput"
+            class="admin-search-input"
+            type="search"
+            placeholder="Username, имя, ID, публикация, комментарий, чат..."
+            autocomplete="off"
+          >
+
+        </div>
+
+
+        <div
+          id="adminGlobalSearchResults"
+          class="admin-section"
+        >
+
+          <div class="admin-empty">
+
+            <div class="admin-empty-icon">
+              🔎
+            </div>
+
+            <div class="admin-empty-title">
+              Начните поиск
+            </div>
+
+            <div class="admin-empty-text">
+              Система может искать участников, публикации,
+              комментарии, отзывы, чаты и другие объекты.
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================================
+       ACTING PROFILE MODAL
+       ====================================================== -->
+
+  <div
+    id="adminActingModal"
+    class="admin-modal-root"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="adminActingModalTitle"
+  >
+
+    <div class="admin-modal admin-modal-lg">
+
+      <div class="admin-modal-header">
+
+        <h2
+          id="adminActingModalTitle"
+          class="admin-modal-title"
+        >
+          🎭 Действовать от имени участника
+        </h2>
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          data-admin-close-modal="adminActingModal"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="admin-modal-body">
+
+        <div class="admin-search">
+
+          <span class="admin-search-icon">
+            🔎
+          </span>
+
+          <input
+            id="adminActingSearchInput"
+            class="admin-search-input"
+            type="search"
+            placeholder="Найти участника..."
+            autocomplete="off"
+          >
+
+        </div>
+
+
+        <div
+          id="adminActingProfiles"
+          class="admin-grid admin-section"
+        ></div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================================
+       PARTICIPANT CONTROL CENTER MODAL
+       ====================================================== -->
+
+  <div
+    id="adminParticipantModal"
+    class="admin-modal-root"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="adminParticipantModalTitle"
+  >
+
+    <div class="admin-modal admin-modal-xl">
+
+      <div class="admin-modal-header">
+
+        <h2
+          id="adminParticipantModalTitle"
+          class="admin-modal-title"
+        >
+          👤 Управление участником
+        </h2>
+
+        <button
+          type="button"
+          class="admin-modal-close"
+          data-admin-close-modal="adminParticipantModal"
+        >
+          ×
+        </button>
+
+      </div>
+
+
+      <div class="admin-modal-body">
+
+        <div class="admin-profile-layout">
+
+          <div
+            id="adminParticipantProfileCard"
+            class="admin-card admin-profile-card"
+          >
+
+            <div
+              id="adminParticipantAvatar"
+              class="admin-profile-avatar"
+            >
+              👤
+            </div>
+
+            <div
+              id="adminParticipantName"
+              class="admin-profile-name"
+            >
+              —
+            </div>
+
+            <div
+              id="adminParticipantUsername"
+              class="admin-profile-username"
+            >
+              —
+            </div>
+
+            <div
+              id="adminParticipantStatuses"
+              class="admin-profile-statuses"
+            ></div>
+
+
+            <div class="admin-profile-actions">
+
+              <button
+                type="button"
+                class="admin-btn admin-btn-purple admin-btn-block"
+                data-admin-action="start-acting-selected"
+              >
+                🎭 Действовать от имени
+              </button>
+
+              <button
+                type="button"
+                class="admin-btn admin-btn-block"
+                data-admin-action="message-selected"
+              >
+                💬 Написать
+              </button>
+
+              <button
+                type="button"
+                class="admin-btn admin-btn-block"
+                data-admin-action="edit-selected-profile"
+              >
+                ✏️ Редактировать профиль
+              </button>
+
+              <button
+                type="button"
+                class="admin-btn admin-btn-danger admin-btn-block"
+                data-admin-action="block-selected"
+              >
+                🚫 Управление блокировкой
+              </button>
+
+            </div>
+
+          </div>
+
+
+          <div>
+
+            <div class="admin-tabs">
+
+              <button
+                type="button"
+                class="admin-tab active"
+                data-participant-tab="overview"
+              >
+                Обзор
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="publications"
+              >
+                Публикации
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="comments"
+              >
+                Комментарии
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="reviews"
+              >
+                Отзывы
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="chats"
+              >
+                Чаты
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="permissions"
+              >
+                Права
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="services"
+              >
+                Сервисы
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="notifications"
+              >
+                Уведомления
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="activity"
+              >
+                Активность
+              </button>
+
+              <button
+                type="button"
+                class="admin-tab"
+                data-participant-tab="history"
+              >
+                История
+              </button>
+
+            </div>
+
+
+            <div
+              id="adminParticipantTabContent"
+              class="admin-card admin-section"
+            ></div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================================
+       CONFIRMATION MODAL
+       ====================================================== -->
+
+  <div
+    id="adminConfirmModal"
+    class="admin-modal-root"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="adminConfirmTitle"
+  >
+
+    <div class="admin-modal">
+
+      <div class="admin-modal-body">
+
+        <div class="admin-confirm">
+
+          <div
+            id="adminConfirmIcon"
+            class="admin-confirm-icon"
+          >
+            ⚠️
+          </div>
+
+          <div
+            id="adminConfirmTitle"
+            class="admin-confirm-title"
+          >
+            Подтвердите действие
+          </div>
+
+          <div
+            id="adminConfirmText"
+            class="admin-confirm-text"
+          >
+            Вы действительно хотите выполнить это действие?
+          </div>
+
+        </div>
+
+      </div>
+
+
+      <div class="admin-modal-footer">
+
+        <button
+          type="button"
+          class="admin-btn"
+          data-admin-confirm-cancel
+        >
+          Отмена
+        </button>
+
+        <button
+          id="adminConfirmButton"
+          type="button"
+          class="admin-btn admin-btn-danger"
+          data-admin-confirm
+        >
+          Подтвердить
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+
+
+  <!-- ======================================================
+       TOASTS
+       ====================================================== -->
+
+  <div
+    id="adminToastContainer"
+    class="admin-toast-container"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+
+  <!-- ======================================================
+       CHAT UI ROOT
+       ====================================================== -->
+
+  <div
+    id="chatUIRoot"
+    aria-live="polite"
+  ></div>
+
+
+  <!-- ======================================================
+       SCRIPTS
+       ====================================================== -->
+
+  <script
+    type="module"
+    src="/js/api.js"
+  ></script>
+
+  <script
+    type="module"
+    src="/js/notifications.js"
+  ></script>
+
+  <script
+    type="module"
+    src="/js/notification-settings.js"
+  ></script>
+
+  <script
+    type="module"
+    src="/js/search.js"
+  ></script>
+
+  <script
+    type="module"
+    src="/js/chat.js"
+  ></script>
+
+  <script
+    type="module"
+    src="/js/chat-ui.js"
+  ></script>
+
+  <script
+    type="module"
+    src="/js/admin.js"
+  ></script>
+
+</div>
+
+</body>
+  </html>
