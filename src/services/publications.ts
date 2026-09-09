@@ -18,6 +18,9 @@
 // • огромные счётчики через TEXT
 // • метрики
 // • поиск
+// • безопасная нормализация
+// • массовые операции
+// • URL helpers
 // ============================================================
 
 import type { Env } from "../index";
@@ -103,7 +106,6 @@ export interface Publication {
 
   auto_delete_enabled: boolean;
   delete_at?: string | null;
-
   publish_at?: string | null;
 
   background?: string | null;
@@ -372,7 +374,10 @@ function bool(
   value: unknown,
   fallback = false
 ): boolean {
-  if (value === undefined || value === null) {
+  if (
+    value === undefined ||
+    value === null
+  ) {
     return fallback;
   }
 
@@ -387,11 +392,15 @@ function bool(
 function nullableString(
   value: unknown
 ): string | null {
-  if (value === undefined || value === null) {
+  if (
+    value === undefined ||
+    value === null
+  ) {
     return null;
   }
 
-  const result = String(value).trim();
+  const result =
+    String(value).trim();
 
   return result || null;
 }
@@ -405,7 +414,12 @@ function limitValue(
 
   return Math.min(
     MAX_LIMIT,
-    Math.max(1, Math.floor(value as number))
+    Math.max(
+      1,
+      Math.floor(
+        value as number
+      )
+    )
   );
 }
 
@@ -418,7 +432,9 @@ function offsetValue(
 
   return Math.max(
     0,
-    Math.floor(value as number)
+    Math.floor(
+      value as number
+    )
   );
 }
 
@@ -449,7 +465,8 @@ function mapPublication(
   row: Record<string, unknown>
 ): Publication {
   return {
-    id: String(row.id),
+    id:
+      String(row.id ?? ""),
 
     public_number:
       row.public_number === null ||
@@ -464,7 +481,9 @@ function mapPublication(
       nullableString(row.author_name),
 
     author_username:
-      nullableString(row.author_username),
+      nullableString(
+        row.author_username
+      ),
 
     author_avatar_url:
       nullableString(
@@ -472,22 +491,30 @@ function mapPublication(
       ),
 
     category_id:
-      nullableString(row.category_id),
+      nullableString(
+        row.category_id
+      ),
 
     title:
-      nullableString(row.title),
+      nullableString(
+        row.title
+      ),
 
     text:
-      nullableString(row.text),
+      nullableString(
+        row.text
+      ),
 
     type:
       String(
-        row.type || DEFAULT_TYPE
+        row.type ||
+          DEFAULT_TYPE
       ) as PublicationType,
 
     status:
       String(
-        row.status || DEFAULT_STATUS
+        row.status ||
+          DEFAULT_STATUS
       ) as PublicationStatus,
 
     visibility:
@@ -509,31 +536,49 @@ function mapPublication(
       bool(row.pinned),
 
     auto_delete_enabled:
-      bool(row.auto_delete_enabled),
+      bool(
+        row.auto_delete_enabled
+      ),
 
     delete_at:
-      nullableString(row.delete_at),
+      nullableString(
+        row.delete_at
+      ),
 
     publish_at:
-      nullableString(row.publish_at),
+      nullableString(
+        row.publish_at
+      ),
 
     background:
-      nullableString(row.background),
+      nullableString(
+        row.background
+      ),
 
     font:
-      nullableString(row.font),
+      nullableString(
+        row.font
+      ),
 
     color:
-      nullableString(row.color),
+      nullableString(
+        row.color
+      ),
 
     tag:
-      nullableString(row.tag),
+      nullableString(
+        row.tag
+      ),
 
     tag_icon:
-      nullableString(row.tag_icon),
+      nullableString(
+        row.tag_icon
+      ),
 
     tag_color:
-      nullableString(row.tag_color),
+      nullableString(
+        row.tag_color
+      ),
 
     comments_enabled:
       bool(
@@ -642,43 +687,36 @@ function mapPublication(
   };
 }
 
-/**
- * Совместимый адаптер URL.
- *
- * publicationUrl() в обновлённом utils/publication.ts
- * принимает два аргумента. Сервис публикаций при этом
- * не обязан знать внешний origin, поэтому сначала пробуем
- * получить URL без внешней привязки, а при невозможности
- * безопасно возвращаем относительный путь.
- */
 function safePublicationUrl(
   publicNumber: number | string
 ): string {
   try {
     const result =
       publicationUrl(
-        publicNumber,
+        String(publicNumber),
         ""
       );
 
     if (
       typeof result === "string" &&
-      result.trim().length > 0
+      result.trim()
     ) {
       return result;
     }
   } catch {
-    // Переключаемся на безопасный относительный URL.
+    // Fallback ниже.
   }
 
   let normalized =
-    String(publicNumber).trim();
+    String(
+      publicNumber
+    ).trim();
 
   try {
     normalized =
       String(
         normalizePublicationNumber(
-          publicNumber
+          String(publicNumber)
         )
       );
   } catch {
@@ -721,15 +759,20 @@ export class PublicationService {
         }>();
 
     if (
-      row?.public_number === undefined ||
+      row?.public_number ===
+        undefined ||
       row?.public_number === null ||
-      String(row.public_number).trim() === ""
+      String(
+        row.public_number
+      ).trim() === ""
     ) {
       return 1;
     }
 
     const current =
-      Number(row.public_number);
+      Number(
+        row.public_number
+      );
 
     if (
       !Number.isFinite(current) ||
@@ -738,7 +781,9 @@ export class PublicationService {
       return 1;
     }
 
-    return Math.floor(current) + 1;
+    return (
+      Math.floor(current) + 1
+    );
   }
 
 
@@ -749,15 +794,14 @@ export class PublicationService {
   async create(
     input: CreatePublicationInput
   ): Promise<Publication> {
-    const generatedId =
-      generatePublicationId();
-
     const id =
-      nullableString(
-        generatedId
-      );
+      generatePublicationId() ??
+      generateId();
 
-    if (!id) {
+    if (
+      typeof id !== "string" ||
+      !id.trim()
+    ) {
       throw new Error(
         "Не удалось сгенерировать ID публикации"
       );
@@ -767,7 +811,8 @@ export class PublicationService {
       now();
 
     const type =
-      input.type || DEFAULT_TYPE;
+      input.type ||
+      DEFAULT_TYPE;
 
     const status =
       input.source === "ADMIN" ||
@@ -782,7 +827,8 @@ export class PublicationService {
       input.auto_delete_enabled;
 
     let deleteAt =
-      input.delete_at || null;
+      input.delete_at ??
+      null;
 
     if (
       autoDelete === undefined &&
@@ -802,7 +848,9 @@ export class PublicationService {
         );
     }
 
-    if (autoDelete === undefined) {
+    if (
+      autoDelete === undefined
+    ) {
       autoDelete = false;
     }
 
@@ -930,15 +978,22 @@ export class PublicationService {
           id,
           publicNumber,
 
-          input.author_id || null,
-          input.author_name || null,
-          input.author_username || null,
-          input.author_avatar_url || null,
+          input.author_id ??
+            null,
+          input.author_name ??
+            null,
+          input.author_username ??
+            null,
+          input.author_avatar_url ??
+            null,
 
-          input.category_id || null,
+          input.category_id ??
+            null,
 
-          input.title || null,
-          input.text || null,
+          input.title ??
+            null,
+          input.text ??
+            null,
 
           type,
           status,
@@ -949,33 +1004,45 @@ export class PublicationService {
 
           autoDelete ? 1 : 0,
           deleteAt,
-          input.publish_at || null,
+          input.publish_at ??
+            null,
 
-          input.background || null,
-          input.font || null,
-          input.color || null,
+          input.background ??
+            null,
+          input.font ??
+            null,
+          input.color ??
+            null,
 
-          input.tag || null,
-          input.tag_icon || null,
-          input.tag_color || null,
+          input.tag ??
+            null,
+          input.tag_icon ??
+            null,
+          input.tag_color ??
+            null,
 
-          input.comments_enabled !== false
+          input.comments_enabled !==
+          false
             ? 1
             : 0,
 
-          input.reactions_enabled !== false
+          input.reactions_enabled !==
+          false
             ? 1
             : 0,
 
-          input.reviews_enabled !== false
+          input.reviews_enabled !==
+          false
             ? 1
             : 0,
 
-          input.sharing_enabled !== false
+          input.sharing_enabled !==
+          false
             ? 1
             : 0,
 
-          input.bookmarks_enabled !== false
+          input.bookmarks_enabled !==
+          false
             ? 1
             : 0,
 
@@ -990,9 +1057,13 @@ export class PublicationService {
       );
     }
 
-    await this.ensureMetricRow(id);
+    await this.ensureMetricRow(
+      id
+    );
 
-    if (input.media?.length) {
+    if (
+      input.media?.length
+    ) {
       await this.addMedia(
         id,
         input.media
@@ -1064,7 +1135,9 @@ export class PublicationService {
 
     try {
       number =
-        normalizePublicationNumber(value);
+        normalizePublicationNumber(
+          String(value)
+        );
     } catch {
       return null;
     }
@@ -1121,9 +1194,10 @@ export class PublicationService {
     return {
       publication,
       media,
-      url: safePublicationUrl(
-        publication.public_number
-      ),
+      url:
+        safePublicationUrl(
+          publication.public_number
+        ),
     };
   }
 
@@ -1141,8 +1215,11 @@ export class PublicationService {
     const offset =
       offsetValue(filter.offset);
 
-    const conditions: string[] = [];
-    const values: unknown[] = [];
+    const conditions:
+      string[] = [];
+
+    const values:
+      unknown[] = [];
 
     if (filter.status) {
       conditions.push(
@@ -1190,26 +1267,32 @@ export class PublicationService {
     }
 
     if (
-      filter.featured !== undefined
+      filter.featured !==
+      undefined
     ) {
       conditions.push(
         "p.featured = ?"
       );
 
       values.push(
-        filter.featured ? 1 : 0
+        filter.featured
+          ? 1
+          : 0
       );
     }
 
     if (
-      filter.pinned !== undefined
+      filter.pinned !==
+      undefined
     ) {
       conditions.push(
         "p.pinned = ?"
       );
 
       values.push(
-        filter.pinned ? 1 : 0
+        filter.pinned
+          ? 1
+          : 0
       );
     }
 
@@ -1239,7 +1322,9 @@ export class PublicationService {
       );
     }
 
-    if (filter.search) {
+    if (
+      filter.search?.trim()
+    ) {
       conditions.push(`
         (
           p.title LIKE ?
@@ -1344,12 +1429,16 @@ export class PublicationService {
         .all<Record<string, unknown>>();
 
     const items =
-      (rows.results || [])
-        .map(mapPublication);
+      (
+        rows.results || []
+      ).map(
+        mapPublication
+      );
 
     const total =
       String(
-        countRow?.total || 0
+        countRow?.total ??
+        0
       );
 
     const numericTotal =
@@ -1361,7 +1450,8 @@ export class PublicationService {
       limit,
       offset,
       hasMore:
-        offset + items.length <
+        offset +
+          items.length <
         (
           Number.isFinite(
             numericTotal
@@ -1389,8 +1479,11 @@ export class PublicationService {
       return null;
     }
 
-    const fields: string[] = [];
-    const values: unknown[] = [];
+    const fields:
+      string[] = [];
+
+    const values:
+      unknown[] = [];
 
     const add = (
       field: string,
@@ -1417,10 +1510,13 @@ export class PublicationService {
       );
     }
 
-    if ("category_id" in input) {
+    if (
+      "category_id" in input
+    ) {
       add(
         "category_id",
-        input.category_id ?? null
+        input.category_id ??
+          null
       );
     }
 
@@ -1438,7 +1534,9 @@ export class PublicationService {
       );
     }
 
-    if ("visibility" in input) {
+    if (
+      "visibility" in input
+    ) {
       add(
         "visibility",
         input.visibility
@@ -1452,10 +1550,13 @@ export class PublicationService {
       );
     }
 
-    if ("background" in input) {
+    if (
+      "background" in input
+    ) {
       add(
         "background",
-        input.background ?? null
+        input.background ??
+          null
       );
     }
 
@@ -1480,59 +1581,88 @@ export class PublicationService {
       );
     }
 
-    if ("tag_icon" in input) {
+    if (
+      "tag_icon" in input
+    ) {
       add(
         "tag_icon",
         input.tag_icon ?? null
       );
     }
 
-    if ("tag_color" in input) {
+    if (
+      "tag_color" in input
+    ) {
       add(
         "tag_color",
         input.tag_color ?? null
       );
     }
 
-    if ("comments_enabled" in input) {
+    if (
+      "comments_enabled" in input
+    ) {
       add(
         "comments_enabled",
-        input.comments_enabled ? 1 : 0
+        input.comments_enabled
+          ? 1
+          : 0
       );
     }
 
-    if ("reactions_enabled" in input) {
+    if (
+      "reactions_enabled" in input
+    ) {
       add(
         "reactions_enabled",
-        input.reactions_enabled ? 1 : 0
+        input.reactions_enabled
+          ? 1
+          : 0
       );
     }
 
-    if ("reviews_enabled" in input) {
+    if (
+      "reviews_enabled" in input
+    ) {
       add(
         "reviews_enabled",
-        input.reviews_enabled ? 1 : 0
+        input.reviews_enabled
+          ? 1
+          : 0
       );
     }
 
-    if ("sharing_enabled" in input) {
+    if (
+      "sharing_enabled" in input
+    ) {
       add(
         "sharing_enabled",
-        input.sharing_enabled ? 1 : 0
+        input.sharing_enabled
+          ? 1
+          : 0
       );
     }
 
-    if ("bookmarks_enabled" in input) {
+    if (
+      "bookmarks_enabled" in input
+    ) {
       add(
         "bookmarks_enabled",
-        input.bookmarks_enabled ? 1 : 0
+        input.bookmarks_enabled
+          ? 1
+          : 0
       );
     }
 
-    if ("auto_delete_enabled" in input) {
+    if (
+      "auto_delete_enabled" in
+      input
+    ) {
       add(
         "auto_delete_enabled",
-        input.auto_delete_enabled ? 1 : 0
+        input.auto_delete_enabled
+          ? 1
+          : 0
       );
     }
 
@@ -1543,31 +1673,40 @@ export class PublicationService {
       );
     }
 
-    if ("publish_at" in input) {
+    if (
+      "publish_at" in input
+    ) {
       add(
         "publish_at",
         input.publish_at ?? null
       );
     }
 
-    if ("author_name" in input) {
+    if (
+      "author_name" in input
+    ) {
       add(
         "author_name",
         input.author_name ?? null
       );
     }
 
-    if ("author_username" in input) {
+    if (
+      "author_username" in input
+    ) {
       add(
         "author_username",
         input.author_username ?? null
       );
     }
 
-    if ("author_avatar_url" in input) {
+    if (
+      "author_avatar_url" in input
+    ) {
       add(
         "author_avatar_url",
-        input.author_avatar_url ?? null
+        input.author_avatar_url ??
+          null
       );
     }
 
@@ -1579,7 +1718,10 @@ export class PublicationService {
       "updated_at = ?"
     );
 
-    values.push(now());
+    values.push(
+      now()
+    );
+
     values.push(id);
 
     await this.db
@@ -1633,122 +1775,139 @@ export class PublicationService {
         .bind(publicationId)
         .first<Record<string, unknown>>();
 
-    const values: unknown[] = [
-      input.forced_type ??
-        existing?.forced_type ??
-        null,
+    const values:
+      unknown[] = [
+        input.forced_type ??
+          existing?.forced_type ??
+          null,
 
-      input.forced_status ??
-        existing?.forced_status ??
-        null,
+        input.forced_status ??
+          existing?.forced_status ??
+          null,
 
-      input.forced_visibility ??
-        existing?.forced_visibility ??
-        null,
+        input.forced_visibility ??
+          existing?.forced_visibility ??
+          null,
 
-      input.forced_priority ??
-        existing?.forced_priority ??
-        null,
+        input.forced_priority ??
+          existing?.forced_priority ??
+          null,
 
-      input.pinned === undefined
-        ? existing?.pinned ?? null
-        : input.pinned
-          ? 1
-          : 0,
+        input.pinned ===
+        undefined
+          ? existing?.pinned ??
+            null
+          : input.pinned
+            ? 1
+            : 0,
 
-      input.featured === undefined
-        ? existing?.featured ?? null
-        : input.featured
-          ? 1
-          : 0,
+        input.featured ===
+        undefined
+          ? existing?.featured ??
+            null
+          : input.featured
+            ? 1
+            : 0,
 
-      input.auto_delete_enabled === undefined
-        ? existing?.auto_delete_enabled ?? null
-        : input.auto_delete_enabled
-          ? 1
-          : 0,
+        input.auto_delete_enabled ===
+        undefined
+          ? existing?.auto_delete_enabled ??
+            null
+          : input.auto_delete_enabled
+            ? 1
+            : 0,
 
-      input.custom_delete_at ??
-        existing?.custom_delete_at ??
-        null,
+        input.custom_delete_at ??
+          existing?.custom_delete_at ??
+          null,
 
-      input.custom_publish_at ??
-        existing?.custom_publish_at ??
-        null,
+        input.custom_publish_at ??
+          existing?.custom_publish_at ??
+          null,
 
-      input.custom_author_name ??
-        existing?.custom_author_name ??
-        null,
+        input.custom_author_name ??
+          existing?.custom_author_name ??
+          null,
 
-      input.custom_author_username ??
-        existing?.custom_author_username ??
-        null,
+        input.custom_author_username ??
+          existing?.custom_author_username ??
+          null,
 
-      input.custom_author_avatar_url ??
-        existing?.custom_author_avatar_url ??
-        null,
+        input.custom_author_avatar_url ??
+          existing?.custom_author_avatar_url ??
+          null,
 
-      input.custom_background ??
-        existing?.custom_background ??
-        null,
+        input.custom_background ??
+          existing?.custom_background ??
+          null,
 
-      input.custom_font ??
-        existing?.custom_font ??
-        null,
+        input.custom_font ??
+          existing?.custom_font ??
+          null,
 
-      input.custom_color ??
-        existing?.custom_color ??
-        null,
+        input.custom_color ??
+          existing?.custom_color ??
+          null,
 
-      input.custom_tag ??
-        existing?.custom_tag ??
-        null,
+        input.custom_tag ??
+          existing?.custom_tag ??
+          null,
 
-      input.custom_tag_icon ??
-        existing?.custom_tag_icon ??
-        null,
+        input.custom_tag_icon ??
+          existing?.custom_tag_icon ??
+          null,
 
-      input.custom_tag_color ??
-        existing?.custom_tag_color ??
-        null,
+        input.custom_tag_color ??
+          existing?.custom_tag_color ??
+          null,
 
-      input.comments_enabled === undefined
-        ? existing?.comments_enabled ?? null
-        : input.comments_enabled
-          ? 1
-          : 0,
+        input.comments_enabled ===
+        undefined
+          ? existing?.comments_enabled ??
+            null
+          : input.comments_enabled
+            ? 1
+            : 0,
 
-      input.reactions_enabled === undefined
-        ? existing?.reactions_enabled ?? null
-        : input.reactions_enabled
-          ? 1
-          : 0,
+        input.reactions_enabled ===
+        undefined
+          ? existing?.reactions_enabled ??
+            null
+          : input.reactions_enabled
+            ? 1
+            : 0,
 
-      input.reviews_enabled === undefined
-        ? existing?.reviews_enabled ?? null
-        : input.reviews_enabled
-          ? 1
-          : 0,
+        input.reviews_enabled ===
+        undefined
+          ? existing?.reviews_enabled ??
+            null
+          : input.reviews_enabled
+            ? 1
+            : 0,
 
-      input.sharing_enabled === undefined
-        ? existing?.sharing_enabled ?? null
-        : input.sharing_enabled
-          ? 1
-          : 0,
+        input.sharing_enabled ===
+        undefined
+          ? existing?.sharing_enabled ??
+            null
+          : input.sharing_enabled
+            ? 1
+            : 0,
 
-      input.bookmarks_enabled === undefined
-        ? existing?.bookmarks_enabled ?? null
-        : input.bookmarks_enabled
-          ? 1
-          : 0,
+        input.bookmarks_enabled ===
+        undefined
+          ? existing?.bookmarks_enabled ??
+            null
+          : input.bookmarks_enabled
+            ? 1
+            : 0,
 
-      input.admin_note ??
-        existing?.admin_note ??
-        null,
+        input.admin_note ??
+          existing?.admin_note ??
+          null,
 
-      adminId,
-      now(),
-    ];
+        adminId,
+        now(),
+      ];
 
     await this.db
       .prepare(`
@@ -1816,13 +1975,23 @@ export class PublicationService {
         )
         ON CONFLICT(publication_id)
         DO UPDATE SET
-          forced_type = excluded.forced_type,
-          forced_status = excluded.forced_status,
-          forced_visibility = excluded.forced_visibility,
-          forced_priority = excluded.forced_priority,
+          forced_type =
+            excluded.forced_type,
 
-          pinned = excluded.pinned,
-          featured = excluded.featured,
+          forced_status =
+            excluded.forced_status,
+
+          forced_visibility =
+            excluded.forced_visibility,
+
+          forced_priority =
+            excluded.forced_priority,
+
+          pinned =
+            excluded.pinned,
+
+          featured =
+            excluded.featured,
 
           auto_delete_enabled =
             excluded.auto_delete_enabled,
@@ -1949,14 +2118,18 @@ export class PublicationService {
         ) as PublicationStatus;
     }
 
-    if (override.forced_visibility) {
+    if (
+      override.forced_visibility
+    ) {
       update.visibility =
         String(
           override.forced_visibility
         ) as PublicationVisibility;
     }
 
-    if (override.forced_priority) {
+    if (
+      override.forced_priority
+    ) {
       update.priority =
         String(
           override.forced_priority
@@ -1964,8 +2137,10 @@ export class PublicationService {
     }
 
     if (
-      override.auto_delete_enabled !== null &&
-      override.auto_delete_enabled !== undefined
+      override.auto_delete_enabled !==
+        null &&
+      override.auto_delete_enabled !==
+        undefined
     ) {
       update.auto_delete_enabled =
         bool(
@@ -1973,14 +2148,18 @@ export class PublicationService {
         );
     }
 
-    if (override.custom_delete_at) {
+    if (
+      override.custom_delete_at
+    ) {
       update.delete_at =
         String(
           override.custom_delete_at
         );
     }
 
-    if (override.custom_publish_at) {
+    if (
+      override.custom_publish_at
+    ) {
       update.publish_at =
         String(
           override.custom_publish_at
@@ -1988,8 +2167,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_author_name !== null &&
-      override.custom_author_name !== undefined
+      override.custom_author_name !==
+        null &&
+      override.custom_author_name !==
+        undefined
     ) {
       update.author_name =
         String(
@@ -1998,8 +2179,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_author_username !== null &&
-      override.custom_author_username !== undefined
+      override.custom_author_username !==
+        null &&
+      override.custom_author_username !==
+        undefined
     ) {
       update.author_username =
         String(
@@ -2008,8 +2191,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_author_avatar_url !== null &&
-      override.custom_author_avatar_url !== undefined
+      override.custom_author_avatar_url !==
+        null &&
+      override.custom_author_avatar_url !==
+        undefined
     ) {
       update.author_avatar_url =
         String(
@@ -2018,8 +2203,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_background !== null &&
-      override.custom_background !== undefined
+      override.custom_background !==
+        null &&
+      override.custom_background !==
+        undefined
     ) {
       update.background =
         String(
@@ -2028,8 +2215,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_font !== null &&
-      override.custom_font !== undefined
+      override.custom_font !==
+        null &&
+      override.custom_font !==
+        undefined
     ) {
       update.font =
         String(
@@ -2038,8 +2227,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_color !== null &&
-      override.custom_color !== undefined
+      override.custom_color !==
+        null &&
+      override.custom_color !==
+        undefined
     ) {
       update.color =
         String(
@@ -2048,8 +2239,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_tag !== null &&
-      override.custom_tag !== undefined
+      override.custom_tag !==
+        null &&
+      override.custom_tag !==
+        undefined
     ) {
       update.tag =
         String(
@@ -2058,8 +2251,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_tag_icon !== null &&
-      override.custom_tag_icon !== undefined
+      override.custom_tag_icon !==
+        null &&
+      override.custom_tag_icon !==
+        undefined
     ) {
       update.tag_icon =
         String(
@@ -2068,8 +2263,10 @@ export class PublicationService {
     }
 
     if (
-      override.custom_tag_color !== null &&
-      override.custom_tag_color !== undefined
+      override.custom_tag_color !==
+        null &&
+      override.custom_tag_color !==
+        undefined
     ) {
       update.tag_color =
         String(
@@ -2078,8 +2275,10 @@ export class PublicationService {
     }
 
     if (
-      override.comments_enabled !== null &&
-      override.comments_enabled !== undefined
+      override.comments_enabled !==
+        null &&
+      override.comments_enabled !==
+        undefined
     ) {
       update.comments_enabled =
         bool(
@@ -2088,8 +2287,10 @@ export class PublicationService {
     }
 
     if (
-      override.reactions_enabled !== null &&
-      override.reactions_enabled !== undefined
+      override.reactions_enabled !==
+        null &&
+      override.reactions_enabled !==
+        undefined
     ) {
       update.reactions_enabled =
         bool(
@@ -2098,8 +2299,10 @@ export class PublicationService {
     }
 
     if (
-      override.reviews_enabled !== null &&
-      override.reviews_enabled !== undefined
+      override.reviews_enabled !==
+        null &&
+      override.reviews_enabled !==
+        undefined
     ) {
       update.reviews_enabled =
         bool(
@@ -2108,8 +2311,10 @@ export class PublicationService {
     }
 
     if (
-      override.sharing_enabled !== null &&
-      override.sharing_enabled !== undefined
+      override.sharing_enabled !==
+        null &&
+      override.sharing_enabled !==
+        undefined
     ) {
       update.sharing_enabled =
         bool(
@@ -2118,8 +2323,10 @@ export class PublicationService {
     }
 
     if (
-      override.bookmarks_enabled !== null &&
-      override.bookmarks_enabled !== undefined
+      override.bookmarks_enabled !==
+        null &&
+      override.bookmarks_enabled !==
+        undefined
     ) {
       update.bookmarks_enabled =
         bool(
@@ -2128,14 +2335,17 @@ export class PublicationService {
     }
 
     if (
-      override.pinned !== null &&
-      override.pinned !== undefined
+      override.pinned !==
+        null &&
+      override.pinned !==
+        undefined
     ) {
       await this.db
         .prepare(`
           UPDATE publications
-          SET pinned = ?,
-              updated_at = ?
+          SET
+            pinned = ?,
+            updated_at = ?
           WHERE id = ?
         `)
         .bind(
@@ -2151,14 +2361,17 @@ export class PublicationService {
     }
 
     if (
-      override.featured !== null &&
-      override.featured !== undefined
+      override.featured !==
+        null &&
+      override.featured !==
+        undefined
     ) {
       await this.db
         .prepare(`
           UPDATE publications
-          SET featured = ?,
-              updated_at = ?
+          SET
+            featured = ?,
+            updated_at = ?
           WHERE id = ?
         `)
         .bind(
@@ -2477,7 +2690,6 @@ export class PublicationService {
       .run();
   }
 
-
   async getMetrics(
     publicationId: string
   ): Promise<PublicationMetrics | null> {
@@ -2596,12 +2808,14 @@ export class PublicationService {
 
       created_at:
         String(
-          row.created_at || ""
+          row.created_at ||
+            ""
         ),
 
       updated_at:
         String(
-          row.updated_at || ""
+          row.updated_at ||
+            ""
         ),
     };
   }
@@ -2632,7 +2846,8 @@ export class PublicationService {
       | "rating_count"
       | "rating_sum"
       | "review_count",
-    amount: string | number = "1"
+    amount:
+      string | number = "1"
   ): Promise<string> {
     await this.ensureMetricRow(
       publicationId
@@ -2688,7 +2903,8 @@ export class PublicationService {
 
   async addMedia(
     publicationId: string,
-    media: CreatePublicationInput["media"]
+    media:
+      CreatePublicationInput["media"]
   ): Promise<void> {
     if (!media?.length) {
       return;
@@ -2722,24 +2938,36 @@ export class PublicationService {
                 created_at
               )
               VALUES (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?
               )
             `)
             .bind(
               id,
               publicationId,
               item.type,
-              item.url || null,
-              item.key || null,
-              item.mime_type || null,
-              item.filename || null,
-              item.size !== undefined
-                ? String(item.size)
+              item.url ??
+                null,
+              item.key ??
+                null,
+              item.mime_type ??
+                null,
+              item.filename ??
+                null,
+              item.size !==
+              undefined
+                ? String(
+                    item.size
+                  )
                 : null,
-              item.width ?? null,
-              item.height ?? null,
-              item.duration ?? null,
-              item.position ?? index,
+              item.width ??
+                null,
+              item.height ??
+                null,
+              item.duration ??
+                null,
+              item.position ??
+                index,
               "ACTIVE",
               now()
             );
@@ -2774,23 +3002,31 @@ export class PublicationService {
         row
       ): PublicationMedia => ({
         id:
-          String(row.id),
+          String(
+            row.id ?? ""
+          ),
 
         publication_id:
           String(
-            row.publication_id
+            row.publication_id ??
+              ""
           ),
 
         type:
           String(
-            row.type || "image"
+            row.type ||
+              "image"
           ),
 
         url:
-          nullableString(row.url),
+          nullableString(
+            row.url
+          ),
 
         key:
-          nullableString(row.key),
+          nullableString(
+            row.key
+          ),
 
         mime_type:
           nullableString(
@@ -2803,7 +3039,9 @@ export class PublicationService {
           ),
 
         size:
-          nullableString(row.size),
+          nullableString(
+            row.size
+          ),
 
         width:
           row.width === null ||
@@ -2830,12 +3068,14 @@ export class PublicationService {
 
         status:
           String(
-            row.status || "ACTIVE"
+            row.status ||
+              "ACTIVE"
           ),
 
         created_at:
           String(
-            row.created_at || ""
+            row.created_at ||
+              ""
           ),
       })
     );
@@ -2891,7 +3131,8 @@ export class PublicationService {
       .bind(
         generateId(),
         String(
-          row.publication_id
+          row.publication_id ??
+            ""
         ),
         mediaId,
         "delete",
@@ -2912,7 +3153,8 @@ export class PublicationService {
 
   async addHistory(
     publicationId: string,
-    snapshot: string | null,
+    snapshot:
+      string | null,
     action: string,
     changedBy: string
   ): Promise<void> {
@@ -2954,7 +3196,9 @@ export class PublicationService {
         .bind(publicationId)
         .all<Record<string, unknown>>();
 
-    return result.results || [];
+    return (
+      result.results || []
+    );
   }
 
 
@@ -2996,14 +3240,17 @@ export class PublicationService {
       .bind(
         id,
         publicationId,
-        options.userId || null,
-        options.visitorId || null,
-        options.sessionId || null,
+        options.userId ??
+          null,
+        options.visitorId ??
+          null,
+        options.sessionId ??
+          null,
         options.shareType ||
           "share",
-        options.targetConversationId ||
+        options.targetConversationId ??
           null,
-        options.targetUserId ||
+        options.targetUserId ??
           null,
         options.source ||
           "publication",
@@ -3063,9 +3310,12 @@ export class PublicationService {
       .bind(
         generateId(),
         publicationId,
-        options.userId || null,
-        options.visitorId || null,
-        options.sessionId || null,
+        options.userId ??
+          null,
+        options.visitorId ??
+          null,
+        options.sessionId ??
+          null,
         now()
       )
       .run();
@@ -3087,7 +3337,9 @@ export class PublicationService {
       const result =
         await this.update(
           id,
-          { status },
+          {
+            status,
+          },
           adminId
         );
 
@@ -3110,6 +3362,18 @@ export class PublicationService {
     const currentTime =
       now();
 
+    const safeLimit =
+      Math.min(
+        500,
+        Math.max(
+          1,
+          Math.floor(
+            Number(limit) ||
+              100
+          )
+        )
+      );
+
     const result =
       await this.db
         .prepare(`
@@ -3123,10 +3387,7 @@ export class PublicationService {
         `)
         .bind(
           currentTime,
-          Math.min(
-            Math.max(1, limit),
-            500
-          )
+          safeLimit
         )
         .all<{
           id: string;
@@ -3182,10 +3443,13 @@ export class PublicationService {
           AND status != 'DELETED'
           ORDER BY CAST(public_number AS INTEGER) ASC
         `)
-        .bind(deletedPublicNumber)
+        .bind(
+          deletedPublicNumber
+        )
         .all<{
           id: string;
-          public_number: number | string;
+          public_number:
+            number | string;
         }>();
 
     let changed = 0;
@@ -3294,7 +3558,9 @@ export class PublicationService {
       .run();
 
     if (
-      Number.isFinite(publicNumber)
+      Number.isFinite(
+        publicNumber
+      )
     ) {
       await this.renumberPublications(
         publicNumber
@@ -3310,8 +3576,7 @@ export class PublicationService {
       "PERMANENT_DELETE",
       adminId
     ).catch(() => {
-      // История может зависеть от FK после hard delete.
-      // Основная операция удаления уже выполнена.
+      // FK после hard delete может блокировать историю.
     });
 
     return true;
@@ -3332,8 +3597,11 @@ export class PublicationService {
     } = {}
   ): Promise<PublicationListResult> {
     return this.list({
-      status: "PUBLISHED",
-      visibility: "PUBLIC",
+      status:
+        "PUBLISHED",
+
+      visibility:
+        "PUBLIC",
 
       category_id:
         options.categoryId,
@@ -3348,7 +3616,8 @@ export class PublicationService {
         options.offset,
 
       sort:
-        options.sort || "newest",
+        options.sort ||
+        "newest",
     });
   }
 
@@ -3374,15 +3643,20 @@ export class PublicationService {
     search: string,
     limit = 50
   ): Promise<Publication[]> {
+    const normalizedSearch =
+      search.trim();
+
     const value =
-      `%${search.trim()}%`;
+      `%${normalizedSearch}%`;
 
     const safeLimit =
       Number.isFinite(limit)
         ? Math.min(
             Math.max(
               1,
-              Math.floor(limit)
+              Math.floor(
+                limit
+              )
             ),
             100
           )
@@ -3444,24 +3718,25 @@ export async function createPublication(
   env: Env,
   input: CreatePublicationInput
 ): Promise<Publication> {
-  return createPublicationService(env)
-    .create(input);
+  return createPublicationService(
+    env
+  ).create(input);
 }
-
 
 export async function getPublication(
   env: Env,
   id: string
 ): Promise<Publication | null> {
-  return createPublicationService(env)
-    .getById(id);
+  return createPublicationService(
+    env
+  ).getById(id);
 }
-
 
 export async function getPublicationByNumber(
   env: Env,
   number: number | string
 ): Promise<Publication | null> {
-  return createPublicationService(env)
-    .getByPublicNumber(number);
+  return createPublicationService(
+    env
+  ).getByPublicNumber(number);
 }
