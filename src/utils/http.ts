@@ -3,37 +3,6 @@
 // HTTP UTILITIES
 // Version: 2026.09.10 POWER PRODUCTION
 // ============================================================
-//
-// Возможности:
-//
-// - HTTP method helpers
-// - Headers utilities
-// - JSON requests
-// - Form requests
-// - API requests
-// - timeout / AbortController
-// - retry with exponential backoff
-// - JSON / text / binary response parsing
-// - HttpError
-// - status helpers
-// - query parameter helpers
-// - authorization helpers
-// - request ID / visitor / session / CSRF
-// - conditional requests / ETag
-// - cache-control helpers
-// - URL helpers
-// - safe JSON serialization
-// - response metadata
-// - Cloudflare Workers Request compatibility
-// - backward-compatible public API
-//
-// ВАЖНО:
-// Не используются внешние зависимости.
-// ============================================================
-
-// ============================================================
-// TYPES
-// ============================================================
 
 export type HttpMethod =
   | "GET"
@@ -57,10 +26,7 @@ export interface HttpRequestOptions {
 }
 
 export interface HttpJsonOptions
-  extends Omit<
-    HttpRequestOptions,
-    "body"
-  > {
+  extends Omit<HttpRequestOptions, "body"> {
   body?: unknown;
 }
 
@@ -195,17 +161,16 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 // INTERNAL FETCH COMPATIBILITY
 // ============================================================
 //
-// Cloudflare Workers имеет расширенный generic Request.
+// Cloudflare Workers использует расширенный generic Request,
+// который конфликтует с DOM Request из TypeScript.
 //
-// Нельзя заставлять DOM fetch и Cloudflare Request
-// унифицироваться через Request<T, C>.
+// Поэтому граница fetch намеренно типизирована через unknown.
+// Это касается только внутреннего адаптера.
 //
-// Поэтому только внутренний адаптер использует unknown.
-// Runtime-значения по-прежнему остаются:
-//
+// Runtime:
 // string | URL | Request
 //
-// Это исключительно TypeScript compatibility-layer.
+// Публичные сигнатуры функций НЕ меняются.
 // ============================================================
 
 type CompatibleFetch = (
@@ -408,7 +373,6 @@ export function removeHeader(
   name: string,
 ): Headers {
   headers.delete(name);
-
   return headers;
 }
 
@@ -569,7 +533,7 @@ export function isTextResponse(
 }
 
 // ============================================================
-// JSON SERIALIZATION
+// JSON
 // ============================================================
 
 export function jsonBody(
@@ -1204,7 +1168,10 @@ export async function httpRequest<
       );
   }
 
-  let request: Request;
+  let request:
+    | string
+    | URL
+    | Request;
 
   if (
     input instanceof Request
@@ -1246,7 +1213,7 @@ export async function httpRequest<
 }
 
 // ============================================================
-// RESPONSE STATUS
+// STATUS HELPERS
 // ============================================================
 
 export function isSuccessful(
@@ -1370,7 +1337,7 @@ export async function requireResponse<
 }
 
 // ============================================================
-// RETRY HELPERS
+// RETRY
 // ============================================================
 
 export function getRetryDelay(
@@ -1536,16 +1503,15 @@ export async function fetchJson<
       }
     }
 
-    const delay =
+    await sleep(
       getRetryDelay(
         attempt,
         options.delayMs ??
           DEFAULT_RETRY_DELAY_MS,
         options.maxDelayMs ??
           DEFAULT_RETRY_MAX_DELAY_MS,
-      );
-
-    await sleep(delay);
+      ),
+    );
   }
 
   throw (
@@ -1853,12 +1819,9 @@ export function hasQueryParameter(
   url: string | URL,
   key: string,
 ): boolean {
-  const target =
-    new URL(
-      url.toString(),
-    );
-
-  return target.searchParams.has(
+  return new URL(
+    url.toString(),
+  ).searchParams.has(
     key,
   );
 }
@@ -1867,12 +1830,9 @@ export function getQueryParameter(
   url: string | URL,
   key: string,
 ): string | null {
-  const target =
-    new URL(
-      url.toString(),
-    );
-
-  return target.searchParams.get(
+  return new URL(
+    url.toString(),
+  ).searchParams.get(
     key,
   );
 }
@@ -1910,7 +1870,6 @@ export function isValidUrl(
 ): boolean {
   try {
     new URL(value);
-
     return true;
   } catch {
     return false;
@@ -2013,14 +1972,13 @@ export async function withRetry<
         throw error;
       }
 
-      const delay =
+      await sleep(
         getRetryDelay(
           attempt,
           delayMs,
           maxDelayMs,
-        );
-
-      await sleep(delay);
+        ),
+      );
     }
   }
 
@@ -2501,7 +2459,8 @@ export function bodyLength(
   }
 
   if (
-    typeof body === "string"
+    typeof body ===
+    "string"
   ) {
     return body.length;
   }
@@ -2526,7 +2485,7 @@ export function bodyLength(
 }
 
 // ============================================================
-// REQUEST DEBUG HELPERS
+// DEBUG HELPERS
 // ============================================================
 
 export function describeResponse(
