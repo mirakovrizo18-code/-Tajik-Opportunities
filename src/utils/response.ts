@@ -1,837 +1,822 @@
 // ============================================================
 // 🇹🇯 TAJIK OPPORTUNITIES
-// API RESPONSE UTILITIES
-// Version: 2026.09
+// RESPONSE UTILITIES
+// Version: 2026.09.09
+//
+// Единый интерфейс ответов Worker:
+// • JSON
+// • ошибки
+// • 404
+// • 405
+// • CORS
+// • RequestContext
+// • request ID
+// • security headers
 // ============================================================
-
-import type { ApiResponse, Pagination } from "../types";
 
 // ============================================================
 // TYPES
 // ============================================================
 
-export interface ResponseMeta {
+export interface RequestContext {
+  requestId: string;
+
+  ip: string | null;
+  userAgent: string | null;
+
+  locale: string | null;
+
+  visitorId: string | null;
+  sessionId: string | null;
+  userId: string | null;
+  adminId: string | null;
+
+  method: string;
+  path: string;
+  url: string;
+
+  timestamp: string;
+}
+
+export interface ResponseOptions {
   requestId?: string;
-  timestamp?: string;
-  [key: string]: unknown;
-}
 
-export interface ErrorDetails {
-  code?: string;
-  field?: string;
-  fields?: Record<string, string>;
+  headers?:
+    | HeadersInit;
+
   details?: unknown;
-  [key: string]: unknown;
+
+  code?: string;
+
+  success?: boolean;
+
+  meta?: unknown;
 }
 
-export interface PaginatedResponse<T> {
-  items: T[];
-  pagination: Pagination;
-}
-
-// ============================================================
-// DEFAULT HEADERS
-// ============================================================
-
-function baseHeaders(): Record<string, string> {
-  return {
-    "Content-Type": "application/json; charset=utf-8",
-    "Cache-Control": "no-store",
-    "X-Content-Type-Options": "nosniff",
-  };
-}
-
-// ============================================================
-// JSON RESPONSE
-// ============================================================
-
-export function json<T>(
-  data: T,
-  status = 200,
-  headers: HeadersInit = {}
-): Response {
-  const responseHeaders = new Headers(
-    baseHeaders()
-  );
-
-  const extraHeaders = new Headers(headers);
-
-  extraHeaders.forEach(
-    (value, key) => {
-      responseHeaders.set(key, value);
-    }
-  );
-
-  return new Response(
-    JSON.stringify(data),
-    {
-      status,
-      headers: responseHeaders,
-    }
-  );
-}
-
-// ============================================================
-// SUCCESS
-// ============================================================
-
-export function success<T>(
-  data: T,
-  status = 200,
-  meta?: ResponseMeta,
-  headers: HeadersInit = {}
-): Response {
-  const response: ApiResponse<T> = {
-    success: true,
-    data,
-  };
-
-  if (meta) {
-    (
-      response as ApiResponse<T> & {
-        meta?: ResponseMeta;
-      }
-    ).meta = meta;
-  }
-
-  return json(
-    response,
-    status,
-    headers
-  );
-}
-
-// ============================================================
-// CREATED
-// ============================================================
-
-export function created<T>(
-  data: T,
-  meta?: ResponseMeta,
-  headers: HeadersInit = {}
-): Response {
-  return success(
-    data,
-    201,
-    meta,
-    headers
-  );
-}
-
-// ============================================================
-// NO CONTENT
-// ============================================================
-
-export function noContent(
-  headers: HeadersInit = {}
-): Response {
-  const responseHeaders =
-    new Headers(headers);
-
-  return new Response(null, {
-    status: 204,
-    headers: responseHeaders,
-  });
-}
-
-// ============================================================
-// ERROR
-// ============================================================
-
-export function error(
-  message: string,
-  status = 500,
-  details?: ErrorDetails,
-  headers: HeadersInit = {}
-): Response {
-  const body: ApiResponse<null> & {
-    error?: {
-      message: string;
-      code?: string;
-      field?: string;
-      fields?: Record<
-        string,
-        string
-      >;
-      details?: unknown;
-    };
-  } = {
-    success: false,
-    data: null,
-    error: {
-      message,
-      ...details,
-    },
-  };
-
-  return json(
-    body,
-    status,
-    headers
-  );
-}
-
-// ============================================================
-// COMMON ERRORS
-// ============================================================
-
-export function badRequest(
-  message = "Некорректный запрос",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    400,
-    details
-  );
-}
-
-export function unauthorized(
-  message = "Требуется авторизация",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    401,
-    details
-  );
-}
-
-export function forbidden(
-  message = "Доступ запрещён",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    403,
-    details
-  );
-}
-
-export function notFound(
-  message = "Ресурс не найден",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    404,
-    details
-  );
-}
-
-export function methodNotAllowed(
-  message = "Метод не поддерживается",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    405,
-    details
-  );
-}
-
-export function conflict(
-  message = "Конфликт данных",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    409,
-    details
-  );
-}
-
-export function tooManyRequests(
-  message = "Слишком много запросов",
-  details?: ErrorDetails,
-  retryAfter?: number
-): Response {
-  const headers: Record<
-    string,
-    string
-  > = {};
-
-  if (
-    retryAfter !== undefined
-  ) {
-    headers[
-      "Retry-After"
-    ] = String(retryAfter);
-  }
-
-  return error(
-    message,
-    429,
-    details,
-    headers
-  );
-}
-
-export function serverError(
-  message = "Внутренняя ошибка сервера",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    500,
-    details
-  );
-}
-
-export function serviceUnavailable(
-  message = "Сервис временно недоступен",
-  details?: ErrorDetails
-): Response {
-  return error(
-    message,
-    503,
-    details
-  );
-}
-
-// ============================================================
-// PAGINATION
-// ============================================================
-
-export function paginated<T>(
-  items: T[],
-  pagination: Pagination,
-  meta?: ResponseMeta,
-  status = 200
-): Response {
-  return success(
-    {
-      items,
-      pagination,
-    },
-    status,
-    meta
-  );
-}
-
-// ============================================================
-// PAGINATION BUILDER
-// ============================================================
-
-export function createPagination(
-  page: number,
-  limit: number,
-  total: number
-): Pagination {
-  const safePage =
-    Number.isInteger(page) &&
-    page > 0
-      ? page
-      : 1;
-
-  const safeLimit =
-    Number.isInteger(limit) &&
-    limit > 0
-      ? limit
-      : 20;
-
-  const safeTotal =
-    Number.isInteger(total) &&
-    total >= 0
-      ? total
-      : 0;
-
-  const totalPages =
-    safeTotal === 0
-      ? 0
-      : Math.ceil(
-          safeTotal /
-            safeLimit
-        );
-
-  return {
-    page: safePage,
-    limit: safeLimit,
-    total: safeTotal,
-    total_pages: totalPages,
-    has_next:
-      safePage <
-      totalPages,
-    has_previous:
-      safePage > 1,
-  };
-}
-
-// ============================================================
-// RESPONSE WITH REQUEST ID
-// ============================================================
-
-export function withRequestId(
-  response: Response,
-  requestId: string
-): Response {
-  const headers =
-    new Headers(
-      response.headers
-    );
-
-  headers.set(
-    "X-Request-ID",
-    requestId
-  );
-
-  return new Response(
-    response.body,
-    {
-      status: response.status,
-      statusText:
-        response.statusText,
-      headers,
-    }
-  );
-}
-
-// ============================================================
-// RESPONSE WITH SECURITY HEADERS
-// ============================================================
-
-export function withSecurityHeaders(
-  response: Response
-): Response {
-  const headers =
-    new Headers(
-      response.headers
-    );
-
-  headers.set(
-    "X-Content-Type-Options",
-    "nosniff"
-  );
-
-  headers.set(
-    "X-Frame-Options",
-    "DENY"
-  );
-
-  headers.set(
-    "Referrer-Policy",
-    "strict-origin-when-cross-origin"
-  );
-
-  headers.set(
-    "Permissions-Policy",
-    "camera=(), microphone=(), geolocation=()"
-  );
-
-  return new Response(
-    response.body,
-    {
-      status: response.status,
-      statusText:
-        response.statusText,
-      headers,
-    }
-  );
+export interface ErrorResponseOptions
+  extends ResponseOptions {
+  code?: string;
 }
 
 // ============================================================
 // CORS
 // ============================================================
 
-export function withCors(
-  response: Response,
-  origin = "*"
-): Response {
-  const headers =
-    new Headers(
-      response.headers
+export function corsHeaders(
+  request?: Request,
+): Record<string, string> {
+  const origin =
+    request?.headers.get(
+      "Origin",
+    ) ?? "*";
+
+  return {
+    "Access-Control-Allow-Origin":
+      origin,
+
+    "Access-Control-Allow-Methods":
+      "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS",
+
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Requested-With, X-Request-ID, Accept, Accept-Language",
+
+    "Access-Control-Expose-Headers":
+      "X-Request-ID, X-Tajik-Opportunities-Version",
+
+    "Access-Control-Allow-Credentials":
+      origin === "*"
+        ? "false"
+        : "true",
+
+    "Access-Control-Max-Age":
+      "86400",
+
+    Vary:
+      "Origin",
+  };
+}
+
+// ============================================================
+// REQUEST ID
+// ============================================================
+
+export function getRequestId(
+  request?: Request,
+): string {
+  const existing =
+    request?.headers.get(
+      "X-Request-ID",
     );
-
-  headers.set(
-    "Access-Control-Allow-Origin",
-    origin
-  );
-
-  headers.set(
-    "Access-Control-Allow-Methods",
-    "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-  );
-
-  headers.set(
-    "Access-Control-Allow-Headers",
-    "Content-Type, Authorization, X-Request-ID, X-CSRF-Token, X-Admin-Token"
-  );
-
-  headers.set(
-    "Access-Control-Expose-Headers",
-    "X-Request-ID, Retry-After"
-  );
 
   if (
-    origin !== "*"
+    existing &&
+    existing.trim().length > 0 &&
+    existing.length <= 128
   ) {
-    headers.set(
-      "Vary",
-      "Origin"
-    );
+    return existing.trim();
   }
 
-  return new Response(
-    response.body,
-    {
-      status: response.status,
-      statusText:
-        response.statusText,
-      headers,
-    }
-  );
+  return crypto.randomUUID();
 }
 
 // ============================================================
-// CACHE CONTROL
+// REQUEST CONTEXT
 // ============================================================
 
-export function noStore(
-  response: Response
-): Response {
-  const headers =
-    new Headers(
-      response.headers
+export function getRequestContext(
+  request: Request,
+): RequestContext {
+  const url =
+    new URL(
+      request.url,
     );
 
-  headers.set(
-    "Cache-Control",
-    "no-store, no-cache, must-revalidate, proxy-revalidate"
-  );
-
-  headers.set(
-    "Pragma",
-    "no-cache"
-  );
-
-  headers.set(
-    "Expires",
-    "0"
-  );
-
-  return new Response(
-    response.body,
-    {
-      status: response.status,
-      statusText:
-        response.statusText,
-      headers,
-    }
-  );
-}
-
-export function publicCache(
-  response: Response,
-  maxAge: number
-): Response {
-  const safeMaxAge =
-    Number.isInteger(maxAge) &&
-    maxAge >= 0
-      ? maxAge
-      : 60;
-
-  const headers =
-    new Headers(
-      response.headers
+  const requestId =
+    getRequestId(
+      request,
     );
 
-  headers.set(
-    "Cache-Control",
-    `public, max-age=${safeMaxAge}`
-  );
+  const ip =
+    request.headers.get(
+      "CF-Connecting-IP",
+    ) ??
+    request.headers.get(
+      "X-Forwarded-For",
+    ) ??
+    null;
 
-  return new Response(
-    response.body,
-    {
-      status: response.status,
-      statusText:
-        response.statusText,
-      headers,
-    }
-  );
+  const userAgent =
+    request.headers.get(
+      "User-Agent",
+    ) ?? null;
+
+  const localeHeader =
+    request.headers.get(
+      "Accept-Language",
+    );
+
+  const locale =
+    localeHeader
+      ?.split(",")[0]
+      ?.trim()
+      ?.toLowerCase() ??
+    null;
+
+  const visitorId =
+    request.headers.get(
+      "X-Visitor-ID",
+    ) ?? null;
+
+  const sessionId =
+    request.headers.get(
+      "X-Session-ID",
+    ) ?? null;
+
+  const userId =
+    request.headers.get(
+      "X-User-ID",
+    ) ?? null;
+
+  const adminId =
+    request.headers.get(
+      "X-Admin-ID",
+    ) ?? null;
+
+  return {
+    requestId,
+
+    ip,
+    userAgent,
+
+    locale,
+
+    visitorId,
+    sessionId,
+    userId,
+    adminId,
+
+    method:
+      request.method.toUpperCase(),
+
+    path:
+      url.pathname,
+
+    url:
+      request.url,
+
+    timestamp:
+      new Date().toISOString(),
+  };
 }
 
 // ============================================================
-// REDIRECT
+// HEADER BUILDER
 // ============================================================
 
-export function redirect(
-  url: string,
-  status:
-    | 301
-    | 302
-    | 303
-    | 307
-    | 308 = 302
-): Response {
-  return new Response(
-    null,
-    {
-      status,
-      headers: {
-        Location: url,
-      },
-    }
-  );
-}
-
-// ============================================================
-// FILE RESPONSE
-// ============================================================
-
-export function file(
-  body: BodyInit,
-  contentType: string,
-  options: {
-    status?: number;
-    fileName?: string;
-    cacheControl?: string;
-  } = {}
-): Response {
+function createHeaders(
+  request?: Request,
+  additional?: HeadersInit,
+): Headers {
   const headers =
     new Headers();
 
+  const cors =
+    corsHeaders(
+      request,
+    );
+
+  for (
+    const [key, value]
+    of Object.entries(
+      cors,
+    )
+  ) {
+    headers.set(
+      key,
+      value,
+    );
+  }
+
   headers.set(
     "Content-Type",
-    contentType
+    "application/json; charset=utf-8",
+  );
+
+  headers.set(
+    "Cache-Control",
+    "no-store",
   );
 
   headers.set(
     "X-Content-Type-Options",
-    "nosniff"
+    "nosniff",
   );
 
-  if (
-    options.fileName
-  ) {
-    const safeName =
-      options.fileName
-        .replace(
-          /["\r\n]/g,
-          ""
+  headers.set(
+    "X-Frame-Options",
+    "SAMEORIGIN",
+  );
+
+  headers.set(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin",
+  );
+
+  if (additional) {
+    const extra =
+      new Headers(
+        additional,
+      );
+
+    extra.forEach(
+      (
+        value,
+        key,
+      ) => {
+        headers.set(
+          key,
+          value,
         );
-
-    headers.set(
-      "Content-Disposition",
-      `attachment; filename="${safeName}"`
+      },
     );
+  }
+
+  return headers;
+}
+
+// ============================================================
+// SERIALIZE
+// ============================================================
+
+function serialize(
+  value: unknown,
+): string {
+  return JSON.stringify(
+    value,
+    (
+      _key,
+      current,
+    ) => {
+      if (
+        typeof current ===
+        "bigint"
+      ) {
+        return current.toString();
+      }
+
+      return current;
+    },
+  );
+}
+
+// ============================================================
+// JSON RESPONSE
+// ============================================================
+
+export function jsonResponse(
+  data: unknown,
+  status = 200,
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  let requestId:
+    | string
+    | undefined;
+
+  let headersInit:
+    | HeadersInit
+    | undefined;
+
+  let meta:
+    | unknown
+    | undefined;
+
+  if (
+    options &&
+    !Array.isArray(
+      options,
+    ) &&
+    typeof options ===
+      "object"
+  ) {
+    if (
+      "requestId" in
+      options ||
+      "details" in
+      options ||
+      "code" in
+      options ||
+      "success" in
+      options ||
+      "meta" in
+      options
+    ) {
+      const responseOptions =
+        options as ResponseOptions;
+
+      requestId =
+        responseOptions.requestId;
+
+      headersInit =
+        responseOptions.headers;
+
+      meta =
+        responseOptions.meta;
+    } else {
+      headersInit =
+        options as HeadersInit;
+    }
+  }
+
+  const body =
+    meta === undefined
+      ? data
+      : {
+          data,
+          meta,
+        };
+
+  const headers =
+    createHeaders(
+      undefined,
+      headersInit,
+    );
+
+  if (requestId) {
+    headers.set(
+      "X-Request-ID",
+      requestId,
+    );
+  }
+
+  return new Response(
+    serialize(body),
+    {
+      status,
+      headers,
+    },
+  );
+}
+
+// ============================================================
+// ERROR RESPONSE
+// ============================================================
+
+export function errorResponse(
+  message:
+    | string
+    | unknown,
+  status = 500,
+  options?:
+    | ErrorResponseOptions
+    | HeadersInit,
+): Response {
+  let requestId:
+    | string
+    | undefined;
+
+  let code:
+    | string
+    | undefined;
+
+  let details:
+    | unknown
+    | undefined;
+
+  let headersInit:
+    | HeadersInit
+    | undefined;
+
+  if (
+    options &&
+    !Array.isArray(
+      options,
+    ) &&
+    typeof options ===
+      "object"
+  ) {
+    if (
+      "requestId" in
+      options ||
+      "details" in
+      options ||
+      "code" in
+      options ||
+      "success" in
+      options
+    ) {
+      const responseOptions =
+        options as ErrorResponseOptions;
+
+      requestId =
+        responseOptions.requestId;
+
+      code =
+        responseOptions.code;
+
+      details =
+        responseOptions.details;
+
+      headersInit =
+        responseOptions.headers;
+    } else {
+      headersInit =
+        options as HeadersInit;
+    }
+  }
+
+  const body: {
+    ok: false;
+    error: string;
+    code?: string;
+    details?: unknown;
+    requestId?: string;
+  } = {
+    ok: false,
+
+    error:
+      message instanceof Error
+        ? message.message
+        : String(message),
+  };
+
+  if (code) {
+    body.code =
+      code;
   }
 
   if (
-    options.cacheControl
+    details !== undefined
   ) {
-    headers.set(
-      "Cache-Control",
-      options.cacheControl
+    body.details =
+      details;
+  }
+
+  if (requestId) {
+    body.requestId =
+      requestId;
+  }
+
+  const headers =
+    createHeaders(
+      undefined,
+      headersInit,
     );
-  } else {
+
+  if (requestId) {
     headers.set(
-      "Cache-Control",
-      "no-store"
+      "X-Request-ID",
+      requestId,
     );
   }
 
   return new Response(
-    body,
+    serialize(body),
     {
-      status:
-        options.status ?? 200,
+      status,
       headers,
-    }
+    },
   );
 }
 
 // ============================================================
-// TEXT RESPONSE
+// 400
 // ============================================================
 
-export function text(
-  value: string,
+export function badRequestResponse(
+  message =
+    "Bad request",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    400,
+    options,
+  );
+}
+
+// ============================================================
+// 401
+// ============================================================
+
+export function unauthorizedResponse(
+  message =
+    "Unauthorized",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    401,
+    options,
+  );
+}
+
+// ============================================================
+// 403
+// ============================================================
+
+export function forbiddenResponse(
+  message =
+    "Forbidden",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    403,
+    options,
+  );
+}
+
+// ============================================================
+// 404
+// ============================================================
+
+export function notFoundResponse(
+  message =
+    "Not found",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    404,
+    options,
+  );
+}
+
+// ============================================================
+// 405
+// ============================================================
+
+export function methodNotAllowedResponse(
+  message =
+    "Method not allowed",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  const response =
+    errorResponse(
+      message,
+      405,
+      options,
+    );
+
+  response.headers.set(
+    "Allow",
+    "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
+  );
+
+  return response;
+}
+
+// ============================================================
+// 409
+// ============================================================
+
+export function conflictResponse(
+  message =
+    "Conflict",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    409,
+    options,
+  );
+}
+
+// ============================================================
+// 422
+// ============================================================
+
+export function validationErrorResponse(
+  message =
+    "Validation failed",
+  details?:
+    unknown,
+  options?:
+    ResponseOptions,
+): Response {
+  return errorResponse(
+    message,
+    422,
+    {
+      ...options,
+      details,
+    },
+  );
+}
+
+// ============================================================
+// 429
+// ============================================================
+
+export function rateLimitResponse(
+  message =
+    "Too many requests",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    429,
+    options,
+  );
+}
+
+// ============================================================
+// 500
+// ============================================================
+
+export function internalServerErrorResponse(
+  message =
+    "Internal server error",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    500,
+    options,
+  );
+}
+
+// ============================================================
+// 503
+// ============================================================
+
+export function serviceUnavailableResponse(
+  message =
+    "Service unavailable",
+  options?:
+    | ResponseOptions
+    | HeadersInit,
+): Response {
+  return errorResponse(
+    message,
+    503,
+    options,
+  );
+}
+
+// ============================================================
+// SUCCESS HELPERS
+// ============================================================
+
+export function successResponse(
+  data: unknown,
   status = 200,
-  headers: HeadersInit = {}
+  options?: ResponseOptions,
 ): Response {
-  const responseHeaders =
-    new Headers();
-
-  responseHeaders.set(
-    "Content-Type",
-    "text/plain; charset=utf-8"
-  );
-
-  const extra =
-    new Headers(headers);
-
-  extra.forEach(
-    (headerValue, key) => {
-      responseHeaders.set(
-        key,
-        headerValue
-      );
-    }
-  );
-
-  return new Response(
-    value,
+  return jsonResponse(
     {
-      status,
-      headers:
-        responseHeaders,
-    }
+      ok: true,
+      data,
+    },
+    status,
+    options,
   );
 }
 
-// ============================================================
-// HTML RESPONSE
-// ============================================================
-
-export function html(
-  value: string,
-  status = 200,
-  headers: HeadersInit = {}
+export function createdResponse(
+  data: unknown,
+  options?: ResponseOptions,
 ): Response {
-  const responseHeaders =
-    new Headers();
-
-  responseHeaders.set(
-    "Content-Type",
-    "text/html; charset=utf-8"
-  );
-
-  responseHeaders.set(
-    "X-Content-Type-Options",
-    "nosniff"
-  );
-
-  const extra =
-    new Headers(headers);
-
-  extra.forEach(
-    (headerValue, key) => {
-      responseHeaders.set(
-        key,
-        headerValue
-      );
-    }
-  );
-
-  return new Response(
-    value,
-    {
-      status,
-      headers:
-        responseHeaders,
-    }
+  return successResponse(
+    data,
+    201,
+    options,
   );
 }
 
-// ============================================================
-// STREAM RESPONSE
-// ============================================================
-
-export function stream(
-  body: ReadableStream,
-  contentType =
-    "application/octet-stream",
-  headers: HeadersInit = {}
+export function noContentResponse(
+  request?: Request,
 ): Response {
-  const responseHeaders =
-    new Headers();
+  const headers =
+    createHeaders(
+      request,
+    );
 
-  responseHeaders.set(
-    "Content-Type",
-    contentType
-  );
-
-  responseHeaders.set(
-    "Cache-Control",
-    "no-store"
-  );
-
-  const extra =
-    new Headers(headers);
-
-  extra.forEach(
-    (headerValue, key) => {
-      responseHeaders.set(
-        key,
-        headerValue
-      );
-    }
-  );
-
-  return new Response(
-    body,
-    {
-      status: 200,
-      headers:
-        responseHeaders,
-    }
-  );
-}
-
-// ============================================================
-// OPTIONS / CORS PREFLIGHT
-// ============================================================
-
-export function options(
-  origin = "*"
-): Response {
   return new Response(
     null,
     {
       status: 204,
-      headers: {
-        "Access-Control-Allow-Origin":
-          origin,
-        "Access-Control-Allow-Methods":
-          "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-        "Access-Control-Allow-Headers":
-          "Content-Type, Authorization, X-Request-ID, X-CSRF-Token, X-Admin-Token",
-        "Access-Control-Max-Age":
-          "86400",
-      },
-    }
+      headers,
+    },
   );
 }
 
 // ============================================================
-// ERROR FROM UNKNOWN EXCEPTION
+// RESPONSE WITH REQUEST ID
 // ============================================================
 
-export function fromException(
-  exception: unknown,
-  fallback =
-    "Внутренняя ошибка сервера"
+export function addRequestId(
+  response: Response,
+  requestId: string,
 ): Response {
-  if (
-    exception instanceof Response
-  ) {
-    return exception;
-  }
-
-  if (
-    exception instanceof Error
-  ) {
-    return serverError(
-      fallback,
-      {
-        code:
-          "INTERNAL_ERROR",
-        details:
-          exception.message,
-      }
+  const headers =
+    new Headers(
+      response.headers,
     );
-  }
 
-  return serverError(
-    fallback,
+  headers.set(
+    "X-Request-ID",
+    requestId,
+  );
+
+  return new Response(
+    response.body,
     {
-      code:
-        "UNKNOWN_ERROR",
-    }
+      status:
+        response.status,
+
+      statusText:
+        response.statusText,
+
+      headers,
+    },
   );
 }
 
 // ============================================================
-// END
+// DEFAULT
 // ============================================================
+
+export default {
+  corsHeaders,
+  getRequestId,
+  getRequestContext,
+
+  jsonResponse,
+  errorResponse,
+
+  badRequestResponse,
+  unauthorizedResponse,
+  forbiddenResponse,
+  notFoundResponse,
+  methodNotAllowedResponse,
+  conflictResponse,
+  validationErrorResponse,
+  rateLimitResponse,
+  internalServerErrorResponse,
+  serviceUnavailableResponse,
+
+  successResponse,
+  createdResponse,
+  noContentResponse,
+
+  addRequestId,
+};
