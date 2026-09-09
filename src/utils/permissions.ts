@@ -1,1007 +1,631 @@
-// ============================================================
-// 🇹🇯 TAJIK OPPORTUNITIES
-// PERMISSIONS UTILITY
-// Version: 2026.09.09
-//
-// Единый слой работы с правами администратора.
-//
-// Поддерживает:
-// • SUPERADMIN
-// • ADMIN
-// • MODERATOR
-// • SUPPORT
-// • ANALYST
-// • CUSTOM
-// • проверку одного права
-// • проверку любого права
-// • проверку всех прав
-// • effective permissions
-// • individual allow/deny
-// • permission presets
-// ============================================================
+/* ============================================================
+   TAJIK OPPORTUNITIES
+   PERMISSIONS UTILITY
+   Production-safe permission system
+   ============================================================ */
 
-import {
-  PERMISSIONS,
-  ALL_PERMISSIONS,
-  ROLE_PERMISSIONS,
-  hasPermission as constantHasPermission,
-  hasAnyPermission as constantHasAnyPermission,
-  hasAllPermissions as constantHasAllPermissions,
-  isSuperAdmin as constantIsSuperAdmin,
-  canAccessAdmin as constantCanAccessAdmin,
-  normalizeRole,
-  getRolePermissions,
-  permissionExists,
-  type Permission,
-  type AdminRole,
-} from "../constants/permissions";
+export type Permission = string;
 
-// ============================================================
-// TYPES
-// ============================================================
-
-export type PermissionValue =
-  | "inherit"
-  | "allow"
-  | "deny";
-
-export type PermissionOverrides =
-  Record<
-    string,
-    PermissionValue
-  >;
+export type AdminRole =
+  | "SUPERADMIN"
+  | "ADMIN"
+  | "MODERATOR"
+  | "EDITOR"
+  | "SUPPORT"
+  | "ANALYST"
+  | "VIEWER"
+  | string;
 
 export interface PermissionContext {
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined;
-
-  permissions?:
-    | readonly Permission[]
-    | null;
-
-  overrides?:
-    | PermissionOverrides
-    | null;
+  role?: AdminRole | null;
+  permissions?: Iterable<Permission> | null;
+  isSuperAdmin?: boolean;
+  disabled?: boolean;
 }
 
-// ============================================================
-// NORMALIZE PERMISSION
-// ============================================================
+/* ------------------------------------------------------------
+   PERMISSION GROUPS
+   ------------------------------------------------------------ */
 
-export function normalizePermission(
-  permission:
-    | Permission
-    | string
-    | null
-    | undefined,
-): string {
-  return String(
-    permission ?? "",
-  ).trim();
-}
+const createGroup = (
+  prefix: string,
+  names: string[],
+): Record<string, Permission> => {
+  const result: Record<string, Permission> = {};
 
-// ============================================================
-// CHECK ONE PERMISSION
-// ============================================================
-
-export function hasPermission(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-  permission:
-    | Permission
-    | string
-    | null
-    | undefined,
-): boolean {
-  const normalized =
-    normalizePermission(
-      permission,
-    );
-
-  if (
-    !normalized
-  ) {
-    return false;
+  for (const name of names) {
+    result[name] = `${prefix}.${name}`;
   }
 
-  return constantHasPermission(
-    role,
-    normalized,
-  );
-}
+  return result;
+};
 
-// ============================================================
-// CHECK ANY PERMISSION
-// ============================================================
+export const PERMISSIONS = {
+  SUPERADMIN: {
+    FULL_CONTROL: "SUPERADMIN.FULL_CONTROL",
+  },
 
-export function hasAnyPermission(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-  permissions:
-    | readonly Permission[]
-    | readonly string[]
-    | null
-    | undefined,
-): boolean {
-  if (
-    !permissions ||
-    permissions.length === 0
-  ) {
-    return false;
-  }
+  SYSTEM: createGroup("SYSTEM", [
+    "VIEW",
+    "MANAGE",
+    "SETTINGS",
+    "FEATURE_FLAGS",
+    "MAINTENANCE",
+    "SECURITY",
+  ]),
 
-  return constantHasAnyPermission(
-    role,
-    permissions as Permission[],
-  );
-}
+  PUBLICATIONS: createGroup("PUBLICATIONS", [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "DELETE",
+    "PUBLISH",
+    "MODERATE",
+    "FEATURE",
+    "METRICS",
+    "MANAGE",
+  ]),
 
-// ============================================================
-// CHECK ALL PERMISSIONS
-// ============================================================
+  COMMENTS: createGroup("COMMENTS", [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "DELETE",
+    "MODERATE",
+    "MANAGE",
+  ]),
 
-export function hasAllPermissions(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-  permissions:
-    | readonly Permission[]
-    | readonly string[]
-    | null
-    | undefined,
-): boolean {
-  if (
-    !permissions ||
-    permissions.length === 0
-  ) {
-    return true;
-  }
+  REACTIONS: createGroup("REACTIONS", [
+    "VIEW",
+    "CREATE",
+    "DELETE",
+    "MANAGE",
+    "MODERATE",
+  ]),
 
-  return constantHasAllPermissions(
-    role,
-    permissions as Permission[],
-  );
-}
+  REVIEWS: createGroup("REVIEWS", [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "DELETE",
+    "MODERATE",
+    "MANAGE",
+    "METRICS",
+  ]),
 
-// ============================================================
-// SUPER ADMIN
-// ============================================================
+  PARTICIPANTS: createGroup("PARTICIPANTS", [
+    "VIEW",
+    "CREATE",
+    "EDIT",
+    "DELETE",
+    "MANAGE",
+    "BLOCK",
+    "UNBLOCK",
+    "IMPERSONATE",
+    "ACT_AS",
+    "PRESENCE",
+  ]),
 
-export function isSuperAdmin(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-): boolean {
-  return constantIsSuperAdmin(
-    role,
-  );
-}
+  CHAT: createGroup("CHAT", [
+    "VIEW",
+    "SEND",
+    "EDIT",
+    "DELETE",
+    "MODERATE",
+    "MANAGE",
+    "INITIATE",
+    "ATTACHMENTS",
+    "READ_PRIVATE",
+  ]),
 
-// ============================================================
-// ADMIN ACCESS
-// ============================================================
+  REPORTS: createGroup("REPORTS", [
+    "VIEW",
+    "CREATE",
+    "MANAGE",
+    "RESOLVE",
+    "DELETE",
+  ]),
 
-export function canAccessAdmin(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-): boolean {
-  return constantCanAccessAdmin(
-    role,
-  );
-}
+  NOTIFICATIONS: createGroup("NOTIFICATIONS", [
+    "VIEW",
+    "SEND",
+    "MANAGE",
+    "SETTINGS",
+    "FORCE",
+  ]),
 
-// ============================================================
-// GET ROLE PERMISSIONS
-// ============================================================
+  MEDIA: createGroup("MEDIA", [
+    "VIEW",
+    "UPLOAD",
+    "EDIT",
+    "DELETE",
+    "MODERATE",
+    "MANAGE",
+  ]),
 
-export function getPermissionsForRole(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
+  ANALYTICS: createGroup("ANALYTICS", [
+    "VIEW",
+    "MANAGE",
+    "EXPORT",
+  ]),
+
+  PAYMENTS: createGroup("PAYMENTS", [
+    "VIEW",
+    "MANAGE",
+    "CONFIRM",
+    "REFUND",
+    "PRICES",
+  ]),
+
+  LEVELS: createGroup("LEVELS", [
+    "VIEW",
+    "MANAGE",
+    "ASSIGN",
+    "REMOVE",
+  ]),
+
+  PREMIUM: createGroup("PREMIUM", [
+    "VIEW",
+    "MANAGE",
+    "GRANT",
+    "REVOKE",
+  ]),
+
+  PRO: createGroup("PRO", [
+    "VIEW",
+    "MANAGE",
+    "GRANT",
+    "REVOKE",
+  ]),
+
+  TOP: createGroup("TOP", [
+    "VIEW",
+    "MANAGE",
+    "GRANT",
+    "REVOKE",
+  ]),
+
+  VIP: createGroup("VIP", [
+    "VIEW",
+    "MANAGE",
+    "GRANT",
+    "REVOKE",
+  ]),
+
+  SEARCH: createGroup("SEARCH", [
+    "VIEW",
+    "GLOBAL",
+    "PARTICIPANTS",
+    "PUBLICATIONS",
+    "COMMENTS",
+    "CHATS",
+  ]),
+
+  AUDIT: createGroup("AUDIT", [
+    "VIEW",
+    "EXPORT",
+    "MANAGE",
+  ]),
+} as const;
+
+/* ------------------------------------------------------------
+   ALL PERMISSIONS
+   ------------------------------------------------------------ */
+
+function flattenPermissions(
+  value: unknown,
 ): Permission[] {
-  return getRolePermissions(
-    role,
-  );
-}
+  const result: Permission[] = [];
 
-// ============================================================
-// EFFECTIVE PERMISSIONS
-//
-// Формула:
-//
-// role permissions
-// + explicitly allowed
-// - explicitly denied
-//
-// SUPERADMIN всегда получает полный доступ.
-// ============================================================
-
-export function getEffectivePermissions(
-  context: PermissionContext,
-): Permission[] {
-  const role =
-    normalizeRole(
-      context.role,
-    );
-
-  if (
-    role === "SUPERADMIN"
-  ) {
-    return [
-      ...ALL_PERMISSIONS,
-    ];
-  }
-
-  const base =
-    new Set<Permission>(
-      getRolePermissions(
-        role,
-      ),
-    );
-
-  const explicit =
-    context.permissions ??
-    [];
-
-  for (
-    const permission
-    of explicit
-  ) {
-    base.add(
-      permission,
-    );
-  }
-
-  const overrides =
-    context.overrides ??
-    {};
-
-  for (
-    const [
-      permission,
-      value,
-    ] of Object.entries(
-      overrides,
-    )
-  ) {
-    if (
-      value === "allow"
-    ) {
-      base.add(
-        permission,
-      );
-    }
-
-    if (
-      value === "deny"
-    ) {
-      base.delete(
-        permission,
-      );
-    }
-  }
-
-  return Array.from(
-    base,
-  );
-}
-
-// ============================================================
-// CHECK CONTEXT
-// ============================================================
-
-export function hasEffectivePermission(
-  context: PermissionContext,
-  permission:
-    | Permission
-    | string,
-): boolean {
-  const normalized =
-    normalizePermission(
-      permission,
-    );
-
-  if (
-    !normalized
-  ) {
-    return false;
-  }
-
-  if (
-    isSuperAdmin(
-      context.role,
-    )
-  ) {
-    return true;
-  }
-
-  const overrides =
-    context.overrides;
-
-  if (
-    overrides &&
-    overrides[normalized] ===
-      "deny"
-  ) {
-    return false;
-  }
-
-  if (
-    overrides &&
-    overrides[normalized] ===
-      "allow"
-  ) {
-    return true;
-  }
-
-  const permissions =
-    getEffectivePermissions(
-      context,
-    );
-
-  return permissions.includes(
-    normalized,
-  );
-}
-
-// ============================================================
-// CHECK ANY EFFECTIVE
-// ============================================================
-
-export function hasAnyEffectivePermission(
-  context: PermissionContext,
-  permissions:
-    | readonly Permission[]
-    | readonly string[],
-): boolean {
-  return permissions.some(
-    (
-      permission,
-    ) =>
-      hasEffectivePermission(
-        context,
-        permission,
-      ),
-  );
-}
-
-// ============================================================
-// CHECK ALL EFFECTIVE
-// ============================================================
-
-export function hasAllEffectivePermissions(
-  context: PermissionContext,
-  permissions:
-    | readonly Permission[]
-    | readonly string[],
-): boolean {
-  return permissions.every(
-    (
-      permission,
-    ) =>
-      hasEffectivePermission(
-        context,
-        permission,
-      ),
-  );
-}
-
-// ============================================================
-// PERMISSION STATUS
-// ============================================================
-
-export function getPermissionStatus(
-  context: PermissionContext,
-  permission:
-    | Permission
-    | string,
-): PermissionValue {
-  const normalized =
-    normalizePermission(
-      permission,
-    );
-
-  const overrides =
-    context.overrides;
-
-  if (
-    overrides &&
-    overrides[normalized]
-  ) {
-    return overrides[
-      normalized
-    ];
-  }
-
-  return hasEffectivePermission(
-    context,
-    normalized,
-  )
-    ? "allow"
-    : "inherit";
-}
-
-// ============================================================
-// APPLY OVERRIDE
-// ============================================================
-
-export function applyPermissionOverride(
-  overrides:
-    | PermissionOverrides
-    | null
-    | undefined,
-  permission:
-    | Permission
-    | string,
-  value:
-    | PermissionValue,
-): PermissionOverrides {
-  const result: PermissionOverrides =
-    {
-      ...(overrides ?? {}),
-    };
-
-  const normalized =
-    normalizePermission(
-      permission,
-    );
-
-  if (
-    !normalized
-  ) {
+  if (!value || typeof value !== "object") {
     return result;
   }
 
-  if (
-    value === "inherit"
-  ) {
-    delete result[
-      normalized
-    ];
-  } else {
-    result[
-      normalized
-    ] = value;
+  for (const item of Object.values(
+    value as Record<string, unknown>,
+  )) {
+    if (typeof item === "string") {
+      result.push(item);
+      continue;
+    }
+
+    result.push(
+      ...flattenPermissions(item),
+    );
   }
 
   return result;
 }
 
-// ============================================================
-// ALLOW
-// ============================================================
+export const ALL_PERMISSIONS: Permission[] = [
+  ...flattenPermissions(PERMISSIONS),
+];
 
-export function allowPermission(
-  overrides:
-    | PermissionOverrides
-    | null
-    | undefined,
-  permission:
-    | Permission
-    | string,
-): PermissionOverrides {
-  return applyPermissionOverride(
-    overrides,
-    permission,
-    "allow",
+/* ------------------------------------------------------------
+   ROLE PERMISSIONS
+   ------------------------------------------------------------ */
+
+export const ROLE_PERMISSIONS: Record<
+  AdminRole,
+  Permission[]
+> = {
+  SUPERADMIN: [
+    PERMISSIONS.SUPERADMIN.FULL_CONTROL,
+    ...ALL_PERMISSIONS,
+  ],
+
+  ADMIN: [
+    PERMISSIONS.PUBLICATIONS.VIEW,
+    PERMISSIONS.PUBLICATIONS.CREATE,
+    PERMISSIONS.PUBLICATIONS.EDIT,
+    PERMISSIONS.PUBLICATIONS.DELETE,
+    PERMISSIONS.PUBLICATIONS.PUBLISH,
+    PERMISSIONS.PUBLICATIONS.MODERATE,
+    PERMISSIONS.PUBLICATIONS.FEATURE,
+    PERMISSIONS.PUBLICATIONS.METRICS,
+
+    PERMISSIONS.COMMENTS.VIEW,
+    PERMISSIONS.COMMENTS.MODERATE,
+    PERMISSIONS.COMMENTS.MANAGE,
+
+    PERMISSIONS.REACTIONS.VIEW,
+    PERMISSIONS.REACTIONS.MANAGE,
+    PERMISSIONS.REACTIONS.MODERATE,
+
+    PERMISSIONS.REVIEWS.VIEW,
+    PERMISSIONS.REVIEWS.MODERATE,
+    PERMISSIONS.REVIEWS.MANAGE,
+    PERMISSIONS.REVIEWS.METRICS,
+
+    PERMISSIONS.PARTICIPANTS.VIEW,
+    PERMISSIONS.PARTICIPANTS.MANAGE,
+    PERMISSIONS.PARTICIPANTS.BLOCK,
+    PERMISSIONS.PARTICIPANTS.UNBLOCK,
+    PERMISSIONS.PARTICIPANTS.PRESENCE,
+
+    PERMISSIONS.CHAT.VIEW,
+    PERMISSIONS.CHAT.SEND,
+    PERMISSIONS.CHAT.MODERATE,
+    PERMISSIONS.CHAT.MANAGE,
+    PERMISSIONS.CHAT.INITIATE,
+
+    PERMISSIONS.REPORTS.VIEW,
+    PERMISSIONS.REPORTS.MANAGE,
+    PERMISSIONS.REPORTS.RESOLVE,
+
+    PERMISSIONS.NOTIFICATIONS.VIEW,
+    PERMISSIONS.NOTIFICATIONS.SEND,
+    PERMISSIONS.NOTIFICATIONS.MANAGE,
+
+    PERMISSIONS.MEDIA.VIEW,
+    PERMISSIONS.MEDIA.MODERATE,
+    PERMISSIONS.MEDIA.MANAGE,
+
+    PERMISSIONS.ANALYTICS.VIEW,
+    PERMISSIONS.ANALYTICS.MANAGE,
+
+    PERMISSIONS.PAYMENTS.VIEW,
+    PERMISSIONS.PAYMENTS.MANAGE,
+    PERMISSIONS.PAYMENTS.CONFIRM,
+
+    PERMISSIONS.LEVELS.VIEW,
+    PERMISSIONS.LEVELS.MANAGE,
+    PERMISSIONS.LEVELS.ASSIGN,
+
+    PERMISSIONS.PREMIUM.VIEW,
+    PERMISSIONS.PREMIUM.MANAGE,
+    PERMISSIONS.PREMIUM.GRANT,
+    PERMISSIONS.PREMIUM.REVOKE,
+
+    PERMISSIONS.PRO.VIEW,
+    PERMISSIONS.PRO.MANAGE,
+    PERMISSIONS.PRO.GRANT,
+    PERMISSIONS.PRO.REVOKE,
+
+    PERMISSIONS.TOP.VIEW,
+    PERMISSIONS.TOP.MANAGE,
+    PERMISSIONS.TOP.GRANT,
+    PERMISSIONS.TOP.REVOKE,
+
+    PERMISSIONS.VIP.VIEW,
+    PERMISSIONS.VIP.MANAGE,
+    PERMISSIONS.VIP.GRANT,
+    PERMISSIONS.VIP.REVOKE,
+
+    PERMISSIONS.SEARCH.VIEW,
+    PERMISSIONS.SEARCH.GLOBAL,
+
+    PERMISSIONS.AUDIT.VIEW,
+  ],
+
+  MODERATOR: [
+    PERMISSIONS.PUBLICATIONS.VIEW,
+    PERMISSIONS.PUBLICATIONS.MODERATE,
+
+    PERMISSIONS.COMMENTS.VIEW,
+    PERMISSIONS.COMMENTS.MODERATE,
+
+    PERMISSIONS.REACTIONS.VIEW,
+    PERMISSIONS.REACTIONS.MODERATE,
+
+    PERMISSIONS.REVIEWS.VIEW,
+    PERMISSIONS.REVIEWS.MODERATE,
+
+    PERMISSIONS.PARTICIPANTS.VIEW,
+    PERMISSIONS.PARTICIPANTS.BLOCK,
+    PERMISSIONS.PARTICIPANTS.UNBLOCK,
+
+    PERMISSIONS.CHAT.VIEW,
+    PERMISSIONS.CHAT.MODERATE,
+
+    PERMISSIONS.REPORTS.VIEW,
+    PERMISSIONS.REPORTS.MANAGE,
+    PERMISSIONS.REPORTS.RESOLVE,
+
+    PERMISSIONS.MEDIA.VIEW,
+    PERMISSIONS.MEDIA.MODERATE,
+
+    PERMISSIONS.SEARCH.VIEW,
+  ],
+
+  EDITOR: [
+    PERMISSIONS.PUBLICATIONS.VIEW,
+    PERMISSIONS.PUBLICATIONS.CREATE,
+    PERMISSIONS.PUBLICATIONS.EDIT,
+    PERMISSIONS.PUBLICATIONS.PUBLISH,
+
+    PERMISSIONS.COMMENTS.VIEW,
+    PERMISSIONS.REVIEWS.VIEW,
+
+    PERMISSIONS.MEDIA.VIEW,
+    PERMISSIONS.MEDIA.UPLOAD,
+    PERMISSIONS.MEDIA.EDIT,
+
+    PERMISSIONS.SEARCH.VIEW,
+  ],
+
+  SUPPORT: [
+    PERMISSIONS.PARTICIPANTS.VIEW,
+    PERMISSIONS.PARTICIPANTS.PRESENCE,
+
+    PERMISSIONS.CHAT.VIEW,
+    PERMISSIONS.CHAT.SEND,
+    PERMISSIONS.CHAT.INITIATE,
+
+    PERMISSIONS.NOTIFICATIONS.VIEW,
+
+    PERMISSIONS.REPORTS.VIEW,
+
+    PERMISSIONS.SEARCH.VIEW,
+    PERMISSIONS.SEARCH.PARTICIPANTS,
+  ],
+
+  ANALYST: [
+    PERMISSIONS.PUBLICATIONS.VIEW,
+    PERMISSIONS.PUBLICATIONS.METRICS,
+
+    PERMISSIONS.REVIEWS.VIEW,
+    PERMISSIONS.REVIEWS.METRICS,
+
+    PERMISSIONS.ANALYTICS.VIEW,
+    PERMISSIONS.ANALYTICS.EXPORT,
+
+    PERMISSIONS.SEARCH.VIEW,
+
+    PERMISSIONS.AUDIT.VIEW,
+  ],
+
+  VIEWER: [
+    PERMISSIONS.PUBLICATIONS.VIEW,
+    PERMISSIONS.COMMENTS.VIEW,
+    PERMISSIONS.REACTIONS.VIEW,
+    PERMISSIONS.REVIEWS.VIEW,
+    PERMISSIONS.PARTICIPANTS.VIEW,
+    PERMISSIONS.REPORTS.VIEW,
+    PERMISSIONS.NOTIFICATIONS.VIEW,
+    PERMISSIONS.ANALYTICS.VIEW,
+    PERMISSIONS.SEARCH.VIEW,
+  ],
+};
+
+/* ------------------------------------------------------------
+   HELPERS
+   ------------------------------------------------------------ */
+
+function normalizePermissions(
+  permissions: Iterable<Permission> | null | undefined,
+): Set<string> {
+  return new Set(
+    permissions
+      ? Array.from(permissions).map(String)
+      : [],
   );
 }
 
-// ============================================================
-// DENY
-// ============================================================
-
-export function denyPermission(
-  overrides:
-    | PermissionOverrides
-    | null
-    | undefined,
-  permission:
-    | Permission
-    | string,
-): PermissionOverrides {
-  return applyPermissionOverride(
-    overrides,
-    permission,
-    "deny",
-  );
-}
-
-// ============================================================
-// INHERIT
-// ============================================================
-
-export function inheritPermission(
-  overrides:
-    | PermissionOverrides
-    | null
-    | undefined,
-  permission:
-    | Permission
-    | string,
-): PermissionOverrides {
-  return applyPermissionOverride(
-    overrides,
-    permission,
-    "inherit",
-  );
-}
-
-// ============================================================
-// ROLE CHECK
-// ============================================================
-
-export function hasRole(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-  expected:
-    | AdminRole
-    | string,
-): boolean {
-  return (
-    normalizeRole(
-      role,
-    ) ===
-    normalizeRole(
-      expected,
-    )
-  );
-}
-
-// ============================================================
-// ANY ROLE
-// ============================================================
-
-export function hasAnyRole(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-  roles:
-    | readonly (
-        | AdminRole
-        | string
-      )[],
-): boolean {
-  const normalized =
-    normalizeRole(
-      role,
-    );
-
-  return roles.some(
-    (item) =>
-      normalizeRole(
-        item,
-      ) === normalized,
-  );
-}
-
-// ============================================================
-// ROLE HELPERS
-// ============================================================
-
-export function isAdminRole(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-): boolean {
-  return hasAnyRole(
-    role,
-    [
-      "SUPERADMIN",
-      "ADMIN",
-    ],
-  );
-}
-
-export function isModeratorRole(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-): boolean {
-  return hasAnyRole(
-    role,
-    [
-      "MODERATOR",
-      "ADMIN",
-      "SUPERADMIN",
-    ],
-  );
-}
-
-export function isSupportRole(
-  role:
-    | AdminRole
-    | string
-    | null
-    | undefined,
-): boolean {
-  return hasAnyRole(
-    role,
-    [
-      "SUPPORT",
-      "ADMIN",
-      "SUPERADMIN",
-    ],
-  );
-}
-
-// ============================================================
-// PERMISSION EXISTS
-// ============================================================
-
-export function isValidPermission(
-  permission:
-    | string
-    | null
-    | undefined,
-): boolean {
-  return permissionExists(
-    permission,
-  );
-}
-
-// ============================================================
-// PERMISSION GROUPS
-// ============================================================
-
-export const PERMISSION_GROUPS = {
-  SUPERADMIN:
-    PERMISSIONS.SUPERADMIN,
-
-  PUBLICATIONS:
-    PERMISSIONS.PUBLICATIONS,
-
-  COMMENTS:
-    PERMISSIONS.COMMENTS,
-
-  REACTIONS:
-    PERMISSIONS.REACTIONS,
-
-  REVIEWS:
-    PERMISSIONS.REVIEWS,
-
-  PARTICIPANTS:
-    PERMISSIONS.PARTICIPANTS,
-
-  CHAT:
-    PERMISSIONS.CHAT,
-
-  REPORTS:
-    PERMISSIONS.REPORTS,
-
-  NOTIFICATIONS:
-    PERMISSIONS.NOTIFICATIONS,
-
-  USERS:
-    PERMISSIONS.USERS,
-
-  MEDIA:
-    PERMISSIONS.MEDIA,
-
-  REPORTING:
-    PERMISSIONS.REPORTING,
-
-  PAYMENTS:
-    PERMISSIONS.PAYMENTS,
-
-  LEVELS:
-    PERMISSIONS.LEVELS,
-
-  CATEGORIES:
-    PERMISSIONS.CATEGORIES,
-
-  SEARCH:
-    PERMISSIONS.SEARCH,
-
-  AUDIT:
-    PERMISSIONS.AUDIT,
-
-  SYSTEM:
-    PERMISSIONS.SYSTEM,
-} as const;
-
-// ============================================================
-// PRESETS
-// ============================================================
-
-export const PERMISSION_PRESETS:
-  Record<
-    string,
-    Permission[]
-  > = {
-    SUPERADMIN: [
-      ...ROLE_PERMISSIONS.SUPERADMIN,
-    ],
-
-    ADMIN: [
-      ...ROLE_PERMISSIONS.ADMIN,
-    ],
-
-    MODERATOR: [
-      ...ROLE_PERMISSIONS.MODERATOR,
-    ],
-
-    SUPPORT: [
-      ...ROLE_PERMISSIONS.SUPPORT,
-    ],
-
-    ANALYST: [
-      ...ROLE_PERMISSIONS.ANALYST,
-    ],
-
-    CUSTOM: [],
-  };
-
-// ============================================================
-// PRESET PERMISSIONS
-// ============================================================
-
-export function getPresetPermissions(
-  preset:
-    | string
-    | null
-    | undefined,
+export function getRolePermissions(
+  role: AdminRole | null | undefined,
 ): Permission[] {
-  const normalized =
-    String(
-      preset ?? "",
-    )
-      .trim()
-      .toUpperCase();
+  if (!role) return [];
 
   return [
-    ...(
-      PERMISSION_PRESETS[
-        normalized
-      ] ?? []
-    ),
+    ...(ROLE_PERMISSIONS[String(role)] || []),
   ];
 }
 
-// ============================================================
-// MERGE PERMISSIONS
-// ============================================================
+export function hasPermission(
+  roleOrPermissions:
+    | AdminRole
+    | Iterable<Permission>
+    | null
+    | undefined,
+  permission: Permission,
+): boolean {
+  if (!permission) return false;
 
-export function mergePermissions(
-  ...lists:
-    Array<
-      | readonly Permission[]
-      | null
-      | undefined
-    >
-): Permission[] {
-  const result =
-    new Set<Permission>();
-
-  for (
-    const list
-    of lists
+  if (
+    typeof roleOrPermissions === "string"
   ) {
-    if (!list) {
-      continue;
+    if (
+      roleOrPermissions === "SUPERADMIN"
+    ) {
+      return true;
     }
 
-    for (
-      const permission
-      of list
-    ) {
-      if (
-        permission
-      ) {
-        result.add(
-          permission,
-        );
-      }
-    }
+    return getRolePermissions(
+      roleOrPermissions,
+    ).includes(permission);
   }
 
-  return Array.from(
-    result,
+  const permissions = normalizePermissions(
+    roleOrPermissions,
+  );
+
+  return (
+    permissions.has(
+      PERMISSIONS.SUPERADMIN.FULL_CONTROL,
+    ) ||
+    permissions.has(permission)
   );
 }
 
-// ============================================================
-// REMOVE PERMISSIONS
-// ============================================================
-
-export function removePermissions(
-  source:
-    | readonly Permission[]
+export function hasAnyPermission(
+  roleOrPermissions:
+    | AdminRole
+    | Iterable<Permission>
     | null
     | undefined,
-  remove:
-    | readonly Permission[]
-    | null
-    | undefined,
-): Permission[] {
-  if (!source) {
-    return [];
-  }
-
-  if (!remove) {
-    return [
-      ...source,
-    ];
-  }
-
-  const denied =
-    new Set(
-      remove,
-    );
-
-  return source.filter(
-    (
-      permission,
-    ) =>
-      !denied.has(
+  permissions: Iterable<Permission>,
+): boolean {
+  for (const permission of permissions) {
+    if (
+      hasPermission(
+        roleOrPermissions,
         permission,
-      ),
-  );
-}
-
-// ============================================================
-// PERMISSION SUMMARY
-// ============================================================
-
-export interface PermissionSummary {
-  role: AdminRole;
-  total: number;
-  granted: number;
-  denied: number;
-  inherited: number;
-  permissions: Permission[];
-}
-
-export function getPermissionSummary(
-  context: PermissionContext,
-): PermissionSummary {
-  const permissions =
-    getEffectivePermissions(
-      context,
-    );
-
-  const overrides =
-    context.overrides ??
-    {};
-
-  let denied = 0;
-  let inherited = 0;
-
-  for (
-    const permission
-    of ALL_PERMISSIONS
-  ) {
-    const override =
-      overrides[
-        permission
-      ];
-
-    if (
-      override === "deny"
+      )
     ) {
-      denied++;
-    }
-
-    if (
-      override ===
-      "inherit"
-    ) {
-      inherited++;
+      return true;
     }
   }
 
-  return {
-    role:
-      normalizeRole(
-        context.role,
-      ),
-
-    total:
-      ALL_PERMISSIONS.length,
-
-    granted:
-      permissions.length,
-
-    denied,
-
-    inherited,
-
-    permissions,
-  };
+  return false;
 }
 
-// ============================================================
-// REQUIRE PERMISSION
-//
-// Удобно для middleware.
-// Не бросает исключение — возвращает boolean.
-// ============================================================
+export function hasAllPermissions(
+  roleOrPermissions:
+    | AdminRole
+    | Iterable<Permission>
+    | null
+    | undefined,
+  permissions: Iterable<Permission>,
+): boolean {
+  for (const permission of permissions) {
+    if (
+      !hasPermission(
+        roleOrPermissions,
+        permission,
+      )
+    ) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+export function isSuperAdmin(
+  roleOrPermissions:
+    | AdminRole
+    | Iterable<Permission>
+    | null
+    | undefined,
+): boolean {
+  if (
+    roleOrPermissions === "SUPERADMIN"
+  ) {
+    return true;
+  }
+
+  return hasPermission(
+    roleOrPermissions,
+    PERMISSIONS.SUPERADMIN.FULL_CONTROL,
+  );
+}
+
+export function canAccessAdmin(
+  roleOrPermissions:
+    | AdminRole
+    | Iterable<Permission>
+    | null
+    | undefined,
+): boolean {
+  return (
+    isSuperAdmin(roleOrPermissions) ||
+    hasAnyPermission(
+      roleOrPermissions,
+      [
+        PERMISSIONS.SYSTEM.VIEW,
+        PERMISSIONS.PUBLICATIONS.VIEW,
+        PERMISSIONS.PARTICIPANTS.VIEW,
+        PERMISSIONS.ANALYTICS.VIEW,
+        PERMISSIONS.SEARCH.VIEW,
+      ],
+    )
+  );
+}
+
+export function permissionSetForRole(
+  role: AdminRole,
+): Set<Permission> {
+  return new Set(
+    getRolePermissions(role),
+  );
+}
 
 export function requirePermission(
-  context: PermissionContext,
-  permission:
-    | Permission
-    | string,
-): boolean {
-  return hasEffectivePermission(
-    context,
-    permission,
-  );
+  roleOrPermissions:
+    | AdminRole
+    | Iterable<Permission>
+    | null
+    | undefined,
+  permission: Permission,
+): void {
+  if (
+    !hasPermission(
+      roleOrPermissions,
+      permission,
+    )
+  ) {
+    throw new Error(
+      `Permission denied: ${permission}`,
+    );
+  }
 }
 
-// ============================================================
-// REQUIRE ANY
-// ============================================================
-
-export function requireAnyPermission(
-  context: PermissionContext,
-  permissions:
-    | readonly Permission[]
-    | readonly string[],
+export function permissionMatches(
+  granted: Permission,
+  required: Permission,
 ): boolean {
-  return hasAnyEffectivePermission(
-    context,
-    permissions,
-  );
+  if (
+    granted ===
+    PERMISSIONS.SUPERADMIN.FULL_CONTROL
+  ) {
+    return true;
+  }
+
+  if (granted === required) {
+    return true;
+  }
+
+  if (
+    granted.endsWith(".*")
+  ) {
+    const prefix = granted.slice(0, -2);
+
+    return (
+      required === prefix ||
+      required.startsWith(`${prefix}.`)
+    );
+  }
+
+  return false;
 }
-
-// ============================================================
-// REQUIRE ALL
-// ============================================================
-
-export function requireAllPermissions(
-  context: PermissionContext,
-  permissions:
-    | readonly Permission[]
-    | readonly string[],
-): boolean {
-  return hasAllEffectivePermissions(
-    context,
-    permissions,
-  );
-}
-
-// ============================================================
-// EXPORTS
-// ============================================================
-
-export {
-  PERMISSIONS,
-  ALL_PERMISSIONS,
-  ROLE_PERMISSIONS,
-  normalizeRole,
-  getRolePermissions,
-  permissionExists,
-};
-
-export type {
-  Permission,
-  AdminRole,
-};
