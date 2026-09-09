@@ -1,347 +1,259 @@
-/* ============================================================
-🇹🇯 TAJIK OPPORTUNITIES
-RESPONSE UTILITY
-Cloudflare Workers / D1 compatible
-
-Features:
-
-* Unified API responses
-* CORS
-* Security headers
-* Request ID
-* Error handling
-* JSON parsing
-* Pagination metadata
-* Cache / ETag support
-* Rate-limit headers
-* BigInt serialization
-* Cloudflare request context
-  ============================================================ */
+import type { ApiErrorCode } from "../types/api";
 
 export interface RequestContext {
 requestId: string;
-ip?: string | null;
-userAgent?: string | null;
-country?: string | null;
-city?: string | null;
-colo?: string | null;
 method: string;
-url: string;
 path: string;
+url: string;
+userAgent?: string;
+ip?: string;
 }
 
 export interface ApiErrorDetails {
 code?: string;
 field?: string;
 fields?: Record<string, string>;
-details?: unknown;
-message?: string;
+[key: string]: unknown;
 }
 
 export interface PaginationMeta {
-page?: number;
-limit?: number;
+page: number;
+limit: number;
 total?: number;
 totalPages?: number;
 hasNext?: boolean;
 hasPrevious?: boolean;
-nextPage?: number | null;
-previousPage?: number | null;
 }
 
 export interface ApiResponseBody<T = unknown> {
 success: boolean;
 data?: T;
 error?: {
-code: string;
+code?: string;
 message: string;
-field?: string;
-fields?: Record<string, string>;
 details?: unknown;
 };
 meta?: Record<string, unknown>;
-requestId?: string;
-timestamp?: string;
 }
 
 export interface ResponseOptions {
 requestId?: string;
 headers?: HeadersInit;
-meta?: Record<string, unknown>;
-pagination?: PaginationMeta;
-includeTimestamp?: boolean;
 cacheControl?: string;
-etag?: string;
-durationMs?: number;
+contentType?: string;
+statusText?: string;
 }
 
 export interface ErrorResponseOptions {
 requestId?: string;
 details?: unknown;
-code?: string;
 headers?: HeadersInit;
-meta?: Record<string, unknown>;
-includeTimestamp?: boolean;
+code?: string;
 }
 
 export interface RateLimitOptions {
-limit?: number;
-remaining?: number;
-reset?: number | string;
-retryAfter?: number;
+limit: number;
+remaining: number;
+reset?: number;
 }
 
-const DEFAULT_CACHE_CONTROL = "no-store, max-age=0";
+const DEFAULT_CACHE_CONTROL = "no-store";
 
 const DEFAULT_SECURITY_HEADERS: Record<string, string> = {
 "X-Content-Type-Options": "nosniff",
 "X-Frame-Options": "DENY",
 "Referrer-Policy": "strict-origin-when-cross-origin",
-"Permissions-Policy": "camera=(), microphone=(), geolocation=()",
-"Cross-Origin-Resource-Policy": "cross-origin",
 };
 
 export function corsHeaders(_request?: Request): Record<string, string> {
 return {
 "Access-Control-Allow-Origin": "*",
-"Access-Control-Allow-Methods":
-"GET,POST,PUT,PATCH,DELETE,OPTIONS",
-"Access-Control-Allow-Headers": [
-"Content-Type",
-"Authorization",
-"X-Requested-With",
-"X-Request-ID",
-"Accept",
-"Origin",
-"Cache-Control",
-].join(", "),
-"Access-Control-Expose-Headers": [
-"X-Request-ID",
-"X-API-Version",
-"X-Response-Time",
-"ETag",
-"X-RateLimit-Limit",
-"X-RateLimit-Remaining",
-"X-RateLimit-Reset",
-"Retry-After",
-].join(", "),
+"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+"Access-Control-Allow-Headers":
+"Content-Type, Authorization, X-Requested-With, X-Request-ID",
 "Access-Control-Max-Age": "86400",
 };
 }
 
 function createHeaders(
-extra?: HeadersInit,
-options?: {
-cacheControl?: string;
-etag?: string;
-durationMs?: number;
-},
+request?: Request,
+options: ResponseOptions = {},
 ): Headers {
 const headers = new Headers();
 
-headers.set(
-"Content-Type",
-"application/json; charset=utf-8",
-);
+const cors = corsHeaders(request);
+for (const [key, value] of Object.entries(cors)) {
+headers.set(key, value);
+}
+
+for (const [key, value] of Object.entries(DEFAULT_SECURITY_HEADERS)) {
+headers.set(key, value);
+}
 
 headers.set(
 "Cache-Control",
-options?.cacheControl ?? DEFAULT_CACHE_CONTROL,
+options.cacheControl ?? DEFAULT_CACHE_CONTROL,
 );
 
-for (const [key, value] of Object.entries(corsHeaders())) {
-headers.set(key, value);
-}
-
-for (const [key, value] of Object.entries(
-DEFAULT_SECURITY_HEADERS,
-)) {
-headers.set(key, value);
-}
-
-if (options?.etag) {
-headers.set("ETag", options.etag);
-}
-
-if (typeof options?.durationMs === "number") {
 headers.set(
-"X-Response-Time",
-`${Math.max(0, Math.round(options.durationMs))}ms`,
+"Content-Type",
+options.contentType ?? "application/json; charset=utf-8",
 );
-}
 
-if (extra) {
-const extraHeaders = new Headers(extra);
+if (options.headers) {
+const customHeaders = new Headers(options.headers);
 
 ```
-extraHeaders.forEach((value, key) => {
+customHeaders.forEach((value, key) => {
   headers.set(key, value);
 });
 ```
 
 }
 
+if (options.requestId) {
+headers.set("X-Request-ID", options.requestId);
+}
+
 return headers;
 }
 
-function serialize(body: unknown): string {
-return JSON.stringify(body, (_key, value) => {
+function serialize(value: unknown): unknown {
 if (typeof value === "bigint") {
 return value.toString();
 }
 
-```
 if (value instanceof Date) {
-  return value.toISOString();
+return value.toISOString();
+}
+
+if (Array.isArray(value)) {
+return value.map(serialize);
+}
+
+if (value && typeof value === "object") {
+const result: Record<string, unknown> = {};
+
+```
+for (const [key, item] of Object.entries(value)) {
+  result[key] = serialize(item);
+}
+
+return result;
+```
+
 }
 
 return value;
-```
-
-});
 }
 
 function buildMeta(
-options?: ResponseOptions,
+meta?: Record<string, unknown>,
+pagination?: PaginationMeta,
 ): Record<string, unknown> | undefined {
-const meta: Record<string, unknown> = {
-...(options?.meta ?? {}),
+if (!meta && !pagination) {
+return undefined;
+}
+
+const result: Record<string, unknown> = {
+...(meta ?? {}),
 };
 
-if (options?.pagination) {
-meta.pagination = normalizePagination(
-options.pagination,
-);
+if (pagination) {
+result.pagination = pagination;
 }
 
-if (typeof options?.durationMs === "number") {
-meta.durationMs = Math.max(
-0,
-Math.round(options.durationMs),
-);
-}
-
-return Object.keys(meta).length > 0 ? meta : undefined;
+return result;
 }
 
 function normalizePagination(
-pagination: PaginationMeta,
-): PaginationMeta {
-const page =
-typeof pagination.page === "number" &&
-Number.isFinite(pagination.page)
-? Math.max(1, Math.floor(pagination.page))
-: undefined;
+page?: number,
+limit?: number,
+total?: number,
+): PaginationMeta | undefined {
+if (page === undefined && limit === undefined && total === undefined) {
+return undefined;
+}
 
-const limit =
-typeof pagination.limit === "number" &&
-Number.isFinite(pagination.limit)
-? Math.max(1, Math.floor(pagination.limit))
-: undefined;
+const safePage = Math.max(1, page ?? 1);
+const safeLimit = Math.max(1, limit ?? 20);
 
-const total =
-typeof pagination.total === "number" &&
-Number.isFinite(pagination.total)
-? Math.max(0, Math.floor(pagination.total))
-: undefined;
-
-const totalPages =
-typeof pagination.totalPages === "number" &&
-Number.isFinite(pagination.totalPages)
-? Math.max(0, Math.floor(pagination.totalPages))
-: undefined;
-
-const calculatedTotalPages =
-total !== undefined &&
-limit !== undefined &&
-limit > 0
-? Math.ceil(total / limit)
-: totalPages;
-
-const finalTotalPages = calculatedTotalPages;
-
-const hasNext =
-pagination.hasNext ??
-(page !== undefined &&
-finalTotalPages !== undefined
-? page < finalTotalPages
-: false);
-
-const hasPrevious =
-pagination.hasPrevious ??
-(page !== undefined ? page > 1 : false);
-
-const nextPage =
-pagination.nextPage ??
-(hasNext && page !== undefined ? page + 1 : null);
-
-const previousPage =
-pagination.previousPage ??
-(hasPrevious && page !== undefined ? page - 1 : null);
-
-return {
-...(page !== undefined ? { page } : {}),
-...(limit !== undefined ? { limit } : {}),
-...(total !== undefined ? { total } : {}),
-...(finalTotalPages !== undefined
-? { totalPages: finalTotalPages }
-: {}),
-hasNext,
-hasPrevious,
-nextPage,
-previousPage,
+const result: PaginationMeta = {
+page: safePage,
+limit: safeLimit,
 };
+
+if (total !== undefined) {
+const safeTotal = Math.max(0, total);
+const totalPages = Math.max(1, Math.ceil(safeTotal / safeLimit));
+
+```
+result.total = safeTotal;
+result.totalPages = totalPages;
+result.hasNext = safePage < totalPages;
+result.hasPrevious = safePage > 1;
+```
+
+}
+
+return result;
 }
 
 function createBody<T>(
 data: T,
-options?: ResponseOptions,
+meta?: Record<string, unknown>,
+pagination?: PaginationMeta,
 ): ApiResponseBody<T> {
-const meta = buildMeta(options);
-
-return {
+const body: ApiResponseBody<T> = {
 success: true,
-data,
-...(meta ? { meta } : {}),
-...(options?.requestId
-? { requestId: options.requestId }
-: {}),
-...(options?.includeTimestamp !== false
-? { timestamp: new Date().toISOString() }
-: {}),
+data: serialize(data) as T,
 };
+
+const finalMeta = buildMeta(meta, pagination);
+
+if (finalMeta) {
+body.meta = finalMeta;
 }
 
-export function jsonResponse<T = unknown>(
+return body;
+}
+
+export function jsonResponse<T>(
 data: T,
 status = 200,
-options?: ResponseOptions,
+options: ResponseOptions & {
+meta?: Record<string, unknown>;
+page?: number;
+limit?: number;
+total?: number;
+} = {},
 ): Response {
-const body = createBody(data, options);
+const pagination = normalizePagination(
+options.page,
+options.limit,
+options.total,
+);
 
-return new Response(serialize(body), {
+const body = createBody(data, options.meta, pagination);
+
+const headers = createHeaders(undefined, {
+...options,
+requestId: options.requestId,
+});
+
+return new Response(JSON.stringify(body), {
 status,
-headers: createHeaders(
-options?.headers,
-{
-cacheControl: options?.cacheControl,
-etag: options?.etag,
-durationMs: options?.durationMs,
-},
-),
+statusText: options.statusText,
+headers,
 });
 }
 
-export function successResponse<T = unknown>(
+export function successResponse<T>(
 data: T,
 status = 200,
-headers?: HeadersInit,
-requestId?: string,
+options: ResponseOptions = {},
 ): Response {
-return jsonResponse(data, status, {
-headers,
-requestId,
-});
+return jsonResponse(data, status, options);
 }
 
 function defaultErrorCode(status: number): string {
@@ -367,247 +279,193 @@ return "VALIDATION_ERROR";
 case 429:
 return "RATE_LIMITED";
 default:
-return status >= 500
-? "INTERNAL_ERROR"
-: "REQUEST_ERROR";
+return status >= 500 ? "INTERNAL_SERVER_ERROR" : "ERROR";
 }
 }
 
 export function errorResponse(
 message: string,
 status = 500,
-options?: ErrorResponseOptions,
+options: ErrorResponseOptions = {},
 ): Response {
-const code =
-options?.code ?? defaultErrorCode(status);
-
-const error: NonNullable<
-ApiResponseBody["error"]
-
-> = {
-> code,
-> message,
-> ...(options?.details !== undefined
-> ? { details: options.details }
-> : {}),
-> };
+const error = {
+code: options.code ?? defaultErrorCode(status),
+message,
+...(options.details !== undefined
+? { details: serialize(options.details) }
+: {}),
+};
 
 const body: ApiResponseBody = {
 success: false,
 error,
-...(options?.meta
-? { meta: options.meta }
-: {}),
-...(options?.requestId
-? { requestId: options.requestId }
-: {}),
-...(options?.includeTimestamp !== false
-? { timestamp: new Date().toISOString() }
-: {}),
 };
 
-return new Response(serialize(body), {
+const headers = createHeaders(undefined, {
+requestId: options.requestId,
+headers: options.headers,
+});
+
+return new Response(JSON.stringify(body), {
 status,
-headers: createHeaders(options?.headers),
+headers,
 });
 }
 
 export function badRequestResponse(
-message = "Некорректный запрос",
-details?: unknown,
-requestId?: string,
+message = "Bad request",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 400, {
-code: "BAD_REQUEST",
-details,
-requestId,
+...options,
+code: options.code ?? "BAD_REQUEST",
 });
 }
 
 export function unauthorizedResponse(
-message = "Требуется авторизация",
-requestId?: string,
+message = "Unauthorized",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 401, {
-code: "UNAUTHORIZED",
-requestId,
+...options,
+code: options.code ?? "UNAUTHORIZED",
 });
 }
 
 export function forbiddenResponse(
-message = "Доступ запрещён",
-requestId?: string,
+message = "Forbidden",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 403, {
-code: "FORBIDDEN",
-requestId,
+...options,
+code: options.code ?? "FORBIDDEN",
 });
 }
 
 export function notFoundResponse(
-message = "Ресурс не найден",
-requestId?: string,
+message = "Not found",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 404, {
-code: "NOT_FOUND",
-requestId,
+...options,
+code: options.code ?? "NOT_FOUND",
 });
 }
 
 export function conflictResponse(
-message = "Конфликт данных",
-details?: unknown,
-requestId?: string,
+message = "Conflict",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 409, {
-code: "CONFLICT",
-details,
-requestId,
+...options,
+code: options.code ?? "CONFLICT",
 });
 }
 
 export function goneResponse(
-message = "Ресурс больше недоступен",
-requestId?: string,
+message = "Gone",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 410, {
-code: "GONE",
-requestId,
+...options,
+code: options.code ?? "GONE",
 });
 }
 
 export function unsupportedMediaTypeResponse(
-message = "Неподдерживаемый тип данных",
-requestId?: string,
+message = "Unsupported media type",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 415, {
-code: "UNSUPPORTED_MEDIA_TYPE",
-requestId,
+...options,
+code: options.code ?? "UNSUPPORTED_MEDIA_TYPE",
 });
 }
 
 export function validationErrorResponse(
-message = "Ошибка проверки данных",
+message = "Validation error",
 details?: unknown,
-requestId?: string,
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 422, {
-code: "VALIDATION_ERROR",
-details,
-requestId,
+...options,
+details: details ?? options.details,
+code: options.code ?? "VALIDATION_ERROR",
 });
 }
 
 export function tooManyRequestsResponse(
-message = "Слишком много запросов",
-requestId?: string,
-retryAfter?: number,
+message = "Too many requests",
+options: ErrorResponseOptions & RateLimitOptions = {
+limit: 100,
+remaining: 0,
+},
 ): Response {
-return errorResponse(message, 429, {
-code: "RATE_LIMITED",
-requestId,
-headers:
-retryAfter !== undefined
-? {
-"Retry-After": String(
-Math.max(
-0,
-Math.floor(retryAfter),
-),
-),
+const headers = new Headers(options.headers);
+
+headers.set("X-RateLimit-Limit", String(options.limit));
+headers.set("X-RateLimit-Remaining", String(options.remaining));
+
+if (options.reset !== undefined) {
+headers.set("X-RateLimit-Reset", String(options.reset));
 }
-: undefined,
+
+return errorResponse(message, 429, {
+...options,
+headers,
+code: options.code ?? "RATE_LIMITED",
 });
 }
 
 export function serverErrorResponse(
-message = "Внутренняя ошибка сервера",
-details?: unknown,
-requestId?: string,
+message = "Internal server error",
+options: ErrorResponseOptions = {},
 ): Response {
 return errorResponse(message, 500, {
-code: "INTERNAL_ERROR",
-details,
-requestId,
+...options,
+code: options.code ?? "INTERNAL_SERVER_ERROR",
 });
 }
 
 export function methodNotAllowedResponse(
-allowedMethods: string[] = ["GET"],
-requestId?: string,
+allowedMethods: string[] = [],
+options: ErrorResponseOptions = {},
 ): Response {
-return errorResponse(
-"Метод запроса не поддерживается",
-405,
-{
-code: "METHOD_NOT_ALLOWED",
-details: {
-allowedMethods,
-},
-headers: {
-Allow: allowedMethods.join(", "),
-},
-requestId,
-},
-);
+const headers = new Headers(options.headers);
+
+if (allowedMethods.length > 0) {
+headers.set("Allow", allowedMethods.join(", "));
 }
 
-export function getRequestContext(
-request: Request,
-): RequestContext {
+return errorResponse("Method not allowed", 405, {
+...options,
+headers,
+code: options.code ?? "METHOD_NOT_ALLOWED",
+});
+}
+
+export function getRequestContext(request: Request): RequestContext {
 const url = new URL(request.url);
 
-const cf = (
-request as Request & {
-cf?: Record<string, unknown>;
-}
-).cf;
-
 const requestId =
-request.headers.get("X-Request-ID") ||
+request.headers.get("X-Request-ID") ??
 crypto.randomUUID();
 
-const forwardedFor =
-request.headers.get("X-Forwarded-For");
+const userAgent =
+request.headers.get("User-Agent") ?? undefined;
+
+const ip =
+request.headers.get("CF-Connecting-IP") ??
+request.headers.get("X-Forwarded-For") ??
+undefined;
 
 return {
 requestId,
-
-```
-ip:
-  request.headers.get("CF-Connecting-IP") ||
-  (
-    forwardedFor
-      ? forwardedFor.split(",")[0]?.trim()
-      : null
-  ),
-
-userAgent:
-  request.headers.get("User-Agent"),
-
-country:
-  typeof cf?.country === "string"
-    ? cf.country
-    : null,
-
-city:
-  typeof cf?.city === "string"
-    ? cf.city
-    : null,
-
-colo:
-  typeof cf?.colo === "string"
-    ? cf.colo
-    : null,
-
-method:
-  request.method.toUpperCase(),
-
-url: request.url,
-
+method: request.method,
 path: url.pathname,
-```
-
+url: request.url,
+userAgent,
+ip,
 };
 }
 
@@ -615,30 +473,14 @@ export function responseWithHeaders(
 response: Response,
 headers?: HeadersInit,
 ): Response {
-const merged = new Headers(response.headers);
-
-for (const [key, value] of Object.entries(
-corsHeaders(),
-)) {
-if (!merged.has(key)) {
-merged.set(key, value);
-}
-}
-
-for (const [key, value] of Object.entries(
-DEFAULT_SECURITY_HEADERS,
-)) {
-if (!merged.has(key)) {
-merged.set(key, value);
-}
-}
+const resultHeaders = new Headers(response.headers);
 
 if (headers) {
-const extra = new Headers(headers);
+const extraHeaders = new Headers(headers);
 
 ```
-extra.forEach((value, key) => {
-  merged.set(key, value);
+extraHeaders.forEach((value, key) => {
+  resultHeaders.set(key, value);
 });
 ```
 
@@ -647,71 +489,40 @@ extra.forEach((value, key) => {
 return new Response(response.body, {
 status: response.status,
 statusText: response.statusText,
-headers: merged,
+headers: resultHeaders,
 });
 }
 
 export async function readJson<T = unknown>(
 request: Request,
 ): Promise<T> {
-const contentType =
-request.headers.get("Content-Type") || "";
+const text = await request.text();
 
-if (
-contentType &&
-!contentType
-.toLowerCase()
-.includes("application/json")
-) {
-throw new Error("Expected application/json");
+if (!text.trim()) {
+throw new Error("Request body is empty");
 }
 
-return (await request.json()) as T;
+try {
+return JSON.parse(text) as T;
+} catch {
+throw new Error("Invalid JSON");
+}
 }
 
 export async function tryReadJson<T = unknown>(
 request: Request,
-): Promise<
-| {
-success: true;
-data: T;
-}
-| {
-success: false;
-error: string;
-}
-
-> {
-> try {
-> const data = await readJson<T>(request);
-
-```
-return {
-  success: true,
-  data,
-};
-```
-
-} catch (error) {
-return {
-success: false,
-error:
-error instanceof Error
-? error.message
-: "Invalid JSON",
-};
+): Promise<T | null> {
+try {
+return await readJson<T>(request);
+} catch {
+return null;
 }
 }
 
-export function isJsonRequest(
-request: Request,
-): boolean {
-const contentType =
-request.headers.get("Content-Type") || "";
+export function isJsonRequest(request: Request): boolean {
+const contentType = request.headers.get("Content-Type") ?? "";
 
-return contentType
-.toLowerCase()
-.includes("application/json");
+return contentType.toLowerCase().includes("application/json");
 }
 
 export function withRequestId(
@@ -736,92 +547,56 @@ export function withRateLimit(
 response: Response,
 options: RateLimitOptions,
 ): Response {
-const headers: Record<string, string> = {};
+const headers = new Headers();
 
-if (options.limit !== undefined) {
-headers["X-RateLimit-Limit"] = String(
-Math.max(
-0,
-Math.floor(options.limit),
-),
-);
-}
-
-if (options.remaining !== undefined) {
-headers["X-RateLimit-Remaining"] = String(
-Math.max(
-0,
-Math.floor(options.remaining),
-),
-);
-}
+headers.set("X-RateLimit-Limit", String(options.limit));
+headers.set("X-RateLimit-Remaining", String(options.remaining));
 
 if (options.reset !== undefined) {
-headers["X-RateLimit-Reset"] =
-String(options.reset);
+headers.set("X-RateLimit-Reset", String(options.reset));
 }
 
-if (options.retryAfter !== undefined) {
-headers["Retry-After"] = String(
-Math.max(
-0,
-Math.floor(options.retryAfter),
-),
-);
-}
-
-return responseWithHeaders(
-response,
-headers,
-);
+return responseWithHeaders(response, headers);
 }
 
 export function noContentResponse(
-headers?: HeadersInit,
+options: ResponseOptions = {},
 ): Response {
-const merged = createHeaders(headers);
-
-merged.delete("Content-Type");
-
-merged.set("Cache-Control", "no-store");
+const headers = createHeaders(undefined, {
+...options,
+contentType: undefined,
+});
 
 return new Response(null, {
 status: 204,
-headers: merged,
+headers,
 });
 }
 
-export function optionsResponse(): Response {
+export function optionsResponse(
+request?: Request,
+): Response {
+const headers = createHeaders(request, {
+contentType: undefined,
+});
+
 return new Response(null, {
 status: 204,
-headers: createHeaders(),
+headers,
 });
 }
 
 export function redirectResponse(
-location: string,
-status:
-| 301
-| 302
-| 303
-| 307
-| 308 = 302,
+url: string,
+status = 302,
+options: ResponseOptions = {},
 ): Response {
-const headers = new Headers();
+const headers = createHeaders(undefined, {
+...options,
+contentType: undefined,
+});
 
-for (const [key, value] of Object.entries(
-corsHeaders(),
-)) {
-headers.set(key, value);
-}
-
-for (const [key, value] of Object.entries(
-DEFAULT_SECURITY_HEADERS,
-)) {
-headers.set(key, value);
-}
-
-headers.set("Location", location);
+headers.set("Location", url);
 
 return new Response(null, {
 status,
@@ -832,115 +607,53 @@ headers,
 export function textResponse(
 text: string,
 status = 200,
-headers?: HeadersInit,
+options: ResponseOptions = {},
 ): Response {
-const merged = new Headers();
-
-merged.set(
-"Content-Type",
-"text/plain; charset=utf-8",
-);
-
-merged.set(
-"Cache-Control",
-DEFAULT_CACHE_CONTROL,
-);
-
-for (const [key, value] of Object.entries(
-corsHeaders(),
-)) {
-merged.set(key, value);
-}
-
-for (const [key, value] of Object.entries(
-DEFAULT_SECURITY_HEADERS,
-)) {
-merged.set(key, value);
-}
-
-if (headers) {
-const extra = new Headers(headers);
-
-```
-extra.forEach((value, key) => {
-  merged.set(key, value);
+const headers = createHeaders(undefined, {
+...options,
+contentType: options.contentType ?? "text/plain; charset=utf-8",
 });
-```
-
-}
 
 return new Response(text, {
 status,
-headers: merged,
+statusText: options.statusText,
+headers,
 });
 }
 
 export function htmlResponse(
 html: string,
 status = 200,
-headers?: HeadersInit,
+options: ResponseOptions = {},
 ): Response {
-const merged = new Headers();
-
-merged.set(
-"Content-Type",
-"text/html; charset=utf-8",
-);
-
-merged.set(
-"Cache-Control",
-"no-store",
-);
-
-for (const [key, value] of Object.entries(
-corsHeaders(),
-)) {
-merged.set(key, value);
-}
-
-for (const [key, value] of Object.entries(
-DEFAULT_SECURITY_HEADERS,
-)) {
-merged.set(key, value);
-}
-
-if (headers) {
-const extra = new Headers(headers);
-
-```
-extra.forEach((value, key) => {
-  merged.set(key, value);
+const headers = createHeaders(undefined, {
+...options,
+contentType: "text/html; charset=utf-8",
 });
-```
-
-}
 
 return new Response(html, {
 status,
-headers: merged,
+statusText: options.statusText,
+headers,
 });
 }
 
 export async function createEtag(
-value: unknown,
+data: unknown,
 ): Promise<string> {
-const serialized = serialize(value);
+const serialized = JSON.stringify(serialize(data));
 
-const data = new TextEncoder().encode(
-serialized,
-);
+const bytes = new TextEncoder().encode(serialized);
 
-const digest = await crypto.subtle.digest(
+const hashBuffer = await crypto.subtle.digest(
 "SHA-256",
-data,
+bytes,
 );
 
-const hash = Array.from(
-new Uint8Array(digest),
-)
-.map((byte) =>
-byte.toString(16).padStart(2, "0"),
-)
+const hashArray = Array.from(new Uint8Array(hashBuffer));
+
+const hash = hashArray
+.map((byte) => byte.toString(16).padStart(2, "0"))
 .join("");
 
 return `"${hash}"`;
@@ -950,36 +663,27 @@ export function isNotModified(
 request: Request,
 etag: string,
 ): boolean {
-const clientEtag =
-request.headers.get("If-None-Match");
+const ifNoneMatch = request.headers.get("If-None-Match");
 
-if (!clientEtag) {
+if (!ifNoneMatch) {
 return false;
 }
 
-return (
-clientEtag === etag ||
-clientEtag
-.split(",")
-.map((value) => value.trim())
-.includes(etag)
-);
+return ifNoneMatch === etag || ifNoneMatch.includes("*");
 }
 
 export function notModifiedResponse(
-etag: string,
+etag?: string,
 ): Response {
+const headers = new Headers();
+
+if (etag) {
+headers.set("ETag", etag);
+}
+
 return new Response(null, {
 status: 304,
-headers: createHeaders(
-{
-ETag: etag,
-},
-{
-cacheControl: "public, max-age=60",
-etag,
-},
-),
+headers,
 });
 }
 
@@ -987,31 +691,34 @@ export function jsonErrorFromUnknown(
 error: unknown,
 requestId?: string,
 ): Response {
-const message =
-error instanceof Error
-? error.message
-: "Неизвестная ошибка";
-
-return serverErrorResponse(
-message,
-undefined,
+if (error instanceof Error) {
+return serverErrorResponse(error.message, {
 requestId,
-);
+});
+}
+
+if (typeof error === "string") {
+return serverErrorResponse(error, {
+requestId,
+});
+}
+
+return serverErrorResponse("Unknown server error", {
+requestId,
+details: error,
+});
 }
 
 export function addResponseTiming(
 response: Response,
 startedAt: number,
 ): Response {
-const duration = Date.now() - startedAt;
-
-return responseWithHeaders(
-response,
-{
-"X-Response-Time": `${Math.max(
-        0,
-        duration,
-      )}ms`,
-},
+const elapsed = Math.max(
+0,
+Math.round(performance.now() - startedAt),
 );
+
+return responseWithHeaders(response, {
+"Server-Timing": `app;dur=${elapsed}`,
+});
 }
