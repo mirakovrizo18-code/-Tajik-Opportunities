@@ -106,14 +106,13 @@ export interface HttpRequestResult<T = unknown>
   metadata: HttpResponseMetadata;
 }
 
-export interface QueryValue {
+export type QueryValue =
   | string
   | number
   | boolean
   | bigint
   | null
   | undefined;
-}
 
 export type QueryParams = Record<
   string,
@@ -189,7 +188,6 @@ export const DEFAULT_RETRY_STATUS_CODES: readonly number[] = [
 export const DEFAULT_RETRY_COUNT = 3;
 export const DEFAULT_RETRY_DELAY_MS = 250;
 export const DEFAULT_RETRY_MAX_DELAY_MS = 5000;
-
 export const DEFAULT_TIMEOUT_MS = 30_000;
 
 // ============================================================
@@ -371,6 +369,7 @@ export function removeHeader(
   name: string,
 ): Headers {
   headers.delete(name);
+
   return headers;
 }
 
@@ -510,7 +509,9 @@ export function isJsonResponse(
     contentType.includes(
       "application/json",
     ) ||
-    contentType.includes("+json")
+    contentType.includes(
+      "+json",
+    )
   );
 }
 
@@ -556,7 +557,9 @@ export function jsonBody(
     : result;
 }
 
-export function safeJsonParse<T = unknown>(
+export function safeJsonParse<
+  T = unknown,
+>(
   value: string,
 ): T | null {
   try {
@@ -568,7 +571,9 @@ export function safeJsonParse<T = unknown>(
   }
 }
 
-export function tryJsonParse<T = unknown>(
+export function tryJsonParse<
+  T = unknown,
+>(
   value: string,
   fallback: T,
 ): T {
@@ -621,7 +626,9 @@ export function createTimeoutSignal(
   controller.signal.addEventListener(
     "abort",
     cleanup,
-    { once: true },
+    {
+      once: true,
+    },
   );
 
   if (
@@ -641,7 +648,9 @@ export function createTimeoutSignal(
             externalSignal.reason,
           );
         },
-        { once: true },
+        {
+          once: true,
+        },
       );
     }
   }
@@ -665,7 +674,7 @@ export function shouldUseTimeout(
 }
 
 // ============================================================
-// JSON REQUEST
+// REQUEST CREATION
 // ============================================================
 
 export function createJsonRequest(
@@ -698,7 +707,9 @@ export function createJsonRequest(
   }
 
   const body =
-    isBodylessMethod(method)
+    isBodylessMethod(
+      method,
+    )
       ? undefined
       : jsonBody(
           options.body ??
@@ -723,10 +734,6 @@ export function createJsonRequest(
     },
   );
 }
-
-// ============================================================
-// GENERIC REQUEST CREATION
-// ============================================================
 
 export function createHttpRequest(
   url: string | URL,
@@ -759,7 +766,9 @@ export function createHttpRequest(
       headers:
         options.headers,
       body:
-        isBodylessMethod(method)
+        isBodylessMethod(
+          method,
+        )
           ? undefined
           : options.body,
       signal,
@@ -794,6 +803,16 @@ export function createFormRequest(
     CONTENT_TYPE.FORM,
   );
 
+  const signal =
+    shouldUseTimeout(
+      options.timeoutMs,
+    )
+      ? createTimeoutSignal(
+          options.timeoutMs as number,
+          options.signal,
+        )
+      : options.signal;
+
   return new Request(
     url,
     {
@@ -803,14 +822,7 @@ export function createFormRequest(
       ),
       headers,
       body: form,
-      signal:
-        options.timeoutMs &&
-        options.timeoutMs > 0
-          ? createTimeoutSignal(
-              options.timeoutMs,
-              options.signal,
-            )
-          : options.signal,
+      signal,
       cache:
         options.cache,
       credentials:
@@ -1153,34 +1165,30 @@ export async function httpRequest<
       );
   }
 
-  const request =
+  let request: Request;
+
+  if (
     input instanceof Request
-      ? (() => {
-          const cloned =
-            input.clone();
-
-          if (
-            signal &&
-            cloned.signal !==
-              signal
-          ) {
-            return new Request(
-              cloned,
-              {
-                signal,
-              },
-            );
-          }
-
-          return cloned;
-        })()
-      : createHttpRequest(
-          input,
-          {
-            ...options,
-            signal,
-          },
-        );
+  ) {
+    request =
+      signal
+        ? new Request(
+            input,
+            {
+              signal,
+            },
+          )
+        : input;
+  } else {
+    request =
+      createHttpRequest(
+        input,
+        {
+          ...options,
+          signal,
+        },
+      );
+  }
 
   const response =
     await fetch(
@@ -1199,7 +1207,7 @@ export async function httpRequest<
 }
 
 // ============================================================
-// CHECK RESPONSE
+// RESPONSE STATUS
 // ============================================================
 
 export function isSuccessful(
@@ -1510,7 +1518,7 @@ export async function fetchJson<
 }
 
 // ============================================================
-// RAW JSON REQUEST
+// RAW JSON RESPONSE
 // ============================================================
 
 export async function fetchJsonResponse<
@@ -1884,6 +1892,14 @@ export function getUrlPath(
   ).pathname;
 }
 
+export function getUrlSearch(
+  url: string | URL,
+): string {
+  return new URL(
+    url.toString(),
+  ).search;
+}
+
 // ============================================================
 // SLEEP
 // ============================================================
@@ -1906,7 +1922,7 @@ export function sleep(
 }
 
 // ============================================================
-// RETRY GENERIC
+// GENERIC RETRY
 // ============================================================
 
 export async function withRetry<
@@ -2393,14 +2409,30 @@ export function isBodyInit(
   if (
     typeof value ===
       "string" ||
-    value instanceof
-      URLSearchParams ||
-    value instanceof
-      FormData ||
-    value instanceof
-      Blob ||
-    value instanceof
-      ArrayBuffer
+    (
+      typeof URLSearchParams !==
+        "undefined" &&
+      value instanceof
+        URLSearchParams
+    ) ||
+    (
+      typeof FormData !==
+        "undefined" &&
+      value instanceof
+        FormData
+    ) ||
+    (
+      typeof Blob !==
+        "undefined" &&
+      value instanceof
+        Blob
+    ) ||
+    (
+      typeof ArrayBuffer !==
+        "undefined" &&
+      value instanceof
+        ArrayBuffer
+    )
   ) {
     return true;
   }
@@ -2422,22 +2454,23 @@ export function bodyLength(
   }
 
   if (
-    typeof body ===
-    "string"
+    typeof body === "string"
   ) {
     return body.length;
   }
 
   if (
-    body instanceof
-      Blob
+    typeof Blob !==
+      "undefined" &&
+    body instanceof Blob
   ) {
     return body.size;
   }
 
   if (
-    body instanceof
-      ArrayBuffer
+    typeof ArrayBuffer !==
+      "undefined" &&
+    body instanceof ArrayBuffer
   ) {
     return body.byteLength;
   }
@@ -2490,5 +2523,5 @@ export function responseHeadersToObject(
 }
 
 // ============================================================
-// END
+// END OF FILE
 // ============================================================
