@@ -21,20 +21,20 @@
 // ============================================================
 
 import type { Env } from "../index";
+
 import {
   generateId,
   generatePublicationId,
-  generatePublicationNumber,
 } from "../utils/id";
+
 import {
   addDecimalStrings,
-  compareDecimalStrings,
   normalizeDecimalString,
 } from "../utils/number";
+
 import {
   normalizePublicationNumber,
   normalizePublicationId,
-  nextPublicationNumber,
   publicationUrl,
 } from "../utils/publication";
 
@@ -368,18 +368,25 @@ function now(): string {
   return new Date().toISOString();
 }
 
-function bool(value: unknown, fallback = false): boolean {
+function bool(
+  value: unknown,
+  fallback = false
+): boolean {
   if (value === undefined || value === null) {
     return fallback;
   }
 
-  return value === true ||
+  return (
+    value === true ||
     value === 1 ||
     value === "1" ||
-    value === "true";
+    value === "true"
+  );
 }
 
-function nullableString(value: unknown): string | null {
+function nullableString(
+  value: unknown
+): string | null {
   if (value === undefined || value === null) {
     return null;
   }
@@ -389,191 +396,249 @@ function nullableString(value: unknown): string | null {
   return result || null;
 }
 
-function limitValue(value?: number): number {
+function limitValue(
+  value?: number
+): number {
   if (!Number.isFinite(value)) {
     return DEFAULT_LIMIT;
   }
 
   return Math.min(
     MAX_LIMIT,
-    Math.max(1, Math.floor(value!))
+    Math.max(1, Math.floor(value as number))
   );
 }
 
-function offsetValue(value?: number): number {
+function offsetValue(
+  value?: number
+): number {
   if (!Number.isFinite(value)) {
     return 0;
   }
 
-  return Math.max(0, Math.floor(value!));
+  return Math.max(
+    0,
+    Math.floor(value as number)
+  );
 }
 
-function datePlusDays(days: number): string {
+function datePlusDays(
+  days: number
+): string {
   const date = new Date();
 
-  date.setUTCDate(date.getUTCDate() + days);
+  date.setUTCDate(
+    date.getUTCDate() + days
+  );
 
   return date.toISOString();
 }
 
-function normalizeMetric(value: unknown): string {
+function normalizeMetric(
+  value: unknown
+): string {
   return normalizeDecimalString(
-    value === undefined || value === null
+    value === undefined ||
+      value === null
       ? "0"
       : String(value)
   );
 }
 
-function mapPublication(row: Record<string, unknown>): Publication {
+function mapPublication(
+  row: Record<string, unknown>
+): Publication {
   return {
     id: String(row.id),
+
     public_number:
       row.public_number === null ||
       row.public_number === undefined
         ? ""
         : String(row.public_number),
 
-    author_id: row.author_id
-      ? String(row.author_id)
-      : null,
+    author_id:
+      nullableString(row.author_id),
 
-    author_name: row.author_name
-      ? String(row.author_name)
-      : null,
+    author_name:
+      nullableString(row.author_name),
 
-    author_username: row.author_username
-      ? String(row.author_username)
-      : null,
+    author_username:
+      nullableString(row.author_username),
 
-    author_avatar_url: row.author_avatar_url
-      ? String(row.author_avatar_url)
-      : null,
+    author_avatar_url:
+      nullableString(
+        row.author_avatar_url
+      ),
 
-    category_id: row.category_id
-      ? String(row.category_id)
-      : null,
+    category_id:
+      nullableString(row.category_id),
 
-    title: row.title
-      ? String(row.title)
-      : null,
+    title:
+      nullableString(row.title),
 
-    text: row.text
-      ? String(row.text)
-      : null,
+    text:
+      nullableString(row.text),
 
-    type: String(
-      row.type || DEFAULT_TYPE
-    ) as PublicationType,
+    type:
+      String(
+        row.type || DEFAULT_TYPE
+      ) as PublicationType,
 
-    status: String(
-      row.status || DEFAULT_STATUS
-    ) as PublicationStatus,
+    status:
+      String(
+        row.status || DEFAULT_STATUS
+      ) as PublicationStatus,
 
-    visibility: String(
-      row.visibility || DEFAULT_VISIBILITY
-    ) as PublicationVisibility,
+    visibility:
+      String(
+        row.visibility ||
+          DEFAULT_VISIBILITY
+      ) as PublicationVisibility,
 
-    priority: String(
-      row.priority || DEFAULT_PRIORITY
-    ) as PublicationPriority,
+    priority:
+      String(
+        row.priority ||
+          DEFAULT_PRIORITY
+      ) as PublicationPriority,
 
-    featured: bool(row.featured),
-    pinned: bool(row.pinned),
+    featured:
+      bool(row.featured),
+
+    pinned:
+      bool(row.pinned),
 
     auto_delete_enabled:
       bool(row.auto_delete_enabled),
 
-    delete_at: row.delete_at
-      ? String(row.delete_at)
-      : null,
+    delete_at:
+      nullableString(row.delete_at),
 
-    publish_at: row.publish_at
-      ? String(row.publish_at)
-      : null,
+    publish_at:
+      nullableString(row.publish_at),
 
-    background: row.background
-      ? String(row.background)
-      : null,
+    background:
+      nullableString(row.background),
 
-    font: row.font
-      ? String(row.font)
-      : null,
+    font:
+      nullableString(row.font),
 
-    color: row.color
-      ? String(row.color)
-      : null,
+    color:
+      nullableString(row.color),
 
-    tag: row.tag
-      ? String(row.tag)
-      : null,
+    tag:
+      nullableString(row.tag),
 
-    tag_icon: row.tag_icon
-      ? String(row.tag_icon)
-      : null,
+    tag_icon:
+      nullableString(row.tag_icon),
 
-    tag_color: row.tag_color
-      ? String(row.tag_color)
-      : null,
+    tag_color:
+      nullableString(row.tag_color),
 
     comments_enabled:
-      bool(row.comments_enabled, true),
+      bool(
+        row.comments_enabled,
+        true
+      ),
 
     reactions_enabled:
-      bool(row.reactions_enabled, true),
+      bool(
+        row.reactions_enabled,
+        true
+      ),
 
     reviews_enabled:
-      bool(row.reviews_enabled, true),
+      bool(
+        row.reviews_enabled,
+        true
+      ),
 
     sharing_enabled:
-      bool(row.sharing_enabled, true),
+      bool(
+        row.sharing_enabled,
+        true
+      ),
 
     bookmarks_enabled:
-      bool(row.bookmarks_enabled, true),
+      bool(
+        row.bookmarks_enabled,
+        true
+      ),
 
-    views_count: normalizeMetric(row.views_count),
+    views_count:
+      normalizeMetric(
+        row.views_count
+      ),
+
     unique_views_count:
-      normalizeMetric(row.unique_views_count),
+      normalizeMetric(
+        row.unique_views_count
+      ),
 
     likes_count:
-      normalizeMetric(row.likes_count),
+      normalizeMetric(
+        row.likes_count
+      ),
 
     comments_count:
-      normalizeMetric(row.comments_count),
+      normalizeMetric(
+        row.comments_count
+      ),
 
     reactions_count:
-      normalizeMetric(row.reactions_count),
+      normalizeMetric(
+        row.reactions_count
+      ),
 
     bookmarks_count:
-      normalizeMetric(row.bookmarks_count),
+      normalizeMetric(
+        row.bookmarks_count
+      ),
 
     shares_count:
-      normalizeMetric(row.shares_count),
+      normalizeMetric(
+        row.shares_count
+      ),
 
     reports_count:
-      normalizeMetric(row.reports_count),
+      normalizeMetric(
+        row.reports_count
+      ),
 
     contacts_count:
-      normalizeMetric(row.contacts_count),
+      normalizeMetric(
+        row.contacts_count
+      ),
 
     applications_count:
-      normalizeMetric(row.applications_count),
+      normalizeMetric(
+        row.applications_count
+      ),
 
     downloads_count:
-      normalizeMetric(row.downloads_count),
+      normalizeMetric(
+        row.downloads_count
+      ),
 
     clicks_count:
-      normalizeMetric(row.clicks_count),
+      normalizeMetric(
+        row.clicks_count
+      ),
 
     external_clicks_count:
-      normalizeMetric(row.external_clicks_count),
+      normalizeMetric(
+        row.external_clicks_count
+      ),
 
-    created_at: String(
-      row.created_at || ""
-    ),
+    created_at:
+      String(
+        row.created_at || ""
+      ),
 
-    updated_at: String(
-      row.updated_at || ""
-    ),
+    updated_at:
+      String(
+        row.updated_at || ""
+      ),
   };
 }
 
@@ -597,22 +662,37 @@ export class PublicationService {
   // ==========================================================
 
   async getNextPublicNumber(): Promise<number> {
-    const row = await this.db
-      .prepare(`
-        SELECT public_number
-        FROM publications
-        ORDER BY CAST(public_number AS INTEGER) DESC
-        LIMIT 1
-      `)
-      .first<{ public_number?: number }>();
+    const row =
+      await this.db
+        .prepare(`
+          SELECT public_number
+          FROM publications
+          ORDER BY CAST(public_number AS INTEGER) DESC
+          LIMIT 1
+        `)
+        .first<{
+          public_number?: number | string;
+        }>();
 
-    if (!row?.public_number) {
+    if (
+      row?.public_number === undefined ||
+      row?.public_number === null ||
+      String(row.public_number).trim() === ""
+    ) {
       return 1;
     }
 
-    return nextPublicationNumber(
-      row.public_number
-    );
+    const current =
+      Number(row.public_number);
+
+    if (
+      !Number.isFinite(current) ||
+      current < 0
+    ) {
+      return 1;
+    }
+
+    return Math.floor(current) + 1;
   }
 
 
@@ -626,7 +706,8 @@ export class PublicationService {
     const id =
       generatePublicationId();
 
-    const createdAt = now();
+    const createdAt =
+      now();
 
     const type =
       input.type || DEFAULT_TYPE;
@@ -804,8 +885,10 @@ export class PublicationService {
 
           type,
           status,
-          input.visibility || DEFAULT_VISIBILITY,
-          input.priority || DEFAULT_PRIORITY,
+          input.visibility ||
+            DEFAULT_VISIBILITY,
+          input.priority ||
+            DEFAULT_PRIORITY,
 
           autoDelete ? 1 : 0,
           deleteAt,
@@ -819,11 +902,25 @@ export class PublicationService {
           input.tag_icon || null,
           input.tag_color || null,
 
-          input.comments_enabled !== false ? 1 : 0,
-          input.reactions_enabled !== false ? 1 : 0,
-          input.reviews_enabled !== false ? 1 : 0,
-          input.sharing_enabled !== false ? 1 : 0,
-          input.bookmarks_enabled !== false ? 1 : 0,
+          input.comments_enabled !== false
+            ? 1
+            : 0,
+
+          input.reactions_enabled !== false
+            ? 1
+            : 0,
+
+          input.reviews_enabled !== false
+            ? 1
+            : 0,
+
+          input.sharing_enabled !== false
+            ? 1
+            : 0,
+
+          input.bookmarks_enabled !== false
+            ? 1
+            : 0,
 
           createdAt,
           createdAt
@@ -849,7 +946,8 @@ export class PublicationService {
       id,
       null,
       "CREATE",
-      input.source || "PARTICIPANT"
+      input.source ||
+        "PARTICIPANT"
     );
 
     const publication =
@@ -874,6 +972,10 @@ export class PublicationService {
   ): Promise<Publication | null> {
     const normalized =
       normalizePublicationId(id);
+
+    if (!normalized) {
+      return null;
+    }
 
     const row =
       await this.db
@@ -901,8 +1003,21 @@ export class PublicationService {
   async getByPublicNumber(
     value: number | string
   ): Promise<Publication | null> {
-    const number =
-      normalizePublicationNumber(value);
+    let number: number;
+
+    try {
+      number =
+        normalizePublicationNumber(value);
+    } catch {
+      return null;
+    }
+
+    if (
+      !Number.isFinite(number) ||
+      number < 1
+    ) {
+      return null;
+    }
 
     const row =
       await this.db
@@ -973,42 +1088,77 @@ export class PublicationService {
     const values: unknown[] = [];
 
     if (filter.status) {
-      conditions.push("p.status = ?");
-      values.push(filter.status);
+      conditions.push(
+        "p.status = ?"
+      );
+      values.push(
+        filter.status
+      );
     }
 
     if (filter.type) {
-      conditions.push("p.type = ?");
-      values.push(filter.type);
+      conditions.push(
+        "p.type = ?"
+      );
+      values.push(
+        filter.type
+      );
     }
 
     if (filter.category_id) {
-      conditions.push("p.category_id = ?");
-      values.push(filter.category_id);
+      conditions.push(
+        "p.category_id = ?"
+      );
+      values.push(
+        filter.category_id
+      );
     }
 
     if (filter.author_id) {
-      conditions.push("p.author_id = ?");
-      values.push(filter.author_id);
+      conditions.push(
+        "p.author_id = ?"
+      );
+      values.push(
+        filter.author_id
+      );
     }
 
     if (filter.visibility) {
-      conditions.push("p.visibility = ?");
-      values.push(filter.visibility);
-    }
-
-    if (filter.featured !== undefined) {
-      conditions.push("p.featured = ?");
-      values.push(filter.featured ? 1 : 0);
-    }
-
-    if (filter.pinned !== undefined) {
-      conditions.push("p.pinned = ?");
-      values.push(filter.pinned ? 1 : 0);
+      conditions.push(
+        "p.visibility = ?"
+      );
+      values.push(
+        filter.visibility
+      );
     }
 
     if (
-      filter.min_public_number !== undefined
+      filter.featured !== undefined
+    ) {
+      conditions.push(
+        "p.featured = ?"
+      );
+
+      values.push(
+        filter.featured ? 1 : 0
+      );
+    }
+
+    if (
+      filter.pinned !== undefined
+    ) {
+      conditions.push(
+        "p.pinned = ?"
+      );
+
+      values.push(
+        filter.pinned ? 1 : 0
+      );
+    }
+
+    if (
+      filter.min_public_number !==
+      undefined
     ) {
       conditions.push(
         "CAST(p.public_number AS INTEGER) >= ?"
@@ -1020,7 +1170,8 @@ export class PublicationService {
     }
 
     if (
-      filter.max_public_number !== undefined
+      filter.max_public_number !==
+      undefined
     ) {
       conditions.push(
         "CAST(p.public_number AS INTEGER) <= ?"
@@ -1099,6 +1250,12 @@ export class PublicationService {
         orderBy =
           "CAST(p.public_number AS INTEGER) ASC";
         break;
+
+      case "newest":
+      default:
+        orderBy =
+          "p.created_at DESC";
+        break;
     }
 
     const countRow =
@@ -1109,7 +1266,9 @@ export class PublicationService {
           ${where}
         `)
         .bind(...values)
-        .first<{ total: number }>();
+        .first<{
+          total?: number | string;
+        }>();
 
     const rows =
       await this.db
@@ -1132,7 +1291,9 @@ export class PublicationService {
         .map(mapPublication);
 
     const total =
-      String(countRow?.total || 0);
+      String(
+        countRow?.total || 0
+      );
 
     return {
       items,
@@ -1168,8 +1329,11 @@ export class PublicationService {
     const add = (
       field: string,
       value: unknown
-    ) => {
-      fields.push(`${field} = ?`);
+    ): void => {
+      fields.push(
+        `${field} = ?`
+      );
+
       values.push(value);
     };
 
@@ -1195,11 +1359,17 @@ export class PublicationService {
     }
 
     if ("type" in input) {
-      add("type", input.type);
+      add(
+        "type",
+        input.type
+      );
     }
 
     if ("status" in input) {
-      add("status", input.status);
+      add(
+        "status",
+        input.status
+      );
     }
 
     if ("visibility" in input) {
@@ -1339,14 +1509,11 @@ export class PublicationService {
       return current;
     }
 
-    const updatedAt =
-      now();
-
     fields.push(
       "updated_at = ?"
     );
 
-    values.push(updatedAt);
+    values.push(now());
     values.push(id);
 
     await this.db
@@ -1400,26 +1567,48 @@ export class PublicationService {
         .bind(publicationId)
         .first<Record<string, unknown>>();
 
-    const values = [
-      input.forced_type ?? existing?.forced_type ?? null,
-      input.forced_status ?? existing?.forced_status ?? null,
-      input.forced_visibility ?? existing?.forced_visibility ?? null,
-      input.forced_priority ?? existing?.forced_priority ?? null,
+    const values: unknown[] = [
+      input.forced_type ??
+        existing?.forced_type ??
+        null,
+
+      input.forced_status ??
+        existing?.forced_status ??
+        null,
+
+      input.forced_visibility ??
+        existing?.forced_visibility ??
+        null,
+
+      input.forced_priority ??
+        existing?.forced_priority ??
+        null,
 
       input.pinned === undefined
         ? existing?.pinned ?? null
-        : input.pinned ? 1 : 0,
+        : input.pinned
+          ? 1
+          : 0,
 
       input.featured === undefined
         ? existing?.featured ?? null
-        : input.featured ? 1 : 0,
+        : input.featured
+          ? 1
+          : 0,
 
       input.auto_delete_enabled === undefined
         ? existing?.auto_delete_enabled ?? null
-        : input.auto_delete_enabled ? 1 : 0,
+        : input.auto_delete_enabled
+          ? 1
+          : 0,
 
-      input.custom_delete_at ?? existing?.custom_delete_at ?? null,
-      input.custom_publish_at ?? existing?.custom_publish_at ?? null,
+      input.custom_delete_at ??
+        existing?.custom_delete_at ??
+        null,
+
+      input.custom_publish_at ??
+        existing?.custom_publish_at ??
+        null,
 
       input.custom_author_name ??
         existing?.custom_author_name ??
@@ -1459,23 +1648,33 @@ export class PublicationService {
 
       input.comments_enabled === undefined
         ? existing?.comments_enabled ?? null
-        : input.comments_enabled ? 1 : 0,
+        : input.comments_enabled
+          ? 1
+          : 0,
 
       input.reactions_enabled === undefined
         ? existing?.reactions_enabled ?? null
-        : input.reactions_enabled ? 1 : 0,
+        : input.reactions_enabled
+          ? 1
+          : 0,
 
       input.reviews_enabled === undefined
         ? existing?.reviews_enabled ?? null
-        : input.reviews_enabled ? 1 : 0,
+        : input.reviews_enabled
+          ? 1
+          : 0,
 
       input.sharing_enabled === undefined
         ? existing?.sharing_enabled ?? null
-        : input.sharing_enabled ? 1 : 0,
+        : input.sharing_enabled
+          ? 1
+          : 0,
 
       input.bookmarks_enabled === undefined
         ? existing?.bookmarks_enabled ?? null
-        : input.bookmarks_enabled ? 1 : 0,
+        : input.bookmarks_enabled
+          ? 1
+          : 0,
 
       input.admin_note ??
         existing?.admin_note ??
@@ -1667,7 +1866,8 @@ export class PublicationService {
       return publication;
     }
 
-    const update: UpdatePublicationInput = {};
+    const update:
+      UpdatePublicationInput = {};
 
     if (override.forced_type) {
       update.type =
@@ -1721,98 +1921,140 @@ export class PublicationService {
         );
     }
 
-    if (override.custom_author_name !== null) {
+    if (
+      override.custom_author_name !== null &&
+      override.custom_author_name !== undefined
+    ) {
       update.author_name =
         String(
           override.custom_author_name
         );
     }
 
-    if (override.custom_author_username !== null) {
+    if (
+      override.custom_author_username !== null &&
+      override.custom_author_username !== undefined
+    ) {
       update.author_username =
         String(
           override.custom_author_username
         );
     }
 
-    if (override.custom_author_avatar_url !== null) {
+    if (
+      override.custom_author_avatar_url !== null &&
+      override.custom_author_avatar_url !== undefined
+    ) {
       update.author_avatar_url =
         String(
           override.custom_author_avatar_url
         );
     }
 
-    if (override.custom_background !== null) {
+    if (
+      override.custom_background !== null &&
+      override.custom_background !== undefined
+    ) {
       update.background =
         String(
           override.custom_background
         );
     }
 
-    if (override.custom_font !== null) {
+    if (
+      override.custom_font !== null &&
+      override.custom_font !== undefined
+    ) {
       update.font =
         String(
           override.custom_font
         );
     }
 
-    if (override.custom_color !== null) {
+    if (
+      override.custom_color !== null &&
+      override.custom_color !== undefined
+    ) {
       update.color =
         String(
           override.custom_color
         );
     }
 
-    if (override.custom_tag !== null) {
+    if (
+      override.custom_tag !== null &&
+      override.custom_tag !== undefined
+    ) {
       update.tag =
         String(
           override.custom_tag
         );
     }
 
-    if (override.custom_tag_icon !== null) {
+    if (
+      override.custom_tag_icon !== null &&
+      override.custom_tag_icon !== undefined
+    ) {
       update.tag_icon =
         String(
           override.custom_tag_icon
         );
     }
 
-    if (override.custom_tag_color !== null) {
+    if (
+      override.custom_tag_color !== null &&
+      override.custom_tag_color !== undefined
+    ) {
       update.tag_color =
         String(
           override.custom_tag_color
         );
     }
 
-    if (override.comments_enabled !== null) {
+    if (
+      override.comments_enabled !== null &&
+      override.comments_enabled !== undefined
+    ) {
       update.comments_enabled =
         bool(
           override.comments_enabled
         );
     }
 
-    if (override.reactions_enabled !== null) {
+    if (
+      override.reactions_enabled !== null &&
+      override.reactions_enabled !== undefined
+    ) {
       update.reactions_enabled =
         bool(
           override.reactions_enabled
         );
     }
 
-    if (override.reviews_enabled !== null) {
+    if (
+      override.reviews_enabled !== null &&
+      override.reviews_enabled !== undefined
+    ) {
       update.reviews_enabled =
         bool(
           override.reviews_enabled
         );
     }
 
-    if (override.sharing_enabled !== null) {
+    if (
+      override.sharing_enabled !== null &&
+      override.sharing_enabled !== undefined
+    ) {
       update.sharing_enabled =
         bool(
           override.sharing_enabled
         );
     }
 
-    if (override.bookmarks_enabled !== null) {
+    if (
+      override.bookmarks_enabled !== null &&
+      override.bookmarks_enabled !== undefined
+    ) {
       update.bookmarks_enabled =
         bool(
           override.bookmarks_enabled
@@ -1831,7 +2073,11 @@ export class PublicationService {
           WHERE id = ?
         `)
         .bind(
-          bool(override.pinned) ? 1 : 0,
+          bool(
+            override.pinned
+          )
+            ? 1
+            : 0,
           now(),
           publicationId
         )
@@ -1850,14 +2096,20 @@ export class PublicationService {
           WHERE id = ?
         `)
         .bind(
-          bool(override.featured) ? 1 : 0,
+          bool(
+            override.featured
+          )
+            ? 1
+            : 0,
           now(),
           publicationId
         )
         .run();
     }
 
-    if (Object.keys(update).length) {
+    if (
+      Object.keys(update).length
+    ) {
       await this.update(
         publicationId,
         update,
@@ -1985,7 +2237,7 @@ export class PublicationService {
     await this.addHistory(
       id,
       JSON.stringify({
-        pinned
+        pinned,
       }),
       pinned
         ? "PIN"
@@ -2006,6 +2258,13 @@ export class PublicationService {
     featured: boolean,
     adminId = "ADMIN"
   ): Promise<Publication | null> {
+    const publication =
+      await this.getById(id);
+
+    if (!publication) {
+      return null;
+    }
+
     await this.db
       .prepare(`
         UPDATE publications
@@ -2024,7 +2283,7 @@ export class PublicationService {
     await this.addHistory(
       id,
       JSON.stringify({
-        featured
+        featured,
       }),
       featured
         ? "FEATURE"
@@ -2073,14 +2332,17 @@ export class PublicationService {
         adminId
       );
 
-    await this.addHistory(
-      id,
-      JSON.stringify({
-        reason: reason || null,
-      }),
-      "REJECT",
-      adminId
-    );
+    if (result) {
+      await this.addHistory(
+        id,
+        JSON.stringify({
+          reason:
+            reason || null,
+        }),
+        "REJECT",
+        adminId
+      );
+    }
 
     return result;
   }
@@ -2177,7 +2439,9 @@ export class PublicationService {
         publicationId,
 
       views_count:
-        normalizeMetric(row.views_count),
+        normalizeMetric(
+          row.views_count
+        ),
 
       unique_views_count:
         normalizeMetric(
@@ -2365,51 +2629,56 @@ export class PublicationService {
     }
 
     const statements =
-      media.map((item, index) => {
-        const id =
-          generateId();
+      media.map(
+        (
+          item,
+          index
+        ) => {
+          const id =
+            generateId();
 
-        return this.db
-          .prepare(`
-            INSERT INTO publication_images (
+          return this.db
+            .prepare(`
+              INSERT INTO publication_images (
+                id,
+                publication_id,
+                type,
+                url,
+                key,
+                mime_type,
+                filename,
+                size,
+                width,
+                height,
+                duration,
+                position,
+                status,
+                created_at
+              )
+              VALUES (
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+              )
+            `)
+            .bind(
               id,
-              publication_id,
-              type,
-              url,
-              key,
-              mime_type,
-              filename,
-              size,
-              width,
-              height,
-              duration,
-              position,
-              status,
-              created_at
-            )
-            VALUES (
-              ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-            )
-          `)
-          .bind(
-            id,
-            publicationId,
-            item.type,
-            item.url || null,
-            item.key || null,
-            item.mime_type || null,
-            item.filename || null,
-            item.size !== undefined
-              ? String(item.size)
-              : null,
-            item.width ?? null,
-            item.height ?? null,
-            item.duration ?? null,
-            item.position ?? index,
-            "ACTIVE",
-            now()
-          );
-      });
+              publicationId,
+              item.type,
+              item.url || null,
+              item.key || null,
+              item.mime_type || null,
+              item.filename || null,
+              item.size !== undefined
+                ? String(item.size)
+                : null,
+              item.width ?? null,
+              item.height ?? null,
+              item.duration ?? null,
+              item.position ?? index,
+              "ACTIVE",
+              now()
+            );
+        }
+      );
 
     await this.db.batch(
       statements
@@ -2432,35 +2701,43 @@ export class PublicationService {
         .bind(publicationId)
         .all<Record<string, unknown>>();
 
-    return (result.results || [])
-      .map(row => ({
-        id: String(row.id),
+    return (
+      result.results || []
+    ).map(
+      (
+        row
+      ): PublicationMedia => ({
+        id:
+          String(row.id),
+
         publication_id:
-          String(row.publication_id),
+          String(
+            row.publication_id
+          ),
 
-        type: String(
-          row.type || "image"
-        ),
+        type:
+          String(
+            row.type || "image"
+          ),
 
-        url: row.url
-          ? String(row.url)
-          : null,
+        url:
+          nullableString(row.url),
 
-        key: row.key
-          ? String(row.key)
-          : null,
+        key:
+          nullableString(row.key),
 
-        mime_type: row.mime_type
-          ? String(row.mime_type)
-          : null,
+        mime_type:
+          nullableString(
+            row.mime_type
+          ),
 
-        filename: row.filename
-          ? String(row.filename)
-          : null,
+        filename:
+          nullableString(
+            row.filename
+          ),
 
-        size: row.size
-          ? String(row.size)
-          : null,
+        size:
+          nullableString(row.size),
 
         width:
           row.width === null ||
@@ -2481,14 +2758,21 @@ export class PublicationService {
             : Number(row.duration),
 
         position:
-          Number(row.position || 0),
+          Number(
+            row.position || 0
+          ),
 
         status:
-          String(row.status || "ACTIVE"),
+          String(
+            row.status || "ACTIVE"
+          ),
 
         created_at:
-          String(row.created_at || ""),
-      }));
+          String(
+            row.created_at || ""
+          ),
+      })
+    );
   }
 
 
@@ -2540,7 +2824,9 @@ export class PublicationService {
       `)
       .bind(
         generateId(),
-        String(row.publication_id),
+        String(
+          row.publication_id
+        ),
         mediaId,
         "delete",
         "Удалено администратором",
@@ -2647,10 +2933,14 @@ export class PublicationService {
         options.userId || null,
         options.visitorId || null,
         options.sessionId || null,
-        options.shareType || "share",
-        options.targetConversationId || null,
-        options.targetUserId || null,
-        options.source || "publication",
+        options.shareType ||
+          "share",
+        options.targetConversationId ||
+          null,
+        options.targetUserId ||
+          null,
+        options.source ||
+          "publication",
         now()
       )
       .run();
@@ -2767,13 +3057,21 @@ export class PublicationService {
         `)
         .bind(
           currentTime,
-          Math.min(limit, 500)
+          Math.min(
+            Math.max(1, limit),
+            500
+          )
         )
-        .all<{ id: string }>();
+        .all<{
+          id: string;
+        }>();
 
     let count = 0;
 
-    for (const row of result.results || []) {
+    for (
+      const row of
+      result.results || []
+    ) {
       await this.db
         .prepare(`
           UPDATE publications
@@ -2805,25 +3103,6 @@ export class PublicationService {
   // ==========================================================
   // DELETE PUBLICATION AND SHIFT NUMBERS
   // ==========================================================
-  //
-  // ВАЖНО:
-  // Внутренний ID не меняется.
-  // public_number после удаления может сдвигаться:
-  //
-  // 1
-  // 2  <- deleted
-  // 3
-  // 4
-  //
-  // становится:
-  //
-  // 1
-  // 2
-  // 3
-  //
-  // Поэтому комментарии/реакции/история используют ID,
-  // а не public_number.
-  // ==========================================================
 
   async renumberPublications(
     deletedPublicNumber: number
@@ -2840,18 +3119,38 @@ export class PublicationService {
         .bind(deletedPublicNumber)
         .all<{
           id: string;
-          public_number: number;
+          public_number: number | string;
         }>();
 
     let changed = 0;
 
-    for (const row of result.results || []) {
+    for (
+      const row of
+      result.results || []
+    ) {
       const oldNumber =
-        String(row.public_number);
+        String(
+          row.public_number
+        );
+
+      const numericNumber =
+        Number(
+          row.public_number
+        );
+
+      if (
+        !Number.isFinite(
+          numericNumber
+        )
+      ) {
+        continue;
+      }
 
       const newNumber =
         String(
-          Number(row.public_number) - 1
+          Math.floor(
+            numericNumber
+          ) - 1
         );
 
       await this.db
@@ -2928,9 +3227,26 @@ export class PublicationService {
       .bind(id)
       .run();
 
-    await this.renumberPublications(
-      publicNumber
-    );
+    if (
+      Number.isFinite(publicNumber)
+    ) {
+      await this.renumberPublications(
+        publicNumber
+      );
+    }
+
+    await this.addHistory(
+      id,
+      JSON.stringify({
+        public_number:
+          publication.public_number,
+      }),
+      "PERMANENT_DELETE",
+      adminId
+    ).catch(() => {
+      // История может зависеть от FK после hard delete.
+      // Основная операция удаления уже выполнена.
+    });
 
     return true;
   }
@@ -2952,14 +3268,19 @@ export class PublicationService {
     return this.list({
       status: "PUBLISHED",
       visibility: "PUBLIC",
+
       category_id:
         options.categoryId,
+
       search:
         options.search,
+
       limit:
         options.limit,
+
       offset:
         options.offset,
+
       sort:
         options.sort || "newest",
     });
@@ -2990,6 +3311,17 @@ export class PublicationService {
     const value =
       `%${search.trim()}%`;
 
+    const safeLimit =
+      Number.isFinite(limit)
+        ? Math.min(
+            Math.max(
+              1,
+              Math.floor(limit)
+            ),
+            100
+          )
+        : 50;
+
     const result =
       await this.db
         .prepare(`
@@ -3014,12 +3346,15 @@ export class PublicationService {
           value,
           value,
           value,
-          Math.min(limit, 100)
+          safeLimit
         )
         .all<Record<string, unknown>>();
 
-    return (result.results || [])
-      .map(mapPublication);
+    return (
+      result.results || []
+    ).map(
+      mapPublication
+    );
   }
 }
 
@@ -3063,4 +3398,4 @@ export async function getPublicationByNumber(
 ): Promise<Publication | null> {
   return createPublicationService(env)
     .getByPublicNumber(number);
-      }
+}
