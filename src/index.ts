@@ -9,7 +9,6 @@ import {
   jsonResponse,
   errorResponse,
   notFoundResponse,
-  methodNotAllowedResponse,
   getRequestContext,
   type RequestContext,
 } from "./utils/response";
@@ -22,20 +21,27 @@ import {
   normalizePublicNumber,
 } from "./utils/publication";
 
+// ============================================================
+// ENVIRONMENT
+// ============================================================
+
 export interface Env {
   DB: D1Database;
 
-  ENVIRONMENT: string;
-  APP_NAME: string;
+  ENVIRONMENT?: string;
+  APP_NAME?: string;
 
-  // Optional R2 media storage.
   MEDIA?: R2Bucket;
 }
+
+// ============================================================
+// TYPES
+// ============================================================
 
 type RouteHandler = (
   request: Request,
   env: Env,
-  context: RequestContext
+  context: RequestContext,
 ) => Promise<Response>;
 
 interface Route {
@@ -44,49 +50,23 @@ interface Route {
   handler: RouteHandler;
 }
 
+// ============================================================
+// APP
+// ============================================================
+
 const APP_NAME = "Tajik Opportunities";
 const VERSION = "2026.09.09";
 
 const routes: Route[] = [];
 
 // ============================================================
-// RESPONSE HELPERS
-// ============================================================
-
-function json(
-  data: unknown,
-  status = 200,
-  requestId?: string
-): Response {
-  return jsonResponse(data, status, {
-    requestId,
-  });
-}
-
-function error(
-  message: string,
-  status = 500,
-  requestId?: string,
-  details?: unknown
-): Response {
-  return errorResponse(
-    message,
-    status,
-    {
-      requestId,
-      details,
-    }
-  );
-}
-
-// ============================================================
-// GENERAL HELPERS
+// ROUTER
 // ============================================================
 
 function route(
   method: string,
   pattern: RegExp,
-  handler: RouteHandler
+  handler: RouteHandler,
 ): void {
   routes.push({
     method: method.toUpperCase(),
@@ -95,62 +75,76 @@ function route(
   });
 }
 
-function getPath(request: Request): string {
-  return new URL(request.url).pathname;
-}
+// ============================================================
+// RESPONSE
+// ============================================================
 
-function getQuery(
-  request: Request,
-  name: string
-): string | null {
-  return new URL(request.url).searchParams.get(name);
-}
-
-function getNumberQuery(
-  request: Request,
-  name: string,
-  fallback = 0
-): number {
-  const value = getQuery(request, name);
-
-  if (!value) return fallback;
-
-  const number = Number(value);
-
-  if (!Number.isFinite(number)) {
-    return fallback;
-  }
-
-  return number;
-}
-
-function requestId(request: Request): string {
-  return (
-    request.headers.get("X-Request-ID") ??
-    crypto.randomUUID()
+function json(
+  data: unknown,
+  status = 200,
+  requestId?: string,
+): Response {
+  return jsonResponse(
+    data,
+    status,
+    {
+      requestId,
+    },
   );
 }
 
-function responseWithHeaders(
-  response: Response,
-  request: Request
+function error(
+  message: string,
+  status = 500,
+  requestId?: string,
+  details?: unknown,
 ): Response {
-  const headers = new Headers(response.headers);
+  return errorResponse(
+    message,
+    status,
+    {
+      requestId,
+      details,
+    },
+  );
+}
 
-  const cors = corsHeaders(request);
+function withHeaders(
+  response: Response,
+  request: Request,
+  id: string,
+): Response {
+  const headers =
+    new Headers(response.headers);
 
-  for (const [key, value] of Object.entries(cors)) {
+  const cors =
+    corsHeaders(request);
+
+  for (
+    const [key, value]
+    of Object.entries(cors)
+  ) {
     headers.set(key, value);
   }
 
   headers.set(
     "X-Tajik-Opportunities-Version",
-    VERSION
+    VERSION,
   );
 
   headers.set(
     "X-Request-ID",
-    requestId(request)
+    id,
+  );
+
+  headers.set(
+    "X-Content-Type-Options",
+    "nosniff",
+  );
+
+  headers.set(
+    "Referrer-Policy",
+    "strict-origin-when-cross-origin",
   );
 
   return new Response(
@@ -159,45 +153,133 @@ function responseWithHeaders(
       status: response.status,
       statusText: response.statusText,
       headers,
-    }
+    },
   );
 }
 
 // ============================================================
-// SAFE JSON BODY
+// REQUEST HELPERS
 // ============================================================
 
-async function readJson<T = Record<string, unknown>>(
-  request: Request
-): Promise<T> {
-  const contentType =
-    request.headers.get("content-type") ?? "";
+function getPath(
+  request: Request,
+): string {
+  return new URL(
+    request.url,
+  ).pathname;
+}
 
-  if (!contentType.includes("application/json")) {
-    throw new Error("JSON body required");
+function getQuery(
+  request: Request,
+  name: string,
+): string | null {
+  return new URL(
+    request.url,
+  ).searchParams.get(name);
+}
+
+function getNumberQuery(
+  request: Request,
+  name: string,
+  fallback: number,
+): number {
+  const value =
+    getQuery(
+      request,
+      name,
+    );
+
+  if (
+    value === null ||
+    value.trim() === ""
+  ) {
+    return fallback;
   }
 
-  const text = await request.text();
+  const parsed =
+    Number(value);
 
-  if (!text.trim()) {
+  if (
+    !Number.isFinite(parsed)
+  ) {
+    return fallback;
+  }
+
+  return parsed;
+}
+
+function getRequestId(
+  request: Request,
+): string {
+  const incoming =
+    request.headers.get(
+      "X-Request-ID",
+    );
+
+  if (
+    incoming &&
+    incoming.length <= 128
+  ) {
+    return incoming;
+  }
+
+  return crypto.randomUUID();
+}
+
+// ============================================================
+// JSON
+// ============================================================
+
+async function readJson<T>(
+  request: Request,
+): Promise<T> {
+  const contentType =
+    request.headers.get(
+      "content-type",
+    ) ?? "";
+
+  if (
+    !contentType
+      .toLowerCase()
+      .includes(
+        "application/json",
+      )
+  ) {
+    throw new Error(
+      "JSON body required",
+    );
+  }
+
+  const text =
+    await request.text();
+
+  if (
+    !text.trim()
+  ) {
     return {} as T;
   }
 
   try {
-    return JSON.parse(text) as T;
+    return JSON.parse(
+      text,
+    ) as T;
   } catch {
-    throw new Error("Invalid JSON body");
+    throw new Error(
+      "Invalid JSON body",
+    );
   }
 }
 
 // ============================================================
-// D1 HELPERS
+// D1
 // ============================================================
 
-function requireDB(env: Env): D1Database {
+function requireDB(
+  env: Env,
+): D1Database {
   if (!env.DB) {
     throw new Error(
-      "D1 database binding DB is not configured"
+      "D1 database binding DB is not configured",
     );
   }
 
@@ -207,29 +289,26 @@ function requireDB(env: Env): D1Database {
 async function dbFirst<T = unknown>(
   env: Env,
   sql: string,
-  bindings: unknown[] = []
+  bindings: unknown[] = [],
 ): Promise<T | null> {
-  const db = requireDB(env);
-
-  const result = await db
-    .prepare(sql)
-    .bind(...bindings)
-    .first<T>();
-
-  return result ?? null;
+  return (
+    await requireDB(env)
+      .prepare(sql)
+      .bind(...bindings)
+      .first<T>()
+  ) ?? null;
 }
 
 async function dbAll<T = unknown>(
   env: Env,
   sql: string,
-  bindings: unknown[] = []
+  bindings: unknown[] = [],
 ): Promise<T[]> {
-  const db = requireDB(env);
-
-  const result = await db
-    .prepare(sql)
-    .bind(...bindings)
-    .all<T>();
+  const result =
+    await requireDB(env)
+      .prepare(sql)
+      .bind(...bindings)
+      .all<T>();
 
   return result.results ?? [];
 }
@@ -237,80 +316,106 @@ async function dbAll<T = unknown>(
 async function dbRun(
   env: Env,
   sql: string,
-  bindings: unknown[] = []
+  bindings: unknown[] = [],
 ): Promise<D1Result> {
-  const db = requireDB(env);
-
-  return db
+  return requireDB(env)
     .prepare(sql)
     .bind(...bindings)
     .run();
 }
 
 // ============================================================
+// OPTIONS
+// ============================================================
+
+function handleOptions(
+  request: Request,
+): Response {
+  return new Response(
+    null,
+    {
+      status: 204,
+      headers:
+        corsHeaders(request),
+    },
+  );
+}
+
+// ============================================================
 // HEALTH
 // ============================================================
+
+async function databaseStatus(
+  env: Env,
+): Promise<
+  "online" | "offline"
+> {
+  try {
+    await dbFirst(
+      env,
+      "SELECT 1 AS ok",
+    );
+
+    return "online";
+  } catch {
+    return "offline";
+  }
+}
 
 route(
   "GET",
   /^\/health$/,
-  async (_request, env) => {
-    let database = "unknown";
-
-    try {
-      await dbFirst(
-        env,
-        "SELECT 1 AS ok"
-      );
-
-      database = "online";
-    } catch {
-      database = "offline";
-    }
-
+  async (
+    _request,
+    env,
+  ) => {
     return json({
       ok: true,
-      app: env.APP_NAME || APP_NAME,
+      app:
+        env.APP_NAME ??
+        APP_NAME,
       version: VERSION,
       environment:
-        env.ENVIRONMENT || "unknown",
-      database,
+        env.ENVIRONMENT ??
+        "production",
+      database:
+        await databaseStatus(env),
+      mediaStorage:
+        env.MEDIA
+          ? "configured"
+          : "not_configured",
       timestamp:
         new Date().toISOString(),
     });
-  }
+  },
 );
 
 route(
   "GET",
   /^\/api\/health$/,
-  async (_request, env) => {
-    let database = "unknown";
-
-    try {
-      await dbFirst(
-        env,
-        "SELECT 1 AS ok"
-      );
-
-      database = "online";
-    } catch {
-      database = "offline";
-    }
-
+  async (
+    _request,
+    env,
+  ) => {
     return json({
       ok: true,
-      app: env.APP_NAME || APP_NAME,
+      app:
+        env.APP_NAME ??
+        APP_NAME,
       version: VERSION,
       environment:
-        env.ENVIRONMENT || "unknown",
-      database,
+        env.ENVIRONMENT ??
+        "production",
+      database:
+        await databaseStatus(env),
       mediaStorage:
-        env.MEDIA ? "configured" : "not_configured",
+        env.MEDIA
+          ? "configured"
+          : "not_configured",
       timestamp:
         new Date().toISOString(),
     });
-  }
+  },
 );
 
 // ============================================================
@@ -327,8 +432,16 @@ route(
       version: VERSION,
       status: "online",
 
+      languages: [
+        "ru",
+        "tj",
+        "en",
+        "fa",
+      ],
+
       modules: {
         profiles: true,
+        visitors: true,
         publications: true,
         comments: true,
         reviews: true,
@@ -336,21 +449,36 @@ route(
         bookmarks: true,
         shares: true,
         reports: true,
+
+        conversations: true,
+        messages: true,
         chat: true,
+
         notifications: true,
+        notificationSettings: true,
+
         search: true,
+        activity: true,
+
         levels: true,
         badges: true,
+
         payments: true,
         premium: true,
         pro: true,
         top: true,
         vip: true,
+
         admin: true,
         analytics: true,
+        moderation: true,
+        featureFlags: true,
+        audit: true,
+
+        media: true,
       },
     });
-  }
+  },
 );
 
 // ============================================================
@@ -360,86 +488,149 @@ route(
 route(
   "GET",
   /^\/api\/categories$/,
-  async (_request, env) => {
+  async (
+    _request,
+    env,
+  ) => {
     try {
-      const categories = await dbAll(
-        env,
-        `
-        SELECT
-          id,
-          name,
-          slug,
-          description,
-          status,
-          sort_order,
-          created_at,
-          updated_at
-        FROM categories
-        WHERE status = 'active'
-        ORDER BY sort_order ASC, name ASC
-        `
-      );
+      const categories =
+        await dbAll(
+          env,
+          `
+          SELECT
+            id,
+            name,
+            slug,
+            description,
+            status,
+            sort_order,
+            created_at,
+            updated_at
+          FROM categories
+          WHERE status = 'active'
+          ORDER BY
+            sort_order ASC,
+            name ASC
+          `,
+        );
 
       return json({
         ok: true,
         categories,
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to load categories",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to load categories",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
-// PUBLICATIONS LIST
+// PUBLICATIONS
 // ============================================================
 
 route(
   "GET",
   /^\/api\/publications$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     try {
-      const page = Math.max(
-        1,
-        getNumberQuery(request, "page", 1)
-      );
+      const rawPage =
+        getNumberQuery(
+          request,
+          "page",
+          1,
+        );
 
-      const limit = Math.min(
-        100,
+      const rawLimit =
+        getNumberQuery(
+          request,
+          "limit",
+          20,
+        );
+
+      const page =
         Math.max(
           1,
-          getNumberQuery(request, "limit", 20)
-        )
-      );
+          Math.floor(rawPage),
+        );
+
+      const limit =
+        Math.min(
+          100,
+          Math.max(
+            1,
+            Math.floor(rawLimit),
+          ),
+        );
 
       const offset =
-        (page - 1) * limit;
+        (page - 1) *
+        limit;
 
       const status =
-        getQuery(request, "status") ??
+        getQuery(
+          request,
+          "status",
+        ) ??
         "published";
 
       const category =
-        getQuery(request, "category");
+        getQuery(
+          request,
+          "category",
+        );
 
       const sort =
-        getQuery(request, "sort") ??
+        getQuery(
+          request,
+          "sort",
+        ) ??
         "newest";
 
       let orderBy =
         "p.created_at DESC";
 
-      if (sort === "oldest") {
+      if (
+        sort === "oldest"
+      ) {
         orderBy =
           "p.created_at ASC";
       }
 
-      if (sort === "popular") {
-        orderBy =
-          "CAST(p.views_count AS INTEGER) DESC, p.created_at DESC";
+      /*
+       * Не используем CAST большого
+       * счётчика в INTEGER.
+       *
+       * publication_metric_totals
+       * хранит значения как TEXT.
+       */
+      if (
+        sort === "popular"
+      ) {
+        orderBy = `
+          (
+            SELECT
+              LENGTH(m.views)
+          FROM publication_metric_totals m
+          WHERE m.publication_id = p.id
+          LIMIT 1
+        ) DESC,
+        (
+          SELECT
+            m.views
+          FROM publication_metric_totals m
+          WHERE m.publication_id = p.id
+          LIMIT 1
+        ) DESC,
+        p.created_at DESC
+        `;
       }
 
       let sql = `
@@ -449,16 +640,19 @@ route(
         WHERE p.status = ?
       `;
 
-      const bindings: unknown[] = [
-        status,
-      ];
+      const bindings:
+        unknown[] = [
+          status,
+        ];
 
       if (category) {
         sql += `
           AND p.category_id = ?
         `;
 
-        bindings.push(category);
+        bindings.push(
+          category,
+        );
       }
 
       sql += `
@@ -466,50 +660,65 @@ route(
         LIMIT ? OFFSET ?
       `;
 
-      bindings.push(limit, offset);
+      bindings.push(
+        limit,
+        offset,
+      );
 
       const publications =
         await dbAll(
           env,
           sql,
-          bindings
+          bindings,
         );
 
       const countRow =
-        await dbFirst<{ count: number }>(
+        await dbFirst<{
+          count: number;
+        }>(
           env,
           `
-          SELECT COUNT(*) AS count
+          SELECT
+            COUNT(*) AS count
           FROM publications p
           WHERE p.status = ?
           `,
-          [status]
+          [status],
         );
 
       const total =
-        Number(countRow?.count ?? 0);
+        Number(
+          countRow?.count ??
+          0,
+        );
 
       return json({
         ok: true,
         publications,
+
         pagination: {
           page,
           limit,
           total,
           pages:
-            Math.ceil(total / limit),
+            Math.ceil(
+              total / limit,
+            ),
           hasNext:
-            offset + publications.length <
+            offset +
+              publications.length <
             total,
         },
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to load publications",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to load publications",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
@@ -519,14 +728,16 @@ route(
 route(
   "GET",
   /^\/api\/publications\/([^/]+)$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     try {
-      const path =
-        getPath(request);
-
       const match =
-        path.match(
-          /^\/api\/publications\/([^/]+)$/
+        getPath(
+          request,
+        ).match(
+          /^\/api\/publications\/([^/]+)$/,
         );
 
       const id =
@@ -535,7 +746,7 @@ route(
       if (!id) {
         return error(
           "Publication ID is required",
-          400
+          400,
         );
       }
 
@@ -548,13 +759,13 @@ route(
           WHERE id = ?
           LIMIT 1
           `,
-          [id]
+          [id],
         );
 
       if (!publication) {
         return error(
           "Publication not found",
-          404
+          404,
         );
       }
 
@@ -562,47 +773,65 @@ route(
         ok: true,
         publication,
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to load publication",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to load publication",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
 // PUBLIC POST NUMBER
+// /1
+// /2
+// /3
 // ============================================================
 
 route(
   "GET",
   /^\/([0-9]+)$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     try {
-      const path =
-        getPath(request);
-
       const match =
-        path.match(/^\/([0-9]+)$/);
+        getPath(
+          request,
+        ).match(
+          /^\/([0-9]+)$/,
+        );
 
       const rawNumber =
         match?.[1];
 
       if (!rawNumber) {
         return notFoundResponse(
-          "Publication not found"
+          "Publication not found",
         );
       }
 
       const postNumber =
         normalizePublicNumber(
-          rawNumber
+          rawNumber,
         );
 
-      if (!postNumber) {
+      if (
+        postNumber ===
+        null ||
+        postNumber ===
+        undefined ||
+        !Number.isFinite(
+          postNumber,
+        ) ||
+        postNumber <= 0
+      ) {
         return notFoundResponse(
-          "Publication not found"
+          "Publication not found",
         );
       }
 
@@ -616,12 +845,12 @@ route(
             AND status = 'published'
           LIMIT 1
           `,
-          [postNumber]
+          [postNumber],
         );
 
       if (!publication) {
         return notFoundResponse(
-          "Publication not found"
+          "Publication not found",
         );
       }
 
@@ -631,53 +860,77 @@ route(
         postNumber,
         publication,
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to load publication",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to load publication",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
-// PUBLICATION CREATE
+// CREATE PUBLICATION
 // ============================================================
 
 route(
   "POST",
   /^\/api\/publications$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     try {
       const body =
-        await readJson<Record<string, unknown>>(
-          request
+        await readJson<
+          Record<
+            string,
+            unknown
+          >
+        >(
+          request,
         );
 
       const title =
-        typeof body.title === "string"
+        typeof body.title ===
+        "string"
           ? body.title.trim()
           : "";
 
       const text =
-        typeof body.text === "string"
+        typeof body.text ===
+        "string"
           ? body.text.trim()
           : "";
 
+      const description =
+        typeof body.description ===
+        "string"
+          ? body.description.trim()
+          : "";
+
       const categoryId =
-        typeof body.category_id === "string"
+        typeof body.category_id ===
+        "string"
           ? body.category_id
           : null;
 
       const authorId =
-        typeof body.author_id === "string"
+        typeof body.author_id ===
+        "string"
           ? body.author_id
           : null;
 
-      if (!text && !title) {
+      if (
+        !title &&
+        !text &&
+        !description
+      ) {
         return error(
           "Publication text or title is required",
-          400
+          400,
         );
       }
 
@@ -687,66 +940,80 @@ route(
       const now =
         new Date().toISOString();
 
-      const result =
-        await dbRun(
-          env,
-          `
-          INSERT INTO publications (
-            id,
-            author_id,
-            category_id,
-            title,
-            text,
-            status,
-            created_at,
-            updated_at
-          )
-          VALUES (?, ?, ?, ?, ?, 'pending', ?, ?)
-          `,
-          [
-            id,
-            authorId,
-            categoryId,
-            title || null,
-            text || null,
-            now,
-            now,
-          ]
-        );
+      /*
+       * Используем только базовые поля,
+       * которые присутствуют в основной
+       * таблице publications.
+       */
+      await dbRun(
+        env,
+        `
+        INSERT INTO publications (
+          id,
+          author_id,
+          category_id,
+          title,
+          text,
+          status,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          ?, ?, ?, ?, ?, 'pending', ?, ?
+        )
+        `,
+        [
+          id,
+          authorId,
+          categoryId,
+          title ||
+            description ||
+            null,
+          text ||
+            description ||
+            null,
+          now,
+          now,
+        ],
+      );
 
       return json(
         {
           ok: true,
           publication_id: id,
           status: "pending",
-          result,
+          message:
+            "Publication submitted for moderation",
         },
-        201
+        201,
       );
     } catch (err) {
       return error(
         err instanceof Error
           ? err.message
           : "Unable to create publication",
-        500
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
-// NOTIFICATIONS BASIC ROUTES
+// NOTIFICATIONS
 // ============================================================
 
 route(
   "GET",
   /^\/api\/notifications$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     try {
       const participantId =
         getQuery(
           request,
-          "participant_id"
+          "participant_id",
         );
 
       if (!participantId) {
@@ -767,31 +1034,60 @@ route(
           ORDER BY created_at DESC
           LIMIT 100
           `,
-          [participantId]
+          [participantId],
+        );
+
+      const unreadRow =
+        await dbFirst<{
+          count: number;
+        }>(
+          env,
+          `
+          SELECT
+            COUNT(*) AS count
+          FROM notifications
+          WHERE user_id = ?
+            AND read_at IS NULL
+          `,
+          [participantId],
         );
 
       return json({
         ok: true,
         notifications,
+        unread:
+          Number(
+            unreadRow?.count ??
+            0,
+          ),
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to load notifications",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to load notifications",
+        500,
       );
     }
-  }
+  },
 );
+
+// ============================================================
+// UNREAD NOTIFICATIONS
+// ============================================================
 
 route(
   "GET",
   /^\/api\/notifications\/unread$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     try {
       const participantId =
         getQuery(
           request,
-          "participant_id"
+          "participant_id",
         );
 
       if (!participantId) {
@@ -802,29 +1098,37 @@ route(
       }
 
       const row =
-        await dbFirst<{ count: number }>(
+        await dbFirst<{
+          count: number;
+        }>(
           env,
           `
-          SELECT COUNT(*) AS count
+          SELECT
+            COUNT(*) AS count
           FROM notifications
           WHERE user_id = ?
             AND read_at IS NULL
           `,
-          [participantId]
+          [participantId],
         );
 
       return json({
         ok: true,
         unread:
-          Number(row?.count ?? 0),
+          Number(
+            row?.count ??
+            0,
+          ),
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to count notifications",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to count notifications",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
@@ -834,13 +1138,16 @@ route(
 route(
   "GET",
   /^\/api\/search$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     try {
       const query =
         (
           getQuery(
             request,
-            "q"
+            "q",
           ) ?? ""
         ).trim();
 
@@ -848,12 +1155,21 @@ route(
         return json({
           ok: true,
           query: "",
-          results: [],
+          results: {
+            publications: [],
+            users: [],
+          },
         });
       }
 
+      const limitedQuery =
+        query.slice(
+          0,
+          300,
+        );
+
       const like =
-        `%${query}%`;
+        `%${limitedQuery}%`;
 
       const publications =
         await dbAll(
@@ -872,10 +1188,14 @@ route(
               title LIKE ?
               OR text LIKE ?
             )
-          ORDER BY created_at DESC
+          ORDER BY
+            created_at DESC
           LIMIT 50
           `,
-          [like, like]
+          [
+            like,
+            like,
+          ],
         );
 
       const users =
@@ -892,26 +1212,33 @@ route(
           WHERE
             name LIKE ?
             OR username LIKE ?
+          ORDER BY
+            name ASC
           LIMIT 50
           `,
-          [like, like]
+          [
+            like,
+            like,
+          ],
         );
 
       return json({
         ok: true,
-        query,
+        query: limitedQuery,
         results: {
           publications,
           users,
         },
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Search failed",
-        500
+        err instanceof Error
+          ? err.message
+          : "Search failed",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
@@ -921,7 +1248,10 @@ route(
 route(
   "GET",
   /^\/api\/settings$/,
-  async (_request, env) => {
+  async (
+    _request,
+    env,
+  ) => {
     try {
       const settings =
         await dbAll(
@@ -930,20 +1260,22 @@ route(
           SELECT *
           FROM system_settings
           ORDER BY key ASC
-          `
+          `,
         );
 
       return json({
         ok: true,
         settings,
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to load settings",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to load settings",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
@@ -953,7 +1285,10 @@ route(
 route(
   "GET",
   /^\/api\/features$/,
-  async (_request, env) => {
+  async (
+    _request,
+    env,
+  ) => {
     try {
       const features =
         await dbAll(
@@ -962,43 +1297,47 @@ route(
           SELECT *
           FROM feature_flags
           ORDER BY key ASC
-          `
+          `,
         );
 
       return json({
         ok: true,
         features,
       });
-    } catch {
+    } catch (err) {
       return error(
-        "Unable to load feature flags",
-        500
+        err instanceof Error
+          ? err.message
+          : "Unable to load feature flags",
+        500,
       );
     }
-  }
+  },
 );
 
 // ============================================================
-// MEDIA
+// MEDIA / R2
 // ============================================================
 
 route(
   "GET",
   /^\/api\/media\/(.+)$/,
-  async (request, env) => {
+  async (
+    request,
+    env,
+  ) => {
     if (!env.MEDIA) {
       return error(
         "Media storage is not configured",
-        503
+        503,
       );
     }
 
-    const path =
-      getPath(request);
-
     const match =
-      path.match(
-        /^\/api\/media\/(.+)$/
+      getPath(
+        request,
+      ).match(
+        /^\/api\/media\/(.+)$/,
       );
 
     const key =
@@ -1006,16 +1345,32 @@ route(
 
     if (!key) {
       return notFoundResponse(
-        "Media not found"
+        "Media not found",
+      );
+    }
+
+    let decodedKey: string;
+
+    try {
+      decodedKey =
+        decodeURIComponent(
+          key,
+        );
+    } catch {
+      return error(
+        "Invalid media key",
+        400,
       );
     }
 
     const object =
-      await env.MEDIA.get(key);
+      await env.MEDIA.get(
+        decodedKey,
+      );
 
     if (!object) {
       return notFoundResponse(
-        "Media not found"
+        "Media not found",
       );
     }
 
@@ -1023,17 +1378,17 @@ route(
       new Headers();
 
     object.writeHttpMetadata(
-      headers
+      headers,
     );
 
     headers.set(
       "Cache-Control",
-      "public, max-age=31536000, immutable"
+      "public, max-age=31536000, immutable",
     );
 
     headers.set(
       "ETag",
-      object.httpEtag
+      object.httpEtag,
     );
 
     return new Response(
@@ -1041,34 +1396,43 @@ route(
       {
         status: 200,
         headers,
-      }
+      },
     );
-  }
+  },
 );
 
 // ============================================================
-// API 404
+// ROUTE DISPATCH
 // ============================================================
 
 async function handleRoute(
   request: Request,
   env: Env,
-  context: RequestContext
+  context: RequestContext,
 ): Promise<Response> {
   const path =
     getPath(request);
 
   const method =
     normalizeMethod(
-      request.method
+      request.method,
     );
 
   for (const item of routes) {
     if (
-      item.method !== method
+      item.method !==
+      method
     ) {
       continue;
     }
+
+    /*
+     * RegExp.test() может быть опасен
+     * для RegExp с global/sticky.
+     * Наши маршруты такими не являются,
+     * но сбрасываем lastIndex для безопасности.
+     */
+    item.pattern.lastIndex = 0;
 
     if (
       item.pattern.test(path)
@@ -1076,37 +1440,70 @@ async function handleRoute(
       return item.handler(
         request,
         env,
-        context
+        context,
       );
     }
   }
 
   if (
-    path.startsWith("/api/")
+    path === "/api" ||
+    path.startsWith(
+      "/api/",
+    )
   ) {
     return notFoundResponse(
-      "API endpoint not found"
+      "API endpoint not found",
     );
   }
 
   return notFoundResponse(
-    "Page not found"
+    "Page not found",
   );
 }
 
 // ============================================================
-// OPTIONS / CORS
+// METHOD NOT ALLOWED
 // ============================================================
 
-function handleOptions(
-  request: Request
+function methodNotAllowed(
+  request: Request,
 ): Response {
+  const path =
+    getPath(request);
+
+  const exists =
+    routes.some(
+      (item) => {
+        item.pattern.lastIndex = 0;
+
+        return item.pattern.test(
+          path,
+        );
+      },
+    );
+
+  if (!exists) {
+    return notFoundResponse(
+      "Endpoint not found",
+    );
+  }
+
   return new Response(
-    null,
+    JSON.stringify({
+      ok: false,
+      error:
+        "Method not allowed",
+    }),
     {
-      status: 204,
-      headers: corsHeaders(request),
-    }
+      status: 405,
+      headers: {
+        "Content-Type":
+          "application/json; charset=utf-8",
+        Allow:
+          "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+        ...corsHeaders(request),
+      },
+    },
   );
 }
 
@@ -1118,59 +1515,117 @@ export default {
   async fetch(
     request: Request,
     env: Env,
-    _executionContext: ExecutionContext
+    _executionContext: ExecutionContext,
   ): Promise<Response> {
     const id =
-      requestId(request);
+      getRequestId(
+        request,
+      );
 
     try {
       if (
-        request.method === "OPTIONS"
+        request.method
+          .toUpperCase() ===
+        "OPTIONS"
       ) {
-        return handleOptions(
-          request
+        return withHeaders(
+          handleOptions(
+            request,
+          ),
+          request,
+          id,
         );
       }
 
       const context =
         getRequestContext(
-          request
+          request,
         );
+
+      const path =
+        getPath(request);
+
+      const normalizedMethod =
+        normalizeMethod(
+          request.method,
+        );
+
+      /*
+       * Сначала проверяем существование
+       * маршрута с нужным методом.
+       */
+      const matchingPath =
+        routes.some(
+          (item) => {
+            item.pattern.lastIndex = 0;
+
+            return (
+              item.pattern.test(
+                path,
+              )
+            );
+          },
+        );
+
+      const matchingMethod =
+        routes.some(
+          (item) => {
+            if (
+              item.method !==
+              normalizedMethod
+            ) {
+              return false;
+            }
+
+            item.pattern.lastIndex = 0;
+
+            return item.pattern.test(
+              path,
+            );
+          },
+        );
+
+      if (
+        matchingPath &&
+        !matchingMethod
+      ) {
+        return withHeaders(
+          methodNotAllowed(
+            request,
+          ),
+          request,
+          id,
+        );
+      }
 
       const response =
         await handleRoute(
           request,
           env,
-          context
+          context,
         );
 
-      const finalResponse =
-        responseWithHeaders(
-          response,
-          request
-        );
-
-      finalResponse.headers.set(
-        "X-Request-ID",
-        id
+      return withHeaders(
+        response,
+        request,
+        id,
       );
-
-      return finalResponse;
     } catch (err) {
       console.error(
-        "Tajik Opportunities Worker Error:",
-        err
+        "Tajik Opportunities Worker Error",
+        err,
       );
 
-      return responseWithHeaders(
+      return withHeaders(
         error(
           err instanceof Error
             ? err.message
             : "Internal server error",
           500,
-          id
+          id,
         ),
-        request
+        request,
+        id,
       );
     }
   },
