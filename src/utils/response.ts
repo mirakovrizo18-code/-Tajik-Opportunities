@@ -1,241 +1,57 @@
-// ============================================================
-// 🇹🇯 TAJIK OPPORTUNITIES
-// RESPONSE UTILITIES
-// Version: 2026.09.09
-//
-// Единый интерфейс ответов Worker:
-// • JSON
-// • ошибки
-// • 404
-// • 405
-// • CORS
-// • RequestContext
-// • request ID
-// • security headers
-// ============================================================
-
-// ============================================================
-// TYPES
-// ============================================================
+/* ============================================================
+   TAJIK OPPORTUNITIES
+   RESPONSE UTILITY
+   Cloudflare Workers / D1 compatible
+   ============================================================ */
 
 export interface RequestContext {
   requestId: string;
-
-  ip: string | null;
-  userAgent: string | null;
-
-  locale: string | null;
-
-  visitorId: string | null;
-  sessionId: string | null;
-  userId: string | null;
-  adminId: string | null;
-
+  ip?: string | null;
+  userAgent?: string | null;
+  country?: string | null;
+  city?: string | null;
+  colo?: string | null;
   method: string;
-  path: string;
   url: string;
-
-  timestamp: string;
+  path: string;
 }
 
-export interface ResponseOptions {
-  requestId?: string;
-
-  headers?:
-    | HeadersInit;
-
+export interface ApiErrorDetails {
+  code?: string;
+  field?: string;
+  fields?: Record<string, string>;
   details?: unknown;
-
-  code?: string;
-
-  success?: boolean;
-
-  meta?: unknown;
+  message?: string;
 }
 
-export interface ErrorResponseOptions
-  extends ResponseOptions {
-  code?: string;
-}
-
-// ============================================================
-// CORS
-// ============================================================
-
-export function corsHeaders(
-  request?: Request,
-): Record<string, string> {
-  const origin =
-    request?.headers.get(
-      "Origin",
-    ) ?? "*";
-
-  return {
-    "Access-Control-Allow-Origin":
-      origin,
-
-    "Access-Control-Allow-Methods":
-      "GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS",
-
-    "Access-Control-Allow-Headers":
-      "Content-Type, Authorization, X-Requested-With, X-Request-ID, Accept, Accept-Language",
-
-    "Access-Control-Expose-Headers":
-      "X-Request-ID, X-Tajik-Opportunities-Version",
-
-    "Access-Control-Allow-Credentials":
-      origin === "*"
-        ? "false"
-        : "true",
-
-    "Access-Control-Max-Age":
-      "86400",
-
-    Vary:
-      "Origin",
+export interface ApiResponseBody<T = unknown> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    field?: string;
+    fields?: Record<string, string>;
+    details?: unknown;
   };
+  meta?: Record<string, unknown>;
+  requestId?: string;
 }
 
-// ============================================================
-// REQUEST ID
-// ============================================================
-
-export function getRequestId(
-  request?: Request,
-): string {
-  const existing =
-    request?.headers.get(
-      "X-Request-ID",
-    );
-
-  if (
-    existing &&
-    existing.trim().length > 0 &&
-    existing.length <= 128
-  ) {
-    return existing.trim();
-  }
-
-  return crypto.randomUUID();
-}
-
-// ============================================================
-// REQUEST CONTEXT
-// ============================================================
-
-export function getRequestContext(
-  request: Request,
-): RequestContext {
-  const url =
-    new URL(
-      request.url,
-    );
-
-  const requestId =
-    getRequestId(
-      request,
-    );
-
-  const ip =
-    request.headers.get(
-      "CF-Connecting-IP",
-    ) ??
-    request.headers.get(
-      "X-Forwarded-For",
-    ) ??
-    null;
-
-  const userAgent =
-    request.headers.get(
-      "User-Agent",
-    ) ?? null;
-
-  const localeHeader =
-    request.headers.get(
-      "Accept-Language",
-    );
-
-  const locale =
-    localeHeader
-      ?.split(",")[0]
-      ?.trim()
-      ?.toLowerCase() ??
-    null;
-
-  const visitorId =
-    request.headers.get(
-      "X-Visitor-ID",
-    ) ?? null;
-
-  const sessionId =
-    request.headers.get(
-      "X-Session-ID",
-    ) ?? null;
-
-  const userId =
-    request.headers.get(
-      "X-User-ID",
-    ) ?? null;
-
-  const adminId =
-    request.headers.get(
-      "X-Admin-ID",
-    ) ?? null;
-
-  return {
-    requestId,
-
-    ip,
-    userAgent,
-
-    locale,
-
-    visitorId,
-    sessionId,
-    userId,
-    adminId,
-
-    method:
-      request.method.toUpperCase(),
-
-    path:
-      url.pathname,
-
-    url:
-      request.url,
-
-    timestamp:
-      new Date().toISOString(),
-  };
-}
-
-// ============================================================
-// HEADER BUILDER
-// ============================================================
+export const corsHeaders: Record<string, string> = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods":
+    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+  "Access-Control-Allow-Headers":
+    "Content-Type, Authorization, X-Requested-With, X-Request-ID",
+  "Access-Control-Max-Age": "86400",
+};
 
 function createHeaders(
-  request?: Request,
-  additional?: HeadersInit,
+  extra?: HeadersInit,
 ): Headers {
   const headers =
     new Headers();
-
-  const cors =
-    corsHeaders(
-      request,
-    );
-
-  for (
-    const [key, value]
-    of Object.entries(
-      cors,
-    )
-  ) {
-    headers.set(
-      key,
-      value,
-    );
-  }
 
   headers.set(
     "Content-Type",
@@ -247,36 +63,19 @@ function createHeaders(
     "no-store",
   );
 
-  headers.set(
-    "X-Content-Type-Options",
-    "nosniff",
-  );
+  for (const [key, value] of Object.entries(
+    corsHeaders,
+  )) {
+    headers.set(key, value);
+  }
 
-  headers.set(
-    "X-Frame-Options",
-    "SAMEORIGIN",
-  );
+  if (extra) {
+    const extraHeaders =
+      new Headers(extra);
 
-  headers.set(
-    "Referrer-Policy",
-    "strict-origin-when-cross-origin",
-  );
-
-  if (additional) {
-    const extra =
-      new Headers(
-        additional,
-      );
-
-    extra.forEach(
-      (
-        value,
-        key,
-      ) => {
-        headers.set(
-          key,
-          value,
-        );
+    extraHeaders.forEach(
+      (value, key) => {
+        headers.set(key, value);
       },
     );
   }
@@ -284,539 +83,388 @@ function createHeaders(
   return headers;
 }
 
-// ============================================================
-// SERIALIZE
-// ============================================================
-
 function serialize(
-  value: unknown,
+  body: unknown,
 ): string {
   return JSON.stringify(
-    value,
-    (
-      _key,
-      current,
-    ) => {
+    body,
+    (_key, value) => {
       if (
-        typeof current ===
-        "bigint"
+        typeof value === "bigint"
       ) {
-        return current.toString();
+        return value.toString();
       }
 
-      return current;
+      return value;
     },
   );
 }
 
-// ============================================================
-// JSON RESPONSE
-// ============================================================
-
-export function jsonResponse(
-  data: unknown,
+export function jsonResponse<T = unknown>(
+  data: T,
   status = 200,
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+  headers?: HeadersInit,
+  requestId?: string,
 ): Response {
-  let requestId:
-    | string
-    | undefined;
-
-  let headersInit:
-    | HeadersInit
-    | undefined;
-
-  let meta:
-    | unknown
-    | undefined;
-
-  if (
-    options &&
-    !Array.isArray(
-      options,
-    ) &&
-    typeof options ===
-      "object"
-  ) {
-    if (
-      "requestId" in
-      options ||
-      "details" in
-      options ||
-      "code" in
-      options ||
-      "success" in
-      options ||
-      "meta" in
-      options
-    ) {
-      const responseOptions =
-        options as ResponseOptions;
-
-      requestId =
-        responseOptions.requestId;
-
-      headersInit =
-        responseOptions.headers;
-
-      meta =
-        responseOptions.meta;
-    } else {
-      headersInit =
-        options as HeadersInit;
-    }
-  }
-
-  const body =
-    meta === undefined
-      ? data
-      : {
-          data,
-          meta,
-        };
-
-  const headers =
-    createHeaders(
-      undefined,
-      headersInit,
-    );
-
-  if (requestId) {
-    headers.set(
-      "X-Request-ID",
-      requestId,
-    );
-  }
-
-  return new Response(
-    serialize(body),
-    {
-      status,
-      headers,
-    },
-  );
-}
-
-// ============================================================
-// ERROR RESPONSE
-// ============================================================
-
-export function errorResponse(
-  message:
-    | string
-    | unknown,
-  status = 500,
-  options?:
-    | ErrorResponseOptions
-    | HeadersInit,
-): Response {
-  let requestId:
-    | string
-    | undefined;
-
-  let code:
-    | string
-    | undefined;
-
-  let details:
-    | unknown
-    | undefined;
-
-  let headersInit:
-    | HeadersInit
-    | undefined;
-
-  if (
-    options &&
-    !Array.isArray(
-      options,
-    ) &&
-    typeof options ===
-      "object"
-  ) {
-    if (
-      "requestId" in
-      options ||
-      "details" in
-      options ||
-      "code" in
-      options ||
-      "success" in
-      options
-    ) {
-      const responseOptions =
-        options as ErrorResponseOptions;
-
-      requestId =
-        responseOptions.requestId;
-
-      code =
-        responseOptions.code;
-
-      details =
-        responseOptions.details;
-
-      headersInit =
-        responseOptions.headers;
-    } else {
-      headersInit =
-        options as HeadersInit;
-    }
-  }
-
-  const body: {
-    ok: false;
-    error: string;
-    code?: string;
-    details?: unknown;
-    requestId?: string;
-  } = {
-    ok: false,
-
-    error:
-      message instanceof Error
-        ? message.message
-        : String(message),
+  const body: ApiResponseBody<T> = {
+    success: true,
+    data,
+    ...(requestId
+      ? { requestId }
+      : {}),
   };
 
-  if (code) {
-    body.code =
-      code;
-  }
+  return new Response(
+    serialize(body),
+    {
+      status,
+      headers: createHeaders(headers),
+    },
+  );
+}
 
-  if (
-    details !== undefined
-  ) {
-    body.details =
-      details;
-  }
+export function successResponse<T = unknown>(
+  data: T,
+  status = 200,
+  headers?: HeadersInit,
+  requestId?: string,
+): Response {
+  return jsonResponse(
+    data,
+    status,
+    headers,
+    requestId,
+  );
+}
 
-  if (requestId) {
-    body.requestId =
-      requestId;
-  }
-
-  const headers =
-    createHeaders(
-      undefined,
-      headersInit,
-    );
-
-  if (requestId) {
-    headers.set(
-      "X-Request-ID",
-      requestId,
-    );
-  }
+export function errorResponse(
+  status: number,
+  code: string,
+  message: string,
+  details?: unknown,
+  headers?: HeadersInit,
+  requestId?: string,
+): Response {
+  const body: ApiResponseBody = {
+    success: false,
+    error: {
+      code,
+      message,
+      ...(details !== undefined
+        ? { details }
+        : {}),
+    },
+    ...(requestId
+      ? { requestId }
+      : {}),
+  };
 
   return new Response(
     serialize(body),
     {
       status,
-      headers,
+      headers: createHeaders(headers),
     },
   );
 }
-
-// ============================================================
-// 400
-// ============================================================
 
 export function badRequestResponse(
-  message =
-    "Bad request",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+  message = "Некорректный запрос",
+  details?: unknown,
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
     400,
-    options,
+    "BAD_REQUEST",
+    message,
+    details,
+    undefined,
+    requestId,
   );
 }
-
-// ============================================================
-// 401
-// ============================================================
 
 export function unauthorizedResponse(
-  message =
-    "Unauthorized",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+  message = "Требуется авторизация",
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
     401,
-    options,
+    "UNAUTHORIZED",
+    message,
+    undefined,
+    undefined,
+    requestId,
   );
 }
-
-// ============================================================
-// 403
-// ============================================================
 
 export function forbiddenResponse(
-  message =
-    "Forbidden",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+  message = "Доступ запрещён",
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
     403,
-    options,
+    "FORBIDDEN",
+    message,
+    undefined,
+    undefined,
+    requestId,
   );
 }
-
-// ============================================================
-// 404
-// ============================================================
 
 export function notFoundResponse(
-  message =
-    "Not found",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+  message = "Ресурс не найден",
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
     404,
-    options,
+    "NOT_FOUND",
+    message,
+    undefined,
+    undefined,
+    requestId,
   );
 }
-
-// ============================================================
-// 405
-// ============================================================
-
-export function methodNotAllowedResponse(
-  message =
-    "Method not allowed",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
-): Response {
-  const response =
-    errorResponse(
-      message,
-      405,
-      options,
-    );
-
-  response.headers.set(
-    "Allow",
-    "GET, HEAD, POST, PUT, PATCH, DELETE, OPTIONS",
-  );
-
-  return response;
-}
-
-// ============================================================
-// 409
-// ============================================================
 
 export function conflictResponse(
-  message =
-    "Conflict",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+  message = "Конфликт данных",
+  details?: unknown,
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
     409,
-    options,
+    "CONFLICT",
+    message,
+    details,
+    undefined,
+    requestId,
   );
 }
 
-// ============================================================
-// 422
-// ============================================================
-
-export function validationErrorResponse(
-  message =
-    "Validation failed",
-  details?:
-    unknown,
-  options?:
-    ResponseOptions,
+export function tooManyRequestsResponse(
+  message = "Слишком много запросов",
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
-    422,
-    {
-      ...options,
-      details,
-    },
-  );
-}
-
-// ============================================================
-// 429
-// ============================================================
-
-export function rateLimitResponse(
-  message =
-    "Too many requests",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
-): Response {
-  return errorResponse(
-    message,
     429,
-    options,
+    "RATE_LIMITED",
+    message,
+    undefined,
+    undefined,
+    requestId,
   );
 }
 
-// ============================================================
-// 500
-// ============================================================
-
-export function internalServerErrorResponse(
-  message =
-    "Internal server error",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+export function serverErrorResponse(
+  message = "Внутренняя ошибка сервера",
+  details?: unknown,
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
     500,
-    options,
+    "INTERNAL_ERROR",
+    message,
+    details,
+    undefined,
+    requestId,
   );
 }
 
-// ============================================================
-// 503
-// ============================================================
-
-export function serviceUnavailableResponse(
-  message =
-    "Service unavailable",
-  options?:
-    | ResponseOptions
-    | HeadersInit,
+export function methodNotAllowedResponse(
+  allowedMethods: string[] = [
+    "GET",
+  ],
+  requestId?: string,
 ): Response {
   return errorResponse(
-    message,
-    503,
-    options,
-  );
-}
-
-// ============================================================
-// SUCCESS HELPERS
-// ============================================================
-
-export function successResponse(
-  data: unknown,
-  status = 200,
-  options?: ResponseOptions,
-): Response {
-  return jsonResponse(
+    405,
+    "METHOD_NOT_ALLOWED",
+    "Метод запроса не поддерживается",
     {
-      ok: true,
-      data,
+      allowedMethods,
     },
-    status,
-    options,
-  );
-}
-
-export function createdResponse(
-  data: unknown,
-  options?: ResponseOptions,
-): Response {
-  return successResponse(
-    data,
-    201,
-    options,
-  );
-}
-
-export function noContentResponse(
-  request?: Request,
-): Response {
-  const headers =
-    createHeaders(
-      request,
-    );
-
-  return new Response(
-    null,
     {
-      status: 204,
-      headers,
+      Allow:
+        allowedMethods.join(", "),
     },
+    requestId,
   );
 }
 
-// ============================================================
-// RESPONSE WITH REQUEST ID
-// ============================================================
+export function getRequestContext(
+  request: Request,
+): RequestContext {
+  const url =
+    new URL(request.url);
 
-export function addRequestId(
+  const cf =
+    (
+      request as Request & {
+        cf?: Record<string, unknown>;
+      }
+    ).cf;
+
+  const requestId =
+    request.headers.get(
+      "X-Request-ID",
+    ) ||
+    crypto.randomUUID();
+
+  return {
+    requestId,
+    ip:
+      request.headers.get(
+        "CF-Connecting-IP",
+      ) ||
+      request.headers.get(
+        "X-Forwarded-For",
+      ),
+    userAgent:
+      request.headers.get(
+        "User-Agent",
+      ),
+    country:
+      typeof cf?.country === "string"
+        ? cf.country
+        : null,
+    city:
+      typeof cf?.city === "string"
+        ? cf.city
+        : null,
+    colo:
+      typeof cf?.colo === "string"
+        ? cf.colo
+        : null,
+    method:
+      request.method.toUpperCase(),
+    url: request.url,
+    path: url.pathname,
+  };
+}
+
+export function responseWithHeaders(
   response: Response,
-  requestId: string,
+  headers?: HeadersInit,
 ): Response {
-  const headers =
+  const merged =
     new Headers(
       response.headers,
     );
 
-  headers.set(
-    "X-Request-ID",
-    requestId,
-  );
+  for (const [key, value] of Object.entries(
+    corsHeaders,
+  )) {
+    if (!merged.has(key)) {
+      merged.set(key, value);
+    }
+  }
+
+  if (headers) {
+    const extra =
+      new Headers(headers);
+
+    extra.forEach(
+      (value, key) => {
+        merged.set(key, value);
+      },
+    );
+  }
 
   return new Response(
     response.body,
     {
-      status:
-        response.status,
-
+      status: response.status,
       statusText:
         response.statusText,
-
-      headers,
+      headers: merged,
     },
   );
 }
 
-// ============================================================
-// DEFAULT
-// ============================================================
+export async function readJson<T = unknown>(
+  request: Request,
+): Promise<T> {
+  const contentType =
+    request.headers.get(
+      "Content-Type",
+    ) || "";
 
-export default {
-  corsHeaders,
-  getRequestId,
-  getRequestContext,
+  if (
+    contentType &&
+    !contentType
+      .toLowerCase()
+      .includes("application/json")
+  ) {
+    throw new Error(
+      "Expected application/json",
+    );
+  }
 
-  jsonResponse,
-  errorResponse,
+  return (
+    (await request.json()) as T
+  );
+}
 
-  badRequestResponse,
-  unauthorizedResponse,
-  forbiddenResponse,
-  notFoundResponse,
-  methodNotAllowedResponse,
-  conflictResponse,
-  validationErrorResponse,
-  rateLimitResponse,
-  internalServerErrorResponse,
-  serviceUnavailableResponse,
+export function isJsonRequest(
+  request: Request,
+): boolean {
+  const contentType =
+    request.headers.get(
+      "Content-Type",
+    ) || "";
 
-  successResponse,
-  createdResponse,
-  noContentResponse,
+  return contentType
+    .toLowerCase()
+    .includes("application/json");
+}
 
-  addRequestId,
-};
+export function withRequestId(
+  response: Response,
+  requestId: string,
+): Response {
+  return responseWithHeaders(
+    response,
+    {
+      "X-Request-ID":
+        requestId,
+    },
+  );
+}
+
+export function noContentResponse(
+  headers?: HeadersInit,
+): Response {
+  const merged =
+    createHeaders(headers);
+
+  merged.delete(
+    "Content-Type",
+  );
+
+  return new Response(null, {
+    status: 204,
+    headers: merged,
+  });
+}
+
+export function redirectResponse(
+  location: string,
+  status:
+    | 301
+    | 302
+    | 303
+    | 307
+    | 308 = 302,
+): Response {
+  const headers =
+    createHeaders();
+
+  headers.set(
+    "Location",
+    location,
+  );
+
+  return new Response(null, {
+    status,
+    headers,
+  });
+    }
