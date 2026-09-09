@@ -2,7 +2,7 @@
 // 🇹🇯 TAJIK OPPORTUNITIES
 // Publication Service
 // File: src/services/publications.ts
-// Version: 2026.09.09-modern-fixed-v3
+// Version: 2026.09.09-modern-fixed-v4
 //
 // PRODUCTION-READY PUBLICATION SERVICE
 //
@@ -433,66 +433,53 @@ export interface PublicationBulkResult {
 // CONSTANTS
 // ============================================================
 
-const DEFAULT_TYPE:
-  PublicationType = "FREE";
-
-const DEFAULT_STATUS:
-  PublicationStatus = "PENDING";
-
-const DEFAULT_VISIBILITY:
-  PublicationVisibility = "PUBLIC";
-
-const DEFAULT_PRIORITY:
-  PublicationPriority = "NORMAL";
+const DEFAULT_TYPE: PublicationType = "FREE";
+const DEFAULT_STATUS: PublicationStatus = "PENDING";
+const DEFAULT_VISIBILITY: PublicationVisibility = "PUBLIC";
+const DEFAULT_PRIORITY: PublicationPriority = "NORMAL";
 
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
 const FREE_AUTO_DELETE_DAYS = 10;
-
 const MAX_MEDIA_PER_PUBLICATION = 50;
-
 const MAX_PROCESS_EXPIRED_LIMIT = 500;
 
 const DEFAULT_AUTHOR_NAME = null;
 
-const ALLOWED_STATUSES:
-  readonly PublicationStatus[] = [
-    "DRAFT",
-    "PENDING",
-    "PUBLISHED",
-    "HIDDEN",
-    "REJECTED",
-    "DELETED",
-    "ARCHIVED",
-    "EXPIRED",
-  ];
+const ALLOWED_STATUSES: readonly PublicationStatus[] = [
+  "DRAFT",
+  "PENDING",
+  "PUBLISHED",
+  "HIDDEN",
+  "REJECTED",
+  "DELETED",
+  "ARCHIVED",
+  "EXPIRED",
+];
 
-const ALLOWED_TYPES:
-  readonly PublicationType[] = [
-    "FREE",
-    "PREMIUM",
-    "VIP",
-    "CUSTOM",
-  ];
+const ALLOWED_TYPES: readonly PublicationType[] = [
+  "FREE",
+  "PREMIUM",
+  "VIP",
+  "CUSTOM",
+];
 
-const ALLOWED_VISIBILITIES:
-  readonly PublicationVisibility[] = [
-    "PUBLIC",
-    "PRIVATE",
-    "UNLISTED",
-    "FOLLOWERS",
-  ];
+const ALLOWED_VISIBILITIES: readonly PublicationVisibility[] = [
+  "PUBLIC",
+  "PRIVATE",
+  "UNLISTED",
+  "FOLLOWERS",
+];
 
-const ALLOWED_PRIORITIES:
-  readonly PublicationPriority[] = [
-    "LOW",
-    "NORMAL",
-    "HIGH",
-    "URGENT",
-    "TOP",
-    "VIP",
-  ];
+const ALLOWED_PRIORITIES: readonly PublicationPriority[] = [
+  "LOW",
+  "NORMAL",
+  "HIGH",
+  "URGENT",
+  "TOP",
+  "VIP",
+];
 
 
 // ============================================================
@@ -536,20 +523,29 @@ function requiredString(
 }
 
 
-function requiredGeneratedId(
-  value: string | null | undefined,
+/**
+ * Converts potentially nullable generated IDs into
+ * a guaranteed string before they enter D1 or a Promise<string>.
+ *
+ * This deliberately uses String(...) instead of relying only
+ * on TypeScript control-flow narrowing of another helper.
+ */
+function generatedId(
+  value: unknown,
   message: string
 ): string {
-  if (
-    typeof value !== "string" ||
-    value.length === 0
-  ) {
+  const id =
+    String(
+      value ?? ""
+    ).trim();
+
+  if (!id) {
     throw new Error(
       message
     );
   }
 
-  return value;
+  return id;
 }
 
 
@@ -1164,12 +1160,13 @@ function safePublicationUrl(
         ""
       );
 
-    if (
-      typeof generated ===
-      "string" &&
-      generated.trim()
-    ) {
-      return generated.trim();
+    const result =
+      String(
+        generated ?? ""
+      ).trim();
+
+    if (result) {
+      return result;
     }
   } catch {
     // fallback
@@ -1269,7 +1266,7 @@ export class PublicationService {
     input: CreatePublicationInput
   ): Promise<Publication> {
     const id =
-      requiredGeneratedId(
+      generatedId(
         generatePublicationId(),
         "Не удалось сгенерировать ID публикации"
       );
@@ -1299,7 +1296,7 @@ export class PublicationService {
         ? "PUBLISHED"
         : normalizeStatus(
             input.status ??
-            DEFAULT_STATUS
+              DEFAULT_STATUS
           );
 
     const publicNumber =
@@ -2090,8 +2087,7 @@ export class PublicationService {
     }
 
     if (
-      "category_id" in
-      input
+      "category_id" in input
     ) {
       add(
         "category_id",
@@ -2124,8 +2120,7 @@ export class PublicationService {
     }
 
     if (
-      "visibility" in
-      input
+      "visibility" in input
     ) {
       add(
         "visibility",
@@ -2136,8 +2131,7 @@ export class PublicationService {
     }
 
     if (
-      "priority" in
-      input
+      "priority" in input
     ) {
       add(
         "priority",
@@ -2148,8 +2142,7 @@ export class PublicationService {
     }
 
     if (
-      "background" in
-      input
+      "background" in input
     ) {
       add(
         "background",
@@ -2193,8 +2186,7 @@ export class PublicationService {
     }
 
     if (
-      "tag_icon" in
-      input
+      "tag_icon" in input
     ) {
       add(
         "tag_icon",
@@ -2205,8 +2197,7 @@ export class PublicationService {
     }
 
     if (
-      "tag_color" in
-      input
+      "tag_color" in input
     ) {
       add(
         "tag_color",
@@ -2217,8 +2208,7 @@ export class PublicationService {
     }
 
     if (
-      "comments_enabled" in
-      input
+      "comments_enabled" in input
     ) {
       add(
         "comments_enabled",
@@ -2229,8 +2219,7 @@ export class PublicationService {
     }
 
     if (
-      "reactions_enabled" in
-      input
+      "reactions_enabled" in input
     ) {
       add(
         "reactions_enabled",
@@ -2241,8 +2230,7 @@ export class PublicationService {
     }
 
     if (
-      "reviews_enabled" in
-      input
+      "reviews_enabled" in input
     ) {
       add(
         "reviews_enabled",
@@ -2253,8 +2241,7 @@ export class PublicationService {
     }
 
     if (
-      "sharing_enabled" in
-      input
+      "sharing_enabled" in input
     ) {
       add(
         "sharing_enabled",
@@ -2265,8 +2252,7 @@ export class PublicationService {
     }
 
     if (
-      "bookmarks_enabled" in
-      input
+      "bookmarks_enabled" in input
     ) {
       add(
         "bookmarks_enabled",
@@ -2277,8 +2263,7 @@ export class PublicationService {
     }
 
     if (
-      "auto_delete_enabled" in
-      input
+      "auto_delete_enabled" in input
     ) {
       add(
         "auto_delete_enabled",
@@ -2289,8 +2274,7 @@ export class PublicationService {
     }
 
     if (
-      "delete_at" in
-      input
+      "delete_at" in input
     ) {
       add(
         "delete_at",
@@ -2301,8 +2285,7 @@ export class PublicationService {
     }
 
     if (
-      "publish_at" in
-      input
+      "publish_at" in input
     ) {
       add(
         "publish_at",
@@ -2313,8 +2296,7 @@ export class PublicationService {
     }
 
     if (
-      "author_name" in
-      input
+      "author_name" in input
     ) {
       add(
         "author_name",
@@ -2325,8 +2307,7 @@ export class PublicationService {
     }
 
     if (
-      "author_username" in
-      input
+      "author_username" in input
     ) {
       add(
         "author_username",
@@ -2337,8 +2318,7 @@ export class PublicationService {
     }
 
     if (
-      "author_avatar_url" in
-      input
+      "author_avatar_url" in input
     ) {
       add(
         "author_avatar_url",
@@ -2349,8 +2329,7 @@ export class PublicationService {
     }
 
     if (
-      fields.length ===
-      0
+      fields.length === 0
     ) {
       return current;
     }
@@ -2451,16 +2430,14 @@ export class PublicationService {
         existing?.forced_priority ??
         null,
 
-      input.pinned ===
-      undefined
+      input.pinned === undefined
         ? existing?.pinned ??
           null
         : input.pinned
           ? 1
           : 0,
 
-      input.featured ===
-      undefined
+      input.featured === undefined
         ? existing?.featured ??
           null
         : input.featured
@@ -2798,10 +2775,8 @@ export class PublicationService {
     }
 
     if (
-      override.auto_delete_enabled !==
-        null &&
-      override.auto_delete_enabled !==
-        undefined
+      override.auto_delete_enabled !== null &&
+      override.auto_delete_enabled !== undefined
     ) {
       update.auto_delete_enabled =
         bool(
@@ -2828,10 +2803,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_author_name !==
-        null &&
-      override.custom_author_name !==
-        undefined
+      override.custom_author_name !== null &&
+      override.custom_author_name !== undefined
     ) {
       update.author_name =
         nullableString(
@@ -2840,10 +2813,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_author_username !==
-        null &&
-      override.custom_author_username !==
-        undefined
+      override.custom_author_username !== null &&
+      override.custom_author_username !== undefined
     ) {
       update.author_username =
         nullableString(
@@ -2852,10 +2823,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_author_avatar_url !==
-        null &&
-      override.custom_author_avatar_url !==
-        undefined
+      override.custom_author_avatar_url !== null &&
+      override.custom_author_avatar_url !== undefined
     ) {
       update.author_avatar_url =
         nullableString(
@@ -2864,10 +2833,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_background !==
-        null &&
-      override.custom_background !==
-        undefined
+      override.custom_background !== null &&
+      override.custom_background !== undefined
     ) {
       update.background =
         nullableString(
@@ -2876,10 +2843,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_font !==
-        null &&
-      override.custom_font !==
-        undefined
+      override.custom_font !== null &&
+      override.custom_font !== undefined
     ) {
       update.font =
         nullableString(
@@ -2888,10 +2853,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_color !==
-        null &&
-      override.custom_color !==
-        undefined
+      override.custom_color !== null &&
+      override.custom_color !== undefined
     ) {
       update.color =
         nullableString(
@@ -2900,10 +2863,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_tag !==
-        null &&
-      override.custom_tag !==
-        undefined
+      override.custom_tag !== null &&
+      override.custom_tag !== undefined
     ) {
       update.tag =
         nullableString(
@@ -2912,10 +2873,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_tag_icon !==
-        null &&
-      override.custom_tag_icon !==
-        undefined
+      override.custom_tag_icon !== null &&
+      override.custom_tag_icon !== undefined
     ) {
       update.tag_icon =
         nullableString(
@@ -2924,10 +2883,8 @@ export class PublicationService {
     }
 
     if (
-      override.custom_tag_color !==
-        null &&
-      override.custom_tag_color !==
-        undefined
+      override.custom_tag_color !== null &&
+      override.custom_tag_color !== undefined
     ) {
       update.tag_color =
         nullableString(
@@ -2936,10 +2893,8 @@ export class PublicationService {
     }
 
     if (
-      override.comments_enabled !==
-        null &&
-      override.comments_enabled !==
-        undefined
+      override.comments_enabled !== null &&
+      override.comments_enabled !== undefined
     ) {
       update.comments_enabled =
         bool(
@@ -2948,10 +2903,8 @@ export class PublicationService {
     }
 
     if (
-      override.reactions_enabled !==
-        null &&
-      override.reactions_enabled !==
-        undefined
+      override.reactions_enabled !== null &&
+      override.reactions_enabled !== undefined
     ) {
       update.reactions_enabled =
         bool(
@@ -2960,10 +2913,8 @@ export class PublicationService {
     }
 
     if (
-      override.reviews_enabled !==
-        null &&
-      override.reviews_enabled !==
-        undefined
+      override.reviews_enabled !== null &&
+      override.reviews_enabled !== undefined
     ) {
       update.reviews_enabled =
         bool(
@@ -2972,10 +2923,8 @@ export class PublicationService {
     }
 
     if (
-      override.sharing_enabled !==
-        null &&
-      override.sharing_enabled !==
-        undefined
+      override.sharing_enabled !== null &&
+      override.sharing_enabled !== undefined
     ) {
       update.sharing_enabled =
         bool(
@@ -2984,10 +2933,8 @@ export class PublicationService {
     }
 
     if (
-      override.bookmarks_enabled !==
-        null &&
-      override.bookmarks_enabled !==
-        undefined
+      override.bookmarks_enabled !== null &&
+      override.bookmarks_enabled !== undefined
     ) {
       update.bookmarks_enabled =
         bool(
@@ -2999,10 +2946,8 @@ export class PublicationService {
       D1PreparedStatement[] = [];
 
     if (
-      override.pinned !==
-        null &&
-      override.pinned !==
-        undefined
+      override.pinned !== null &&
+      override.pinned !== undefined
     ) {
       statements.push(
         this.db
@@ -3026,10 +2971,8 @@ export class PublicationService {
     }
 
     if (
-      override.featured !==
-        null &&
-      override.featured !==
-        undefined
+      override.featured !== null &&
+      override.featured !== undefined
     ) {
       statements.push(
         this.db
@@ -3676,7 +3619,7 @@ export class PublicationService {
         limited[index];
 
       const id =
-        requiredGeneratedId(
+        generatedId(
           generateId(),
           "Не удалось сгенерировать ID медиа"
         );
@@ -3854,7 +3797,7 @@ export class PublicationService {
       );
 
     const overrideId =
-      requiredGeneratedId(
+      generatedId(
         generateId(),
         "Не удалось сгенерировать ID media override"
       );
@@ -3903,7 +3846,7 @@ export class PublicationService {
     changedBy: string
   ): Promise<void> {
     const historyId =
-      requiredGeneratedId(
+      generatedId(
         generateId(),
         "Не удалось сгенерировать ID истории"
       );
@@ -3981,11 +3924,16 @@ export class PublicationService {
       source?: string;
     } = {}
   ): Promise<string> {
-    const id =
-      requiredGeneratedId(
-        generateId(),
+    const id: string =
+      String(
+        generateId() ?? ""
+      ).trim();
+
+    if (!id) {
+      throw new Error(
         "Не удалось сгенерировать ID события share"
       );
+    }
 
     await this.db
       .prepare(`
@@ -4081,7 +4029,7 @@ export class PublicationService {
     }
 
     const viewId =
-      requiredGeneratedId(
+      generatedId(
         generateId(),
         "Не удалось сгенерировать ID просмотра"
       );
@@ -4402,7 +4350,7 @@ export class PublicationService {
         .run();
 
       const historyId =
-        requiredGeneratedId(
+        generatedId(
           generateId(),
           "Не удалось сгенерировать ID истории номера"
         );
@@ -4699,7 +4647,8 @@ export async function getPublication(
 export async function getPublicationByNumber(
   env: Env,
   number:
-    number | string
+    | number
+    | string
 ): Promise<Publication | null> {
   return createPublicationService(
     env
