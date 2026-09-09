@@ -642,6 +642,52 @@ function mapPublication(
   };
 }
 
+/**
+ * Совместимый адаптер URL.
+ *
+ * publicationUrl() в обновлённом utils/publication.ts
+ * принимает два аргумента. Сервис публикаций при этом
+ * не обязан знать внешний origin, поэтому сначала пробуем
+ * получить URL без внешней привязки, а при невозможности
+ * безопасно возвращаем относительный путь.
+ */
+function safePublicationUrl(
+  publicNumber: number | string
+): string {
+  try {
+    const result =
+      publicationUrl(
+        publicNumber,
+        ""
+      );
+
+    if (
+      typeof result === "string" &&
+      result.trim().length > 0
+    ) {
+      return result;
+    }
+  } catch {
+    // Переключаемся на безопасный относительный URL.
+  }
+
+  let normalized =
+    String(publicNumber).trim();
+
+  try {
+    normalized =
+      String(
+        normalizePublicationNumber(
+          publicNumber
+        )
+      );
+  } catch {
+    // Оставляем исходное значение.
+  }
+
+  return `/${normalized}`;
+}
+
 
 // ============================================================
 // PUBLICATION SERVICE
@@ -703,8 +749,19 @@ export class PublicationService {
   async create(
     input: CreatePublicationInput
   ): Promise<Publication> {
-    const id =
+    const generatedId =
       generatePublicationId();
+
+    const id =
+      nullableString(
+        generatedId
+      );
+
+    if (!id) {
+      throw new Error(
+        "Не удалось сгенерировать ID публикации"
+      );
+    }
 
     const createdAt =
       now();
@@ -1064,7 +1121,7 @@ export class PublicationService {
     return {
       publication,
       media,
-      url: publicationUrl(
+      url: safePublicationUrl(
         publication.public_number
       ),
     };
@@ -1295,6 +1352,9 @@ export class PublicationService {
         countRow?.total || 0
       );
 
+    const numericTotal =
+      Number(total);
+
     return {
       items,
       total,
@@ -1302,7 +1362,13 @@ export class PublicationService {
       offset,
       hasMore:
         offset + items.length <
-        Number(total),
+        (
+          Number.isFinite(
+            numericTotal
+          )
+            ? numericTotal
+            : 0
+        ),
     };
   }
 
@@ -3294,7 +3360,7 @@ export class PublicationService {
   getPublicUrl(
     publication: Publication
   ): string {
-    return publicationUrl(
+    return safePublicationUrl(
       publication.public_number
     );
   }
