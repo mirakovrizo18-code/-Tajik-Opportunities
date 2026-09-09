@@ -1,6 +1,6 @@
 /**
  * ============================================================
- * TAJIK OPPORTUNITIES
+ * 🇹🇯 TAJIK OPPORTUNITIES
  * PAGINATION UTILITY
  *
  * Безопасная, расширенная и строго типизированная
@@ -17,6 +17,7 @@
  * - сортировка и query parameters
  * - совместимость camelCase / snake_case
  * - aliases для старого API
+ * - безопасная работа с unknown runtime-значениями
  * ============================================================
  */
 
@@ -81,10 +82,6 @@ export interface PaginationMeta {
   from: number;
   to: number;
 
-  /* ----------------------------------------------------------
-   * Snake case compatibility
-   * -------------------------------------------------------- */
-
   total_pages: number;
   has_next: boolean;
   has_previous: boolean;
@@ -94,12 +91,7 @@ export interface PaginationMeta {
 
 export interface PaginatedResult<T> {
   items: T[];
-
-  /**
-   * Alias for items.
-   */
   data: T[];
-
   pagination: PaginationMeta;
 }
 
@@ -147,15 +139,11 @@ export interface CursorPaginationMeta<TCursor = string> {
  * ============================================================ */
 
 export const DEFAULT_PAGE = 1;
-
 export const DEFAULT_LIMIT = 20;
-
 export const DEFAULT_MAX_LIMIT = 100;
-
 export const DEFAULT_MIN_LIMIT = 1;
 
 export const DEFAULT_PAGE_PARAM = "page";
-
 export const DEFAULT_LIMIT_PARAM = "limit";
 
 /* ============================================================
@@ -165,36 +153,37 @@ export const DEFAULT_LIMIT_PARAM = "limit";
 function toFiniteNumber(
   value: unknown,
 ): number | null {
-  if (
-    typeof value === "number"
-  ) {
+  if (typeof value === "number") {
     return Number.isFinite(value)
       ? value
       : null;
   }
 
-  if (
-    typeof value === "bigint"
-  ) {
-    const numberValue = Number(value);
+  if (typeof value === "bigint") {
+    const numberValue =
+      Number(value);
 
-    return Number.isFinite(numberValue)
+    return Number.isFinite(
+      numberValue,
+    )
       ? numberValue
       : null;
   }
 
-  if (
-    typeof value === "string"
-  ) {
-    const trimmed = value.trim();
+  if (typeof value === "string") {
+    const trimmed =
+      value.trim();
 
     if (trimmed === "") {
       return null;
     }
 
-    const numberValue = Number(trimmed);
+    const numberValue =
+      Number(trimmed);
 
-    return Number.isFinite(numberValue)
+    return Number.isFinite(
+      numberValue,
+    )
       ? numberValue
       : null;
   }
@@ -222,7 +211,10 @@ function positiveInteger(
 ): number {
   return Math.max(
     1,
-    safeInteger(value, fallback),
+    safeInteger(
+      value,
+      fallback,
+    ),
   );
 }
 
@@ -268,6 +260,64 @@ function normalizeMaxLimit(
   );
 }
 
+function normalizeOptionalOffset(
+  value: unknown,
+): number | undefined {
+  const parsed =
+    toFiniteNumber(value);
+
+  if (
+    parsed === null ||
+    parsed < 0
+  ) {
+    return undefined;
+  }
+
+  return Math.floor(parsed);
+}
+
+function toPaginationInput(
+  value: unknown,
+): PaginationInput {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return value;
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "string" ||
+    typeof value === "bigint"
+  ) {
+    return value;
+  }
+
+  return undefined;
+}
+
+function toTotalValue(
+  value: unknown,
+): TotalValue {
+  if (
+    typeof value === "number" ||
+    typeof value === "string" ||
+    typeof value === "bigint"
+  ) {
+    return value;
+  }
+
+  return 0;
+}
+
+function getUnknownRecordValue(
+  source: Record<string, unknown>,
+  key: string,
+): unknown {
+  return source[key];
+}
+
 /* ============================================================
  * PAGE NORMALIZATION
  * ============================================================ */
@@ -282,13 +332,10 @@ export function normalizePage(
       DEFAULT_PAGE,
     );
 
-  const normalized =
-    positiveInteger(
-      page,
-      fallback,
-    );
-
-  return normalized;
+  return positiveInteger(
+    page,
+    fallback,
+  );
 }
 
 export function normalizePageSafe(
@@ -311,28 +358,32 @@ export function normalizeLimit(
   maxLimit = DEFAULT_MAX_LIMIT,
   minLimit = DEFAULT_MIN_LIMIT,
 ): number {
-  const safeDefault =
-    Math.min(
-      normalizeDefaultLimit(
-        defaultLimit,
-      ),
-      normalizeMaxLimit(
-        maxLimit,
-      ),
-    );
-
   const safeMax =
     normalizeMaxLimit(
       maxLimit,
+    );
+
+  const requestedMin =
+    safeInteger(
+      minLimit,
+      DEFAULT_MIN_LIMIT,
     );
 
   const safeMin =
     Math.min(
       Math.max(
         DEFAULT_MIN_LIMIT,
-        safeInteger(
-          minLimit,
-          DEFAULT_MIN_LIMIT,
+        requestedMin,
+      ),
+      safeMax,
+    );
+
+  const safeDefault =
+    Math.min(
+      Math.max(
+        safeMin,
+        normalizeDefaultLimit(
+          defaultLimit,
         ),
       ),
       safeMax,
@@ -369,8 +420,9 @@ export function calculateOffset(
 
   return Math.max(
     0,
-    (normalizedPage - 1) *
-      normalizedLimit,
+    (
+      normalizedPage - 1
+    ) * normalizedLimit,
   );
 }
 
@@ -379,8 +431,9 @@ export function calculateOffsetFromPagination(
 ): number {
   return Math.max(
     0,
-    (pagination.page - 1) *
-      pagination.limit,
+    (
+      pagination.page - 1
+    ) * pagination.limit,
   );
 }
 
@@ -392,20 +445,28 @@ export function getPagination(
   options: PaginationOptions = {},
 ): Pagination {
   const defaultPage =
-    options.defaultPage ??
-    DEFAULT_PAGE;
+    positiveInteger(
+      options.defaultPage,
+      DEFAULT_PAGE,
+    );
 
   const defaultLimit =
-    options.defaultLimit ??
-    DEFAULT_LIMIT;
+    normalizeDefaultLimit(
+      options.defaultLimit,
+      DEFAULT_LIMIT,
+    );
 
   const maxLimit =
-    options.maxLimit ??
-    DEFAULT_MAX_LIMIT;
+    normalizeMaxLimit(
+      options.maxLimit,
+      DEFAULT_MAX_LIMIT,
+    );
 
   const minLimit =
-    options.minLimit ??
-    DEFAULT_MIN_LIMIT;
+    safeInteger(
+      options.minLimit,
+      DEFAULT_MIN_LIMIT,
+    );
 
   const page =
     normalizePage(
@@ -422,10 +483,12 @@ export function getPagination(
     );
 
   const calculatedOffset =
-    (page - 1) * limit;
+    (
+      page - 1
+    ) * limit;
 
   const customOffset =
-    toFiniteNumber(
+    normalizeOptionalOffset(
       options.offset,
     );
 
@@ -433,10 +496,8 @@ export function getPagination(
     page,
     limit,
     offset:
-      customOffset !== null &&
-      customOffset >= 0
-        ? Math.floor(customOffset)
-        : calculatedOffset,
+      customOffset ??
+      calculatedOffset,
   };
 }
 
@@ -461,8 +522,12 @@ export function parsePagination(
   maxLimit = DEFAULT_MAX_LIMIT,
 ): Pagination {
   return getPagination({
-    page,
-    limit,
+    page:
+      toPaginationInput(page),
+
+    limit:
+      toPaginationInput(limit),
+
     defaultLimit,
     maxLimit,
   });
@@ -531,7 +596,9 @@ export function getLastPage(
 export function isFirstPage(
   page: unknown,
 ): boolean {
-  return normalizePage(page) === 1;
+  return (
+    normalizePage(page) === 1
+  );
 }
 
 export function isLastPage(
@@ -550,7 +617,8 @@ export function isLastPage(
 
   return (
     totalPages > 0 &&
-    normalizedPage >= totalPages
+    normalizedPage >=
+      totalPages
   );
 }
 
@@ -658,7 +726,22 @@ export function createPaginationMeta(
     );
 
   const normalizedPage =
-    pagination.page;
+    normalizePage(
+      pagination.page,
+    );
+
+  const normalizedLimit =
+    normalizeLimit(
+      pagination.limit,
+    );
+
+  const normalizedOffset =
+    Math.max(
+      0,
+      Math.floor(
+        pagination.offset,
+      ),
+    );
 
   const normalizedTotalPages =
     Math.max(
@@ -687,21 +770,26 @@ export function createPaginationMeta(
   const from =
     totalNumber <= 0
       ? 0
-      : pagination.offset + 1;
+      : normalizedOffset + 1;
 
   const to =
     totalNumber <= 0
       ? 0
       : Math.min(
-          pagination.offset +
-            pagination.limit,
+          normalizedOffset +
+            normalizedLimit,
           totalNumber,
         );
 
   return {
-    page: normalizedPage,
-    limit: pagination.limit,
-    offset: pagination.offset,
+    page:
+      normalizedPage,
+
+    limit:
+      normalizedLimit,
+
+    offset:
+      normalizedOffset,
 
     total:
       typeof total === "bigint"
@@ -726,10 +814,6 @@ export function createPaginationMeta(
 
     from,
     to,
-
-    /* --------------------------------------------------------
-     * Snake case aliases
-     * ------------------------------------------------------ */
 
     total_pages:
       normalizedTotalPages,
@@ -793,11 +877,19 @@ export function paginateArray<T>(
   const start =
     Math.max(
       0,
-      pagination.offset,
+      Math.floor(
+        pagination.offset,
+      ),
     );
 
   const end =
-    start + pagination.limit;
+    start +
+    Math.max(
+      1,
+      Math.floor(
+        pagination.limit,
+      ),
+    );
 
   return items.slice(
     start,
@@ -923,13 +1015,19 @@ export function paginationFromUrl(
 
     return getPagination({
       ...options,
+
       page:
-        parsed.searchParams.get(
-          pageParam,
+        toPaginationInput(
+          parsed.searchParams.get(
+            pageParam,
+          ),
         ),
+
       limit:
-        parsed.searchParams.get(
-          limitParam,
+        toPaginationInput(
+          parsed.searchParams.get(
+            limitParam,
+          ),
         ),
     });
   } catch {
@@ -1017,8 +1115,10 @@ export function buildPaginationUrl(
 
     if (extraParams) {
       for (
-        const [key, value]
-        of Object.entries(
+        const [
+          key,
+          value,
+        ] of Object.entries(
           extraParams,
         )
       ) {
@@ -1104,7 +1204,8 @@ export function createPaginationLinks(
     };
 
   return {
-    first: build(1),
+    first:
+      build(1),
 
     last:
       build(
@@ -1138,19 +1239,33 @@ export function createPaginationLinks(
 export function getSqlLimit(
   pagination: Pagination,
 ): number {
-  return pagination.limit;
+  return Math.max(
+    1,
+    Math.floor(
+      pagination.limit,
+    ),
+  );
 }
 
 export function getSqlOffset(
   pagination: Pagination,
 ): number {
-  return pagination.offset;
+  return Math.max(
+    0,
+    Math.floor(
+      pagination.offset,
+    ),
+  );
 }
 
 export function buildSqlPagination(
   pagination: Pagination,
 ): string {
-  return `LIMIT ${pagination.limit} OFFSET ${pagination.offset}`;
+  return `LIMIT ${getSqlLimit(
+    pagination,
+  )} OFFSET ${getSqlOffset(
+    pagination,
+  )}`;
 }
 
 export function buildSqlPaginationParams(
@@ -1160,8 +1275,15 @@ export function buildSqlPaginationParams(
   offset: number;
 } {
   return {
-    limit: pagination.limit,
-    offset: pagination.offset,
+    limit:
+      getSqlLimit(
+        pagination,
+      ),
+
+    offset:
+      getSqlOffset(
+        pagination,
+      ),
   };
 }
 
@@ -1288,12 +1410,24 @@ export function createCursorMeta<
   TCursor = string,
 >(
   limit: number,
-  nextCursor: TCursor | null,
-  previousCursor: TCursor | null = null,
+  nextCursor:
+    | TCursor
+    | null,
+  previousCursor:
+    | TCursor
+    | null = null,
 ): CursorPaginationMeta<TCursor> {
+  const normalizedLimit =
+    normalizeLimit(
+      limit,
+    );
+
   return {
-    limit,
+    limit:
+      normalizedLimit,
+
     nextCursor,
+
     previousCursor,
 
     hasNext:
@@ -1337,7 +1471,14 @@ export function pageEnd(
 export function recordsFrom(
   pagination: Pagination,
 ): number {
-  return pagination.offset + 1;
+  return (
+    Math.max(
+      0,
+      Math.floor(
+        pagination.offset,
+      ),
+    ) + 1
+  );
 }
 
 export function recordsTo(
@@ -1355,8 +1496,18 @@ export function recordsTo(
 
   return Math.min(
     normalizedTotal,
-    pagination.offset +
-      pagination.limit,
+    Math.max(
+      0,
+      Math.floor(
+        pagination.offset,
+      ),
+    ) +
+      Math.max(
+        1,
+        Math.floor(
+          pagination.limit,
+        ),
+      ),
   );
 }
 
@@ -1365,17 +1516,26 @@ export function recordsTo(
  * ============================================================ */
 
 export function normalizePagination(
-  pagination: Partial<Pagination> | null | undefined,
+  pagination:
+    | Partial<Pagination>
+    | null
+    | undefined,
 ): Pagination {
   return getPagination({
     page:
-      pagination?.page,
+      toPaginationInput(
+        pagination?.page,
+      ),
 
     limit:
-      pagination?.limit,
+      toPaginationInput(
+        pagination?.limit,
+      ),
 
     offset:
-      pagination?.offset,
+      normalizeOptionalOffset(
+        pagination?.offset,
+      ),
   });
 }
 
@@ -1394,13 +1554,28 @@ export function ensurePagination(
 
     return getPagination({
       page:
-        source.page,
+        toPaginationInput(
+          getUnknownRecordValue(
+            source,
+            "page",
+          ),
+        ),
 
       limit:
-        source.limit,
+        toPaginationInput(
+          getUnknownRecordValue(
+            source,
+            "limit",
+          ),
+        ),
 
       offset:
-        source.offset,
+        normalizeOptionalOffset(
+          getUnknownRecordValue(
+            source,
+            "offset",
+          ),
+        ),
     });
   }
 
@@ -1427,21 +1602,40 @@ export function normalizePaginationMeta(
     const pagination =
       getPagination({
         page:
-          source.page,
+          toPaginationInput(
+            getUnknownRecordValue(
+              source,
+              "page",
+            ),
+          ),
 
         limit:
-          source.limit,
+          toPaginationInput(
+            getUnknownRecordValue(
+              source,
+              "limit",
+            ),
+          ),
 
         offset:
-          source.offset,
+          normalizeOptionalOffset(
+            getUnknownRecordValue(
+              source,
+              "offset",
+            ),
+          ),
       });
 
     const total =
-      source.total ??
-      0;
+      toTotalValue(
+        getUnknownRecordValue(
+          source,
+          "total",
+        ),
+      );
 
     return createPaginationMeta(
-      total as TotalValue,
+      total,
       pagination,
     );
   }
@@ -1473,6 +1667,108 @@ export function hasPreviousPages(
   pagination: Pagination,
 ): boolean {
   return pagination.page > 1;
+}
+
+/* ============================================================
+ * ADDITIONAL SAFE HELPERS
+ * ============================================================ */
+
+export function isPagination(
+  value: unknown,
+): value is Pagination {
+  if (
+    !value ||
+    typeof value !== "object"
+  ) {
+    return false;
+  }
+
+  const source =
+    value as Record<
+      string,
+      unknown
+    >;
+
+  return (
+    isValidPage(
+      source.page,
+    ) &&
+    isValidLimit(
+      source.limit,
+    ) &&
+    toFiniteNumber(
+      source.offset,
+    ) !== null &&
+    Number(
+      source.offset,
+    ) >= 0
+  );
+}
+
+export function normalizePaginationQuery(
+  value: unknown,
+): PaginationQuery {
+  const pagination =
+    ensurePagination(
+      value,
+    );
+
+  return {
+    page:
+      pagination.page,
+
+    limit:
+      pagination.limit,
+
+    offset:
+      pagination.offset,
+  };
+}
+
+export function getPaginationFromQuery(
+  query:
+    | URLSearchParams
+    | Record<
+        string,
+        unknown
+      >,
+): Pagination {
+  if (
+    query instanceof
+    URLSearchParams
+  ) {
+    return getPagination({
+      page:
+        toPaginationInput(
+          query.get(
+            DEFAULT_PAGE_PARAM,
+          ),
+        ),
+
+      limit:
+        toPaginationInput(
+          query.get(
+            DEFAULT_LIMIT_PARAM,
+          ),
+        ),
+    });
+  }
+
+  return getPagination({
+    page:
+      toPaginationInput(
+        query[
+          DEFAULT_PAGE_PARAM
+        ],
+      ),
+
+    limit:
+      toPaginationInput(
+        query[
+          DEFAULT_LIMIT_PARAM
+        ],
+      ),
+  });
 }
 
 /* ============================================================
@@ -1552,4 +1848,8 @@ export default {
 
   hasMorePages,
   hasPreviousPages,
+
+  isPagination,
+  normalizePaginationQuery,
+  getPaginationFromQuery,
 };
