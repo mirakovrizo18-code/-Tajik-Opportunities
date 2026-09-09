@@ -191,15 +191,6 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 // ============================================================
 // INTERNAL FETCH COMPATIBILITY
 // ============================================================
-//
-// Cloudflare Workers и DOM lib могут объявлять Request
-// с несовместимыми generic-параметрами.
-//
-// Поэтому внутренний fetch-layer не использует Request
-// как параметр собственного типа.
-//
-// Это НЕ меняет публичные сигнатуры.
-// ============================================================
 
 type CompatibleFetch = (
   input: unknown,
@@ -213,10 +204,7 @@ function executeFetch(
   input: unknown,
   init?: RequestInit,
 ): Promise<Response> {
-  return compatibleFetch(
-    input,
-    init,
-  );
+  return compatibleFetch(input, init);
 }
 
 // ============================================================
@@ -226,9 +214,7 @@ function executeFetch(
 export function isHttpMethod(
   value: string,
 ): value is HttpMethod {
-  if (
-    typeof value !== "string"
-  ) {
+  if (typeof value !== "string") {
     return false;
   }
 
@@ -240,33 +226,25 @@ export function isHttpMethod(
     "DELETE",
     "OPTIONS",
     "HEAD",
-  ].includes(
-    value.toUpperCase(),
-  );
+  ].includes(value.toUpperCase());
 }
 
 export function normalizeMethod(
   method?: string,
 ): HttpMethod {
-  const value =
-    (
-      method ?? "GET"
-    ).toUpperCase();
+  const value = (
+    method ?? "GET"
+  ).toUpperCase();
 
-  if (
-    isHttpMethod(value)
-  ) {
-    return value;
-  }
-
-  return "GET";
+  return isHttpMethod(value)
+    ? value
+    : "GET";
 }
 
 export function isBodylessMethod(
   method?: string,
 ): boolean {
-  const normalized =
-    normalizeMethod(method);
+  const normalized = normalizeMethod(method);
 
   return (
     normalized === "GET" ||
@@ -277,8 +255,7 @@ export function isBodylessMethod(
 export function isSafeMethod(
   method?: string,
 ): boolean {
-  const normalized =
-    normalizeMethod(method);
+  const normalized = normalizeMethod(method);
 
   return (
     normalized === "GET" ||
@@ -290,8 +267,7 @@ export function isSafeMethod(
 export function isIdempotentMethod(
   method?: string,
 ): boolean {
-  const normalized =
-    normalizeMethod(method);
+  const normalized = normalizeMethod(method);
 
   return (
     normalized === "GET" ||
@@ -321,8 +297,7 @@ export function cloneHeaders(
 export function setJsonHeaders(
   headers?: HeadersInit,
 ): Headers {
-  const result =
-    new Headers(headers);
+  const result = new Headers(headers);
 
   if (
     !result.has(
@@ -352,8 +327,7 @@ export function setJsonHeaders(
 export function setTextHeaders(
   headers?: HeadersInit,
 ): Headers {
-  const result =
-    new Headers(headers);
+  const result = new Headers(headers);
 
   if (
     !result.has(
@@ -398,7 +372,6 @@ export function removeHeader(
   name: string,
 ): Headers {
   headers.delete(name);
-
   return headers;
 }
 
@@ -509,21 +482,17 @@ export function getContentType(
 export function getContentLength(
   response: Response,
 ): number | null {
-  const value =
-    response.headers.get(
-      "Content-Length",
-    );
+  const value = response.headers.get(
+    "Content-Length",
+  );
 
   if (!value) {
     return null;
   }
 
-  const number =
-    Number(value);
+  const number = Number(value);
 
-  return Number.isFinite(
-    number,
-  )
+  return Number.isFinite(number)
     ? number
     : null;
 }
@@ -531,29 +500,23 @@ export function getContentLength(
 export function isJsonResponse(
   response: Response,
 ): boolean {
-  const contentType =
-    getContentType(response);
+  const contentType = getContentType(response);
 
   return (
     contentType.includes(
       "application/json",
     ) ||
-    contentType.includes(
-      "+json",
-    )
+    contentType.includes("+json")
   );
 }
 
 export function isTextResponse(
   response: Response,
 ): boolean {
-  const contentType =
-    getContentType(response);
+  const contentType = getContentType(response);
 
   return (
-    contentType.startsWith(
-      "text/",
-    ) ||
+    contentType.startsWith("text/") ||
     isJsonResponse(response)
   );
 }
@@ -565,23 +528,18 @@ export function isTextResponse(
 export function jsonBody(
   value: unknown,
 ): string {
-  const result =
-    JSON.stringify(
-      value,
-      (_key, item) => {
-        if (
-          typeof item ===
-          "bigint"
-        ) {
-          return item.toString();
-        }
+  const result = JSON.stringify(
+    value,
+    (_key, item) => {
+      if (typeof item === "bigint") {
+        return item.toString();
+      }
 
-        return item;
-      },
-    );
+      return item;
+    },
+  );
 
-  return result ===
-    undefined
+  return result === undefined
     ? "null"
     : result;
 }
@@ -592,9 +550,7 @@ export function safeJsonParse<
   value: string,
 ): T | null {
   try {
-    return JSON.parse(
-      value,
-    ) as T;
+    return JSON.parse(value) as T;
   } catch {
     return null;
   }
@@ -607,9 +563,7 @@ export function tryJsonParse<
   fallback: T,
 ): T {
   try {
-    return JSON.parse(
-      value,
-    ) as T;
+    return JSON.parse(value) as T;
   } catch {
     return fallback;
   }
@@ -627,26 +581,20 @@ export function createTimeoutSignal(
     new AbortController();
 
   const safeTimeout =
-    Number.isFinite(
-      timeoutMs,
-    )
-      ? Math.max(
-          0,
-          timeoutMs,
-        )
+    Number.isFinite(timeoutMs)
+      ? Math.max(0, timeoutMs)
       : DEFAULT_TIMEOUT_MS;
 
-  const timer =
-    setTimeout(
-      () => {
-        controller.abort(
-          new Error(
-            "HTTP request timeout",
-          ),
-        );
-      },
-      safeTimeout,
-    );
+  const timer = setTimeout(
+    () => {
+      controller.abort(
+        new Error(
+          "HTTP request timeout",
+        ),
+      );
+    },
+    safeTimeout,
+  );
 
   const cleanup = () => {
     clearTimeout(timer);
@@ -660,12 +608,8 @@ export function createTimeoutSignal(
     },
   );
 
-  if (
-    externalSignal
-  ) {
-    if (
-      externalSignal.aborted
-    ) {
+  if (externalSignal) {
+    if (externalSignal.aborted) {
       controller.abort(
         externalSignal.reason,
       );
@@ -688,16 +632,11 @@ export function createTimeoutSignal(
 }
 
 export function shouldUseTimeout(
-  timeoutMs:
-    | number
-    | undefined,
+  timeoutMs: number | undefined,
 ): boolean {
   return (
-    typeof timeoutMs ===
-      "number" &&
-    Number.isFinite(
-      timeoutMs,
-    ) &&
+    typeof timeoutMs === "number" &&
+    Number.isFinite(timeoutMs) &&
     timeoutMs > 0
   );
 }
@@ -711,57 +650,37 @@ export function createJsonRequest(
   options: HttpJsonOptions = {},
 ): Request {
   const headers =
-    setJsonHeaders(
-      options.headers,
-    );
+    setJsonHeaders(options.headers);
 
   const method =
-    normalizeMethod(
-      options.method,
-    );
+    normalizeMethod(options.method);
 
-  let signal =
-    options.signal;
-
-  if (
-    shouldUseTimeout(
-      options.timeoutMs,
-    )
-  ) {
-    signal =
-      createTimeoutSignal(
-        options.timeoutMs as number,
-        options.signal,
-      );
-  }
+  const signal =
+    shouldUseTimeout(options.timeoutMs)
+      ? createTimeoutSignal(
+          options.timeoutMs as number,
+          options.signal,
+        )
+      : options.signal;
 
   const body =
-    isBodylessMethod(
-      method,
-    )
+    isBodylessMethod(method)
       ? undefined
       : jsonBody(
-          options.body ??
-            {},
+          options.body ?? {},
         );
 
-  return new Request(
-    url,
-    {
-      method,
-      headers,
-      body,
-      signal,
-      cache:
-        options.cache,
-      credentials:
-        options.credentials,
-      redirect:
-        options.redirect,
-      referrerPolicy:
-        options.referrerPolicy,
-    },
-  );
+  return new Request(url, {
+    method,
+    headers,
+    body,
+    signal,
+    cache: options.cache,
+    credentials: options.credentials,
+    redirect: options.redirect,
+    referrerPolicy:
+      options.referrerPolicy,
+  });
 }
 
 export function createHttpRequest(
@@ -769,48 +688,29 @@ export function createHttpRequest(
   options: HttpRequestOptions = {},
 ): Request {
   const method =
-    normalizeMethod(
-      options.method,
-    );
+    normalizeMethod(options.method);
 
-  let signal =
-    options.signal;
-
-  if (
-    shouldUseTimeout(
-      options.timeoutMs,
-    )
-  ) {
-    signal =
-      createTimeoutSignal(
-        options.timeoutMs as number,
-        options.signal,
-      );
-  }
-
-  return new Request(
-    url,
-    {
-      method,
-      headers:
-        options.headers,
-      body:
-        isBodylessMethod(
-          method,
+  const signal =
+    shouldUseTimeout(options.timeoutMs)
+      ? createTimeoutSignal(
+          options.timeoutMs as number,
+          options.signal,
         )
-          ? undefined
-          : options.body,
-      signal,
-      cache:
-        options.cache,
-      credentials:
-        options.credentials,
-      redirect:
-        options.redirect,
-      referrerPolicy:
-        options.referrerPolicy,
-    },
-  );
+      : options.signal;
+
+  return new Request(url, {
+    method,
+    headers: options.headers,
+    body: isBodylessMethod(method)
+      ? undefined
+      : options.body,
+    signal,
+    cache: options.cache,
+    credentials: options.credentials,
+    redirect: options.redirect,
+    referrerPolicy:
+      options.referrerPolicy,
+  });
 }
 
 // ============================================================
@@ -823,9 +723,7 @@ export function createFormRequest(
   options: HttpRequestOptions = {},
 ): Request {
   const headers =
-    new Headers(
-      options.headers,
-    );
+    new Headers(options.headers);
 
   headers.set(
     REQUEST_HEADERS.CONTENT_TYPE,
@@ -833,35 +731,26 @@ export function createFormRequest(
   );
 
   const signal =
-    shouldUseTimeout(
-      options.timeoutMs,
-    )
+    shouldUseTimeout(options.timeoutMs)
       ? createTimeoutSignal(
           options.timeoutMs as number,
           options.signal,
         )
       : options.signal;
 
-  return new Request(
-    url,
-    {
-      method: normalizeMethod(
-        options.method ??
-          "POST",
-      ),
-      headers,
-      body: form,
-      signal,
-      cache:
-        options.cache,
-      credentials:
-        options.credentials,
-      redirect:
-        options.redirect,
-      referrerPolicy:
-        options.referrerPolicy,
-    },
-  );
+  return new Request(url, {
+    method: normalizeMethod(
+      options.method ?? "POST",
+    ),
+    headers,
+    body: form,
+    signal,
+    cache: options.cache,
+    credentials: options.credentials,
+    redirect: options.redirect,
+    referrerPolicy:
+      options.referrerPolicy,
+  });
 }
 
 export function createUrlEncodedForm(
@@ -878,10 +767,7 @@ export function createUrlEncodedForm(
     new URLSearchParams();
 
   for (
-    const [
-      key,
-      value,
-    ] of Object.entries(
+    const [key, value] of Object.entries(
       values,
     )
   ) {
@@ -892,10 +778,7 @@ export function createUrlEncodedForm(
       continue;
     }
 
-    form.set(
-      key,
-      String(value),
-    );
+    form.set(key, String(value));
   }
 
   return form;
@@ -923,41 +806,25 @@ export class HttpError
   ) {
     super(message);
 
-    this.name =
-      "HttpError";
-
-    this.status =
-      status;
-
-    this.statusText =
-      statusText;
-
-    this.url =
-      url;
-
-    this.response =
-      response;
-
-    this.data =
-      data;
+    this.name = "HttpError";
+    this.status = status;
+    this.statusText = statusText;
+    this.url = url;
+    this.response = response;
+    this.data = data;
   }
 }
 
 export function isHttpError(
   error: unknown,
 ): error is HttpError {
-  return (
-    error instanceof
-    HttpError
-  );
+  return error instanceof HttpError;
 }
 
 export function getHttpErrorStatus(
   error: unknown,
 ): number | null {
-  return isHttpError(
-    error,
-  )
+  return isHttpError(error)
     ? error.status
     : null;
 }
@@ -985,13 +852,9 @@ export async function parseResponseBody<
     return undefined as T;
   }
 
-  if (
-    isJsonResponse(response)
-  ) {
+  if (isJsonResponse(response)) {
     try {
-      return JSON.parse(
-        text,
-      ) as T;
+      return JSON.parse(text) as T;
     } catch {
       return text as T;
     }
@@ -1018,9 +881,7 @@ export async function parseResponseJson<
     return null;
   }
 
-  return safeJsonParse<T>(
-    text,
-  );
+  return safeJsonParse<T>(text);
 }
 
 export async function parseResponseBinary(
@@ -1037,26 +898,13 @@ export function getResponseMetadata(
   response: Response,
 ): HttpResponseMetadata {
   return {
-    status:
-      response.status,
-    statusText:
-      response.statusText,
-    ok:
-      response.ok,
-    url:
-      response.url,
-    contentType:
-      getContentType(
-        response,
-      ),
-    requestId:
-      getRequestId(
-        response,
-      ),
-    etag:
-      getEtag(
-        response,
-      ),
+    status: response.status,
+    statusText: response.statusText,
+    ok: response.ok,
+    url: response.url,
+    contentType: getContentType(response),
+    requestId: getRequestId(response),
+    etag: getEtag(response),
   };
 }
 
@@ -1068,9 +916,7 @@ export async function httpRequestDetailed<
     | URL
     | Request,
   options: HttpRequestOptions = {},
-): Promise<
-  HttpRequestResult<T>
-> {
+): Promise<HttpRequestResult<T>> {
   const result =
     await httpRequest<T>(
       input,
@@ -1092,18 +938,14 @@ export async function httpRequestDetailed<
 
 export function extractErrorMessage(
   data: unknown,
-  fallback =
-    "HTTP request failed",
+  fallback = "HTTP request failed",
 ): string {
   if (
     data &&
     typeof data === "object"
   ) {
     const value =
-      data as Record<
-        string,
-        unknown
-      >;
+      data as Record<string, unknown>;
 
     if (
       typeof value.message ===
@@ -1156,8 +998,7 @@ export function extractErrorMessage(
   }
 
   if (
-    typeof data ===
-      "string" &&
+    typeof data === "string" &&
     data.trim()
   ) {
     return data;
@@ -1179,29 +1020,21 @@ export async function httpRequest<
     | Request,
   options: HttpRequestOptions = {},
 ): Promise<HttpResponse<T>> {
-  let signal =
-    options.signal;
+  const signal =
+    shouldUseTimeout(options.timeoutMs)
+      ? createTimeoutSignal(
+          options.timeoutMs as number,
+          options.signal,
+        )
+      : options.signal;
+
+  let requestInput: unknown;
+  let fetchInit:
+    | RequestInit
+    | undefined;
 
   if (
-    shouldUseTimeout(
-      options.timeoutMs,
-    )
-  ) {
-    signal =
-      createTimeoutSignal(
-        options.timeoutMs as number,
-        options.signal,
-      );
-  }
-
-  let requestInput:
-    | string
-    | URL
-    | unknown;
-
-  if (
-    typeof input ===
-    "string"
+    typeof input === "string"
   ) {
     requestInput =
       createHttpRequest(
@@ -1223,20 +1056,22 @@ export async function httpRequest<
         },
       );
   } else {
-    requestInput =
-      input;
+    requestInput = input;
+
+    if (
+      signal !== options.signal &&
+      signal !== undefined
+    ) {
+      fetchInit = {
+        signal,
+      };
+    }
   }
 
   const response =
     await executeFetch(
       requestInput,
-      input instanceof URL ||
-      typeof input === "string" ||
-      signal === options.signal
-        ? undefined
-        : {
-            signal,
-          },
+      fetchInit,
     );
 
   const data =
@@ -1320,6 +1155,15 @@ export function isNotFound(
   );
 }
 
+export function isNoContent(
+  response: Response,
+): boolean {
+  return (
+    response.status ===
+    HTTP_STATUS.NO_CONTENT
+  );
+}
+
 // ============================================================
 // REQUIRE SUCCESS
 // ============================================================
@@ -1329,9 +1173,7 @@ export async function requireSuccessful<
 >(
   result: HttpResponse<T>,
 ): Promise<T> {
-  if (
-    !result.response.ok
-  ) {
+  if (!result.response.ok) {
     throw new HttpError(
       extractErrorMessage(
         result.data,
@@ -1352,12 +1194,8 @@ export async function requireResponse<
   T,
 >(
   result: HttpResponse<T>,
-): Promise<
-  HttpResponse<T>
-> {
-  if (
-    !result.response.ok
-  ) {
+): Promise<HttpResponse<T>> {
+  if (!result.response.ok) {
     throw new HttpError(
       extractErrorMessage(
         result.data,
@@ -1380,10 +1218,8 @@ export async function requireResponse<
 
 export function getRetryDelay(
   attempt: number,
-  delayMs =
-    DEFAULT_RETRY_DELAY_MS,
-  maxDelayMs =
-    DEFAULT_RETRY_MAX_DELAY_MS,
+  delayMs = DEFAULT_RETRY_DELAY_MS,
+  maxDelayMs = DEFAULT_RETRY_MAX_DELAY_MS,
 ): number {
   const safeAttempt =
     Math.max(
@@ -1392,19 +1228,12 @@ export function getRetryDelay(
     );
 
   const safeDelay =
-    Number.isFinite(
-      delayMs,
-    )
-      ? Math.max(
-          0,
-          delayMs,
-        )
+    Number.isFinite(delayMs)
+      ? Math.max(0, delayMs)
       : DEFAULT_RETRY_DELAY_MS;
 
   const safeMax =
-    Number.isFinite(
-      maxDelayMs,
-    )
+    Number.isFinite(maxDelayMs)
       ? Math.max(
           safeDelay,
           maxDelayMs,
@@ -1431,9 +1260,7 @@ export function shouldRetryStatus(
     statusCodes ??
     DEFAULT_RETRY_STATUS_CODES;
 
-  return codes.includes(
-    status,
-  );
+  return codes.includes(status);
 }
 
 // ============================================================
@@ -1452,8 +1279,7 @@ export async function fetchJson<
   const retries =
     Math.max(
       0,
-      options.retries ??
-        0,
+      options.retries ?? 0,
     );
 
   const retryStatusCodes =
@@ -1464,8 +1290,7 @@ export async function fetchJson<
     options.retryOnNetworkError ??
     true;
 
-  let lastError:
-    unknown;
+  let lastError: unknown;
 
   for (
     let attempt = 0;
@@ -1473,14 +1298,13 @@ export async function fetchJson<
     attempt++
   ) {
     try {
-      let requestInput:
-        | string
-        | URL
-        | unknown;
+      let requestInput: unknown;
+      let fetchInit:
+        | RequestInit
+        | undefined;
 
       if (
-        typeof input ===
-        "string"
+        typeof input === "string"
       ) {
         requestInput =
           createJsonRequest(
@@ -1496,13 +1320,40 @@ export async function fetchJson<
             options,
           );
       } else {
-        requestInput =
-          input;
+        requestInput = input;
+
+        if (
+          options.signal !==
+            undefined &&
+          !shouldUseTimeout(
+            options.timeoutMs,
+          )
+        ) {
+          fetchInit = {
+            signal:
+              options.signal,
+          };
+        }
+
+        if (
+          shouldUseTimeout(
+            options.timeoutMs,
+          )
+        ) {
+          fetchInit = {
+            signal:
+              createTimeoutSignal(
+                options.timeoutMs as number,
+                options.signal,
+              ),
+          };
+        }
       }
 
       const response =
         await executeFetch(
           requestInput,
+          fetchInit,
         );
 
       const data =
@@ -1510,9 +1361,7 @@ export async function fetchJson<
           response,
         );
 
-      if (
-        response.ok
-      ) {
+      if (response.ok) {
         return data;
       }
 
@@ -1529,8 +1378,7 @@ export async function fetchJson<
           data,
         );
 
-      lastError =
-        error;
+      lastError = error;
 
       const canRetry =
         attempt < retries &&
@@ -1542,11 +1390,8 @@ export async function fetchJson<
       if (!canRetry) {
         throw error;
       }
-    } catch (
-      error
-    ) {
-      lastError =
-        error;
+    } catch (error) {
+      lastError = error;
 
       const canRetryNetwork =
         !isHttpError(error) &&
@@ -1591,17 +1436,14 @@ export async function fetchJsonResponse<
     | URL
     | Request,
   options: FetchJsonOptions = {},
-): Promise<
-  HttpResponse<T>
-> {
-  let requestInput:
-    | string
-    | URL
-    | unknown;
+): Promise<HttpResponse<T>> {
+  let requestInput: unknown;
+  let fetchInit:
+    | RequestInit
+    | undefined;
 
   if (
-    typeof input ===
-    "string"
+    typeof input === "string"
   ) {
     requestInput =
       createJsonRequest(
@@ -1617,13 +1459,36 @@ export async function fetchJsonResponse<
         options,
       );
   } else {
-    requestInput =
-      input;
+    requestInput = input;
+
+    if (
+      options.signal !==
+      undefined
+    ) {
+      fetchInit = {
+        signal: options.signal,
+      };
+    }
+
+    if (
+      shouldUseTimeout(
+        options.timeoutMs,
+      )
+    ) {
+      fetchInit = {
+        signal:
+          createTimeoutSignal(
+            options.timeoutMs as number,
+            options.signal,
+          ),
+      };
+    }
   }
 
   const response =
     await executeFetch(
       requestInput,
+      fetchInit,
     );
 
   const data =
@@ -1771,9 +1636,7 @@ export async function httpHead(
       },
     );
 
-  return executeFetch(
-    request,
-  );
+  return executeFetch(request);
 }
 
 // ============================================================
@@ -1785,15 +1648,10 @@ export function appendQuery(
   params: QueryParams,
 ): string {
   const target =
-    new URL(
-      url.toString(),
-    );
+    new URL(url.toString());
 
   for (
-    const [
-      key,
-      value,
-    ] of Object.entries(
+    const [key, value] of Object.entries(
       params,
     )
   ) {
@@ -1804,16 +1662,10 @@ export function appendQuery(
       continue;
     }
 
-    if (
-      Array.isArray(value)
-    ) {
-      target.searchParams.delete(
-        key,
-      );
+    if (Array.isArray(value)) {
+      target.searchParams.delete(key);
 
-      for (
-        const item of value
-      ) {
+      for (const item of value) {
         if (
           item === null ||
           item === undefined
@@ -1846,10 +1698,7 @@ export function buildQueryString(
     new URLSearchParams();
 
   for (
-    const [
-      key,
-      value,
-    ] of Object.entries(
+    const [key, value] of Object.entries(
       params,
     )
   ) {
@@ -1860,12 +1709,8 @@ export function buildQueryString(
       continue;
     }
 
-    if (
-      Array.isArray(value)
-    ) {
-      for (
-        const item of value
-      ) {
+    if (Array.isArray(value)) {
+      for (const item of value) {
         if (
           item === null ||
           item === undefined
@@ -1897,9 +1742,7 @@ export function hasQueryParameter(
 ): boolean {
   return new URL(
     url.toString(),
-  ).searchParams.has(
-    key,
-  );
+  ).searchParams.has(key);
 }
 
 export function getQueryParameter(
@@ -1908,9 +1751,7 @@ export function getQueryParameter(
 ): string | null {
   return new URL(
     url.toString(),
-  ).searchParams.get(
-    key,
-  );
+  ).searchParams.get(key);
 }
 
 export function removeQueryParameter(
@@ -1918,13 +1759,39 @@ export function removeQueryParameter(
   key: string,
 ): string {
   const target =
-    new URL(
-      url.toString(),
-    );
+    new URL(url.toString());
 
-  target.searchParams.delete(
+  target.searchParams.delete(key);
+
+  return target.toString();
+}
+
+export function setQueryParameter(
+  url: string | URL,
+  key: string,
+  value: string | number | boolean,
+): string {
+  const target =
+    new URL(url.toString());
+
+  target.searchParams.set(
     key,
+    String(value),
   );
+
+  return target.toString();
+}
+
+export function removeQueryParameters(
+  url: string | URL,
+  keys: readonly string[],
+): string {
+  const target =
+    new URL(url.toString());
+
+  for (const key of keys) {
+    target.searchParams.delete(key);
+  }
 
   return target.toString();
 }
@@ -1976,6 +1843,41 @@ export function getUrlSearch(
   ).search;
 }
 
+export function getUrlHash(
+  url: string | URL,
+): string {
+  return new URL(
+    url.toString(),
+  ).hash;
+}
+
+export function getUrlHostname(
+  url: string | URL,
+): string {
+  return new URL(
+    url.toString(),
+  ).hostname;
+}
+
+export function joinUrl(
+  base: string | URL,
+  path: string,
+): string {
+  const baseUrl =
+    new URL(base.toString());
+
+  const cleanPath =
+    path.replace(/^\/+/, "");
+
+  return new URL(
+    cleanPath,
+    baseUrl.toString().replace(
+      /\/?$/,
+      "/",
+    ),
+  ).toString();
+}
+
 // ============================================================
 // SLEEP
 // ============================================================
@@ -1984,9 +1886,7 @@ export function sleep(
   milliseconds: number,
 ): Promise<void> {
   return new Promise(
-    (
-      resolve,
-    ) =>
+    (resolve) =>
       setTimeout(
         resolve,
         Math.max(
@@ -2024,8 +1924,7 @@ export async function withRetry<
     options.maxDelayMs ??
     DEFAULT_RETRY_MAX_DELAY_MS;
 
-  let lastError:
-    unknown;
+  let lastError: unknown;
 
   for (
     let attempt = 0;
@@ -2036,11 +1935,8 @@ export async function withRetry<
       return await operation(
         attempt,
       );
-    } catch (
-      error
-    ) {
-      lastError =
-        error;
+    } catch (error) {
+      lastError = error;
 
       if (
         attempt >= retries
@@ -2149,6 +2045,40 @@ export function setNoStore(
   );
 }
 
+export function setPrivateCache(
+  headers: Headers,
+): Headers {
+  return setCacheControl(
+    headers,
+    "private",
+  );
+}
+
+export function setPublicCache(
+  headers: Headers,
+  maxAgeSeconds?: number,
+): Headers {
+  const maxAge =
+    typeof maxAgeSeconds === "number" &&
+    Number.isFinite(
+      maxAgeSeconds,
+    )
+      ? Math.max(
+          0,
+          Math.floor(
+            maxAgeSeconds,
+          ),
+        )
+      : undefined;
+
+  return setCacheControl(
+    headers,
+    maxAge === undefined
+      ? "public"
+      : `public, max-age=${maxAge}`,
+  );
+}
+
 // ============================================================
 // AUTHORIZATION
 // ============================================================
@@ -2165,9 +2095,7 @@ export function setBearerAuthorization(
 ): Headers {
   headers.set(
     REQUEST_HEADERS.AUTHORIZATION,
-    createBearerToken(
-      token,
-    ),
+    createBearerToken(token),
   );
 
   return headers;
@@ -2183,6 +2111,14 @@ export function removeAuthorization(
   return headers;
 }
 
+export function hasAuthorization(
+  headers: Headers,
+): boolean {
+  return headers.has(
+    REQUEST_HEADERS.AUTHORIZATION,
+  );
+}
+
 // ============================================================
 // API HEADERS
 // ============================================================
@@ -2191,67 +2127,51 @@ export function createApiHeaders(
   options: ApiRequestOptions = {},
 ): Headers {
   const headers =
-    setJsonHeaders(
-      options.headers,
-    );
+    setJsonHeaders(options.headers);
 
-  if (
-    options.token
-  ) {
+  if (options.token) {
     setBearerAuthorization(
       headers,
       options.token,
     );
   }
 
-  if (
-    options.requestId
-  ) {
+  if (options.requestId) {
     setRequestId(
       headers,
       options.requestId,
     );
   }
 
-  if (
-    options.visitorId
-  ) {
+  if (options.visitorId) {
     setVisitorId(
       headers,
       options.visitorId,
     );
   }
 
-  if (
-    options.sessionId
-  ) {
+  if (options.sessionId) {
     setSessionId(
       headers,
       options.sessionId,
     );
   }
 
-  if (
-    options.adminSession
-  ) {
+  if (options.adminSession) {
     setAdminSession(
       headers,
       options.adminSession,
     );
   }
 
-  if (
-    options.csrfToken
-  ) {
+  if (options.csrfToken) {
     setCsrfToken(
       headers,
       options.csrfToken,
     );
   }
 
-  if (
-    options.clientVersion
-  ) {
+  if (options.clientVersion) {
     setClientVersion(
       headers,
       options.clientVersion,
@@ -2272,9 +2192,7 @@ export async function apiRequest<
   options: ApiRequestOptions = {},
 ): Promise<T> {
   const headers =
-    createApiHeaders(
-      options,
-    );
+    createApiHeaders(options);
 
   return fetchJson<T>(
     url,
@@ -2345,3 +2263,117 @@ export async function apiPut<
 
 export async function apiPatch<
   T = unknown,
+>(
+  url: string | URL,
+  body?: unknown,
+  options: Omit<
+    ApiRequestOptions,
+    "method" | "body"
+  > = {},
+): Promise<T> {
+  return apiRequest<T>(
+    url,
+    {
+      ...options,
+      method: "PATCH",
+      body,
+    },
+  );
+}
+
+export async function apiDelete<
+  T = unknown,
+>(
+  url: string | URL,
+  options: Omit<
+    ApiRequestOptions,
+    "method" | "body"
+  > = {},
+): Promise<T> {
+  return apiRequest<T>(
+    url,
+    {
+      ...options,
+      method: "DELETE",
+    },
+  );
+}
+
+export async function apiOptions<
+  T = unknown,
+>(
+  url: string | URL,
+  options: Omit<
+    ApiRequestOptions,
+    "method" | "body"
+  > = {},
+): Promise<T> {
+  return apiRequest<T>(
+    url,
+    {
+      ...options,
+      method: "OPTIONS",
+    },
+  );
+}
+
+export async function apiHead(
+  url: string | URL,
+  options: Omit<
+    ApiRequestOptions,
+    "method" | "body"
+  > = {},
+): Promise<Response> {
+  const headers =
+    createApiHeaders(options);
+
+  const request =
+    createJsonRequest(
+      url,
+      {
+        ...options,
+        headers,
+        method: "HEAD",
+      },
+    );
+
+  return executeFetch(request);
+}
+
+// ============================================================
+// CONVENIENCE RESPONSE HELPERS
+// ============================================================
+
+export function getResponseStatus(
+  response: Response,
+): number {
+  return response.status;
+}
+
+export function getResponseStatusText(
+  response: Response,
+): string {
+  return response.statusText;
+}
+
+export function getResponseUrl(
+  response: Response,
+): string {
+  return response.url;
+}
+
+export function isEmptyResponse(
+  response: Response,
+): boolean {
+  return (
+    response.status ===
+      HTTP_STATUS.NO_CONTENT ||
+    response.headers.get(
+      REQUEST_HEADERS.CONTENT_LENGTH,
+    ) === "0"
+  );
+}
+
+// ============================================================
+// END
+// ============================================================
