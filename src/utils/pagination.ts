@@ -1,6 +1,11 @@
+/* ============================================================
+   TAJIK OPPORTUNITIES
+   PAGINATION UTILITY
+   ============================================================ */
+
 export interface PaginationOptions {
-  page?: number;
-  limit?: number;
+  page?: number | string | null;
+  limit?: number | string | null;
   defaultLimit?: number;
   maxLimit?: number;
 }
@@ -14,9 +19,9 @@ export interface Pagination {
 export interface PaginationMeta {
   page: number;
   limit: number;
-  total: number;
-  totalPages: number;
   offset: number;
+  total: number | string;
+  totalPages: number;
   hasNext: boolean;
   hasPrevious: boolean;
   nextPage: number | null;
@@ -24,81 +29,73 @@ export interface PaginationMeta {
 }
 
 export interface PaginatedResult<T> {
-  data: T[];
+  items: T[];
+  data?: T[];
   pagination: PaginationMeta;
 }
 
-export interface PaginationQuery {
-  page: number;
-  limit: number;
-  offset: number;
-}
-
-export const DEFAULT_PAGINATION = {
-  page: 1,
-  limit: 20,
-  maxLimit: 100,
-} as const;
-
-function toPositiveInteger(
+function safeInteger(
   value: unknown,
   fallback: number,
 ): number {
-  const number =
+  const n =
     typeof value === "number"
       ? value
       : Number(value);
 
-  if (!Number.isFinite(number)) {
+  if (!Number.isFinite(n)) {
     return fallback;
   }
 
-  const integer = Math.floor(number);
-
-  return integer > 0
-    ? integer
-    : fallback;
+  return Math.max(
+    0,
+    Math.floor(n),
+  );
 }
 
 export function normalizePage(
   page: unknown,
-  fallback = DEFAULT_PAGINATION.page,
 ): number {
-  return toPositiveInteger(
-    page,
-    fallback,
+  return Math.max(
+    1,
+    safeInteger(page, 1),
   );
 }
 
 export function normalizeLimit(
   limit: unknown,
-  fallback = DEFAULT_PAGINATION.limit,
-  max = DEFAULT_PAGINATION.maxLimit,
+  defaultLimit = 20,
+  maxLimit = 100,
 ): number {
-  const normalized = toPositiveInteger(
-    limit,
-    fallback,
-  );
+  const normalized =
+    safeInteger(
+      limit,
+      defaultLimit,
+    );
 
   return Math.min(
-    normalized,
-    Math.max(1, max),
+    Math.max(1, normalized),
+    Math.max(1, maxLimit),
   );
 }
 
-export function createPagination(
+export function getPagination(
   options: PaginationOptions = {},
 ): Pagination {
+  const defaultLimit =
+    options.defaultLimit ?? 20;
+
+  const maxLimit =
+    options.maxLimit ?? 100;
+
   const page = normalizePage(
     options.page,
   );
 
   const limit = normalizeLimit(
     options.limit,
-    options.defaultLimit ??
-      DEFAULT_PAGINATION.limit,
-    options.maxLimit ??
-      DEFAULT_PAGINATION.maxLimit,
+    defaultLimit,
+    maxLimit,
   );
 
   return {
@@ -108,44 +105,41 @@ export function createPagination(
   };
 }
 
-export function createPaginationFromQuery(
-  query: URLSearchParams | Record<string, unknown>,
-  options: PaginationOptions = {},
-): PaginationQuery {
-  let page: unknown;
-  let limit: unknown;
-
-  if (query instanceof URLSearchParams) {
-    page = query.get("page");
-    limit =
-      query.get("limit") ??
-      query.get("per_page") ??
-      query.get("perPage");
-  } else {
-    page = query.page;
-
-    limit =
-      query.limit ??
-      query.per_page ??
-      query.perPage;
-  }
-
-  return createPagination({
-    ...options,
-    page,
-    limit,
+export function parsePagination(
+  page?: unknown,
+  limit?: unknown,
+  defaultLimit = 20,
+  maxLimit = 100,
+): Pagination {
+  return getPagination({
+    page: page as
+      | number
+      | string
+      | null
+      | undefined,
+    limit: limit as
+      | number
+      | string
+      | null
+      | undefined,
+    defaultLimit,
+    maxLimit,
   });
 }
 
-export function getOffset(
-  page: number,
-  limit: number,
+export function calculateOffset(
+  page: unknown,
+  limit: unknown,
 ): number {
   const normalizedPage =
     normalizePage(page);
 
   const normalizedLimit =
-    normalizeLimit(limit);
+    normalizeLimit(
+      limit,
+      20,
+      100,
+    );
 
   return (
     (normalizedPage - 1) *
@@ -153,529 +147,149 @@ export function getOffset(
   );
 }
 
-export function getTotalPages(
-  total: number,
+export function calculateTotalPages(
+  total: number | string | bigint,
   limit: number,
 ): number {
-  const safeTotal =
-    Number.isFinite(total) &&
-    total > 0
-      ? Math.floor(total)
-      : 0;
+  const totalNumber =
+    typeof total === "bigint"
+      ? Number(total)
+      : Number(total);
 
-  const safeLimit =
-    normalizeLimit(limit);
+  if (
+    !Number.isFinite(totalNumber) ||
+    totalNumber <= 0 ||
+    limit <= 0
+  ) {
+    return 0;
+  }
 
-  return Math.max(
-    1,
-    Math.ceil(
-      safeTotal / safeLimit,
-    ),
+  return Math.ceil(
+    totalNumber / limit,
   );
 }
 
 export function createPaginationMeta(
-  total: number,
+  total: number | string | bigint,
   pagination: Pagination,
 ): PaginationMeta {
-  const safeTotal =
-    Number.isFinite(total) &&
-    total >= 0
-      ? Math.floor(total)
-      : 0;
-
   const totalPages =
-    safeTotal === 0
-      ? 0
-      : Math.ceil(
-          safeTotal /
-            pagination.limit,
-        );
-
-  const hasNext =
-    pagination.page <
-    totalPages;
-
-  const hasPrevious =
-    pagination.page > 1 &&
-    totalPages > 0;
+    calculateTotalPages(
+      total,
+      pagination.limit,
+    );
 
   return {
     page: pagination.page,
     limit: pagination.limit,
-    total: safeTotal,
-    totalPages,
     offset: pagination.offset,
-    hasNext,
-    hasPrevious,
-    nextPage: hasNext
-      ? pagination.page + 1
-      : null,
-    previousPage: hasPrevious
-      ? pagination.page - 1
-      : null,
-  };
-}
-
-export function paginateArray<T>(
-  items: readonly T[],
-  pagination: Pagination,
-): PaginatedResult<T> {
-  const total = items.length;
-
-  const data = items.slice(
-    pagination.offset,
-    pagination.offset +
-      pagination.limit,
-  );
-
-  return {
-    data,
-    pagination:
-      createPaginationMeta(
-        total,
-        pagination,
-      ),
-  };
-}
-
-export function paginate<T>(
-  items: readonly T[],
-  options: PaginationOptions = {},
-): PaginatedResult<T> {
-  const pagination =
-    createPagination(options);
-
-  return paginateArray(
-    items,
-    pagination,
-  );
-}
-
-export function getPageRange(
-  currentPage: number,
-  totalPages: number,
-  maxVisible = 7,
-): number[] {
-  const current =
-    normalizePage(currentPage);
-
-  const total =
-    Math.max(
-      0,
-      Math.floor(totalPages),
-    );
-
-  if (total === 0) {
-    return [];
-  }
-
-  if (total <= maxVisible) {
-    return Array.from(
-      { length: total },
-      (_, index) => index + 1,
-    );
-  }
-
-  const visible =
-    Math.max(3, Math.floor(maxVisible));
-
-  const half =
-    Math.floor(visible / 2);
-
-  let start =
-    current - half;
-
-  let end =
-    current + half;
-
-  if (start < 1) {
-    start = 1;
-    end = visible;
-  }
-
-  if (end > total) {
-    end = total;
-    start =
-      Math.max(
-        1,
-        total - visible + 1,
-      );
-  }
-
-  return Array.from(
-    {
-      length:
-        end - start + 1,
-    },
-    (_, index) =>
-      start + index,
-  );
-}
-
-export function hasNextPage(
-  page: number,
-  totalPages: number,
-): boolean {
-  return (
-    normalizePage(page) <
-    Math.max(
-      0,
-      Math.floor(totalPages),
-    )
-  );
-}
-
-export function hasPreviousPage(
-  page: number,
-): boolean {
-  return normalizePage(page) > 1;
-}
-
-export function nextPage(
-  page: number,
-  totalPages: number,
-): number | null {
-  return hasNextPage(
-    page,
+    total:
+      typeof total === "bigint"
+        ? total.toString()
+        : total,
     totalPages,
-  )
-    ? normalizePage(page) + 1
-    : null;
-}
-
-export function previousPage(
-  page: number,
-): number | null {
-  const normalized =
-    normalizePage(page);
-
-  return normalized > 1
-    ? normalized - 1
-    : null;
-}
-
-export function firstPage(): number {
-  return 1;
-}
-
-export function lastPage(
-  totalPages: number,
-): number {
-  return Math.max(
-    1,
-    Math.floor(totalPages),
-  );
-}
-
-export function clampPage(
-  page: number,
-  totalPages: number,
-): number {
-  const normalizedTotal =
-    Math.max(
-      1,
-      Math.floor(totalPages),
-    );
-
-  return Math.min(
-    normalizePage(page),
-    normalizedTotal,
-  );
-}
-
-export function normalizePagination(
-  page: unknown,
-  limit: unknown,
-  options: PaginationOptions = {},
-): Pagination {
-  return createPagination({
-    ...options,
-    page,
-    limit,
-  });
-}
-
-export function parsePaginationQuery(
-  request: Request,
-  options: PaginationOptions = {},
-): PaginationQuery {
-  const url =
-    new URL(request.url);
-
-  return createPaginationFromQuery(
-    url.searchParams,
-    options,
-  );
-}
-
-export function paginationSql(
-  pagination: Pagination,
-): {
-  limit: number;
-  offset: number;
-} {
-  return {
-    limit: pagination.limit,
-    offset: pagination.offset,
-  };
-}
-
-export function paginationParams(
-  pagination: Pagination,
-): [number, number] {
-  return [
-    pagination.limit,
-    pagination.offset,
-  ];
-}
-
-export function getPaginationSummary(
-  pagination: PaginationMeta,
-): string {
-  if (pagination.total === 0) {
-    return "Нет результатов";
-  }
-
-  const start =
-    pagination.offset + 1;
-
-  const end = Math.min(
-    pagination.offset +
-      pagination.limit,
-    pagination.total,
-  );
-
-  return `${start}-${end} из ${pagination.total}`;
-}
-
-export function getPaginationSummaryObject(
-  pagination: PaginationMeta,
-): {
-  from: number;
-  to: number;
-  total: number;
-} {
-  if (pagination.total === 0) {
-    return {
-      from: 0,
-      to: 0,
-      total: 0,
-    };
-  }
-
-  return {
-    from: pagination.offset + 1,
-    to: Math.min(
-      pagination.offset +
-        pagination.limit,
-      pagination.total,
-    ),
-    total: pagination.total,
-  };
-}
-
-export function isValidPagination(
-  pagination: Pagination,
-): boolean {
-  return (
-    Number.isSafeInteger(
-      pagination.page,
-    ) &&
-    pagination.page >= 1 &&
-    Number.isSafeInteger(
-      pagination.limit,
-    ) &&
-    pagination.limit >= 1 &&
-    Number.isSafeInteger(
-      pagination.offset,
-    ) &&
-    pagination.offset >= 0
-  );
-}
-
-export function assertValidPagination(
-  pagination: Pagination,
-): void {
-  if (
-    !isValidPagination(
-      pagination,
-    )
-  ) {
-    throw new Error(
-      "Invalid pagination parameters.",
-    );
-  }
-}
-
-export function buildPaginationLinks(
-  baseUrl: string,
-  pagination: PaginationMeta,
-): {
-  first: string;
-  last: string;
-  next: string | null;
-  previous: string | null;
-} {
-  const build = (
-    page: number,
-  ): string => {
-    const url =
-      new URL(baseUrl);
-
-    url.searchParams.set(
-      "page",
-      String(page),
-    );
-
-    url.searchParams.set(
-      "limit",
-      String(pagination.limit),
-    );
-
-    return url.toString();
-  };
-
-  return {
-    first: build(1),
-
-    last: build(
-      Math.max(
-        1,
-        pagination.totalPages,
-      ),
-    ),
-
-    next: pagination.nextPage
-      ? build(
-          pagination.nextPage,
-        )
-      : null,
-
-    previous:
-      pagination.previousPage
-        ? build(
-            pagination.previousPage,
-          )
+    hasNext:
+      pagination.page < totalPages,
+    hasPrevious:
+      pagination.page > 1 &&
+      totalPages > 0,
+    nextPage:
+      pagination.page < totalPages
+        ? pagination.page + 1
+        : null,
+    previousPage:
+      pagination.page > 1
+        ? pagination.page - 1
         : null,
   };
 }
 
-export function mergePaginationMeta(
-  current: PaginationMeta,
-  updates: Partial<PaginationMeta>,
-): PaginationMeta {
-  return {
-    ...current,
-    ...updates,
-  };
-}
-
-export function mapPaginatedResult<
-  T,
-  U,
->(
-  result: PaginatedResult<T>,
-  mapper: (item: T, index: number) => U,
-): PaginatedResult<U> {
-  return {
-    data: result.data.map(
-      mapper,
-    ),
-    pagination:
-      result.pagination,
-  };
-}
-
-export function emptyPaginatedResult<
-  T = never,
->(
-  limit = DEFAULT_PAGINATION.limit,
+export function paginate<T>(
+  items: T[],
+  total: number | string | bigint,
+  pagination: Pagination,
 ): PaginatedResult<T> {
-  const pagination =
-    createPagination({
-      page: 1,
-      limit,
-    });
+  const meta =
+    createPaginationMeta(
+      total,
+      pagination,
+    );
 
   return {
-    data: [],
-    pagination:
-      createPaginationMeta(
-        0,
-        pagination,
-      ),
+    items,
+    data: items,
+    pagination: meta,
   };
 }
 
-export function paginationFromTotal(
-  total: number,
-  page: number,
-  limit: number,
-): PaginationMeta {
-  return createPaginationMeta(
-    total,
-    createPagination({
-      page,
-      limit,
-    }),
-  );
-}
-
-export function getPageStart(
-  page: number,
-  limit: number,
+export function getPageFromRequest(
+  request: Request,
+  defaultPage = 1,
 ): number {
-  return (
-    (normalizePage(page) - 1) *
-    normalizeLimit(limit)
-  );
-}
+  try {
+    const url =
+      new URL(request.url);
 
-export function getPageEnd(
-  page: number,
-  limit: number,
-  total: number,
-): number {
-  const start =
-    getPageStart(
-      page,
-      limit,
+    return normalizePage(
+      url.searchParams.get("page") ??
+        defaultPage,
     );
-
-  return Math.min(
-    start +
-      normalizeLimit(limit),
-    Math.max(
-      0,
-      Math.floor(total),
-    ),
-  );
-}
-
-export function getItemsOnPage(
-  page: number,
-  limit: number,
-  total: number,
-): number {
-  const start =
-    getPageStart(
-      page,
-      limit,
-    );
-
-  const safeTotal =
-    Math.max(
-      0,
-      Math.floor(total),
-    );
-
-  if (start >= safeTotal) {
-    return 0;
+  } catch {
+    return defaultPage;
   }
+}
 
-  return Math.min(
-    normalizeLimit(limit),
-    safeTotal - start,
+export function getLimitFromRequest(
+  request: Request,
+  defaultLimit = 20,
+  maxLimit = 100,
+): number {
+  try {
+    const url =
+      new URL(request.url);
+
+    return normalizeLimit(
+      url.searchParams.get("limit"),
+      defaultLimit,
+      maxLimit,
+    );
+  } catch {
+    return defaultLimit;
+  }
+}
+
+export function paginationFromRequest(
+  request: Request,
+  defaultLimit = 20,
+  maxLimit = 100,
+): Pagination {
+  return getPagination({
+    page: getPageFromRequest(request),
+    limit: getLimitFromRequest(
+      request,
+      defaultLimit,
+      maxLimit,
+    ),
+    defaultLimit,
+    maxLimit,
+  });
+}
+
+export function buildPaginationQuery(
+  pagination: Pagination,
+): string {
+  const params =
+    new URLSearchParams();
+
+  params.set(
+    "page",
+    String(pagination.page),
   );
+
+  params.set(
+    "limit",
+    String(pagination.limit),
+  );
+
+  return params.toString();
 }
