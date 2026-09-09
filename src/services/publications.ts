@@ -1,232 +1,364 @@
+// ============================================================
+// 🇹🇯 TAJIK OPPORTUNITIES
+// Publication Service
+// File: src/services/publications.ts
+// Version: 2026.09.09
+//
+// Полноценное управление публикациями:
+// • FREE / PREMIUM / VIP / CUSTOM
+// • модерация
+// • публичные номера /1 /2 /3...
+// • админские override
+// • закрепление / TOP / FEATURED
+// • автоудаление
+// • редактирование
+// • история
+// • медиа
+// • комментарии / реакции / отзывы / Share
+// • огромные счётчики через TEXT
+// • метрики
+// • поиск
+// ============================================================
+
 import type { Env } from "../index";
 import {
-  decimalAdd,
-  decimalSubtract,
+  generateId,
+  generatePublicationId,
+  generatePublicationNumber,
+} from "../utils/id";
+import {
+  addDecimalStrings,
+  compareDecimalStrings,
   normalizeDecimalString,
 } from "../utils/number";
 import {
   normalizePublicationNumber,
+  normalizePublicationId,
   nextPublicationNumber,
+  publicationUrl,
 } from "../utils/publication";
 
+
 // ============================================================
-// TAJIK OPPORTUNITIES
-// PUBLICATION SERVICE
-// Version: 2026.09.09 POWER PRODUCTION
+// TYPES
 // ============================================================
 
 export type PublicationType =
-  | "free"
-  | "premium"
-  | "vip"
-  | "custom";
+  | "FREE"
+  | "PREMIUM"
+  | "VIP"
+  | "CUSTOM";
 
 export type PublicationStatus =
-  | "draft"
-  | "pending"
-  | "published"
-  | "rejected"
-  | "hidden"
-  | "deleted";
+  | "DRAFT"
+  | "PENDING"
+  | "PUBLISHED"
+  | "HIDDEN"
+  | "REJECTED"
+  | "DELETED"
+  | "ARCHIVED"
+  | "EXPIRED";
 
 export type PublicationVisibility =
-  | "public"
-  | "private"
-  | "unlisted";
+  | "PUBLIC"
+  | "PRIVATE"
+  | "UNLISTED"
+  | "FOLLOWERS";
 
-export type AuthorVisibility =
-  | "public"
-  | "anonymous"
-  | "custom";
+export type PublicationPriority =
+  | "LOW"
+  | "NORMAL"
+  | "HIGH"
+  | "URGENT"
+  | "TOP"
+  | "VIP";
+
+export type PublicationSource =
+  | "PARTICIPANT"
+  | "ADMIN"
+  | "SYSTEM"
+  | "ACTING_MODE";
 
 export interface Publication {
   id: string;
-  postNumber: string | null;
+  public_number: number | string;
 
-  authorId: string | null;
-  authorName: string | null;
-  authorUsername: string | null;
-  authorAvatarUrl: string | null;
+  author_id?: string | null;
+  author_name?: string | null;
+  author_username?: string | null;
+  author_avatar_url?: string | null;
 
-  title: string | null;
-  text: string | null;
-
-  categoryId: string | null;
-
-  type: PublicationType;
-  status: PublicationStatus;
-  visibility: PublicationVisibility;
-  authorVisibility: AuthorVisibility;
-
-  background: string | null;
-  font: string | null;
-  textColor: string | null;
-
-  priority: string;
-  pinned: boolean;
-  featured: boolean;
-
-  publishedAt: string | null;
-  expiresAt: string | null;
-  autoDelete: boolean;
-
-  viewsCount: string;
-  uniqueViewsCount: string;
-  likesCount: string;
-  commentsCount: string;
-  reactionsCount: string;
-  bookmarksCount: string;
-  sharesCount: string;
-  sendsCount: string;
-  reportsCount: string;
-  contactsCount: string;
-  applicationsCount: string;
-  downloadsCount: string;
-  clicksCount: string;
-  externalClicksCount: string;
-
-  createdAt: string;
-  updatedAt: string;
-  deletedAt: string | null;
-}
-
-export interface CreatePublicationInput {
-  id?: string;
-
-  authorId?: string | null;
+  category_id?: string | null;
 
   title?: string | null;
   text?: string | null;
 
-  categoryId?: string | null;
+  type: PublicationType;
+  status: PublicationStatus;
+  visibility: PublicationVisibility;
+  priority: PublicationPriority;
 
-  type?: PublicationType;
-  status?: PublicationStatus;
+  featured: boolean;
+  pinned: boolean;
 
-  visibility?: PublicationVisibility;
-  authorVisibility?: AuthorVisibility;
+  auto_delete_enabled: boolean;
+  delete_at?: string | null;
+
+  publish_at?: string | null;
 
   background?: string | null;
   font?: string | null;
-  textColor?: string | null;
+  color?: string | null;
 
-  priority?: string | number;
-  pinned?: boolean;
-  featured?: boolean;
+  tag?: string | null;
+  tag_icon?: string | null;
+  tag_color?: string | null;
 
-  publishedAt?: string | null;
-  expiresAt?: string | null;
-  autoDelete?: boolean;
+  comments_enabled: boolean;
+  reactions_enabled: boolean;
+  reviews_enabled: boolean;
+  sharing_enabled: boolean;
+  bookmarks_enabled: boolean;
 
-  authorName?: string | null;
-  authorUsername?: string | null;
-  authorAvatarUrl?: string | null;
+  views_count: string;
+  unique_views_count: string;
+  likes_count: string;
+  comments_count: string;
+  reactions_count: string;
+  bookmarks_count: string;
+  shares_count: string;
+  reports_count: string;
+
+  contacts_count: string;
+  applications_count: string;
+  downloads_count: string;
+  clicks_count: string;
+  external_clicks_count: string;
+
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PublicationMedia {
+  id: string;
+  publication_id: string;
+  type: string;
+  url?: string | null;
+  key?: string | null;
+  mime_type?: string | null;
+  filename?: string | null;
+  size?: string | null;
+  width?: number | null;
+  height?: number | null;
+  duration?: number | null;
+  position: number;
+  status: string;
+  created_at: string;
+}
+
+export interface CreatePublicationInput {
+  author_id?: string | null;
+  author_name?: string | null;
+  author_username?: string | null;
+  author_avatar_url?: string | null;
+
+  category_id?: string | null;
+
+  title?: string | null;
+  text?: string | null;
+
+  type?: PublicationType;
+  visibility?: PublicationVisibility;
+  priority?: PublicationPriority;
+
+  background?: string | null;
+  font?: string | null;
+  color?: string | null;
+
+  tag?: string | null;
+  tag_icon?: string | null;
+  tag_color?: string | null;
+
+  comments_enabled?: boolean;
+  reactions_enabled?: boolean;
+  reviews_enabled?: boolean;
+  sharing_enabled?: boolean;
+  bookmarks_enabled?: boolean;
+
+  auto_delete_enabled?: boolean;
+  delete_at?: string | null;
+  publish_at?: string | null;
+
+  source?: PublicationSource;
+
+  media?: Array<{
+    type: string;
+    url?: string;
+    key?: string;
+    mime_type?: string;
+    filename?: string;
+    size?: string | number;
+    width?: number;
+    height?: number;
+    duration?: number;
+    position?: number;
+  }>;
 }
 
 export interface UpdatePublicationInput {
   title?: string | null;
   text?: string | null;
 
-  categoryId?: string | null;
+  category_id?: string | null;
 
   type?: PublicationType;
   status?: PublicationStatus;
-
   visibility?: PublicationVisibility;
-  authorVisibility?: AuthorVisibility;
+  priority?: PublicationPriority;
 
   background?: string | null;
   font?: string | null;
-  textColor?: string | null;
+  color?: string | null;
 
-  priority?: string | number;
-  pinned?: boolean;
-  featured?: boolean;
+  tag?: string | null;
+  tag_icon?: string | null;
+  tag_color?: string | null;
 
-  publishedAt?: string | null;
-  expiresAt?: string | null;
-  autoDelete?: boolean;
+  comments_enabled?: boolean;
+  reactions_enabled?: boolean;
+  reviews_enabled?: boolean;
+  sharing_enabled?: boolean;
+  bookmarks_enabled?: boolean;
 
-  authorId?: string | null;
-  authorName?: string | null;
-  authorUsername?: string | null;
-  authorAvatarUrl?: string | null;
+  auto_delete_enabled?: boolean;
+  delete_at?: string | null;
+  publish_at?: string | null;
+
+  author_name?: string | null;
+  author_username?: string | null;
+  author_avatar_url?: string | null;
 }
 
-export interface PublicationFilters {
+export interface AdminPublicationOverrideInput {
+  forced_type?: PublicationType | null;
+  forced_status?: PublicationStatus | null;
+  forced_visibility?: PublicationVisibility | null;
+  forced_priority?: PublicationPriority | null;
+
+  pinned?: boolean | null;
+  featured?: boolean | null;
+
+  auto_delete_enabled?: boolean | null;
+  custom_delete_at?: string | null;
+  custom_publish_at?: string | null;
+
+  custom_author_name?: string | null;
+  custom_author_username?: string | null;
+  custom_author_avatar_url?: string | null;
+
+  custom_background?: string | null;
+  custom_font?: string | null;
+  custom_color?: string | null;
+
+  custom_tag?: string | null;
+  custom_tag_icon?: string | null;
+  custom_tag_color?: string | null;
+
+  comments_enabled?: boolean | null;
+  reactions_enabled?: boolean | null;
+  reviews_enabled?: boolean | null;
+  sharing_enabled?: boolean | null;
+  bookmarks_enabled?: boolean | null;
+
+  admin_note?: string | null;
+}
+
+export interface PublicationFilter {
   status?: PublicationStatus;
   type?: PublicationType;
-  categoryId?: string;
-  authorId?: string;
+  category_id?: string;
+  author_id?: string;
   visibility?: PublicationVisibility;
 
   search?: string;
 
-  page?: number;
-  limit?: number;
+  featured?: boolean;
+  pinned?: boolean;
 
-  sort?:
-    | "newest"
-    | "oldest"
-    | "popular"
-    | "priority"
-    | "comments"
-    | "shares"
-    | "views";
+  min_public_number?: number;
+  max_public_number?: number;
+
+  limit?: number;
+  offset?: number;
+
+  sort?: PublicationSort;
 }
+
+export type PublicationSort =
+  | "newest"
+  | "oldest"
+  | "popular"
+  | "most_commented"
+  | "most_shared"
+  | "highest_priority"
+  | "public_number";
 
 export interface PublicationListResult {
   items: Publication[];
   total: string;
-  page: number;
   limit: number;
+  offset: number;
   hasMore: boolean;
 }
 
-export interface PublicationActionResult {
-  success: boolean;
-  publication: Publication | null;
-  message?: string;
+export interface PublicationMetrics {
+  publication_id: string;
+
+  views_count: string;
+  unique_views_count: string;
+
+  likes_count: string;
+  reactions_count: string;
+
+  comments_count: string;
+  replies_count: string;
+
+  bookmarks_count: string;
+  shares_count: string;
+  sends_count: string;
+
+  reports_count: string;
+
+  contacts_count: string;
+  applications_count: string;
+
+  downloads_count: string;
+  clicks_count: string;
+  external_clicks_count: string;
+
+  rating_count: string;
+  rating_sum: string;
+  review_count: string;
+
+  created_at: string;
+  updated_at: string;
 }
+
 
 // ============================================================
 // CONSTANTS
 // ============================================================
 
-const MAX_TITLE_LENGTH = 500;
-const MAX_TEXT_LENGTH = 100000;
+const DEFAULT_TYPE: PublicationType = "FREE";
+const DEFAULT_STATUS: PublicationStatus = "PENDING";
+const DEFAULT_VISIBILITY: PublicationVisibility = "PUBLIC";
+const DEFAULT_PRIORITY: PublicationPriority = "NORMAL";
 
-const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
 
-const PUBLICATION_TYPES: readonly PublicationType[] = [
-  "free",
-  "premium",
-  "vip",
-  "custom",
-];
+const FREE_AUTO_DELETE_DAYS = 10;
 
-const PUBLICATION_STATUSES: readonly PublicationStatus[] = [
-  "draft",
-  "pending",
-  "published",
-  "rejected",
-  "hidden",
-  "deleted",
-];
-
-const VISIBILITIES: readonly PublicationVisibility[] = [
-  "public",
-  "private",
-  "unlisted",
-];
-
-const AUTHOR_VISIBILITIES: readonly AuthorVisibility[] = [
-  "public",
-  "anonymous",
-  "custom",
-];
 
 // ============================================================
 // HELPERS
@@ -236,132 +368,218 @@ function now(): string {
   return new Date().toISOString();
 }
 
-function clean(
-  value: unknown
-): string | null {
-  if (
-    value === null ||
-    value === undefined
-  ) {
+function bool(value: unknown, fallback = false): boolean {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+
+  return value === true ||
+    value === 1 ||
+    value === "1" ||
+    value === "true";
+}
+
+function nullableString(value: unknown): string | null {
+  if (value === undefined || value === null) {
     return null;
   }
 
-  const result =
-    String(value).trim();
+  const result = String(value).trim();
 
   return result || null;
 }
 
-function bool(
-  value: unknown
-): boolean {
-  return (
-    value === true ||
-    value === 1 ||
-    value === "1" ||
-    value === "true"
-  );
-}
-
-function safeNumber(
-  value: unknown,
-  fallback: number
-): number {
-  const number =
-    typeof value === "number"
-      ? value
-      : Number(value);
-
-  return Number.isFinite(number)
-    ? number
-    : fallback;
-}
-
-function normalizeType(
-  value: unknown
-): PublicationType {
-  return PUBLICATION_TYPES.includes(
-    value as PublicationType
-  )
-    ? (value as PublicationType)
-    : "free";
-}
-
-function normalizeStatus(
-  value: unknown
-): PublicationStatus {
-  return PUBLICATION_STATUSES.includes(
-    value as PublicationStatus
-  )
-    ? (value as PublicationStatus)
-    : "draft";
-}
-
-function normalizeVisibility(
-  value: unknown
-): PublicationVisibility {
-  return VISIBILITIES.includes(
-    value as PublicationVisibility
-  )
-    ? (value as PublicationVisibility)
-    : "public";
-}
-
-function normalizeAuthorVisibility(
-  value: unknown
-): AuthorVisibility {
-  return AUTHOR_VISIBILITIES.includes(
-    value as AuthorVisibility
-  )
-    ? (value as AuthorVisibility)
-    : "public";
-}
-
-function normalizeText(
-  value: unknown,
-  max: number
-): string | null {
-  const text =
-    clean(value);
-
-  if (!text) {
-    return null;
+function limitValue(value?: number): number {
+  if (!Number.isFinite(value)) {
+    return DEFAULT_LIMIT;
   }
 
-  return text.slice(
-    0,
-    max
+  return Math.min(
+    MAX_LIMIT,
+    Math.max(1, Math.floor(value!))
   );
 }
 
-function normalizePriority(
-  value: unknown
-): string {
+function offsetValue(value?: number): number {
+  if (!Number.isFinite(value)) {
+    return 0;
+  }
+
+  return Math.max(0, Math.floor(value!));
+}
+
+function datePlusDays(days: number): string {
+  const date = new Date();
+
+  date.setUTCDate(date.getUTCDate() + days);
+
+  return date.toISOString();
+}
+
+function normalizeMetric(value: unknown): string {
   return normalizeDecimalString(
-    value ?? "0"
+    value === undefined || value === null
+      ? "0"
+      : String(value)
   );
 }
 
-function normalizeCounter(
-  value: unknown
-): string {
-  try {
-    return normalizeDecimalString(
-      value ?? "0"
-    );
-  } catch {
-    return "0";
-  }
+function mapPublication(row: Record<string, unknown>): Publication {
+  return {
+    id: String(row.id),
+    public_number:
+      row.public_number === null ||
+      row.public_number === undefined
+        ? ""
+        : String(row.public_number),
+
+    author_id: row.author_id
+      ? String(row.author_id)
+      : null,
+
+    author_name: row.author_name
+      ? String(row.author_name)
+      : null,
+
+    author_username: row.author_username
+      ? String(row.author_username)
+      : null,
+
+    author_avatar_url: row.author_avatar_url
+      ? String(row.author_avatar_url)
+      : null,
+
+    category_id: row.category_id
+      ? String(row.category_id)
+      : null,
+
+    title: row.title
+      ? String(row.title)
+      : null,
+
+    text: row.text
+      ? String(row.text)
+      : null,
+
+    type: String(
+      row.type || DEFAULT_TYPE
+    ) as PublicationType,
+
+    status: String(
+      row.status || DEFAULT_STATUS
+    ) as PublicationStatus,
+
+    visibility: String(
+      row.visibility || DEFAULT_VISIBILITY
+    ) as PublicationVisibility,
+
+    priority: String(
+      row.priority || DEFAULT_PRIORITY
+    ) as PublicationPriority,
+
+    featured: bool(row.featured),
+    pinned: bool(row.pinned),
+
+    auto_delete_enabled:
+      bool(row.auto_delete_enabled),
+
+    delete_at: row.delete_at
+      ? String(row.delete_at)
+      : null,
+
+    publish_at: row.publish_at
+      ? String(row.publish_at)
+      : null,
+
+    background: row.background
+      ? String(row.background)
+      : null,
+
+    font: row.font
+      ? String(row.font)
+      : null,
+
+    color: row.color
+      ? String(row.color)
+      : null,
+
+    tag: row.tag
+      ? String(row.tag)
+      : null,
+
+    tag_icon: row.tag_icon
+      ? String(row.tag_icon)
+      : null,
+
+    tag_color: row.tag_color
+      ? String(row.tag_color)
+      : null,
+
+    comments_enabled:
+      bool(row.comments_enabled, true),
+
+    reactions_enabled:
+      bool(row.reactions_enabled, true),
+
+    reviews_enabled:
+      bool(row.reviews_enabled, true),
+
+    sharing_enabled:
+      bool(row.sharing_enabled, true),
+
+    bookmarks_enabled:
+      bool(row.bookmarks_enabled, true),
+
+    views_count: normalizeMetric(row.views_count),
+    unique_views_count:
+      normalizeMetric(row.unique_views_count),
+
+    likes_count:
+      normalizeMetric(row.likes_count),
+
+    comments_count:
+      normalizeMetric(row.comments_count),
+
+    reactions_count:
+      normalizeMetric(row.reactions_count),
+
+    bookmarks_count:
+      normalizeMetric(row.bookmarks_count),
+
+    shares_count:
+      normalizeMetric(row.shares_count),
+
+    reports_count:
+      normalizeMetric(row.reports_count),
+
+    contacts_count:
+      normalizeMetric(row.contacts_count),
+
+    applications_count:
+      normalizeMetric(row.applications_count),
+
+    downloads_count:
+      normalizeMetric(row.downloads_count),
+
+    clicks_count:
+      normalizeMetric(row.clicks_count),
+
+    external_clicks_count:
+      normalizeMetric(row.external_clicks_count),
+
+    created_at: String(
+      row.created_at || ""
+    ),
+
+    updated_at: String(
+      row.updated_at || ""
+    ),
+  };
 }
 
-function sqlBool(
-  value: boolean
-): number {
-  return value ? 1 : 0;
-}
 
 // ============================================================
-// SERVICE
+// PUBLICATION SERVICE
 // ============================================================
 
 export class PublicationService {
@@ -369,251 +587,34 @@ export class PublicationService {
     private readonly env: Env
   ) {}
 
+  private get db(): D1Database {
+    return this.env.DB;
+  }
+
+
   // ==========================================================
-  // GET BY ID
+  // NEXT PUBLIC NUMBER
   // ==========================================================
 
-  async getById(
-    id: string
-  ): Promise<Publication | null> {
-    const row =
-      await this.env.DB.prepare(
-        `
-        SELECT *
+  async getNextPublicNumber(): Promise<number> {
+    const row = await this.db
+      .prepare(`
+        SELECT public_number
         FROM publications
-        WHERE id = ?
+        ORDER BY CAST(public_number AS INTEGER) DESC
         LIMIT 1
-        `
-      )
-        .bind(id)
-        .first<Record<string, unknown>>();
+      `)
+      .first<{ public_number?: number }>();
 
-    return row
-      ? this.mapRow(row)
-      : null;
+    if (!row?.public_number) {
+      return 1;
+    }
+
+    return nextPublicationNumber(
+      row.public_number
+    );
   }
 
-  // ==========================================================
-  // GET BY PUBLIC NUMBER
-  // ==========================================================
-
-  async getByPublicNumber(
-    postNumber: string | number
-  ): Promise<Publication | null> {
-    const normalized =
-      normalizePublicNumber(
-        postNumber
-      );
-
-    const row =
-      await this.env.DB.prepare(
-        `
-        SELECT *
-        FROM publications
-        WHERE post_number = ?
-        LIMIT 1
-        `
-      )
-        .bind(normalized)
-        .first<Record<string, unknown>>();
-
-    return row
-      ? this.mapRow(row)
-      : null;
-  }
-
-  // ==========================================================
-  // LIST
-  // ==========================================================
-
-  async list(
-    filters: PublicationFilters = {}
-  ): Promise<PublicationListResult> {
-    const page =
-      Math.max(
-        1,
-        Math.floor(
-          safeNumber(
-            filters.page,
-            DEFAULT_PAGE
-          )
-        )
-      );
-
-    const limit =
-      Math.min(
-        MAX_LIMIT,
-        Math.max(
-          1,
-          Math.floor(
-            safeNumber(
-              filters.limit,
-              DEFAULT_LIMIT
-            )
-          )
-        )
-      );
-
-    const offset =
-      (page - 1) *
-      limit;
-
-    const where: string[] = [];
-    const bindings: unknown[] = [];
-
-    if (
-      filters.status
-    ) {
-      where.push(
-        "p.status = ?"
-      );
-      bindings.push(
-        filters.status
-      );
-    } else {
-      where.push(
-        "p.status != 'deleted'"
-      );
-    }
-
-    if (
-      filters.type
-    ) {
-      where.push(
-        "p.type = ?"
-      );
-      bindings.push(
-        filters.type
-      );
-    }
-
-    if (
-      filters.categoryId
-    ) {
-      where.push(
-        "p.category_id = ?"
-      );
-      bindings.push(
-        filters.categoryId
-      );
-    }
-
-    if (
-      filters.authorId
-    ) {
-      where.push(
-        "p.author_id = ?"
-      );
-      bindings.push(
-        filters.authorId
-      );
-    }
-
-    if (
-      filters.visibility
-    ) {
-      where.push(
-        "p.visibility = ?"
-      );
-      bindings.push(
-        filters.visibility
-      );
-    }
-
-    if (
-      filters.search
-    ) {
-      where.push(
-        `
-        (
-          p.title LIKE ?
-          OR p.text LIKE ?
-          OR p.author_name LIKE ?
-          OR p.author_username LIKE ?
-        )
-        `
-      );
-
-      const query =
-        `%${filters.search}%`;
-
-      bindings.push(
-        query,
-        query,
-        query,
-        query
-      );
-    }
-
-    const whereSql =
-      where.length
-        ? `WHERE ${where.join(" AND ")}`
-        : "";
-
-    const orderSql =
-      this.getOrderSql(
-        filters.sort
-      );
-
-    const countRow =
-      await this.env.DB.prepare(
-        `
-        SELECT COUNT(*) AS total
-        FROM publications p
-        ${whereSql}
-        `
-      )
-        .bind(...bindings)
-        .first<{
-          total: number;
-        }>();
-
-    const total =
-      String(
-        countRow?.total ?? 0
-      );
-
-    const rows =
-      await this.env.DB.prepare(
-        `
-        SELECT p.*
-        FROM publications p
-        ${whereSql}
-        ${orderSql}
-        LIMIT ? OFFSET ?
-        `
-      )
-        .bind(
-          ...bindings,
-          limit,
-          offset
-        )
-        .all<Record<string, unknown>>();
-
-    const items =
-      (rows.results ?? [])
-        .map(
-          row =>
-            this.mapRow(row)
-        );
-
-    const totalNumber =
-      Number(total);
-
-    return {
-      items,
-      total,
-      page,
-      limit,
-      hasMore:
-        Number.isFinite(
-          totalNumber
-        )
-          ? offset + items.length <
-            totalNumber
-          : items.length === limit,
-    };
-  }
 
   // ==========================================================
   // CREATE
@@ -623,227 +624,527 @@ export class PublicationService {
     input: CreatePublicationInput
   ): Promise<Publication> {
     const id =
-      clean(input.id) ??
-      crypto.randomUUID();
+      generatePublicationId();
 
-    const createdAt =
-      now();
-
-    const status =
-      normalizeStatus(
-        input.status ??
-          "draft"
-      );
+    const createdAt = now();
 
     const type =
-      normalizeType(
-        input.type
-      );
+      input.type || DEFAULT_TYPE;
 
-    const visibility =
-      normalizeVisibility(
-        input.visibility
-      );
+    const status =
+      input.source === "ADMIN" ||
+      input.source === "ACTING_MODE"
+        ? "PUBLISHED"
+        : DEFAULT_STATUS;
 
-    const authorVisibility =
-      normalizeAuthorVisibility(
-        input.authorVisibility
-      );
+    const publicNumber =
+      await this.getNextPublicNumber();
 
-    const title =
-      normalizeText(
-        input.title,
-        MAX_TITLE_LENGTH
-      );
+    let autoDelete =
+      input.auto_delete_enabled;
 
-    const text =
-      normalizeText(
-        input.text,
-        MAX_TEXT_LENGTH
-      );
+    let deleteAt =
+      input.delete_at || null;
 
     if (
-      !title &&
-      !text
+      autoDelete === undefined &&
+      type === "FREE"
     ) {
+      autoDelete = true;
+    }
+
+    if (
+      autoDelete &&
+      !deleteAt &&
+      type === "FREE"
+    ) {
+      deleteAt =
+        datePlusDays(
+          FREE_AUTO_DELETE_DAYS
+        );
+    }
+
+    if (autoDelete === undefined) {
+      autoDelete = false;
+    }
+
+    const result =
+      await this.db
+        .prepare(`
+          INSERT INTO publications (
+            id,
+            public_number,
+
+            author_id,
+            author_name,
+            author_username,
+            author_avatar_url,
+
+            category_id,
+
+            title,
+            text,
+
+            type,
+            status,
+            visibility,
+            priority,
+
+            featured,
+            pinned,
+
+            auto_delete_enabled,
+            delete_at,
+            publish_at,
+
+            background,
+            font,
+            color,
+
+            tag,
+            tag_icon,
+            tag_color,
+
+            comments_enabled,
+            reactions_enabled,
+            reviews_enabled,
+            sharing_enabled,
+            bookmarks_enabled,
+
+            views_count,
+            unique_views_count,
+            likes_count,
+            comments_count,
+            reactions_count,
+            bookmarks_count,
+            shares_count,
+            reports_count,
+
+            contacts_count,
+            applications_count,
+            downloads_count,
+            clicks_count,
+            external_clicks_count,
+
+            created_at,
+            updated_at
+          )
+          VALUES (
+            ?,
+            ?,
+
+            ?,
+            ?,
+            ?,
+            ?,
+
+            ?,
+
+            ?,
+            ?,
+
+            ?,
+            ?,
+            ?,
+            ?,
+
+            0,
+            0,
+
+            ?,
+            ?,
+            ?,
+
+            ?,
+            ?,
+            ?,
+
+            ?,
+            ?,
+            ?,
+
+            ?,
+            ?,
+            ?,
+            ?,
+            ?,
+
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+
+            0,
+            0,
+            0,
+            0,
+            0,
+
+            ?,
+            ?
+          )
+        `)
+        .bind(
+          id,
+          publicNumber,
+
+          input.author_id || null,
+          input.author_name || null,
+          input.author_username || null,
+          input.author_avatar_url || null,
+
+          input.category_id || null,
+
+          input.title || null,
+          input.text || null,
+
+          type,
+          status,
+          input.visibility || DEFAULT_VISIBILITY,
+          input.priority || DEFAULT_PRIORITY,
+
+          autoDelete ? 1 : 0,
+          deleteAt,
+          input.publish_at || null,
+
+          input.background || null,
+          input.font || null,
+          input.color || null,
+
+          input.tag || null,
+          input.tag_icon || null,
+          input.tag_color || null,
+
+          input.comments_enabled !== false ? 1 : 0,
+          input.reactions_enabled !== false ? 1 : 0,
+          input.reviews_enabled !== false ? 1 : 0,
+          input.sharing_enabled !== false ? 1 : 0,
+          input.bookmarks_enabled !== false ? 1 : 0,
+
+          createdAt,
+          createdAt
+        )
+        .run();
+
+    if (!result.success) {
       throw new Error(
-        "Публикация должна содержать заголовок или текст"
+        "Не удалось создать публикацию"
       );
     }
 
-    const postNumber =
-      await this.allocatePostNumber();
+    await this.ensureMetricRow(id);
 
-    const publishedAt =
-      input.publishedAt ??
-      (
-        status === "published"
-          ? createdAt
-          : null
-      );
-
-    const expiresAt =
-      input.expiresAt ??
-      null;
-
-    const autoDelete =
-      input.autoDelete ??
-      (
-        type === "free"
-      );
-
-    await this.env.DB.prepare(
-      `
-      INSERT INTO publications (
+    if (input.media?.length) {
+      await this.addMedia(
         id,
-        post_number,
-        author_id,
-        author_name,
-        author_username,
-        author_avatar_url,
-        title,
-        text,
-        category_id,
-        type,
-        status,
-        visibility,
-        author_visibility,
-        background,
-        font,
-        text_color,
-        priority,
-        pinned,
-        featured,
-        published_at,
-        expires_at,
-        auto_delete,
-        views_count,
-        unique_views_count,
-        likes_count,
-        comments_count,
-        reactions_count,
-        bookmarks_count,
-        shares_count,
-        sends_count,
-        reports_count,
-        contacts_count,
-        applications_count,
-        downloads_count,
-        clicks_count,
-        external_clicks_count,
-        created_at,
-        updated_at
-      )
-      VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?
-      )
-      `
-    )
-      .bind(
-        id,
-        postNumber,
+        input.media
+      );
+    }
 
-        input.authorId ??
-          null,
-
-        input.authorName ??
-          null,
-
-        input.authorUsername ??
-          null,
-
-        input.authorAvatarUrl ??
-          null,
-
-        title,
-        text,
-
-        input.categoryId ??
-          null,
-
-        type,
-        status,
-        visibility,
-        authorVisibility,
-
-        input.background ??
-          null,
-
-        input.font ??
-          null,
-
-        input.textColor ??
-          null,
-
-        normalizePriority(
-          input.priority
-        ),
-
-        sqlBool(
-          Boolean(
-            input.pinned
-          )
-        ),
-
-        sqlBool(
-          Boolean(
-            input.featured
-          )
-        ),
-
-        publishedAt,
-        expiresAt,
-
-        sqlBool(
-          Boolean(
-            autoDelete
-          )
-        ),
-
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-        "0",
-
-        createdAt,
-        createdAt
-      )
-      .run();
+    await this.addHistory(
+      id,
+      null,
+      "CREATE",
+      input.source || "PARTICIPANT"
+    );
 
     const publication =
-      await this.getById(
-        id
-      );
+      await this.getById(id);
 
     if (!publication) {
       throw new Error(
-        "Не удалось получить созданную публикацию"
+        "Публикация создана, но не найдена"
       );
     }
 
-    await this.writeHistory(
-      id,
-      "created",
-      null,
-      publication.status,
-      null
-    );
-
     return publication;
   }
+
+
+  // ==========================================================
+  // GET BY ID
+  // ==========================================================
+
+  async getById(
+    id: string
+  ): Promise<Publication | null> {
+    const normalized =
+      normalizePublicationId(id);
+
+    const row =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publications
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(normalized)
+        .first<Record<string, unknown>>();
+
+    if (!row) {
+      return null;
+    }
+
+    return mapPublication(row);
+  }
+
+
+  // ==========================================================
+  // GET BY PUBLIC NUMBER
+  // ==========================================================
+
+  async getByPublicNumber(
+    value: number | string
+  ): Promise<Publication | null> {
+    const number =
+      normalizePublicationNumber(value);
+
+    const row =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publications
+          WHERE public_number = ?
+          LIMIT 1
+        `)
+        .bind(number)
+        .first<Record<string, unknown>>();
+
+    if (!row) {
+      return null;
+    }
+
+    return mapPublication(row);
+  }
+
+
+  // ==========================================================
+  // GET PUBLICATION + MEDIA
+  // ==========================================================
+
+  async getDetails(
+    id: string
+  ): Promise<{
+    publication: Publication;
+    media: PublicationMedia[];
+    url: string;
+  } | null> {
+    const publication =
+      await this.getById(id);
+
+    if (!publication) {
+      return null;
+    }
+
+    const media =
+      await this.getMedia(
+        publication.id
+      );
+
+    return {
+      publication,
+      media,
+      url: publicationUrl(
+        publication.public_number
+      ),
+    };
+  }
+
+
+  // ==========================================================
+  // LIST
+  // ==========================================================
+
+  async list(
+    filter: PublicationFilter = {}
+  ): Promise<PublicationListResult> {
+    const limit =
+      limitValue(filter.limit);
+
+    const offset =
+      offsetValue(filter.offset);
+
+    const conditions: string[] = [];
+    const values: unknown[] = [];
+
+    if (filter.status) {
+      conditions.push("p.status = ?");
+      values.push(filter.status);
+    }
+
+    if (filter.type) {
+      conditions.push("p.type = ?");
+      values.push(filter.type);
+    }
+
+    if (filter.category_id) {
+      conditions.push("p.category_id = ?");
+      values.push(filter.category_id);
+    }
+
+    if (filter.author_id) {
+      conditions.push("p.author_id = ?");
+      values.push(filter.author_id);
+    }
+
+    if (filter.visibility) {
+      conditions.push("p.visibility = ?");
+      values.push(filter.visibility);
+    }
+
+    if (filter.featured !== undefined) {
+      conditions.push("p.featured = ?");
+      values.push(filter.featured ? 1 : 0);
+    }
+
+    if (filter.pinned !== undefined) {
+      conditions.push("p.pinned = ?");
+      values.push(filter.pinned ? 1 : 0);
+    }
+
+    if (
+      filter.min_public_number !== undefined
+    ) {
+      conditions.push(
+        "CAST(p.public_number AS INTEGER) >= ?"
+      );
+
+      values.push(
+        filter.min_public_number
+      );
+    }
+
+    if (
+      filter.max_public_number !== undefined
+    ) {
+      conditions.push(
+        "CAST(p.public_number AS INTEGER) <= ?"
+      );
+
+      values.push(
+        filter.max_public_number
+      );
+    }
+
+    if (filter.search) {
+      conditions.push(`
+        (
+          p.title LIKE ?
+          OR p.text LIKE ?
+          OR p.author_name LIKE ?
+          OR p.author_username LIKE ?
+        )
+      `);
+
+      const search =
+        `%${filter.search.trim()}%`;
+
+      values.push(
+        search,
+        search,
+        search,
+        search
+      );
+    }
+
+    const where =
+      conditions.length
+        ? `WHERE ${conditions.join(" AND ")}`
+        : "";
+
+    let orderBy =
+      "p.created_at DESC";
+
+    switch (filter.sort) {
+      case "oldest":
+        orderBy =
+          "p.created_at ASC";
+        break;
+
+      case "popular":
+        orderBy =
+          "CAST(p.views_count AS INTEGER) DESC";
+        break;
+
+      case "most_commented":
+        orderBy =
+          "CAST(p.comments_count AS INTEGER) DESC";
+        break;
+
+      case "most_shared":
+        orderBy =
+          "CAST(p.shares_count AS INTEGER) DESC";
+        break;
+
+      case "highest_priority":
+        orderBy = `
+          CASE p.priority
+            WHEN 'VIP' THEN 6
+            WHEN 'TOP' THEN 5
+            WHEN 'URGENT' THEN 4
+            WHEN 'HIGH' THEN 3
+            WHEN 'NORMAL' THEN 2
+            ELSE 1
+          END DESC,
+          p.created_at DESC
+        `;
+        break;
+
+      case "public_number":
+        orderBy =
+          "CAST(p.public_number AS INTEGER) ASC";
+        break;
+    }
+
+    const countRow =
+      await this.db
+        .prepare(`
+          SELECT COUNT(*) AS total
+          FROM publications p
+          ${where}
+        `)
+        .bind(...values)
+        .first<{ total: number }>();
+
+    const rows =
+      await this.db
+        .prepare(`
+          SELECT p.*
+          FROM publications p
+          ${where}
+          ORDER BY ${orderBy}
+          LIMIT ? OFFSET ?
+        `)
+        .bind(
+          ...values,
+          limit,
+          offset
+        )
+        .all<Record<string, unknown>>();
+
+    const items =
+      (rows.results || [])
+        .map(mapPublication);
+
+    const total =
+      String(countRow?.total || 0);
+
+    return {
+      items,
+      total,
+      limit,
+      offset,
+      hasMore:
+        offset + items.length <
+        Number(total),
+    };
+  }
+
 
   // ==========================================================
   // UPDATE
@@ -851,616 +1152,804 @@ export class PublicationService {
 
   async update(
     id: string,
-    input: UpdatePublicationInput
-  ): Promise<Publication> {
-    const existing =
+    input: UpdatePublicationInput,
+    changedBy = "SYSTEM"
+  ): Promise<Publication | null> {
+    const current =
       await this.getById(id);
 
-    if (!existing) {
-      throw new Error(
-        "Публикация не найдена"
-      );
+    if (!current) {
+      return null;
     }
 
-    const sets: string[] = [];
+    const fields: string[] = [];
     const values: unknown[] = [];
 
-    if (
-      input.title !== undefined
-    ) {
-      sets.push(
-        "title = ?"
-      );
-      values.push(
-        normalizeText(
-          input.title,
-          MAX_TITLE_LENGTH
-        )
+    const add = (
+      field: string,
+      value: unknown
+    ) => {
+      fields.push(`${field} = ?`);
+      values.push(value);
+    };
+
+    if ("title" in input) {
+      add(
+        "title",
+        input.title ?? null
       );
     }
 
-    if (
-      input.text !== undefined
-    ) {
-      sets.push(
-        "text = ?"
-      );
-      values.push(
-        normalizeText(
-          input.text,
-          MAX_TEXT_LENGTH
-        )
+    if ("text" in input) {
+      add(
+        "text",
+        input.text ?? null
       );
     }
 
-    if (
-      input.categoryId !== undefined
-    ) {
-      sets.push(
-        "category_id = ?"
-      );
-      values.push(
-        input.categoryId ??
-          null
+    if ("category_id" in input) {
+      add(
+        "category_id",
+        input.category_id ?? null
       );
     }
 
-    if (
-      input.type !== undefined
-    ) {
-      sets.push(
-        "type = ?"
-      );
-      values.push(
-        normalizeType(
-          input.type
-        )
+    if ("type" in input) {
+      add("type", input.type);
+    }
+
+    if ("status" in input) {
+      add("status", input.status);
+    }
+
+    if ("visibility" in input) {
+      add(
+        "visibility",
+        input.visibility
       );
     }
 
-    if (
-      input.status !== undefined
-    ) {
-      sets.push(
-        "status = ?"
-      );
-      values.push(
-        normalizeStatus(
-          input.status
-        )
-      );
-
-      if (
-        input.status ===
-        "published" &&
-        !existing.publishedAt
-      ) {
-        sets.push(
-          "published_at = ?"
-        );
-        values.push(
-          now()
-        );
-      }
-    }
-
-    if (
-      input.visibility !== undefined
-    ) {
-      sets.push(
-        "visibility = ?"
-      );
-      values.push(
-        normalizeVisibility(
-          input.visibility
-        )
+    if ("priority" in input) {
+      add(
+        "priority",
+        input.priority
       );
     }
 
-    if (
-      input.authorVisibility !== undefined
-    ) {
-      sets.push(
-        "author_visibility = ?"
-      );
-      values.push(
-        normalizeAuthorVisibility(
-          input.authorVisibility
-        )
+    if ("background" in input) {
+      add(
+        "background",
+        input.background ?? null
       );
     }
 
-    if (
-      input.background !== undefined
-    ) {
-      sets.push(
-        "background = ?"
-      );
-      values.push(
-        input.background ??
-          null
+    if ("font" in input) {
+      add(
+        "font",
+        input.font ?? null
       );
     }
 
-    if (
-      input.font !== undefined
-    ) {
-      sets.push(
-        "font = ?"
-      );
-      values.push(
-        input.font ??
-          null
+    if ("color" in input) {
+      add(
+        "color",
+        input.color ?? null
       );
     }
 
-    if (
-      input.textColor !== undefined
-    ) {
-      sets.push(
-        "text_color = ?"
-      );
-      values.push(
-        input.textColor ??
-          null
+    if ("tag" in input) {
+      add(
+        "tag",
+        input.tag ?? null
       );
     }
 
-    if (
-      input.priority !== undefined
-    ) {
-      sets.push(
-        "priority = ?"
-      );
-      values.push(
-        normalizePriority(
-          input.priority
-        )
+    if ("tag_icon" in input) {
+      add(
+        "tag_icon",
+        input.tag_icon ?? null
       );
     }
 
-    if (
-      input.pinned !== undefined
-    ) {
-      sets.push(
-        "pinned = ?"
-      );
-      values.push(
-        sqlBool(
-          input.pinned
-        )
+    if ("tag_color" in input) {
+      add(
+        "tag_color",
+        input.tag_color ?? null
       );
     }
 
-    if (
-      input.featured !== undefined
-    ) {
-      sets.push(
-        "featured = ?"
-      );
-      values.push(
-        sqlBool(
-          input.featured
-        )
+    if ("comments_enabled" in input) {
+      add(
+        "comments_enabled",
+        input.comments_enabled ? 1 : 0
       );
     }
 
-    if (
-      input.publishedAt !== undefined
-    ) {
-      sets.push(
-        "published_at = ?"
-      );
-      values.push(
-        input.publishedAt ??
-          null
+    if ("reactions_enabled" in input) {
+      add(
+        "reactions_enabled",
+        input.reactions_enabled ? 1 : 0
       );
     }
 
-    if (
-      input.expiresAt !== undefined
-    ) {
-      sets.push(
-        "expires_at = ?"
-      );
-      values.push(
-        input.expiresAt ??
-          null
+    if ("reviews_enabled" in input) {
+      add(
+        "reviews_enabled",
+        input.reviews_enabled ? 1 : 0
       );
     }
 
-    if (
-      input.autoDelete !== undefined
-    ) {
-      sets.push(
-        "auto_delete = ?"
-      );
-      values.push(
-        sqlBool(
-          input.autoDelete
-        )
+    if ("sharing_enabled" in input) {
+      add(
+        "sharing_enabled",
+        input.sharing_enabled ? 1 : 0
       );
     }
 
-    if (
-      input.authorId !== undefined
-    ) {
-      sets.push(
-        "author_id = ?"
-      );
-      values.push(
-        input.authorId ??
-          null
+    if ("bookmarks_enabled" in input) {
+      add(
+        "bookmarks_enabled",
+        input.bookmarks_enabled ? 1 : 0
       );
     }
 
-    if (
-      input.authorName !== undefined
-    ) {
-      sets.push(
-        "author_name = ?"
-      );
-      values.push(
-        input.authorName ??
-          null
+    if ("auto_delete_enabled" in input) {
+      add(
+        "auto_delete_enabled",
+        input.auto_delete_enabled ? 1 : 0
       );
     }
 
-    if (
-      input.authorUsername !== undefined
-    ) {
-      sets.push(
-        "author_username = ?"
-      );
-      values.push(
-        input.authorUsername ??
-          null
+    if ("delete_at" in input) {
+      add(
+        "delete_at",
+        input.delete_at ?? null
       );
     }
 
-    if (
-      input.authorAvatarUrl !== undefined
-    ) {
-      sets.push(
-        "author_avatar_url = ?"
-      );
-      values.push(
-        input.authorAvatarUrl ??
-          null
+    if ("publish_at" in input) {
+      add(
+        "publish_at",
+        input.publish_at ?? null
       );
     }
 
-    if (!sets.length) {
-      return existing;
+    if ("author_name" in input) {
+      add(
+        "author_name",
+        input.author_name ?? null
+      );
+    }
+
+    if ("author_username" in input) {
+      add(
+        "author_username",
+        input.author_username ?? null
+      );
+    }
+
+    if ("author_avatar_url" in input) {
+      add(
+        "author_avatar_url",
+        input.author_avatar_url ?? null
+      );
+    }
+
+    if (!fields.length) {
+      return current;
     }
 
     const updatedAt =
       now();
 
-    sets.push(
+    fields.push(
       "updated_at = ?"
     );
 
-    values.push(
-      updatedAt
-    );
+    values.push(updatedAt);
+    values.push(id);
 
-    values.push(
-      id
-    );
-
-    await this.env.DB.prepare(
-      `
-      UPDATE publications
-      SET ${sets.join(", ")}
-      WHERE id = ?
-      `
-    )
+    await this.db
+      .prepare(`
+        UPDATE publications
+        SET ${fields.join(", ")}
+        WHERE id = ?
+      `)
       .bind(...values)
       .run();
 
-    const updated =
+    await this.addHistory(
+      id,
+      JSON.stringify(current),
+      "UPDATE",
+      changedBy
+    );
+
+    return this.getById(id);
+  }
+
+
+  // ==========================================================
+  // ADMIN OVERRIDE
+  // ==========================================================
+
+  async saveAdminOverride(
+    publicationId: string,
+    input: AdminPublicationOverrideInput,
+    adminId: string
+  ): Promise<void> {
+    const publication =
       await this.getById(
-        id
+        publicationId
       );
 
-    if (!updated) {
+    if (!publication) {
       throw new Error(
-        "Не удалось получить обновлённую публикацию"
+        "Публикация не найдена"
       );
     }
 
-    await this.writeHistory(
-      id,
-      "updated",
-      existing.status,
-      updated.status,
-      JSON.stringify({
-        changedFields:
-          Object.keys(
-            input
+    const existing =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publication_admin_overrides
+          WHERE publication_id = ?
+          LIMIT 1
+        `)
+        .bind(publicationId)
+        .first<Record<string, unknown>>();
+
+    const values = [
+      input.forced_type ?? existing?.forced_type ?? null,
+      input.forced_status ?? existing?.forced_status ?? null,
+      input.forced_visibility ?? existing?.forced_visibility ?? null,
+      input.forced_priority ?? existing?.forced_priority ?? null,
+
+      input.pinned === undefined
+        ? existing?.pinned ?? null
+        : input.pinned ? 1 : 0,
+
+      input.featured === undefined
+        ? existing?.featured ?? null
+        : input.featured ? 1 : 0,
+
+      input.auto_delete_enabled === undefined
+        ? existing?.auto_delete_enabled ?? null
+        : input.auto_delete_enabled ? 1 : 0,
+
+      input.custom_delete_at ?? existing?.custom_delete_at ?? null,
+      input.custom_publish_at ?? existing?.custom_publish_at ?? null,
+
+      input.custom_author_name ??
+        existing?.custom_author_name ??
+        null,
+
+      input.custom_author_username ??
+        existing?.custom_author_username ??
+        null,
+
+      input.custom_author_avatar_url ??
+        existing?.custom_author_avatar_url ??
+        null,
+
+      input.custom_background ??
+        existing?.custom_background ??
+        null,
+
+      input.custom_font ??
+        existing?.custom_font ??
+        null,
+
+      input.custom_color ??
+        existing?.custom_color ??
+        null,
+
+      input.custom_tag ??
+        existing?.custom_tag ??
+        null,
+
+      input.custom_tag_icon ??
+        existing?.custom_tag_icon ??
+        null,
+
+      input.custom_tag_color ??
+        existing?.custom_tag_color ??
+        null,
+
+      input.comments_enabled === undefined
+        ? existing?.comments_enabled ?? null
+        : input.comments_enabled ? 1 : 0,
+
+      input.reactions_enabled === undefined
+        ? existing?.reactions_enabled ?? null
+        : input.reactions_enabled ? 1 : 0,
+
+      input.reviews_enabled === undefined
+        ? existing?.reviews_enabled ?? null
+        : input.reviews_enabled ? 1 : 0,
+
+      input.sharing_enabled === undefined
+        ? existing?.sharing_enabled ?? null
+        : input.sharing_enabled ? 1 : 0,
+
+      input.bookmarks_enabled === undefined
+        ? existing?.bookmarks_enabled ?? null
+        : input.bookmarks_enabled ? 1 : 0,
+
+      input.admin_note ??
+        existing?.admin_note ??
+        null,
+
+      adminId,
+      now(),
+    ];
+
+    await this.db
+      .prepare(`
+        INSERT INTO publication_admin_overrides (
+          publication_id,
+
+          forced_type,
+          forced_status,
+          forced_visibility,
+          forced_priority,
+
+          pinned,
+          featured,
+
+          auto_delete_enabled,
+
+          custom_delete_at,
+          custom_publish_at,
+
+          custom_author_name,
+          custom_author_username,
+          custom_author_avatar_url,
+
+          custom_background,
+          custom_font,
+          custom_color,
+
+          custom_tag,
+          custom_tag_icon,
+          custom_tag_color,
+
+          comments_enabled,
+          reactions_enabled,
+          reviews_enabled,
+          sharing_enabled,
+          bookmarks_enabled,
+
+          admin_note,
+
+          updated_by,
+          created_at,
+          updated_at
+        )
+        VALUES (
+          ?,
+          ?, ?, ?, ?,
+          ?, ?,
+          ?,
+          ?, ?,
+          ?, ?, ?,
+          ?, ?, ?,
+          ?, ?, ?,
+          ?, ?, ?, ?, ?,
+          ?,
+          ?,
+          COALESCE(
+            (
+              SELECT created_at
+              FROM publication_admin_overrides
+              WHERE publication_id = ?
+            ),
+            ?
           ),
-      })
-    );
+          ?
+        )
+        ON CONFLICT(publication_id)
+        DO UPDATE SET
+          forced_type = excluded.forced_type,
+          forced_status = excluded.forced_status,
+          forced_visibility = excluded.forced_visibility,
+          forced_priority = excluded.forced_priority,
 
-    return updated;
-  }
+          pinned = excluded.pinned,
+          featured = excluded.featured,
 
-  // ==========================================================
-  // SUBMIT FOR MODERATION
-  // ==========================================================
+          auto_delete_enabled =
+            excluded.auto_delete_enabled,
 
-  async submitForModeration(
-    id: string
-  ): Promise<Publication> {
-    return this.update(
-      id,
-      {
-        status: "pending",
-      }
-    );
-  }
+          custom_delete_at =
+            excluded.custom_delete_at,
 
-  // ==========================================================
-  // PUBLISH
-  // ==========================================================
+          custom_publish_at =
+            excluded.custom_publish_at,
 
-  async publish(
-    id: string
-  ): Promise<Publication> {
-    const publication =
-      await this.getById(id);
+          custom_author_name =
+            excluded.custom_author_name,
 
-    if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
-    }
+          custom_author_username =
+            excluded.custom_author_username,
 
-    const publishedAt =
-      publication.publishedAt ??
-      now();
+          custom_author_avatar_url =
+            excluded.custom_author_avatar_url,
 
-    const updated =
-      await this.update(
-        id,
-        {
-          status: "published",
-          publishedAt,
-        }
-      );
+          custom_background =
+            excluded.custom_background,
 
-    await this.writeHistory(
-      id,
-      "published",
-      publication.status,
-      "published",
-      null
-    );
+          custom_font =
+            excluded.custom_font,
 
-    return updated;
-  }
+          custom_color =
+            excluded.custom_color,
 
-  // ==========================================================
-  // REJECT
-  // ==========================================================
+          custom_tag =
+            excluded.custom_tag,
 
-  async reject(
-    id: string,
-    reason?: string
-  ): Promise<Publication> {
-    const publication =
-      await this.getById(id);
+          custom_tag_icon =
+            excluded.custom_tag_icon,
 
-    if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
-    }
+          custom_tag_color =
+            excluded.custom_tag_color,
 
-    const updated =
-      await this.update(
-        id,
-        {
-          status: "rejected",
-        }
-      );
+          comments_enabled =
+            excluded.comments_enabled,
 
-    await this.writeHistory(
-      id,
-      "rejected",
-      publication.status,
-      "rejected",
-      reason
-        ? JSON.stringify({
-            reason,
-          })
-        : null
-    );
+          reactions_enabled =
+            excluded.reactions_enabled,
 
-    return updated;
-  }
+          reviews_enabled =
+            excluded.reviews_enabled,
 
-  // ==========================================================
-  // HIDE
-  // ==========================================================
+          sharing_enabled =
+            excluded.sharing_enabled,
 
-  async hide(
-    id: string,
-    reason?: string
-  ): Promise<Publication> {
-    const publication =
-      await this.getById(id);
+          bookmarks_enabled =
+            excluded.bookmarks_enabled,
 
-    if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
-    }
+          admin_note =
+            excluded.admin_note,
 
-    const updated =
-      await this.update(
-        id,
-        {
-          status: "hidden",
-        }
-      );
+          updated_by =
+            excluded.updated_by,
 
-    await this.writeHistory(
-      id,
-      "hidden",
-      publication.status,
-      "hidden",
-      reason
-        ? JSON.stringify({
-            reason,
-          })
-        : null
-    );
-
-    return updated;
-  }
-
-  // ==========================================================
-  // SOFT DELETE
-  // ==========================================================
-
-  async remove(
-    id: string,
-    reason?: string
-  ): Promise<Publication> {
-    const publication =
-      await this.getById(id);
-
-    if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
-    }
-
-    const deletedAt =
-      now();
-
-    await this.env.DB.prepare(
-      `
-      UPDATE publications
-      SET
-        status = 'deleted',
-        deleted_at = ?,
-        updated_at = ?
-      WHERE id = ?
-      `
-    )
+          updated_at =
+            excluded.updated_at
+      `)
       .bind(
-        deletedAt,
-        deletedAt,
+        ...values,
+        publicationId,
+        now(),
+        now()
+      )
+      .run();
+
+    await this.addHistory(
+      publicationId,
+      JSON.stringify(input),
+      "ADMIN_OVERRIDE",
+      adminId
+    );
+  }
+
+
+  // ==========================================================
+  // APPLY ADMIN OVERRIDE
+  // ==========================================================
+
+  async applyAdminOverride(
+    publicationId: string
+  ): Promise<Publication | null> {
+    const publication =
+      await this.getById(
+        publicationId
+      );
+
+    if (!publication) {
+      return null;
+    }
+
+    const override =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publication_admin_overrides
+          WHERE publication_id = ?
+          LIMIT 1
+        `)
+        .bind(publicationId)
+        .first<Record<string, unknown>>();
+
+    if (!override) {
+      return publication;
+    }
+
+    const update: UpdatePublicationInput = {};
+
+    if (override.forced_type) {
+      update.type =
+        String(
+          override.forced_type
+        ) as PublicationType;
+    }
+
+    if (override.forced_status) {
+      update.status =
+        String(
+          override.forced_status
+        ) as PublicationStatus;
+    }
+
+    if (override.forced_visibility) {
+      update.visibility =
+        String(
+          override.forced_visibility
+        ) as PublicationVisibility;
+    }
+
+    if (override.forced_priority) {
+      update.priority =
+        String(
+          override.forced_priority
+        ) as PublicationPriority;
+    }
+
+    if (
+      override.auto_delete_enabled !== null &&
+      override.auto_delete_enabled !== undefined
+    ) {
+      update.auto_delete_enabled =
+        bool(
+          override.auto_delete_enabled
+        );
+    }
+
+    if (override.custom_delete_at) {
+      update.delete_at =
+        String(
+          override.custom_delete_at
+        );
+    }
+
+    if (override.custom_publish_at) {
+      update.publish_at =
+        String(
+          override.custom_publish_at
+        );
+    }
+
+    if (override.custom_author_name !== null) {
+      update.author_name =
+        String(
+          override.custom_author_name
+        );
+    }
+
+    if (override.custom_author_username !== null) {
+      update.author_username =
+        String(
+          override.custom_author_username
+        );
+    }
+
+    if (override.custom_author_avatar_url !== null) {
+      update.author_avatar_url =
+        String(
+          override.custom_author_avatar_url
+        );
+    }
+
+    if (override.custom_background !== null) {
+      update.background =
+        String(
+          override.custom_background
+        );
+    }
+
+    if (override.custom_font !== null) {
+      update.font =
+        String(
+          override.custom_font
+        );
+    }
+
+    if (override.custom_color !== null) {
+      update.color =
+        String(
+          override.custom_color
+        );
+    }
+
+    if (override.custom_tag !== null) {
+      update.tag =
+        String(
+          override.custom_tag
+        );
+    }
+
+    if (override.custom_tag_icon !== null) {
+      update.tag_icon =
+        String(
+          override.custom_tag_icon
+        );
+    }
+
+    if (override.custom_tag_color !== null) {
+      update.tag_color =
+        String(
+          override.custom_tag_color
+        );
+    }
+
+    if (override.comments_enabled !== null) {
+      update.comments_enabled =
+        bool(
+          override.comments_enabled
+        );
+    }
+
+    if (override.reactions_enabled !== null) {
+      update.reactions_enabled =
+        bool(
+          override.reactions_enabled
+        );
+    }
+
+    if (override.reviews_enabled !== null) {
+      update.reviews_enabled =
+        bool(
+          override.reviews_enabled
+        );
+    }
+
+    if (override.sharing_enabled !== null) {
+      update.sharing_enabled =
+        bool(
+          override.sharing_enabled
+        );
+    }
+
+    if (override.bookmarks_enabled !== null) {
+      update.bookmarks_enabled =
+        bool(
+          override.bookmarks_enabled
+        );
+    }
+
+    if (
+      override.pinned !== null &&
+      override.pinned !== undefined
+    ) {
+      await this.db
+        .prepare(`
+          UPDATE publications
+          SET pinned = ?,
+              updated_at = ?
+          WHERE id = ?
+        `)
+        .bind(
+          bool(override.pinned) ? 1 : 0,
+          now(),
+          publicationId
+        )
+        .run();
+    }
+
+    if (
+      override.featured !== null &&
+      override.featured !== undefined
+    ) {
+      await this.db
+        .prepare(`
+          UPDATE publications
+          SET featured = ?,
+              updated_at = ?
+          WHERE id = ?
+        `)
+        .bind(
+          bool(override.featured) ? 1 : 0,
+          now(),
+          publicationId
+        )
+        .run();
+    }
+
+    if (Object.keys(update).length) {
+      await this.update(
+        publicationId,
+        update,
+        "ADMIN_OVERRIDE"
+      );
+    }
+
+    return this.getById(
+      publicationId
+    );
+  }
+
+
+  // ==========================================================
+  // DELETE
+  // ==========================================================
+
+  async delete(
+    id: string,
+    deletedBy = "SYSTEM"
+  ): Promise<boolean> {
+    const publication =
+      await this.getById(id);
+
+    if (!publication) {
+      return false;
+    }
+
+    await this.db
+      .prepare(`
+        UPDATE publications
+        SET
+          status = 'DELETED',
+          updated_at = ?
+        WHERE id = ?
+      `)
+      .bind(
+        now(),
         id
       )
       .run();
 
-    /*
-     * После удаления пересчитываем публичную
-     * нумерацию. Внутренний id при этом
-     * НЕ меняется.
-     */
-    await this.resequencePublicNumbers();
-
-    const updated =
-      await this.getById(
-        id
-      );
-
-    if (!updated) {
-      throw new Error(
-        "Публикация была удалена"
-      );
-    }
-
-    await this.writeHistory(
+    await this.addHistory(
       id,
-      "deleted",
-      publication.status,
-      "deleted",
-      reason
-        ? JSON.stringify({
-            reason,
-          })
-        : null
+      JSON.stringify(publication),
+      "DELETE",
+      deletedBy
     );
 
-    return updated;
+    return true;
   }
+
 
   // ==========================================================
   // RESTORE
   // ==========================================================
 
   async restore(
-    id: string
-  ): Promise<Publication> {
+    id: string,
+    restoredBy = "ADMIN"
+  ): Promise<Publication | null> {
     const publication =
       await this.getById(id);
 
     if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
+      return null;
     }
 
-    if (
-      publication.status !==
-      "deleted"
-    ) {
-      return publication;
-    }
-
-    const newNumber =
-      await this.allocatePostNumber();
-
-    const restoredAt =
-      now();
-
-    await this.env.DB.prepare(
-      `
-      UPDATE publications
-      SET
-        status = 'draft',
-        post_number = ?,
-        deleted_at = NULL,
-        updated_at = ?
-      WHERE id = ?
-      `
-    )
+    await this.db
+      .prepare(`
+        UPDATE publications
+        SET
+          status = 'PUBLISHED',
+          updated_at = ?
+        WHERE id = ?
+      `)
       .bind(
-        newNumber,
-        restoredAt,
+        now(),
         id
       )
       .run();
 
-    await this.resequencePublicNumbers();
-
-    const restored =
-      await this.getById(
-        id
-      );
-
-    if (!restored) {
-      throw new Error(
-        "Не удалось восстановить публикацию"
-      );
-    }
-
-    await this.writeHistory(
+    await this.addHistory(
       id,
-      "restored",
-      "deleted",
-      "draft",
-      null
+      JSON.stringify(publication),
+      "RESTORE",
+      restoredBy
     );
 
-    return restored;
+    return this.getById(id);
   }
+
 
   // ==========================================================
   // PIN
@@ -1468,33 +1957,45 @@ export class PublicationService {
 
   async setPinned(
     id: string,
-    pinned: boolean
-  ): Promise<Publication> {
-    return this.update(
+    pinned: boolean,
+    adminId = "ADMIN"
+  ): Promise<Publication | null> {
+    const publication =
+      await this.getById(id);
+
+    if (!publication) {
+      return null;
+    }
+
+    await this.db
+      .prepare(`
+        UPDATE publications
+        SET
+          pinned = ?,
+          updated_at = ?
+        WHERE id = ?
+      `)
+      .bind(
+        pinned ? 1 : 0,
+        now(),
+        id
+      )
+      .run();
+
+    await this.addHistory(
       id,
-      {
-        pinned,
-      }
+      JSON.stringify({
+        pinned
+      }),
+      pinned
+        ? "PIN"
+        : "UNPIN",
+      adminId
     );
+
+    return this.getById(id);
   }
 
-  async pin(
-    id: string
-  ): Promise<Publication> {
-    return this.setPinned(
-      id,
-      true
-    );
-  }
-
-  async unpin(
-    id: string
-  ): Promise<Publication> {
-    return this.setPinned(
-      id,
-      false
-    );
-  }
 
   // ==========================================================
   // FEATURED
@@ -1502,922 +2003,1026 @@ export class PublicationService {
 
   async setFeatured(
     id: string,
-    featured: boolean
-  ): Promise<Publication> {
-    return this.update(
+    featured: boolean,
+    adminId = "ADMIN"
+  ): Promise<Publication | null> {
+    await this.db
+      .prepare(`
+        UPDATE publications
+        SET
+          featured = ?,
+          updated_at = ?
+        WHERE id = ?
+      `)
+      .bind(
+        featured ? 1 : 0,
+        now(),
+        id
+      )
+      .run();
+
+    await this.addHistory(
       id,
-      {
-        featured,
-      }
+      JSON.stringify({
+        featured
+      }),
+      featured
+        ? "FEATURE"
+        : "UNFEATURE",
+      adminId
     );
+
+    return this.getById(id);
   }
 
+
   // ==========================================================
-  // CHANGE TYPE
+  // PUBLISH
   // ==========================================================
 
-  async setType(
+  async publish(
     id: string,
-    type: PublicationType
-  ): Promise<Publication> {
+    publishedBy = "ADMIN"
+  ): Promise<Publication | null> {
     return this.update(
       id,
       {
-        type,
-      }
+        status: "PUBLISHED",
+        publish_at: now(),
+      },
+      publishedBy
     );
   }
 
-  async grantVip(
-    id: string
-  ): Promise<Publication> {
-    return this.setType(
-      id,
-      "vip"
-    );
-  }
-
-  async grantPremium(
-    id: string
-  ): Promise<Publication> {
-    return this.setType(
-      id,
-      "premium"
-    );
-  }
-
-  async setFree(
-    id: string
-  ): Promise<Publication> {
-    return this.setType(
-      id,
-      "free"
-    );
-  }
-
-  async setCustom(
-    id: string
-  ): Promise<Publication> {
-    return this.setType(
-      id,
-      "custom"
-    );
-  }
 
   // ==========================================================
-  // EXPIRATION
+  // REJECT
   // ==========================================================
 
-  async setExpiration(
+  async reject(
     id: string,
-    expiresAt: string | null,
-    autoDelete = true
-  ): Promise<Publication> {
+    reason?: string,
+    adminId = "ADMIN"
+  ): Promise<Publication | null> {
+    const result =
+      await this.update(
+        id,
+        {
+          status: "REJECTED",
+        },
+        adminId
+      );
+
+    await this.addHistory(
+      id,
+      JSON.stringify({
+        reason: reason || null,
+      }),
+      "REJECT",
+      adminId
+    );
+
+    return result;
+  }
+
+
+  // ==========================================================
+  // HIDE
+  // ==========================================================
+
+  async hide(
+    id: string,
+    adminId = "ADMIN"
+  ): Promise<Publication | null> {
     return this.update(
       id,
       {
-        expiresAt,
-        autoDelete,
-      }
+        status: "HIDDEN",
+      },
+      adminId
     );
   }
 
-  async disableAutoDelete(
-    id: string
-  ): Promise<Publication> {
+
+  // ==========================================================
+  // ARCHIVE
+  // ==========================================================
+
+  async archive(
+    id: string,
+    adminId = "ADMIN"
+  ): Promise<Publication | null> {
     return this.update(
       id,
       {
-        autoDelete: false,
-      }
+        status: "ARCHIVED",
+      },
+      adminId
     );
   }
 
-  async enableAutoDelete(
-    id: string
-  ): Promise<Publication> {
-    return this.update(
-      id,
-      {
-        autoDelete: true,
-      }
-    );
-  }
 
   // ==========================================================
   // METRICS
   // ==========================================================
 
-  async incrementMetric(
-    id: string,
-    metric:
-      | "views_count"
-      | "unique_views_count"
-      | "likes_count"
-      | "comments_count"
-      | "reactions_count"
-      | "bookmarks_count"
-      | "shares_count"
-      | "sends_count"
-      | "reports_count"
-      | "contacts_count"
-      | "applications_count"
-      | "downloads_count"
-      | "clicks_count"
-      | "external_clicks_count",
-    amount: string | number = "1"
+  async ensureMetricRow(
+    publicationId: string
   ): Promise<void> {
-    const publication =
-      await this.getById(
-        id
-      );
+    const timestamp =
+      now();
 
-    if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
-    }
-
-    const current =
-      normalizeCounter(
-        publication[
-          this.metricToProperty(
-            metric
-          ) as keyof Publication
-        ]
-      );
-
-    const next =
-      decimalAdd(
-        current,
-        amount
-      );
-
-    await this.env.DB.prepare(
-      `
-      UPDATE publications
-      SET
-        ${metric} = ?,
-        updated_at = ?
-      WHERE id = ?
-      `
-    )
+    await this.db
+      .prepare(`
+        INSERT OR IGNORE INTO publication_metric_totals (
+          publication_id,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?)
+      `)
       .bind(
-        next,
-        now(),
-        id
+        publicationId,
+        timestamp,
+        timestamp
       )
       .run();
   }
 
-  async decrementMetric(
-    id: string,
-    metric:
-      | "views_count"
-      | "unique_views_count"
-      | "likes_count"
-      | "comments_count"
-      | "reactions_count"
-      | "bookmarks_count"
-      | "shares_count"
-      | "sends_count"
-      | "reports_count"
-      | "contacts_count"
-      | "applications_count"
-      | "downloads_count"
-      | "clicks_count"
-      | "external_clicks_count",
-    amount: string | number = "1"
-  ): Promise<void> {
-    const publication =
-      await this.getById(
-        id
-      );
 
-    if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
-    }
-
-    const current =
-      normalizeCounter(
-        publication[
-          this.metricToProperty(
-            metric
-          ) as keyof Publication
-        ]
-      );
-
-    const next =
-      decimalSubtract(
-        current,
-        amount
-      );
-
-    await this.env.DB.prepare(
-      `
-      UPDATE publications
-      SET
-        ${metric} = ?,
-        updated_at = ?
-      WHERE id = ?
-      `
-    )
-      .bind(
-        next,
-        now(),
-        id
-      )
-      .run();
-  }
-
-  // ==========================================================
-  // ADMIN COUNTER OVERRIDE
-  // ==========================================================
-
-  async setMetric(
-    id: string,
-    metric:
-      | "views_count"
-      | "unique_views_count"
-      | "likes_count"
-      | "comments_count"
-      | "reactions_count"
-      | "bookmarks_count"
-      | "shares_count"
-      | "sends_count"
-      | "reports_count"
-      | "contacts_count"
-      | "applications_count"
-      | "downloads_count"
-      | "clicks_count"
-      | "external_clicks_count",
-    value: string | number
-  ): Promise<Publication> {
-    const normalized =
-      normalizeCounter(
-        value
-      );
-
-    await this.env.DB.prepare(
-      `
-      UPDATE publications
-      SET
-        ${metric} = ?,
-        updated_at = ?
-      WHERE id = ?
-      `
-    )
-      .bind(
-        normalized,
-        now(),
-        id
-      )
-      .run();
-
-    const publication =
-      await this.getById(
-        id
-      );
-
-    if (!publication) {
-      throw new Error(
-        "Публикация не найдена"
-      );
-    }
-
-    await this.writeHistory(
-      id,
-      "metric_override",
-      publication.status,
-      publication.status,
-      JSON.stringify({
-        metric,
-        value: normalized,
-      })
+  async getMetrics(
+    publicationId: string
+  ): Promise<PublicationMetrics | null> {
+    await this.ensureMetricRow(
+      publicationId
     );
 
-    return publication;
+    const row =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publication_metric_totals
+          WHERE publication_id = ?
+          LIMIT 1
+        `)
+        .bind(publicationId)
+        .first<Record<string, unknown>>();
+
+    if (!row) {
+      return null;
+    }
+
+    return {
+      publication_id:
+        publicationId,
+
+      views_count:
+        normalizeMetric(row.views_count),
+
+      unique_views_count:
+        normalizeMetric(
+          row.unique_views_count
+        ),
+
+      likes_count:
+        normalizeMetric(
+          row.likes_count
+        ),
+
+      reactions_count:
+        normalizeMetric(
+          row.reactions_count
+        ),
+
+      comments_count:
+        normalizeMetric(
+          row.comments_count
+        ),
+
+      replies_count:
+        normalizeMetric(
+          row.replies_count
+        ),
+
+      bookmarks_count:
+        normalizeMetric(
+          row.bookmarks_count
+        ),
+
+      shares_count:
+        normalizeMetric(
+          row.shares_count
+        ),
+
+      sends_count:
+        normalizeMetric(
+          row.sends_count
+        ),
+
+      reports_count:
+        normalizeMetric(
+          row.reports_count
+        ),
+
+      contacts_count:
+        normalizeMetric(
+          row.contacts_count
+        ),
+
+      applications_count:
+        normalizeMetric(
+          row.applications_count
+        ),
+
+      downloads_count:
+        normalizeMetric(
+          row.downloads_count
+        ),
+
+      clicks_count:
+        normalizeMetric(
+          row.clicks_count
+        ),
+
+      external_clicks_count:
+        normalizeMetric(
+          row.external_clicks_count
+        ),
+
+      rating_count:
+        normalizeMetric(
+          row.rating_count
+        ),
+
+      rating_sum:
+        normalizeMetric(
+          row.rating_sum
+        ),
+
+      review_count:
+        normalizeMetric(
+          row.review_count
+        ),
+
+      created_at:
+        String(
+          row.created_at || ""
+        ),
+
+      updated_at:
+        String(
+          row.updated_at || ""
+        ),
+    };
   }
+
+
+  // ==========================================================
+  // INCREMENT HUGE METRIC
+  // ==========================================================
+
+  async incrementMetric(
+    publicationId: string,
+    metric:
+      | "views_count"
+      | "unique_views_count"
+      | "likes_count"
+      | "reactions_count"
+      | "comments_count"
+      | "replies_count"
+      | "bookmarks_count"
+      | "shares_count"
+      | "sends_count"
+      | "reports_count"
+      | "contacts_count"
+      | "applications_count"
+      | "downloads_count"
+      | "clicks_count"
+      | "external_clicks_count"
+      | "rating_count"
+      | "rating_sum"
+      | "review_count",
+    amount: string | number = "1"
+  ): Promise<string> {
+    await this.ensureMetricRow(
+      publicationId
+    );
+
+    const increment =
+      normalizeMetric(amount);
+
+    const current =
+      await this.db
+        .prepare(`
+          SELECT ${metric}
+          FROM publication_metric_totals
+          WHERE publication_id = ?
+          LIMIT 1
+        `)
+        .bind(publicationId)
+        .first<Record<string, unknown>>();
+
+    const oldValue =
+      normalizeMetric(
+        current?.[metric]
+      );
+
+    const newValue =
+      addDecimalStrings(
+        oldValue,
+        increment
+      );
+
+    await this.db
+      .prepare(`
+        UPDATE publication_metric_totals
+        SET
+          ${metric} = ?,
+          updated_at = ?
+        WHERE publication_id = ?
+      `)
+      .bind(
+        newValue,
+        now(),
+        publicationId
+      )
+      .run();
+
+    return newValue;
+  }
+
+
+  // ==========================================================
+  // MEDIA
+  // ==========================================================
+
+  async addMedia(
+    publicationId: string,
+    media: CreatePublicationInput["media"]
+  ): Promise<void> {
+    if (!media?.length) {
+      return;
+    }
+
+    const statements =
+      media.map((item, index) => {
+        const id =
+          generateId();
+
+        return this.db
+          .prepare(`
+            INSERT INTO publication_images (
+              id,
+              publication_id,
+              type,
+              url,
+              key,
+              mime_type,
+              filename,
+              size,
+              width,
+              height,
+              duration,
+              position,
+              status,
+              created_at
+            )
+            VALUES (
+              ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+            )
+          `)
+          .bind(
+            id,
+            publicationId,
+            item.type,
+            item.url || null,
+            item.key || null,
+            item.mime_type || null,
+            item.filename || null,
+            item.size !== undefined
+              ? String(item.size)
+              : null,
+            item.width ?? null,
+            item.height ?? null,
+            item.duration ?? null,
+            item.position ?? index,
+            "ACTIVE",
+            now()
+          );
+      });
+
+    await this.db.batch(
+      statements
+    );
+  }
+
+
+  async getMedia(
+    publicationId: string
+  ): Promise<PublicationMedia[]> {
+    const result =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publication_images
+          WHERE publication_id = ?
+          AND status != 'DELETED'
+          ORDER BY position ASC, created_at ASC
+        `)
+        .bind(publicationId)
+        .all<Record<string, unknown>>();
+
+    return (result.results || [])
+      .map(row => ({
+        id: String(row.id),
+        publication_id:
+          String(row.publication_id),
+
+        type: String(
+          row.type || "image"
+        ),
+
+        url: row.url
+          ? String(row.url)
+          : null,
+
+        key: row.key
+          ? String(row.key)
+          : null,
+
+        mime_type: row.mime_type
+          ? String(row.mime_type)
+          : null,
+
+        filename: row.filename
+          ? String(row.filename)
+          : null,
+
+        size: row.size
+          ? String(row.size)
+          : null,
+
+        width:
+          row.width === null ||
+          row.width === undefined
+            ? null
+            : Number(row.width),
+
+        height:
+          row.height === null ||
+          row.height === undefined
+            ? null
+            : Number(row.height),
+
+        duration:
+          row.duration === null ||
+          row.duration === undefined
+            ? null
+            : Number(row.duration),
+
+        position:
+          Number(row.position || 0),
+
+        status:
+          String(row.status || "ACTIVE"),
+
+        created_at:
+          String(row.created_at || ""),
+      }));
+  }
+
+
+  // ==========================================================
+  // DELETE MEDIA
+  // ==========================================================
+
+  async removeMedia(
+    mediaId: string,
+    adminId = "ADMIN"
+  ): Promise<boolean> {
+    const row =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publication_images
+          WHERE id = ?
+          LIMIT 1
+        `)
+        .bind(mediaId)
+        .first<Record<string, unknown>>();
+
+    if (!row) {
+      return false;
+    }
+
+    await this.db
+      .prepare(`
+        UPDATE publication_images
+        SET status = 'DELETED'
+        WHERE id = ?
+      `)
+      .bind(mediaId)
+      .run();
+
+    await this.db
+      .prepare(`
+        INSERT INTO publication_media_overrides (
+          id,
+          publication_id,
+          media_id,
+          action,
+          admin_reason,
+          updated_by,
+          created_at,
+          updated_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        generateId(),
+        String(row.publication_id),
+        mediaId,
+        "delete",
+        "Удалено администратором",
+        adminId,
+        now(),
+        now()
+      )
+      .run();
+
+    return true;
+  }
+
+
+  // ==========================================================
+  // HISTORY
+  // ==========================================================
+
+  async addHistory(
+    publicationId: string,
+    snapshot: string | null,
+    action: string,
+    changedBy: string
+  ): Promise<void> {
+    await this.db
+      .prepare(`
+        INSERT INTO publication_history (
+          id,
+          publication_id,
+          action,
+          snapshot,
+          changed_by,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        generateId(),
+        publicationId,
+        action,
+        snapshot,
+        changedBy,
+        now()
+      )
+      .run();
+  }
+
+
+  async getHistory(
+    publicationId: string
+  ): Promise<Record<string, unknown>[]> {
+    const result =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publication_history
+          WHERE publication_id = ?
+          ORDER BY created_at DESC
+        `)
+        .bind(publicationId)
+        .all<Record<string, unknown>>();
+
+    return result.results || [];
+  }
+
+
+  // ==========================================================
+  // SHARE
+  // ==========================================================
+
+  async registerShare(
+    publicationId: string,
+    options: {
+      userId?: string;
+      visitorId?: string;
+      sessionId?: string;
+      shareType?: string;
+      targetConversationId?: string;
+      targetUserId?: string;
+      source?: string;
+    } = {}
+  ): Promise<string> {
+    const id =
+      generateId();
+
+    await this.db
+      .prepare(`
+        INSERT INTO publication_share_events (
+          id,
+          publication_id,
+          user_id,
+          visitor_id,
+          session_id,
+          share_type,
+          target_conversation_id,
+          target_user_id,
+          source,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        id,
+        publicationId,
+        options.userId || null,
+        options.visitorId || null,
+        options.sessionId || null,
+        options.shareType || "share",
+        options.targetConversationId || null,
+        options.targetUserId || null,
+        options.source || "publication",
+        now()
+      )
+      .run();
+
+    await this.incrementMetric(
+      publicationId,
+      "shares_count",
+      "1"
+    );
+
+    return id;
+  }
+
+
+  // ==========================================================
+  // VIEW
+  // ==========================================================
+
+  async registerView(
+    publicationId: string,
+    options: {
+      userId?: string;
+      visitorId?: string;
+      sessionId?: string;
+      unique?: boolean;
+    } = {}
+  ): Promise<void> {
+    await this.incrementMetric(
+      publicationId,
+      "views_count",
+      "1"
+    );
+
+    if (options.unique) {
+      await this.incrementMetric(
+        publicationId,
+        "unique_views_count",
+        "1"
+      );
+    }
+
+    await this.db
+      .prepare(`
+        INSERT INTO publication_views (
+          id,
+          publication_id,
+          user_id,
+          visitor_id,
+          session_id,
+          created_at
+        )
+        VALUES (?, ?, ?, ?, ?, ?)
+      `)
+      .bind(
+        generateId(),
+        publicationId,
+        options.userId || null,
+        options.visitorId || null,
+        options.sessionId || null,
+        now()
+      )
+      .run();
+  }
+
 
   // ==========================================================
   // BULK STATUS
   // ==========================================================
 
-  async bulkSetStatus(
+  async bulkStatus(
     ids: string[],
-    status: PublicationStatus
+    status: PublicationStatus,
+    adminId = "ADMIN"
   ): Promise<number> {
-    if (!ids.length) {
-      return 0;
-    }
-
-    const normalizedIds =
-      Array.from(
-        new Set(
-          ids
-            .map(clean)
-            .filter(
-              (
-                id
-              ): id is string =>
-                Boolean(id)
-            )
-        )
-      );
-
-    if (!normalizedIds.length) {
-      return 0;
-    }
-
-    const placeholders =
-      normalizedIds
-        .map(() => "?")
-        .join(",");
-
-    const result =
-      await this.env.DB.prepare(
-        `
-        UPDATE publications
-        SET
-          status = ?,
-          updated_at = ?
-        WHERE id IN (${placeholders})
-        `
-      )
-        .bind(
-          status,
-          now(),
-          ...normalizedIds
-        )
-        .run();
-
-    return (
-      result.meta?.changes ??
-      0
-    );
-  }
-
-  // ==========================================================
-  // EXPIRATION PROCESSOR
-  // ==========================================================
-
-  async processExpired(
-    limit = 100
-  ): Promise<number> {
-    const current =
-      now();
-
-    const rows =
-      await this.env.DB.prepare(
-        `
-        SELECT id
-        FROM publications
-        WHERE
-          status = 'published'
-          AND auto_delete = 1
-          AND expires_at IS NOT NULL
-          AND expires_at <= ?
-        ORDER BY expires_at ASC
-        LIMIT ?
-        `
-      )
-        .bind(
-          current,
-          Math.min(
-            1000,
-            Math.max(
-              1,
-              limit
-            )
-          )
-        )
-        .all<{
-          id: string;
-        }>();
-
     let changed = 0;
 
-    for (
-      const row of
-        rows.results ?? []
-    ) {
-      try {
-        await this.remove(
-          row.id,
-          "automatic_expiration"
+    for (const id of ids) {
+      const result =
+        await this.update(
+          id,
+          { status },
+          adminId
         );
 
+      if (result) {
         changed++;
-      } catch {
-        // Продолжаем обработку
-        // остальных публикаций.
       }
     }
 
     return changed;
   }
 
+
   // ==========================================================
-  // HISTORY
+  // EXPIRATION
   // ==========================================================
 
-  async getHistory(
-    id: string,
+  async processExpired(
     limit = 100
-  ): Promise<
-    Record<string, unknown>[]
-  > {
-    const rows =
-      await this.env.DB.prepare(
-        `
-        SELECT *
-        FROM publication_history
-        WHERE publication_id = ?
-        ORDER BY created_at DESC
-        LIMIT ?
-        `
-      )
+  ): Promise<number> {
+    const currentTime =
+      now();
+
+    const result =
+      await this.db
+        .prepare(`
+          SELECT id
+          FROM publications
+          WHERE status = 'PUBLISHED'
+          AND auto_delete_enabled = 1
+          AND delete_at IS NOT NULL
+          AND delete_at <= ?
+          LIMIT ?
+        `)
         .bind(
-          id,
-          Math.min(
-            500,
-            Math.max(
-              1,
-              limit
-            )
-          )
+          currentTime,
+          Math.min(limit, 500)
         )
-        .all<Record<string, unknown>>();
+        .all<{ id: string }>();
 
-    return rows.results ?? [];
-  }
+    let count = 0;
 
-  private async writeHistory(
-    publicationId: string,
-    action: string,
-    oldStatus:
-      | PublicationStatus
-      | null,
-    newStatus:
-      | PublicationStatus
-      | null,
-    details: string | null
-  ): Promise<void> {
-    try {
-      await this.env.DB.prepare(
-        `
-        INSERT INTO publication_history (
-          id,
-          publication_id,
-          action,
-          old_status,
-          new_status,
-          changes,
-          created_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        `
-      )
+    for (const row of result.results || []) {
+      await this.db
+        .prepare(`
+          UPDATE publications
+          SET
+            status = 'EXPIRED',
+            updated_at = ?
+          WHERE id = ?
+        `)
         .bind(
-          crypto.randomUUID(),
-          publicationId,
-          action,
-          oldStatus,
-          newStatus,
-          details,
-          now()
-        )
-        .run();
-    } catch {
-      /*
-       * История не должна ломать основную
-       * операцию публикации.
-       */
-    }
-  }
-
-  // ==========================================================
-  // POST NUMBER
-  // ==========================================================
-
-  private async allocatePostNumber():
-    Promise<string> {
-    const row =
-      await this.env.DB.prepare(
-        `
-        SELECT post_number
-        FROM publications
-        WHERE post_number IS NOT NULL
-        ORDER BY CAST(post_number AS INTEGER) DESC
-        LIMIT 1
-        `
-      )
-        .first<{
-          post_number:
-            | string
-            | number
-            | null;
-        }>();
-
-    if (
-      !row?.post_number
-    ) {
-      return "1";
-    }
-
-    return nextPublicationNumber(
-      row.post_number
-    );
-  }
-
-  /**
-   * Публичная нумерация:
-   *
-   * 1, 2, 3, 4...
-   *
-   * После удаления публикации последовательность
-   * пересчитывается.
-   *
-   * Внутренний publication.id остаётся неизменным.
-   */
-  private async resequencePublicNumbers():
-    Promise<void> {
-    const rows =
-      await this.env.DB.prepare(
-        `
-        SELECT id
-        FROM publications
-        WHERE status != 'deleted'
-        ORDER BY
-          CASE
-            WHEN published_at IS NULL
-              THEN created_at
-            ELSE published_at
-          END ASC,
-          created_at ASC,
-          id ASC
-        `
-      )
-        .all<{
-          id: string;
-        }>();
-
-    let number = 1;
-
-    for (
-      const row of
-        rows.results ?? []
-    ) {
-      await this.env.DB.prepare(
-        `
-        UPDATE publications
-        SET post_number = ?
-        WHERE id = ?
-        `
-      )
-        .bind(
-          String(number),
+          currentTime,
           row.id
         )
         .run();
 
-      number++;
+      await this.addHistory(
+        row.id,
+        null,
+        "AUTO_EXPIRE",
+        "SYSTEM"
+      );
+
+      count++;
     }
+
+    return count;
   }
 
+
   // ==========================================================
-  // ORDER
+  // DELETE PUBLICATION AND SHIFT NUMBERS
+  // ==========================================================
+  //
+  // ВАЖНО:
+  // Внутренний ID не меняется.
+  // public_number после удаления может сдвигаться:
+  //
+  // 1
+  // 2  <- deleted
+  // 3
+  // 4
+  //
+  // становится:
+  //
+  // 1
+  // 2
+  // 3
+  //
+  // Поэтому комментарии/реакции/история используют ID,
+  // а не public_number.
   // ==========================================================
 
-  private getOrderSql(
-    sort:
-      | PublicationFilters["sort"]
-      | undefined
-  ): string {
-    switch (sort) {
-      case "oldest":
-        return `
-          ORDER BY
-            p.created_at ASC
-        `;
+  async renumberPublications(
+    deletedPublicNumber: number
+  ): Promise<number> {
+    const result =
+      await this.db
+        .prepare(`
+          SELECT id, public_number
+          FROM publications
+          WHERE CAST(public_number AS INTEGER) > ?
+          AND status != 'DELETED'
+          ORDER BY CAST(public_number AS INTEGER) ASC
+        `)
+        .bind(deletedPublicNumber)
+        .all<{
+          id: string;
+          public_number: number;
+        }>();
 
-      case "popular":
-        return `
-          ORDER BY
-            CAST(p.views_count AS INTEGER) DESC,
-            p.created_at DESC
-        `;
+    let changed = 0;
 
-      case "comments":
-        return `
-          ORDER BY
-            CAST(p.comments_count AS INTEGER) DESC,
-            p.created_at DESC
-        `;
+    for (const row of result.results || []) {
+      const oldNumber =
+        String(row.public_number);
 
-      case "shares":
-        return `
-          ORDER BY
-            CAST(p.shares_count AS INTEGER) DESC,
-            p.created_at DESC
-        `;
+      const newNumber =
+        String(
+          Number(row.public_number) - 1
+        );
 
-      case "views":
-        return `
-          ORDER BY
-            CAST(p.views_count AS INTEGER) DESC,
-            p.created_at DESC
-        `;
+      await this.db
+        .prepare(`
+          UPDATE publications
+          SET
+            public_number = ?,
+            updated_at = ?
+          WHERE id = ?
+        `)
+        .bind(
+          newNumber,
+          now(),
+          row.id
+        )
+        .run();
 
-      case "priority":
-        return `
-          ORDER BY
-            CAST(p.priority AS INTEGER) DESC,
-            p.pinned DESC,
-            p.featured DESC,
-            p.created_at DESC
-        `;
+      await this.db
+        .prepare(`
+          INSERT INTO publication_number_history (
+            id,
+            publication_id,
+            old_public_number,
+            new_public_number,
+            action,
+            changed_by,
+            created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+        `)
+        .bind(
+          generateId(),
+          row.id,
+          oldNumber,
+          newNumber,
+          "SHIFT_AFTER_DELETE",
+          "SYSTEM",
+          now()
+        )
+        .run();
 
-      case "newest":
-      default:
-        return `
-          ORDER BY
-            p.pinned DESC,
-            p.featured DESC,
-            CAST(p.priority AS INTEGER) DESC,
-            COALESCE(
-              p.published_at,
-              p.created_at
-            ) DESC
-        `;
+      changed++;
     }
+
+    return changed;
   }
 
+
   // ==========================================================
-  // ROW MAPPER
+  // HARD DELETE
   // ==========================================================
 
-  private mapRow(
-    row: Record<string, unknown>
-  ): Publication {
-    return {
-      id:
-        String(
-          row.id ?? ""
-        ),
+  async permanentlyDelete(
+    id: string,
+    adminId = "ADMIN"
+  ): Promise<boolean> {
+    const publication =
+      await this.getById(id);
 
-      postNumber:
-        clean(
-          row.post_number
-        ),
+    if (!publication) {
+      return false;
+    }
 
-      authorId:
-        clean(
-          row.author_id
-        ),
+    const publicNumber =
+      Number(
+        publication.public_number
+      );
 
-      authorName:
-        clean(
-          row.author_name
-        ),
+    await this.db
+      .prepare(`
+        DELETE FROM publications
+        WHERE id = ?
+      `)
+      .bind(id)
+      .run();
 
-      authorUsername:
-        clean(
-          row.author_username
-        ),
+    await this.renumberPublications(
+      publicNumber
+    );
 
-      authorAvatarUrl:
-        clean(
-          row.author_avatar_url
-        ),
-
-      title:
-        clean(
-          row.title
-        ),
-
-      text:
-        clean(
-          row.text
-        ),
-
-      categoryId:
-        clean(
-          row.category_id
-        ),
-
-      type:
-        normalizeType(
-          row.type
-        ),
-
-      status:
-        normalizeStatus(
-          row.status
-        ),
-
-      visibility:
-        normalizeVisibility(
-          row.visibility
-        ),
-
-      authorVisibility:
-        normalizeAuthorVisibility(
-          row.author_visibility
-        ),
-
-      background:
-        clean(
-          row.background
-        ),
-
-      font:
-        clean(
-          row.font
-        ),
-
-      textColor:
-        clean(
-          row.text_color
-        ),
-
-      priority:
-        normalizeCounter(
-          row.priority
-        ),
-
-      pinned:
-        bool(
-          row.pinned
-        ),
-
-      featured:
-        bool(
-          row.featured
-        ),
-
-      publishedAt:
-        clean(
-          row.published_at
-        ),
-
-      expiresAt:
-        clean(
-          row.expires_at
-        ),
-
-      autoDelete:
-        bool(
-          row.auto_delete
-        ),
-
-      viewsCount:
-        normalizeCounter(
-          row.views_count
-        ),
-
-      uniqueViewsCount:
-        normalizeCounter(
-          row.unique_views_count
-        ),
-
-      likesCount:
-        normalizeCounter(
-          row.likes_count
-        ),
-
-      commentsCount:
-        normalizeCounter(
-          row.comments_count
-        ),
-
-      reactionsCount:
-        normalizeCounter(
-          row.reactions_count
-        ),
-
-      bookmarksCount:
-        normalizeCounter(
-          row.bookmarks_count
-        ),
-
-      sharesCount:
-        normalizeCounter(
-          row.shares_count
-        ),
-
-      sendsCount:
-        normalizeCounter(
-          row.sends_count
-        ),
-
-      reportsCount:
-        normalizeCounter(
-          row.reports_count
-        ),
-
-      contactsCount:
-        normalizeCounter(
-          row.contacts_count
-        ),
-
-      applicationsCount:
-        normalizeCounter(
-          row.applications_count
-        ),
-
-      downloadsCount:
-        normalizeCounter(
-          row.downloads_count
-        ),
-
-      clicksCount:
-        normalizeCounter(
-          row.clicks_count
-        ),
-
-      externalClicksCount:
-        normalizeCounter(
-          row.external_clicks_count
-        ),
-
-      createdAt:
-        String(
-          row.created_at ??
-            ""
-        ),
-
-      updatedAt:
-        String(
-          row.updated_at ??
-            ""
-        ),
-
-      deletedAt:
-        clean(
-          row.deleted_at
-        ),
-    };
+    return true;
   }
 
-  private metricToProperty(
-    metric: string
+
+  // ==========================================================
+  // PUBLIC FEED
+  // ==========================================================
+
+  async publicFeed(
+    options: {
+      categoryId?: string;
+      search?: string;
+      limit?: number;
+      offset?: number;
+      sort?: PublicationSort;
+    } = {}
+  ): Promise<PublicationListResult> {
+    return this.list({
+      status: "PUBLISHED",
+      visibility: "PUBLIC",
+      category_id:
+        options.categoryId,
+      search:
+        options.search,
+      limit:
+        options.limit,
+      offset:
+        options.offset,
+      sort:
+        options.sort || "newest",
+    });
+  }
+
+
+  // ==========================================================
+  // URL
+  // ==========================================================
+
+  getPublicUrl(
+    publication: Publication
   ): string {
-    const map: Record<
-      string,
-      string
-    > = {
-      views_count:
-        "viewsCount",
-
-      unique_views_count:
-        "uniqueViewsCount",
-
-      likes_count:
-        "likesCount",
-
-      comments_count:
-        "commentsCount",
-
-      reactions_count:
-        "reactionsCount",
-
-      bookmarks_count:
-        "bookmarksCount",
-
-      shares_count:
-        "sharesCount",
-
-      sends_count:
-        "sendsCount",
-
-      reports_count:
-        "reportsCount",
-
-      contacts_count:
-        "contactsCount",
-
-      applications_count:
-        "applicationsCount",
-
-      downloads_count:
-        "downloadsCount",
-
-      clicks_count:
-        "clicksCount",
-
-      external_clicks_count:
-        "externalClicksCount",
-    };
-
-    return (
-      map[metric] ??
-      "viewsCount"
+    return publicationUrl(
+      publication.public_number
     );
   }
+
+
+  // ==========================================================
+  // ADMIN SEARCH
+  // ==========================================================
+
+  async adminSearch(
+    search: string,
+    limit = 50
+  ): Promise<Publication[]> {
+    const value =
+      `%${search.trim()}%`;
+
+    const result =
+      await this.db
+        .prepare(`
+          SELECT *
+          FROM publications
+          WHERE
+            id LIKE ?
+            OR CAST(public_number AS TEXT) LIKE ?
+            OR title LIKE ?
+            OR text LIKE ?
+            OR author_id LIKE ?
+            OR author_name LIKE ?
+            OR author_username LIKE ?
+          ORDER BY created_at DESC
+          LIMIT ?
+        `)
+        .bind(
+          value,
+          value,
+          value,
+          value,
+          value,
+          value,
+          value,
+          Math.min(limit, 100)
+        )
+        .all<Record<string, unknown>>();
+
+    return (result.results || [])
+      .map(mapPublication);
+  }
 }
+
 
 // ============================================================
 // FACTORY
@@ -2426,73 +3031,36 @@ export class PublicationService {
 export function createPublicationService(
   env: Env
 ): PublicationService {
-  return new PublicationService(
-    env
-  );
+  return new PublicationService(env);
 }
+
 
 // ============================================================
-// SIMPLE FUNCTION API
+// STANDALONE HELPERS
 // ============================================================
-
-export async function getPublication(
-  env: Env,
-  id: string
-): Promise<Publication | null> {
-  return createPublicationService(
-    env
-  ).getById(id);
-}
-
-export async function getPublicationByNumber(
-  env: Env,
-  number: string | number
-): Promise<Publication | null> {
-  return createPublicationService(
-    env
-  ).getByPublicNumber(number);
-}
 
 export async function createPublication(
   env: Env,
   input: CreatePublicationInput
 ): Promise<Publication> {
-  return createPublicationService(
-    env
-  ).create(input);
+  return createPublicationService(env)
+    .create(input);
 }
 
-export async function updatePublication(
-  env: Env,
-  id: string,
-  input: UpdatePublicationInput
-): Promise<Publication> {
-  return createPublicationService(
-    env
-  ).update(
-    id,
-    input
-  );
-}
 
-export async function publishPublication(
+export async function getPublication(
   env: Env,
   id: string
-): Promise<Publication> {
-  return createPublicationService(
-    env
-  ).publish(id);
+): Promise<Publication | null> {
+  return createPublicationService(env)
+    .getById(id);
 }
 
-export async function deletePublication(
+
+export async function getPublicationByNumber(
   env: Env,
-  id: string,
-  reason?: string
-): Promise<Publication> {
-  return createPublicationService(
-    env
-  ).remove(
-    id,
-    reason
-  );
-        }
+  number: number | string
+): Promise<Publication | null> {
+  return createPublicationService(env)
+    .getByPublicNumber(number);
+      }
