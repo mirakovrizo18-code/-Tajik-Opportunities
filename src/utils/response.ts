@@ -68,7 +68,8 @@ const DEFAULT_SECURITY_HEADERS: Record<string, string> = {
 export function corsHeaders(_request?: Request): Record<string, string> {
 return {
 "Access-Control-Allow-Origin": "*",
-"Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+"Access-Control-Allow-Methods":
+"GET, POST, PUT, PATCH, DELETE, OPTIONS",
 "Access-Control-Allow-Headers":
 "Content-Type, Authorization, X-Requested-With, X-Request-ID",
 "Access-Control-Max-Age": "86400",
@@ -82,6 +83,7 @@ options: ResponseOptions = {},
 const headers = new Headers();
 
 const cors = corsHeaders(request);
+
 for (const [key, value] of Object.entries(cors)) {
 headers.set(key, value);
 }
@@ -185,7 +187,10 @@ limit: safeLimit,
 
 if (total !== undefined) {
 const safeTotal = Math.max(0, total);
-const totalPages = Math.max(1, Math.ceil(safeTotal / safeLimit));
+const totalPages = Math.max(
+1,
+Math.ceil(safeTotal / safeLimit),
+);
 
 ```
 result.total = safeTotal;
@@ -234,7 +239,11 @@ options.limit,
 options.total,
 );
 
-const body = createBody(data, options.meta, pagination);
+const body = createBody(
+data,
+options.meta,
+pagination,
+);
 
 const headers = createHeaders(undefined, {
 ...options,
@@ -279,7 +288,9 @@ return "VALIDATION_ERROR";
 case 429:
 return "RATE_LIMITED";
 default:
-return status >= 500 ? "INTERNAL_SERVER_ERROR" : "ERROR";
+return status >= 500
+? "INTERNAL_SERVER_ERROR"
+: "ERROR";
 }
 }
 
@@ -403,11 +414,21 @@ remaining: 0,
 ): Response {
 const headers = new Headers(options.headers);
 
-headers.set("X-RateLimit-Limit", String(options.limit));
-headers.set("X-RateLimit-Remaining", String(options.remaining));
+headers.set(
+"X-RateLimit-Limit",
+String(options.limit),
+);
+
+headers.set(
+"X-RateLimit-Remaining",
+String(options.remaining),
+);
 
 if (options.reset !== undefined) {
-headers.set("X-RateLimit-Reset", String(options.reset));
+headers.set(
+"X-RateLimit-Reset",
+String(options.reset),
+);
 }
 
 return errorResponse(message, 429, {
@@ -434,7 +455,10 @@ options: ErrorResponseOptions = {},
 const headers = new Headers(options.headers);
 
 if (allowedMethods.length > 0) {
-headers.set("Allow", allowedMethods.join(", "));
+headers.set(
+"Allow",
+allowedMethods.join(", "),
+);
 }
 
 return errorResponse("Method not allowed", 405, {
@@ -444,7 +468,9 @@ code: options.code ?? "METHOD_NOT_ALLOWED",
 });
 }
 
-export function getRequestContext(request: Request): RequestContext {
+export function getRequestContext(
+request: Request,
+): RequestContext {
 const url = new URL(request.url);
 
 const requestId =
@@ -452,7 +478,8 @@ request.headers.get("X-Request-ID") ??
 crypto.randomUUID();
 
 const userAgent =
-request.headers.get("User-Agent") ?? undefined;
+request.headers.get("User-Agent") ??
+undefined;
 
 const ip =
 request.headers.get("CF-Connecting-IP") ??
@@ -519,10 +546,15 @@ return null;
 }
 }
 
-export function isJsonRequest(request: Request): boolean {
-const contentType = request.headers.get("Content-Type") ?? "";
+export function isJsonRequest(
+request: Request,
+): boolean {
+const contentType =
+request.headers.get("Content-Type") ?? "";
 
-return contentType.toLowerCase().includes("application/json");
+return contentType
+.toLowerCase()
+.includes("application/json");
 }
 
 export function withRequestId(
@@ -549,11 +581,21 @@ options: RateLimitOptions,
 ): Response {
 const headers = new Headers();
 
-headers.set("X-RateLimit-Limit", String(options.limit));
-headers.set("X-RateLimit-Remaining", String(options.remaining));
+headers.set(
+"X-RateLimit-Limit",
+String(options.limit),
+);
+
+headers.set(
+"X-RateLimit-Remaining",
+String(options.remaining),
+);
 
 if (options.reset !== undefined) {
-headers.set("X-RateLimit-Reset", String(options.reset));
+headers.set(
+"X-RateLimit-Reset",
+String(options.reset),
+);
 }
 
 return responseWithHeaders(response, headers);
@@ -611,7 +653,9 @@ options: ResponseOptions = {},
 ): Response {
 const headers = createHeaders(undefined, {
 ...options,
-contentType: options.contentType ?? "text/plain; charset=utf-8",
+contentType:
+options.contentType ??
+"text/plain; charset=utf-8",
 });
 
 return new Response(text, {
@@ -641,19 +685,25 @@ headers,
 export async function createEtag(
 data: unknown,
 ): Promise<string> {
-const serialized = JSON.stringify(serialize(data));
+const serialized =
+JSON.stringify(serialize(data));
 
-const bytes = new TextEncoder().encode(serialized);
+const bytes =
+new TextEncoder().encode(serialized);
 
-const hashBuffer = await crypto.subtle.digest(
+const hashBuffer =
+await crypto.subtle.digest(
 "SHA-256",
 bytes,
 );
 
-const hashArray = Array.from(new Uint8Array(hashBuffer));
+const hashArray =
+Array.from(new Uint8Array(hashBuffer));
 
 const hash = hashArray
-.map((byte) => byte.toString(16).padStart(2, "0"))
+.map((byte) =>
+byte.toString(16).padStart(2, "0"),
+)
 .join("");
 
 return `"${hash}"`;
@@ -663,13 +713,17 @@ export function isNotModified(
 request: Request,
 etag: string,
 ): boolean {
-const ifNoneMatch = request.headers.get("If-None-Match");
+const ifNoneMatch =
+request.headers.get("If-None-Match");
 
 if (!ifNoneMatch) {
 return false;
 }
 
-return ifNoneMatch === etag || ifNoneMatch.includes("*");
+return (
+ifNoneMatch === etag ||
+ifNoneMatch.includes("*")
+);
 }
 
 export function notModifiedResponse(
@@ -703,10 +757,13 @@ requestId,
 });
 }
 
-return serverErrorResponse("Unknown server error", {
+return serverErrorResponse(
+"Unknown server error",
+{
 requestId,
 details: error,
-});
+},
+);
 }
 
 export function addResponseTiming(
@@ -715,7 +772,9 @@ startedAt: number,
 ): Response {
 const elapsed = Math.max(
 0,
-Math.round(performance.now() - startedAt),
+Math.round(
+performance.now() - startedAt,
+),
 );
 
 return responseWithHeaders(response, {
