@@ -195,22 +195,21 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 // INTERNAL FETCH COMPATIBILITY
 // ============================================================
 //
-// Cloudflare Workers расширяет стандартный DOM Request
-// своими generic-параметрами.
+// Cloudflare Workers имеет расширенный generic Request.
 //
-// Поэтому внутри utility-layer используется собственная
-// минимальная совместимая сигнатура fetch.
+// Нельзя заставлять DOM fetch и Cloudflare Request
+// унифицироваться через Request<T, C>.
 //
-// Публичные типы проекта при этом не меняются.
+// Поэтому только внутренний адаптер использует unknown.
+// Runtime-значения по-прежнему остаются:
+//
+// string | URL | Request
+//
+// Это исключительно TypeScript compatibility-layer.
 // ============================================================
 
-type CompatibleFetchInput =
-  | string
-  | URL
-  | Request;
-
 type CompatibleFetch = (
-  input: CompatibleFetchInput,
+  input: unknown,
   init?: RequestInit,
 ) => Promise<Response>;
 
@@ -1205,8 +1204,7 @@ export async function httpRequest<
       );
   }
 
-  let request:
-    Request;
+  let request: Request;
 
   if (
     input instanceof Request
