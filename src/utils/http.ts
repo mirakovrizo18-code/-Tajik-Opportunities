@@ -1,8 +1,8 @@
-import {
-  HTTP,
-  CONTENT_TYPES,
-  HEADERS,
-} from "../constants/app";
+// ============================================================
+// 🇹🇯 TAJIK OPPORTUNITIES
+// HTTP UTILITIES
+// Version: 2026.09.09 POWER PRODUCTION
+// ============================================================
 
 export type HttpMethod =
   | "GET"
@@ -18,1108 +18,1144 @@ export interface HttpRequestOptions {
   headers?: HeadersInit;
   body?: BodyInit | null;
   signal?: AbortSignal;
-  credentials?: RequestCredentials;
   cache?: RequestCache;
+  credentials?: RequestCredentials;
   redirect?: RequestRedirect;
-  referrer?: string;
+  referrerPolicy?: ReferrerPolicy;
+  timeoutMs?: number;
 }
 
-export interface HttpRetryOptions {
+export interface HttpJsonOptions
+  extends HttpRequestOptions {
+  body?: unknown;
+}
+
+export interface HttpResponse<T = unknown> {
+  response: Response;
+  data: T;
+}
+
+export interface RetryOptions {
   retries?: number;
   delayMs?: number;
-  backoff?: number;
   maxDelayMs?: number;
-  retryMethods?: HttpMethod[];
-  retryStatuses?: number[];
+  retryStatusCodes?: readonly number[];
 }
 
-export interface HttpClientOptions {
-  baseUrl?: string;
-  defaultHeaders?: HeadersInit;
-  timeoutMs?: number;
-  retry?: HttpRetryOptions;
+export interface FetchJsonOptions
+  extends HttpJsonOptions,
+    RetryOptions {}
+
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+export const HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  ACCEPTED: 202,
+  NO_CONTENT: 204,
+
+  MOVED_PERMANENTLY: 301,
+  FOUND: 302,
+  NOT_MODIFIED: 304,
+
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  METHOD_NOT_ALLOWED: 405,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  TOO_MANY_REQUESTS: 429,
+
+  INTERNAL_SERVER_ERROR: 500,
+  NOT_IMPLEMENTED: 501,
+  BAD_GATEWAY: 502,
+  SERVICE_UNAVAILABLE: 503,
+  GATEWAY_TIMEOUT: 504,
+} as const;
+
+
+export const CONTENT_TYPE = {
+  JSON: "application/json; charset=utf-8",
+  TEXT: "text/plain; charset=utf-8",
+  HTML: "text/html; charset=utf-8",
+  FORM: "application/x-www-form-urlencoded; charset=utf-8",
+  MULTIPART: "multipart/form-data",
+  OCTET_STREAM: "application/octet-stream",
+} as const;
+
+
+export const REQUEST_HEADERS = {
+  CONTENT_TYPE: "Content-Type",
+  ACCEPT: "Accept",
+  AUTHORIZATION: "Authorization",
+  USER_AGENT: "User-Agent",
+  CACHE_CONTROL: "Cache-Control",
+  IF_NONE_MATCH: "If-None-Match",
+  IF_MODIFIED_SINCE: "If-Modified-Since",
+  ETAG: "ETag",
+  LAST_MODIFIED: "Last-Modified",
+
+  REQUEST_ID: "X-Request-ID",
+  VISITOR_ID: "X-Visitor-ID",
+  SESSION_ID: "X-Session-ID",
+  ADMIN_SESSION: "X-Admin-Session",
+  CSRF_TOKEN: "X-CSRF-Token",
+  CLIENT_VERSION: "X-Client-Version",
+} as const;
+
+
+// ============================================================
+// METHOD HELPERS
+// ============================================================
+
+export function isHttpMethod(
+  value: string
+): value is HttpMethod {
+
+  return [
+    "GET",
+    "POST",
+    "PUT",
+    "PATCH",
+    "DELETE",
+    "OPTIONS",
+    "HEAD",
+  ].includes(value.toUpperCase());
 }
 
-export interface HttpResult<T = unknown> {
-  ok: boolean;
-  status: number;
-  statusText: string;
-  headers: Headers;
-  data: T | null;
-  response: Response;
-}
 
-export interface HttpErrorData {
-  message?: string;
-  error?: string;
-  code?: string;
-  details?: unknown;
-  [key: string]: unknown;
-}
+export function normalizeMethod(
+  method?: string
+): HttpMethod {
 
-export class HttpError extends Error {
-  readonly status: number;
-  readonly statusText: string;
-  readonly response: Response;
-  readonly data: unknown;
+  const value =
+    (method ?? "GET").toUpperCase();
 
-  constructor(
-    message: string,
-    response: Response,
-    data: unknown = null,
-  ) {
-    super(message);
-    this.name = "HttpError";
-    this.status = response.status;
-    this.statusText = response.statusText;
-    this.response = response;
-    this.data = data;
+  if (isHttpMethod(value)) {
+    return value;
   }
+
+  return "GET";
 }
 
-function normalizeBaseUrl(
-  baseUrl: string,
-): string {
-  return baseUrl.replace(/\/+$/, "");
-}
 
-function joinUrl(
-  baseUrl: string,
-  path: string,
-): string {
-  if (
-    /^https?:\/\//i.test(path)
-  ) {
-    return path;
-  }
+// ============================================================
+// HEADER HELPERS
+// ============================================================
 
-  const base =
-    normalizeBaseUrl(baseUrl);
-
-  const normalizedPath =
-    path.startsWith("/")
-      ? path
-      : `/${path}`;
-
-  return `${base}${normalizedPath}`;
-}
-
-function toHeaders(
-  headers?: HeadersInit,
+export function createHeaders(
+  input?: HeadersInit
 ): Headers {
-  return new Headers(headers);
+
+  return new Headers(input);
 }
 
-function isJsonContentType(
-  contentType: string | null,
-): boolean {
-  if (!contentType) {
-    return false;
+
+export function setJsonHeaders(
+  headers?: HeadersInit
+): Headers {
+
+  const result = new Headers(headers);
+
+  if (!result.has(REQUEST_HEADERS.CONTENT_TYPE)) {
+    result.set(
+      REQUEST_HEADERS.CONTENT_TYPE,
+      CONTENT_TYPE.JSON
+    );
   }
+
+  if (!result.has(REQUEST_HEADERS.ACCEPT)) {
+    result.set(
+      REQUEST_HEADERS.ACCEPT,
+      CONTENT_TYPE.JSON
+    );
+  }
+
+  return result;
+}
+
+
+export function setTextHeaders(
+  headers?: HeadersInit
+): Headers {
+
+  const result = new Headers(headers);
+
+  if (!result.has(REQUEST_HEADERS.CONTENT_TYPE)) {
+    result.set(
+      REQUEST_HEADERS.CONTENT_TYPE,
+      CONTENT_TYPE.TEXT
+    );
+  }
+
+  return result;
+}
+
+
+export function setRequestId(
+  headers: Headers,
+  requestId: string
+): Headers {
+
+  headers.set(
+    REQUEST_HEADERS.REQUEST_ID,
+    requestId
+  );
+
+  return headers;
+}
+
+
+export function getRequestId(
+  response: Response
+): string | null {
+
+  return response.headers.get(
+    REQUEST_HEADERS.REQUEST_ID
+  );
+}
+
+
+export function getContentType(
+  response: Response
+): string {
 
   return (
-    contentType.includes(
-      "application/json",
-    ) ||
-    contentType.includes(
-      "+json",
-    )
-  );
+    response.headers.get(
+      REQUEST_HEADERS.CONTENT_TYPE
+    ) ?? ""
+  ).toLowerCase();
 }
 
-async function parseResponseBody(
-  response: Response,
-): Promise<unknown> {
-  if (
-    response.status === 204 ||
-    response.status === 205
-  ) {
-    return null;
-  }
+
+export function isJsonResponse(
+  response: Response
+): boolean {
 
   const contentType =
-    response.headers.get(
-      "content-type",
-    );
+    getContentType(response);
 
-  const text =
-    await response.text();
-
-  if (!text) {
-    return null;
-  }
-
-  if (
-    isJsonContentType(contentType)
-  ) {
-    try {
-      return JSON.parse(text);
-    } catch {
-      return text;
-    }
-  }
-
-  return text;
+  return (
+    contentType.includes("application/json") ||
+    contentType.includes("+json")
+  );
 }
 
-function getErrorMessage(
-  data: unknown,
-  fallback: string,
+
+// ============================================================
+// JSON SERIALIZATION
+// ============================================================
+
+export function jsonBody(
+  value: unknown
 ): string {
-  if (
-    data &&
-    typeof data === "object"
-  ) {
-    const object =
-      data as HttpErrorData;
 
-    if (
-      typeof object.message ===
-      "string"
-    ) {
-      return object.message;
+  return JSON.stringify(
+    value,
+    (_key, item) => {
+
+      if (typeof item === "bigint") {
+        return item.toString();
+      }
+
+      return item;
     }
-
-    if (
-      typeof object.error ===
-      "string"
-    ) {
-      return object.error;
-    }
-  }
-
-  return fallback;
-}
-
-function isRetryableStatus(
-  status: number,
-  statuses: number[],
-): boolean {
-  return statuses.includes(status);
-}
-
-function sleep(
-  milliseconds: number,
-): Promise<void> {
-  if (milliseconds <= 0) {
-    return Promise.resolve();
-  }
-
-  return new Promise(
-    (resolve) =>
-      setTimeout(
-        resolve,
-        milliseconds,
-      ),
   );
 }
 
-function calculateRetryDelay(
-  attempt: number,
-  options: HttpRetryOptions,
-): number {
-  const base =
-    Math.max(
-      0,
-      options.delayMs ?? 250,
-    );
 
-  const backoff =
-    Math.max(
-      1,
-      options.backoff ?? 2,
-    );
+export function createJsonRequest(
+  url: string | URL,
+  options: HttpJsonOptions = {}
+): Request {
 
-  const max =
-    Math.max(
-      base,
-      options.maxDelayMs ?? 10_000,
-    );
+  const headers =
+    setJsonHeaders(options.headers);
 
-  return Math.min(
-    max,
-    base *
-      Math.pow(
-        backoff,
-        Math.max(
-          0,
-          attempt - 1,
-        ),
-      ),
-  );
+  const method =
+    normalizeMethod(options.method);
+
+  const body =
+    method === "GET" ||
+    method === "HEAD"
+      ? undefined
+      : jsonBody(options.body ?? {});
+
+  return new Request(url, {
+    method,
+    headers,
+    body,
+    signal: options.signal,
+    cache: options.cache,
+    credentials: options.credentials,
+    redirect: options.redirect,
+    referrerPolicy: options.referrerPolicy,
+  });
 }
 
-function createAbortSignal(
-  timeoutMs: number | undefined,
-  signal?: AbortSignal,
-): {
-  signal?: AbortSignal;
-  cleanup: () => void;
-} {
-  if (
-    timeoutMs === undefined ||
-    timeoutMs <= 0
-  ) {
-    return {
-      signal,
-      cleanup: () => undefined,
-    };
-  }
+
+// ============================================================
+// FORM REQUEST
+// ============================================================
+
+export function createFormRequest(
+  url: string | URL,
+  form: URLSearchParams,
+  options: HttpRequestOptions = {}
+): Request {
+
+  const headers =
+    new Headers(options.headers);
+
+  headers.set(
+    REQUEST_HEADERS.CONTENT_TYPE,
+    CONTENT_TYPE.FORM
+  );
+
+  return new Request(url, {
+    method: normalizeMethod(
+      options.method ?? "POST"
+    ),
+    headers,
+    body: form,
+    signal: options.signal,
+  });
+}
+
+
+// ============================================================
+// REQUEST TIMEOUT
+// ============================================================
+
+export function createTimeoutSignal(
+  timeoutMs: number,
+  externalSignal?: AbortSignal
+): AbortSignal {
 
   const controller =
     new AbortController();
 
   const timer =
     setTimeout(
-      () =>
-        controller.abort(
-          new Error(
-            "HTTP request timeout.",
-          ),
-        ),
-      timeoutMs,
+      () => controller.abort(
+        new Error("HTTP request timeout")
+      ),
+      timeoutMs
     );
 
-  const abortListener =
-    () => {
-      controller.abort(
-        signal?.reason,
-      );
-    };
+  const cleanup = () => {
+    clearTimeout(timer);
+  };
 
-  if (signal) {
-    if (signal.aborted) {
+  controller.signal.addEventListener(
+    "abort",
+    cleanup,
+    { once: true }
+  );
+
+  if (externalSignal) {
+
+    if (externalSignal.aborted) {
       controller.abort(
-        signal.reason,
+        externalSignal.reason
       );
     } else {
-      signal.addEventListener(
+
+      externalSignal.addEventListener(
         "abort",
-        abortListener,
-        { once: true },
+        () => {
+          controller.abort(
+            externalSignal.reason
+          );
+        },
+        { once: true }
       );
     }
   }
 
-  return {
-    signal:
-      controller.signal,
-    cleanup: () => {
-      clearTimeout(timer);
+  return controller.signal;
+}
 
-      if (signal) {
-        signal.removeEventListener(
-          "abort",
-          abortListener,
-        );
+
+// ============================================================
+// ERROR
+// ============================================================
+
+export class HttpError extends Error {
+
+  readonly status: number;
+  readonly statusText: string;
+  readonly url: string;
+  readonly response?: Response;
+  readonly data?: unknown;
+
+  constructor(
+    message: string,
+    status: number,
+    statusText: string,
+    url: string,
+    response?: Response,
+    data?: unknown
+  ) {
+
+    super(message);
+
+    this.name = "HttpError";
+    this.status = status;
+    this.statusText = statusText;
+    this.url = url;
+    this.response = response;
+    this.data = data;
+  }
+}
+
+
+// ============================================================
+// RESPONSE PARSING
+// ============================================================
+
+export async function parseResponseBody<T = unknown>(
+  response: Response
+): Promise<T> {
+
+  if (response.status === HTTP_STATUS.NO_CONTENT) {
+    return undefined as T;
+  }
+
+  const text =
+    await response.text();
+
+  if (!text) {
+    return undefined as T;
+  }
+
+  if (isJsonResponse(response)) {
+
+    try {
+      return JSON.parse(text) as T;
+    } catch {
+      return text as T;
+    }
+  }
+
+  return text as T;
+}
+
+
+// ============================================================
+// ERROR MESSAGE
+// ============================================================
+
+export function extractErrorMessage(
+  data: unknown,
+  fallback = "HTTP request failed"
+): string {
+
+  if (
+    data &&
+    typeof data === "object"
+  ) {
+
+    const value =
+      data as Record<string, unknown>;
+
+    if (
+      typeof value.message === "string" &&
+      value.message.trim()
+    ) {
+      return value.message;
+    }
+
+    if (
+      typeof value.error === "string" &&
+      value.error.trim()
+    ) {
+      return value.error;
+    }
+
+    if (
+      value.error &&
+      typeof value.error === "object"
+    ) {
+
+      const nested =
+        value.error as Record<string, unknown>;
+
+      if (
+        typeof nested.message === "string"
+      ) {
+        return nested.message;
       }
-    },
-  };
-}
-
-export function isHttpMethod(
-  value: unknown,
-): value is HttpMethod {
-  return (
-    typeof value === "string" &&
-    [
-      "GET",
-      "POST",
-      "PUT",
-      "PATCH",
-      "DELETE",
-      "OPTIONS",
-      "HEAD",
-    ].includes(
-      value.toUpperCase(),
-    )
-  );
-}
-
-export function normalizeHttpMethod(
-  value: unknown,
-): HttpMethod {
-  const method =
-    String(
-      value ?? "GET",
-    ).toUpperCase();
-
-  if (
-    !isHttpMethod(method)
-  ) {
-    return "GET";
+    }
   }
 
-  return method;
-}
-
-export function isSuccessStatus(
-  status: number,
-): boolean {
-  return (
-    status >= 200 &&
-    status < 300
-  );
-}
-
-export function isRedirectStatus(
-  status: number,
-): boolean {
-  return (
-    status >= 300 &&
-    status < 400
-  );
-}
-
-export function isClientErrorStatus(
-  status: number,
-): boolean {
-  return (
-    status >= 400 &&
-    status < 500
-  );
-}
-
-export function isServerErrorStatus(
-  status: number,
-): boolean {
-  return status >= 500;
-}
-
-export function isRetryableError(
-  error: unknown,
-): boolean {
-  if (
-    error instanceof HttpError
-  ) {
-    return (
-      error.status === 408 ||
-      error.status === 425 ||
-      error.status === 429 ||
-      error.status >= 500
-    );
+  if (typeof data === "string" && data.trim()) {
+    return data;
   }
 
-  if (
-    error instanceof Error
-  ) {
-    return (
-      error.name ===
-        "AbortError" ||
-      error.name ===
-        "TypeError" ||
-      error.message
-        .toLowerCase()
-        .includes("network")
-    );
-  }
-
-  return false;
+  return fallback;
 }
 
-export async function request<T = unknown>(
-  url: string,
-  options: HttpRequestOptions = {},
-): Promise<HttpResult<T>> {
-  const method =
-    normalizeHttpMethod(
-      options.method,
-    );
+
+// ============================================================
+// BASIC FETCH
+// ============================================================
+
+export async function httpRequest<T = unknown>(
+  input: string | URL | Request,
+  options: HttpRequestOptions = {}
+): Promise<HttpResponse<T>> {
+
+  let signal =
+    options.signal;
+
+  if (
+    options.timeoutMs &&
+    options.timeoutMs > 0
+  ) {
+
+    signal =
+      createTimeoutSignal(
+        options.timeoutMs,
+        options.signal
+      );
+  }
 
   const response =
-    await fetch(url, {
-      ...options,
-      method,
+    await fetch(input, {
+      method: normalizeMethod(options.method),
+      headers: options.headers,
+      body: options.body,
+      signal,
+      cache: options.cache,
+      credentials: options.credentials,
+      redirect: options.redirect,
+      referrerPolicy: options.referrerPolicy,
     });
 
   const data =
-    await parseResponseBody(
-      response,
-    );
+    await parseResponseBody<T>(response);
 
   return {
-    ok: response.ok,
-    status: response.status,
-    statusText:
-      response.statusText,
-    headers: response.headers,
-    data: data as T | null,
     response,
+    data,
   };
 }
 
-export async function requestOrThrow<
-  T = unknown,
->(
-  url: string,
-  options: HttpRequestOptions = {},
-): Promise<T> {
-  const result =
-    await request<T>(
-      url,
-      options,
-    );
 
-  if (!result.ok) {
+// ============================================================
+// CHECK RESPONSE
+// ============================================================
+
+export function isSuccessful(
+  response: Response
+): boolean {
+
+  return response.ok;
+}
+
+
+export function isClientError(
+  response: Response
+): boolean {
+
+  return (
+    response.status >= 400 &&
+    response.status < 500
+  );
+}
+
+
+export function isServerError(
+  response: Response
+): boolean {
+
+  return response.status >= 500;
+}
+
+
+// ============================================================
+// REQUIRE SUCCESS
+// ============================================================
+
+export async function requireSuccessful<T>(
+  result: HttpResponse<T>
+): Promise<T> {
+
+  if (!result.response.ok) {
+
     throw new HttpError(
-      getErrorMessage(
+      extractErrorMessage(
         result.data,
-        `HTTP ${result.status}`,
+        `HTTP ${result.response.status}`
       ),
+      result.response.status,
+      result.response.statusText,
+      result.response.url,
       result.response,
-      result.data,
+      result.data
     );
   }
 
-  return result.data as T;
+  return result.data;
 }
 
-export async function requestWithRetry<
-  T = unknown,
->(
-  url: string,
-  options: HttpRequestOptions = {},
-  retryOptions: HttpRetryOptions = {},
-): Promise<HttpResult<T>> {
-  const retries = Math.max(
-    0,
-    Math.floor(
-      retryOptions.retries ?? 2,
-    ),
-  );
 
-  const retryMethods =
-    retryOptions.retryMethods ??
-    [
-      "GET",
-      "HEAD",
-      "OPTIONS",
-    ];
+// ============================================================
+// JSON FETCH
+// ============================================================
 
-  const retryStatuses =
-    retryOptions.retryStatuses ??
-    [
-      408,
-      425,
-      429,
-      500,
-      502,
-      503,
-      504,
-    ];
+export async function fetchJson<T = unknown>(
+  input: string | URL | Request,
+  options: FetchJsonOptions = {}
+): Promise<T> {
 
-  const method =
-    normalizeHttpMethod(
-      options.method,
+  const retries =
+    Math.max(
+      0,
+      options.retries ?? 0
     );
 
-  let lastError:
-    | unknown
-    | undefined;
+  const retryStatusCodes =
+    options.retryStatusCodes ??
+    [
+      HTTP_STATUS.TOO_MANY_REQUESTS,
+      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS.BAD_GATEWAY,
+      HTTP_STATUS.SERVICE_UNAVAILABLE,
+      HTTP_STATUS.GATEWAY_TIMEOUT,
+    ];
+
+  let lastError: unknown;
 
   for (
     let attempt = 0;
     attempt <= retries;
     attempt++
   ) {
+
     try {
-      const result =
-        await request<T>(
-          url,
-          options,
+
+      const request =
+        input instanceof Request
+          ? input
+          : createJsonRequest(
+              input,
+              options
+            );
+
+      const response =
+        await fetch(
+          request
         );
 
-      if (
-        result.ok ||
-        !retryMethods.includes(
-          method,
-        ) ||
-        !isRetryableStatus(
-          result.status,
-          retryStatuses,
-        ) ||
-        attempt >= retries
-      ) {
-        return result;
+      const data =
+        await parseResponseBody<T>(
+          response
+        );
+
+      if (response.ok) {
+        return data;
       }
 
-      await sleep(
-        calculateRetryDelay(
-          attempt + 1,
-          retryOptions,
-        ),
-      );
-    } catch (error) {
+      const error =
+        new HttpError(
+          extractErrorMessage(
+            data,
+            `HTTP ${response.status}`
+          ),
+          response.status,
+          response.statusText,
+          response.url,
+          response,
+          data
+        );
+
       lastError = error;
 
-      if (
-        !retryMethods.includes(
-          method,
-        ) ||
-        attempt >= retries ||
-        !isRetryableError(error)
-      ) {
+      const canRetry =
+        attempt < retries &&
+        retryStatusCodes.includes(
+          response.status
+        );
+
+      if (!canRetry) {
         throw error;
       }
 
-      await sleep(
-        calculateRetryDelay(
-          attempt + 1,
-          retryOptions,
-        ),
-      );
+    } catch (error) {
+
+      lastError = error;
+
+      if (attempt >= retries) {
+        throw error;
+      }
     }
+
+    const baseDelay =
+      options.delayMs ?? 250;
+
+    const maxDelay =
+      options.maxDelayMs ?? 5000;
+
+    const delay =
+      Math.min(
+        maxDelay,
+        baseDelay *
+          Math.pow(2, attempt)
+      );
+
+    await sleep(delay);
   }
 
   throw (
     lastError ??
-    new Error(
-      "HTTP request failed.",
-    )
+    new Error("HTTP request failed")
   );
 }
 
-export async function get<T = unknown>(
-  url: string,
-  options: Omit<
-    HttpRequestOptions,
-    "method" | "body"
-  > = {},
-): Promise<HttpResult<T>> {
-  return request<T>(
-    url,
-    {
-      ...options,
-      method: "GET",
-    },
-  );
-}
 
-export async function getOrThrow<
-  T = unknown,
->(
-  url: string,
+// ============================================================
+// HTTP METHODS
+// ============================================================
+
+export async function httpGet<T = unknown>(
+  url: string | URL,
   options: Omit<
-    HttpRequestOptions,
+    FetchJsonOptions,
     "method" | "body"
-  > = {},
+  > = {}
 ): Promise<T> {
-  return requestOrThrow<T>(
+
+  return fetchJson<T>(
     url,
     {
       ...options,
       method: "GET",
-    },
+    }
   );
 }
 
-export async function post<T = unknown>(
-  url: string,
-  body?: BodyInit | null,
+
+export async function httpPost<T = unknown>(
+  url: string | URL,
+  body?: unknown,
   options: Omit<
-    HttpRequestOptions,
+    FetchJsonOptions,
     "method" | "body"
-  > = {},
-): Promise<HttpResult<T>> {
-  return request<T>(
+  > = {}
+): Promise<T> {
+
+  return fetchJson<T>(
     url,
     {
       ...options,
       method: "POST",
       body,
-    },
+    }
   );
 }
 
-export async function put<T = unknown>(
-  url: string,
-  body?: BodyInit | null,
+
+export async function httpPut<T = unknown>(
+  url: string | URL,
+  body?: unknown,
   options: Omit<
-    HttpRequestOptions,
+    FetchJsonOptions,
     "method" | "body"
-  > = {},
-): Promise<HttpResult<T>> {
-  return request<T>(
+  > = {}
+): Promise<T> {
+
+  return fetchJson<T>(
     url,
     {
       ...options,
       method: "PUT",
       body,
-    },
+    }
   );
 }
 
-export async function patch<T = unknown>(
-  url: string,
-  body?: BodyInit | null,
+
+export async function httpPatch<T = unknown>(
+  url: string | URL,
+  body?: unknown,
   options: Omit<
-    HttpRequestOptions,
+    FetchJsonOptions,
     "method" | "body"
-  > = {},
-): Promise<HttpResult<T>> {
-  return request<T>(
+  > = {}
+): Promise<T> {
+
+  return fetchJson<T>(
     url,
     {
       ...options,
       method: "PATCH",
       body,
-    },
+    }
   );
 }
 
-export async function del<T = unknown>(
-  url: string,
+
+export async function httpDelete<T = unknown>(
+  url: string | URL,
   options: Omit<
-    HttpRequestOptions,
-    "method"
-  > = {},
-): Promise<HttpResult<T>> {
-  return request<T>(
+    FetchJsonOptions,
+    "method" | "body"
+  > = {}
+): Promise<T> {
+
+  return fetchJson<T>(
     url,
     {
       ...options,
       method: "DELETE",
-    },
+    }
   );
 }
 
-export async function head(
-  url: string,
-  options: Omit<
-    HttpRequestOptions,
-    "method" | "body"
-  > = {},
-): Promise<HttpResult<null>> {
-  return request<null>(
-    url,
-    {
-      ...options,
-      method: "HEAD",
-    },
-  );
-}
 
-export function jsonBody(
-  value: unknown,
-): string {
-  return JSON.stringify(
-    value,
-  );
-}
+// ============================================================
+// QUERY PARAMETERS
+// ============================================================
 
-export function jsonHeaders(
-  headers?: HeadersInit,
-): Headers {
-  const result =
-    toHeaders(headers);
-
-  if (
-    !result.has(
-      "content-type",
-    )
-  ) {
-    result.set(
-      "content-type",
-      CONTENT_TYPES.JSON ??
-        "application/json",
-    );
-  }
-
-  return result;
-}
-
-export function buildJsonRequest(
-  body: unknown,
-  options: HttpRequestOptions = {},
-): HttpRequestOptions {
-  return {
-    ...options,
-    headers: jsonHeaders(
-      options.headers,
-    ),
-    body: jsonBody(body),
-  };
-}
-
-export function buildFormRequest(
-  body: FormData,
-  options: HttpRequestOptions = {},
-): HttpRequestOptions {
-  return {
-    ...options,
-    body,
-  };
-}
-
-export function getHeader(
-  headers: HeadersInit,
-  name: string,
-): string | null {
-  return toHeaders(
-    headers,
-  ).get(name);
-}
-
-export function hasHeader(
-  headers: HeadersInit,
-  name: string,
-): boolean {
-  return toHeaders(
-    headers,
-  ).has(name);
-}
-
-export function setHeader(
-  headers: HeadersInit,
-  name: string,
-  value: string,
-): Headers {
-  const result =
-    toHeaders(headers);
-
-  result.set(
-    name,
-    value,
-  );
-
-  return result;
-}
-
-export function deleteHeader(
-  headers: HeadersInit,
-  name: string,
-): Headers {
-  const result =
-    toHeaders(headers);
-
-  result.delete(name);
-
-  return result;
-}
-
-export function mergeHeaders(
-  ...sources: Array<
-    HeadersInit | undefined
+export function appendQuery(
+  url: string | URL,
+  params: Record<
+    string,
+    string |
+    number |
+    boolean |
+    null |
+    undefined
   >
-): Headers {
-  const result =
-    new Headers();
+): string {
 
-  for (const source of sources) {
-    if (!source) {
+  const target =
+    new URL(url.toString());
+
+  for (
+    const [key, value] of
+    Object.entries(params)
+  ) {
+
+    if (
+      value === null ||
+      value === undefined
+    ) {
       continue;
     }
 
-    const headers =
-      new Headers(source);
-
-    headers.forEach(
-      (value, key) => {
-        result.set(
-          key,
-          value,
-        );
-      },
+    target.searchParams.set(
+      key,
+      String(value)
     );
   }
 
-  return result;
+  return target.toString();
 }
 
-export function contentType(
-  response: Response,
-): string | null {
-  return response.headers.get(
-    "content-type",
+
+// ============================================================
+// SLEEP
+// ============================================================
+
+export function sleep(
+  milliseconds: number
+): Promise<void> {
+
+  return new Promise(
+    resolve =>
+      setTimeout(
+        resolve,
+        Math.max(0, milliseconds)
+      )
   );
 }
 
-export function contentLength(
-  response: Response,
-): number | null {
-  const value =
-    response.headers.get(
-      "content-length",
+
+// ============================================================
+// RETRY HELPER
+// ============================================================
+
+export async function withRetry<T>(
+  operation: (
+    attempt: number
+  ) => Promise<T>,
+  options: RetryOptions = {}
+): Promise<T> {
+
+  const retries =
+    Math.max(
+      0,
+      options.retries ?? 3
     );
 
-  if (!value) {
-    return null;
-  }
+  const delayMs =
+    options.delayMs ?? 250;
 
-  const number =
-    Number(value);
+  const maxDelayMs =
+    options.maxDelayMs ?? 5000;
 
-  return Number.isFinite(number)
-    ? number
-    : null;
-}
+  let lastError: unknown;
 
-export function responseRequestId(
-  response: Response,
-): string | null {
-  return (
-    response.headers.get(
-      HEADERS.REQUEST_ID ??
-        "x-request-id",
-    ) ??
-    response.headers.get(
-      "x-request-id",
-    )
-  );
-}
-
-export function createHttpClient(
-  options: HttpClientOptions = {},
-) {
-  const baseUrl =
-    options.baseUrl ?? "";
-
-  const defaultHeaders =
-    new Headers(
-      options.defaultHeaders,
-    );
-
-  async function send<T = unknown>(
-    path: string,
-    requestOptions: HttpRequestOptions = {},
-  ): Promise<HttpResult<T>> {
-    const url =
-      joinUrl(
-        baseUrl,
-        path,
-      );
-
-    const headers =
-      mergeHeaders(
-        defaultHeaders,
-        requestOptions.headers,
-      );
-
-    const timeout =
-      createAbortSignal(
-        options.timeoutMs,
-        requestOptions.signal,
-      );
+  for (
+    let attempt = 0;
+    attempt <= retries;
+    attempt++
+  ) {
 
     try {
-      return await requestWithRetry<T>(
-        url,
-        {
-          ...requestOptions,
-          headers,
-          signal: timeout.signal,
-        },
-        options.retry,
-      );
-    } finally {
-      timeout.cleanup();
+      return await operation(attempt);
+    } catch (error) {
+
+      lastError = error;
+
+      if (attempt >= retries) {
+        throw error;
+      }
+
+      const delay =
+        Math.min(
+          maxDelayMs,
+          delayMs *
+            Math.pow(2, attempt)
+        );
+
+      await sleep(delay);
     }
   }
 
-  return {
-    request: send,
-
-    get<T = unknown>(
-      path: string,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ) {
-      return send<T>(
-        path,
-        {
-          ...requestOptions,
-          method: "GET",
-        },
-      );
-    },
-
-    post<T = unknown>(
-      path: string,
-      body?: BodyInit | null,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ) {
-      return send<T>(
-        path,
-        {
-          ...requestOptions,
-          method: "POST",
-          body,
-        },
-      );
-    },
-
-    put<T = unknown>(
-      path: string,
-      body?: BodyInit | null,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ) {
-      return send<T>(
-        path,
-        {
-          ...requestOptions,
-          method: "PUT",
-          body,
-        },
-      );
-    },
-
-    patch<T = unknown>(
-      path: string,
-      body?: BodyInit | null,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ) {
-      return send<T>(
-        path,
-        {
-          ...requestOptions,
-          method: "PATCH",
-          body,
-        },
-      );
-    },
-
-    delete<T = unknown>(
-      path: string,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method"
-      > = {},
-    ) {
-      return send<T>(
-        path,
-        {
-          ...requestOptions,
-          method: "DELETE",
-        },
-      );
-    },
-
-    head(
-      path: string,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ) {
-      return send<null>(
-        path,
-        {
-          ...requestOptions,
-          method: "HEAD",
-        },
-      );
-    },
-
-    async getOrThrow<T = unknown>(
-      path: string,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ): Promise<T> {
-      const result =
-        await send<T>(
-          path,
-          {
-            ...requestOptions,
-            method: "GET",
-          },
-        );
-
-      if (!result.ok) {
-        throw new HttpError(
-          getErrorMessage(
-            result.data,
-            `HTTP ${result.status}`,
-          ),
-          result.response,
-          result.data,
-        );
-      }
-
-      return result.data as T;
-    },
-
-    async postJson<T = unknown>(
-      path: string,
-      body: unknown,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ): Promise<HttpResult<T>> {
-      return send<T>(
-        path,
-        buildJsonRequest(
-          body,
-          {
-            ...requestOptions,
-            method: "POST",
-          },
-        ),
-      );
-    },
-
-    async putJson<T = unknown>(
-      path: string,
-      body: unknown,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ): Promise<HttpResult<T>> {
-      return send<T>(
-        path,
-        buildJsonRequest(
-          body,
-          {
-            ...requestOptions,
-            method: "PUT",
-          },
-        ),
-      );
-    },
-
-    async patchJson<T = unknown>(
-      path: string,
-      body: unknown,
-      requestOptions: Omit<
-        HttpRequestOptions,
-        "method" | "body"
-      > = {},
-    ): Promise<HttpResult<T>> {
-      return send<T>(
-        path,
-        buildJsonRequest(
-          body,
-          {
-            ...requestOptions,
-            method: "PATCH",
-          },
-        ),
-      );
-    },
-  };
+  throw (
+    lastError ??
+    new Error("Operation failed")
+  );
 }
 
-export const http = createHttpClient({
-  timeoutMs:
-    HTTP.REQUEST_TIMEOUT_MS ?? 30_000,
-  retry: {
-    retries: 2,
-    delayMs: 250,
-    backoff: 2,
-    maxDelayMs: 5_000,
-  },
-});
+
+// ============================================================
+// CACHE / CONDITIONAL REQUESTS
+// ============================================================
+
+export function addIfNoneMatch(
+  headers: Headers,
+  etag: string
+): Headers {
+
+  headers.set(
+    REQUEST_HEADERS.IF_NONE_MATCH,
+    etag
+  );
+
+  return headers;
+}
+
+
+export function addIfModifiedSince(
+  headers: Headers,
+  value: string
+): Headers {
+
+  headers.set(
+    REQUEST_HEADERS.IF_MODIFIED_SINCE,
+    value
+  );
+
+  return headers;
+}
+
+
+export function getEtag(
+  response: Response
+): string | null {
+
+  return response.headers.get(
+    REQUEST_HEADERS.ETAG
+  );
+}
+
+
+export function isNotModified(
+  response: Response
+): boolean {
+
+  return (
+    response.status ===
+    HTTP_STATUS.NOT_MODIFIED
+  );
+}
+
+
+// ============================================================
+// AUTHORIZATION
+// ============================================================
+
+export function createBearerToken(
+  token: string
+): string {
+
+  return `Bearer ${token}`;
+}
+
+
+export function setBearerAuthorization(
+  headers: Headers,
+  token: string
+): Headers {
+
+  headers.set(
+    REQUEST_HEADERS.AUTHORIZATION,
+    createBearerToken(token)
+  );
+
+  return headers;
+}
+
+
+// ============================================================
+// API REQUEST
+// ============================================================
+
+export interface ApiRequestOptions
+  extends FetchJsonOptions {
+
+  token?: string;
+  requestId?: string;
+  visitorId?: string;
+  sessionId?: string;
+  adminSession?: string;
+  csrfToken?: string;
+  clientVersion?: string;
+}
+
+
+export function createApiHeaders(
+  options: ApiRequestOptions = {}
+): Headers {
+
+  const headers =
+    setJsonHeaders(
+      options.headers
+    );
+
+  if (options.token) {
+    setBearerAuthorization(
+      headers,
+      options.token
+    );
+  }
+
+  if (options.requestId) {
+    headers.set(
+      REQUEST_HEADERS.REQUEST_ID,
+      options.requestId
+    );
+  }
+
+  if (options.visitorId) {
+    headers.set(
+      REQUEST_HEADERS.VISITOR_ID,
+      options.visitorId
+    );
+  }
+
+  if (options.sessionId) {
+    headers.set(
+      REQUEST_HEADERS.SESSION_ID,
+      options.sessionId
+    );
+  }
+
+  if (options.adminSession) {
+    headers.set(
+      REQUEST_HEADERS.ADMIN_SESSION,
+      options.adminSession
+    );
+  }
+
+  if (options.csrfToken) {
+    headers.set(
+      REQUEST_HEADERS.CSRF_TOKEN,
+      options.csrfToken
+    );
+  }
+
+  if (options.clientVersion) {
+    headers.set(
+      REQUEST_HEADERS.CLIENT_VERSION,
+      options.clientVersion
+    );
+  }
+
+  return headers;
+}
+
+
+export async function apiRequest<T = unknown>(
+  url: string | URL,
+  options: ApiRequestOptions = {}
+): Promise<T> {
+
+  const headers =
+    createApiHeaders(options);
+
+  return fetchJson<T>(
+    url,
+    {
+      ...options,
+      headers,
+    }
+  );
+}
+
+
+// ============================================================
+// DOWNLOAD RESPONSE
+// ============================================================
+
+export async function fetchBinary(
+  url: string | URL,
+  options: HttpRequestOptions = {}
+): Promise<ArrayBuffer> {
+
+  const response =
+    await fetch(
+      url,
+      {
+        method: normalizeMethod(
+          options.method ?? "GET"
+        ),
+        headers: options.headers,
+        signal: options.signal,
+      }
+    );
+
+  if (!response.ok) {
+
+    const data =
+      await parseResponseBody(response);
+
+    throw new HttpError(
+      extractErrorMessage(
+        data,
+        `HTTP ${response.status}`
+      ),
+      response.status,
+      response.statusText,
+      response.url,
+      response,
+      data
+    );
+  }
+
+  return response.arrayBuffer();
+}
+
+
+// ============================================================
+// END
+// ============================================================
