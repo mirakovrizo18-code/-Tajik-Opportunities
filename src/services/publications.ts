@@ -2,7 +2,7 @@
 // 🇹🇯 TAJIK OPPORTUNITIES
 // Publication Service
 // File: src/services/publications.ts
-// Version: 2026.09.09-modern-fixed
+// Version: 2026.09.09-modern-fixed-v2
 //
 // PRODUCTION-READY PUBLICATION SERVICE
 //
@@ -559,7 +559,10 @@ function normalizeWhitespace(
   }
 
   return result
-    .replace(/\s+/g, " ")
+    .replace(
+      /\s+/g,
+      " "
+    )
     .trim();
 }
 
@@ -719,7 +722,10 @@ function parseTotal(
   return Number.isFinite(
     result
   )
-    ? Math.max(0, result)
+    ? Math.max(
+        0,
+        result
+      )
     : 0;
 }
 
@@ -1959,13 +1965,6 @@ export class PublicationService {
         mapPublication
       );
 
-    const total =
-      String(
-        parseTotal(
-          countRow?.total
-        )
-      );
-
     const numericTotal =
       parseTotal(
         countRow?.total
@@ -1973,7 +1972,12 @@ export class PublicationService {
 
     return {
       items,
-      total,
+
+      total:
+        String(
+          numericTotal
+        ),
+
       limit,
       offset,
 
@@ -3669,6 +3673,12 @@ export class PublicationService {
             requiredString(
               generateId()
             );
+
+          if (!id) {
+            throw new Error(
+              "Не удалось сгенерировать ID медиа"
+            );
+          }
 
           const position =
             Number.isFinite(
