@@ -3,6 +3,37 @@
 // HTTP UTILITIES
 // Version: 2026.09.10 POWER PRODUCTION
 // ============================================================
+//
+// Возможности:
+//
+// - HTTP method helpers
+// - Headers utilities
+// - JSON requests
+// - Form requests
+// - API requests
+// - timeout / AbortController
+// - retry with exponential backoff
+// - JSON / text / binary response parsing
+// - HttpError
+// - status helpers
+// - query parameter helpers
+// - authorization helpers
+// - request ID / visitor / session / CSRF
+// - conditional requests / ETag
+// - cache-control helpers
+// - URL helpers
+// - safe JSON serialization
+// - response metadata
+// - Cloudflare Workers Request compatibility
+// - backward-compatible public API
+//
+// ВАЖНО:
+// Не используются внешние зависимости.
+// ============================================================
+
+// ============================================================
+// TYPES
+// ============================================================
 
 export type HttpMethod =
   | "GET"
@@ -161,16 +192,13 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 // INTERNAL FETCH COMPATIBILITY
 // ============================================================
 //
-// Cloudflare Workers использует расширенный generic Request,
-// который конфликтует с DOM Request из TypeScript.
+// Cloudflare Workers и DOM lib могут объявлять Request
+// с несовместимыми generic-параметрами.
 //
-// Поэтому граница fetch намеренно типизирована через unknown.
-// Это касается только внутреннего адаптера.
+// Поэтому внутренний fetch-layer не использует Request
+// как параметр собственного типа.
 //
-// Runtime:
-// string | URL | Request
-//
-// Публичные сигнатуры функций НЕ меняются.
+// Это НЕ меняет публичные сигнатуры.
 // ============================================================
 
 type CompatibleFetch = (
@@ -179,13 +207,10 @@ type CompatibleFetch = (
 ) => Promise<Response>;
 
 const compatibleFetch =
-  fetch as unknown as CompatibleFetch;
+  globalThis.fetch as unknown as CompatibleFetch;
 
 function executeFetch(
-  input:
-    | string
-    | URL
-    | Request,
+  input: unknown,
   init?: RequestInit,
 ): Promise<Response> {
   return compatibleFetch(
@@ -373,6 +398,7 @@ export function removeHeader(
   name: string,
 ): Headers {
   headers.delete(name);
+
   return headers;
 }
 
@@ -1168,25 +1194,16 @@ export async function httpRequest<
       );
   }
 
-  let request:
+  let requestInput:
     | string
     | URL
-    | Request;
+    | unknown;
 
   if (
-    input instanceof Request
+    typeof input ===
+    "string"
   ) {
-    request =
-      signal
-        ? new Request(
-            input,
-            {
-              signal,
-            },
-          )
-        : input;
-  } else {
-    request =
+    requestInput =
       createHttpRequest(
         input,
         {
@@ -1194,11 +1211,32 @@ export async function httpRequest<
           signal,
         },
       );
+  } else if (
+    input instanceof URL
+  ) {
+    requestInput =
+      createHttpRequest(
+        input,
+        {
+          ...options,
+          signal,
+        },
+      );
+  } else {
+    requestInput =
+      input;
   }
 
   const response =
     await executeFetch(
-      request,
+      requestInput,
+      input instanceof URL ||
+      typeof input === "string" ||
+      signal === options.signal
+        ? undefined
+        : {
+            signal,
+          },
     );
 
   const data =
@@ -1435,17 +1473,36 @@ export async function fetchJson<
     attempt++
   ) {
     try {
-      const request =
-        input instanceof Request
-          ? input.clone()
-          : createJsonRequest(
-              input,
-              options,
-            );
+      let requestInput:
+        | string
+        | URL
+        | unknown;
+
+      if (
+        typeof input ===
+        "string"
+      ) {
+        requestInput =
+          createJsonRequest(
+            input,
+            options,
+          );
+      } else if (
+        input instanceof URL
+      ) {
+        requestInput =
+          createJsonRequest(
+            input,
+            options,
+          );
+      } else {
+        requestInput =
+          input;
+      }
 
       const response =
         await executeFetch(
-          request,
+          requestInput,
         );
 
       const data =
@@ -1537,17 +1594,36 @@ export async function fetchJsonResponse<
 ): Promise<
   HttpResponse<T>
 > {
-  const request =
-    input instanceof Request
-      ? input.clone()
-      : createJsonRequest(
-          input,
-          options,
-        );
+  let requestInput:
+    | string
+    | URL
+    | unknown;
+
+  if (
+    typeof input ===
+    "string"
+  ) {
+    requestInput =
+      createJsonRequest(
+        input,
+        options,
+      );
+  } else if (
+    input instanceof URL
+  ) {
+    requestInput =
+      createJsonRequest(
+        input,
+        options,
+      );
+  } else {
+    requestInput =
+      input;
+  }
 
   const response =
     await executeFetch(
-      request,
+      requestInput,
     );
 
   const data =
@@ -2269,265 +2345,3 @@ export async function apiPut<
 
 export async function apiPatch<
   T = unknown,
->(
-  url: string | URL,
-  body?: unknown,
-  options: Omit<
-    ApiRequestOptions,
-    "method" | "body"
-  > = {},
-): Promise<T> {
-  return apiRequest<T>(
-    url,
-    {
-      ...options,
-      method: "PATCH",
-      body,
-    },
-  );
-}
-
-export async function apiDelete<
-  T = unknown,
->(
-  url: string | URL,
-  options: Omit<
-    ApiRequestOptions,
-    "method" | "body"
-  > = {},
-): Promise<T> {
-  return apiRequest<T>(
-    url,
-    {
-      ...options,
-      method: "DELETE",
-    },
-  );
-}
-
-// ============================================================
-// DOWNLOAD / BINARY
-// ============================================================
-
-export async function fetchBinary(
-  url: string | URL,
-  options: HttpRequestOptions = {},
-): Promise<ArrayBuffer> {
-  const request =
-    createHttpRequest(
-      url,
-      {
-        ...options,
-        method:
-          options.method ??
-          "GET",
-      },
-    );
-
-  const response =
-    await executeFetch(
-      request,
-    );
-
-  if (
-    !response.ok
-  ) {
-    const data =
-      await parseResponseBody(
-        response,
-      );
-
-    throw new HttpError(
-      extractErrorMessage(
-        data,
-        `HTTP ${response.status}`,
-      ),
-      response.status,
-      response.statusText,
-      response.url,
-      response,
-      data,
-    );
-  }
-
-  return response.arrayBuffer();
-}
-
-export async function fetchBlob(
-  url: string | URL,
-  options: HttpRequestOptions = {},
-): Promise<Blob> {
-  const request =
-    createHttpRequest(
-      url,
-      {
-        ...options,
-        method:
-          options.method ??
-          "GET",
-      },
-    );
-
-  const response =
-    await executeFetch(
-      request,
-    );
-
-  if (
-    !response.ok
-  ) {
-    const data =
-      await parseResponseBody(
-        response,
-      );
-
-    throw new HttpError(
-      extractErrorMessage(
-        data,
-        `HTTP ${response.status}`,
-      ),
-      response.status,
-      response.statusText,
-      response.url,
-      response,
-      data,
-    );
-  }
-
-  return response.blob();
-}
-
-// ============================================================
-// REQUEST BODY HELPERS
-// ============================================================
-
-export function isBodyInit(
-  value: unknown,
-): value is BodyInit {
-  if (
-    value === null ||
-    value === undefined
-  ) {
-    return false;
-  }
-
-  if (
-    typeof value ===
-      "string" ||
-    (
-      typeof URLSearchParams !==
-        "undefined" &&
-      value instanceof
-        URLSearchParams
-    ) ||
-    (
-      typeof FormData !==
-        "undefined" &&
-      value instanceof
-        FormData
-    ) ||
-    (
-      typeof Blob !==
-        "undefined" &&
-      value instanceof
-        Blob
-    ) ||
-    (
-      typeof ArrayBuffer !==
-        "undefined" &&
-      value instanceof
-        ArrayBuffer
-    )
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-export function bodyLength(
-  body:
-    | BodyInit
-    | null
-    | undefined,
-): number | null {
-  if (
-    body === null ||
-    body === undefined
-  ) {
-    return 0;
-  }
-
-  if (
-    typeof body ===
-    "string"
-  ) {
-    return body.length;
-  }
-
-  if (
-    typeof Blob !==
-      "undefined" &&
-    body instanceof Blob
-  ) {
-    return body.size;
-  }
-
-  if (
-    typeof ArrayBuffer !==
-      "undefined" &&
-    body instanceof ArrayBuffer
-  ) {
-    return body.byteLength;
-  }
-
-  return null;
-}
-
-// ============================================================
-// DEBUG HELPERS
-// ============================================================
-
-export function describeResponse(
-  response: Response,
-): string {
-  const status =
-    `${response.status} ${response.statusText}`.trim();
-
-  const type =
-    getContentType(
-      response,
-    );
-
-  return type
-    ? `${status} • ${type}`
-    : status;
-}
-
-export function responseHeadersToObject(
-  response: Response,
-): Record<
-  string,
-  string
-> {
-  const result: Record<
-    string,
-    string
-  > = {};
-
-  response.headers.forEach(
-    (
-      value,
-      key,
-    ) => {
-      result[key] =
-        value;
-    },
-  );
-
-  return result;
-}
-
-// ============================================================
-// END OF FILE
-// ============================================================
