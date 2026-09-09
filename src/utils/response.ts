@@ -2,7 +2,7 @@
 // 🇹🇯 TAJIK OPPORTUNITIES
 // HTTP / RESPONSE UTILITIES
 // File: src/utils/response.ts
-// Version: 2026.09.09
+// Version: 2026.09.09-fixed
 //
 // Надёжная система HTTP-ответов для Cloudflare Workers:
 // • JSON / TEXT / HTML
@@ -88,6 +88,15 @@ export interface RateLimitOptions {
 
 export interface JsonResponseOptions
   extends ResponseOptions {
+  /**
+   * Request is optional and is used only for
+   * request-aware header construction.
+   *
+   * This property fixes strict TypeScript
+   * compatibility with jsonResponse().
+   */
+  request?: Request;
+
   meta?: Record<string, unknown>;
   page?: number;
   limit?: number;
@@ -197,12 +206,16 @@ function toStringValue(
   }
 }
 
+
 function safeHeaderValue(
   value: unknown
 ): string {
   const result =
     toStringValue(value)
-      .replace(/[\r\n]/g, "")
+      .replace(
+        /[\r\n]/g,
+        ""
+      )
       .slice(
         0,
         MAX_HEADER_VALUE_LENGTH
@@ -210,6 +223,7 @@ function safeHeaderValue(
 
   return result;
 }
+
 
 function toFiniteNumber(
   value: unknown,
@@ -229,6 +243,7 @@ function toFiniteNumber(
     : fallback;
 }
 
+
 function normalizePositiveInteger(
   value: unknown,
   fallback: number
@@ -244,6 +259,7 @@ function normalizePositiveInteger(
     Math.floor(number)
   );
 }
+
 
 function normalizeNonNegativeInteger(
   value: unknown,
@@ -315,15 +331,21 @@ function createHeaders(
     new Headers();
 
   const cors =
-    corsHeaders(request);
+    corsHeaders(
+      request
+    );
 
   for (
     const [key, value]
-    of Object.entries(cors)
+    of Object.entries(
+      cors
+    )
   ) {
     headers.set(
       key,
-      safeHeaderValue(value)
+      safeHeaderValue(
+        value
+      )
     );
   }
 
@@ -335,7 +357,9 @@ function createHeaders(
   ) {
     headers.set(
       key,
-      safeHeaderValue(value)
+      safeHeaderValue(
+        value
+      )
     );
   }
 
@@ -368,7 +392,9 @@ function createHeaders(
       ) => {
         headers.set(
           key,
-          safeHeaderValue(value)
+          safeHeaderValue(
+            value
+          )
         );
       }
     );
@@ -473,7 +499,9 @@ function serializeInternal(
   if (
     Array.isArray(value)
   ) {
-    if (seen.has(value)) {
+    if (
+      seen.has(value)
+    ) {
       return "[Circular]";
     }
 
@@ -502,7 +530,9 @@ function serializeInternal(
         unknown
       >;
 
-    if (seen.has(object)) {
+    if (
+      seen.has(object)
+    ) {
       return "[Circular]";
     }
 
@@ -513,7 +543,9 @@ function serializeInternal(
 
     for (
       const [key, item]
-      of Object.entries(object)
+      of Object.entries(
+        object
+      )
     ) {
       result[key] =
         serializeInternal(
@@ -534,6 +566,7 @@ function serializeInternal(
   }
 }
 
+
 export function serialize(
   value: unknown
 ): unknown {
@@ -542,6 +575,7 @@ export function serialize(
     new Set<object>()
   );
 }
+
 
 export function serializeJson(
   value: unknown
@@ -592,9 +626,12 @@ export function normalizePagination(
 
   const result:
     PaginationMeta = {
-      page: safePage,
-      limit: safeLimit,
-    };
+    page:
+      safePage,
+
+    limit:
+      safeLimit,
+  };
 
   if (total !== undefined) {
     const safeTotal =
@@ -630,6 +667,7 @@ export function normalizePagination(
   return result;
 }
 
+
 export function createPaginationMeta(
   options: PaginationOptions
 ): PaginationMeta {
@@ -648,6 +686,7 @@ export function createPaginationMeta(
     }
   );
 }
+
 
 export function getTotalPages(
   total: number,
@@ -676,6 +715,7 @@ export function getTotalPages(
     )
   );
 }
+
 
 export function getPaginationOffset(
   page: number,
@@ -719,8 +759,8 @@ function buildMeta(
 
   const result:
     Record<string, unknown> = {
-      ...(meta ?? {}),
-    };
+    ...(meta ?? {}),
+  };
 
   if (pagination) {
     result.pagination =
@@ -742,10 +782,10 @@ function createBody<T>(
 ): ApiResponseBody<T> {
   const body:
     ApiResponseBody<T> = {
-      success: true,
-      data:
-        serialize(data) as T,
-    };
+    success: true,
+    data:
+      serialize(data) as T,
+  };
 
   const finalMeta =
     buildMeta(
@@ -814,6 +854,7 @@ export function jsonResponse<T>(
     }
   );
 }
+
 
 export function successResponse<T>(
   data: T,
@@ -894,36 +935,36 @@ export function errorResponse(
 
   const error:
     ApiResponseError = {
-      code:
-        options.code ??
-        defaultErrorCode(
-          safeStatus
-        ),
+    code:
+      options.code ??
+      defaultErrorCode(
+        safeStatus
+      ),
 
-      message:
-        toStringValue(
-          message,
-          "Request failed"
-        ),
+    message:
+      toStringValue(
+        message,
+        "Request failed"
+      ),
 
-      ...(options.details !==
-      undefined
-        ? {
-            details:
-              serialize(
-                options.details
-              ),
-          }
-        : {}),
-    };
+    ...(options.details !==
+    undefined
+      ? {
+          details:
+            serialize(
+              options.details
+            ),
+        }
+      : {}),
+  };
 
   const body:
     ApiResponseBody = {
-      success:
-        false,
+    success:
+      false,
 
-      error,
-    };
+    error,
+  };
 
   const headers =
     createHeaders(
@@ -969,6 +1010,7 @@ export function badRequestResponse(
   );
 }
 
+
 export function unauthorizedResponse(
   message = "Unauthorized",
   options: ErrorResponseOptions = {}
@@ -984,6 +1026,7 @@ export function unauthorizedResponse(
     }
   );
 }
+
 
 export function forbiddenResponse(
   message = "Forbidden",
@@ -1001,6 +1044,7 @@ export function forbiddenResponse(
   );
 }
 
+
 export function notFoundResponse(
   message = "Not found",
   options: ErrorResponseOptions = {}
@@ -1016,6 +1060,7 @@ export function notFoundResponse(
     }
   );
 }
+
 
 export function conflictResponse(
   message = "Conflict",
@@ -1033,6 +1078,7 @@ export function conflictResponse(
   );
 }
 
+
 export function goneResponse(
   message = "Gone",
   options: ErrorResponseOptions = {}
@@ -1049,6 +1095,7 @@ export function goneResponse(
   );
 }
 
+
 export function unsupportedMediaTypeResponse(
   message = "Unsupported media type",
   options: ErrorResponseOptions = {}
@@ -1064,6 +1111,7 @@ export function unsupportedMediaTypeResponse(
     }
   );
 }
+
 
 export function validationErrorResponse(
   message = "Validation error",
@@ -1089,6 +1137,7 @@ export function validationErrorResponse(
     }
   );
 }
+
 
 export function tooManyRequestsResponse(
   message = "Too many requests",
@@ -1151,6 +1200,7 @@ export function tooManyRequestsResponse(
   );
 }
 
+
 export function serverErrorResponse(
   message = "Internal server error",
   options: ErrorResponseOptions = {}
@@ -1166,6 +1216,7 @@ export function serverErrorResponse(
     }
   );
 }
+
 
 export function methodNotAllowedResponse(
   allowedMethods: string[] = [],
@@ -1283,7 +1334,9 @@ export function responseWithHeaders(
       ) => {
         resultHeaders.set(
           key,
-          safeHeaderValue(value)
+          safeHeaderValue(
+            value
+          )
         );
       }
     );
@@ -1304,6 +1357,7 @@ export function responseWithHeaders(
   );
 }
 
+
 export function withRequestId(
   response: Response,
   requestId: string
@@ -1318,6 +1372,7 @@ export function withRequestId(
     }
   );
 }
+
 
 export function withApiVersion(
   response: Response,
@@ -1334,28 +1389,29 @@ export function withApiVersion(
   );
 }
 
+
 export function withRateLimit(
   response: Response,
   options: RateLimitOptions
 ): Response {
   const headers:
     Record<string, string> = {
-      "X-RateLimit-Limit":
-        toStringValue(
-          normalizeNonNegativeInteger(
-            options.limit,
-            0
-          )
-        ),
+    "X-RateLimit-Limit":
+      toStringValue(
+        normalizeNonNegativeInteger(
+          options.limit,
+          0
+        )
+      ),
 
-      "X-RateLimit-Remaining":
-        toStringValue(
-          normalizeNonNegativeInteger(
-            options.remaining,
-            0
-          )
-        ),
-    };
+    "X-RateLimit-Remaining":
+      toStringValue(
+        normalizeNonNegativeInteger(
+          options.remaining,
+          0
+        )
+      ),
+  };
 
   if (
     options.reset !== undefined
@@ -1405,6 +1461,7 @@ export function noContentResponse(
   );
 }
 
+
 export function optionsResponse(
   request?: Request
 ): Response {
@@ -1426,6 +1483,7 @@ export function optionsResponse(
   );
 }
 
+
 export function redirectResponse(
   url: string,
   status = 302,
@@ -1443,7 +1501,9 @@ export function redirectResponse(
 
   headers.set(
     "Location",
-    safeHeaderValue(url)
+    safeHeaderValue(
+      url
+    )
   );
 
   return new Response(
@@ -1509,6 +1569,7 @@ export function textResponse(
     }
   );
 }
+
 
 export function htmlResponse(
   html: string,
@@ -1578,6 +1639,7 @@ export async function readJson<
   }
 }
 
+
 export async function tryReadJson<
   T = unknown
 >(
@@ -1591,6 +1653,7 @@ export async function tryReadJson<
     return null;
   }
 }
+
 
 export function isJsonRequest(
   request: Request
@@ -1616,7 +1679,9 @@ export async function createEtag(
   data: unknown
 ): Promise<string> {
   const serialized =
-    serializeJson(data);
+    serializeJson(
+      data
+    );
 
   const bytes =
     new TextEncoder().encode(
@@ -1652,6 +1717,7 @@ export async function createEtag(
   return `"${hash}"`;
 }
 
+
 export function isNotModified(
   request: Request,
   etag: string
@@ -1682,6 +1748,7 @@ export function isNotModified(
     )
   );
 }
+
 
 export function notModifiedResponse(
   etag?: string
@@ -1772,6 +1839,7 @@ function extractErrorMessage(
   return "Internal server error";
 }
 
+
 export function jsonErrorFromUnknown(
   error: unknown,
   requestId?: string
@@ -1861,6 +1929,7 @@ export function withCacheControl(
   );
 }
 
+
 export function withETag(
   response: Response,
   etag: string
@@ -1910,6 +1979,7 @@ export function createdResponse<T>(
   );
 }
 
+
 export function acceptedResponse<T>(
   data: T,
   options: ResponseOptions = {}
@@ -1920,6 +1990,7 @@ export function acceptedResponse<T>(
     options
   );
 }
+
 
 export function partialContentResponse<T>(
   data: T,
