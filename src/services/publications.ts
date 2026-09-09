@@ -18,9 +18,7 @@
 // • огромные счётчики через TEXT
 // • метрики
 // • поиск
-// • безопасная нормализация
-// • массовые операции
-// • URL helpers
+// • безопасные URL
 // ============================================================
 
 import type { Env } from "../index";
@@ -106,6 +104,7 @@ export interface Publication {
 
   auto_delete_enabled: boolean;
   delete_at?: string | null;
+
   publish_at?: string | null;
 
   background?: string | null;
@@ -210,7 +209,6 @@ export interface CreatePublicationInput {
 export interface UpdatePublicationInput {
   title?: string | null;
   text?: string | null;
-
   category_id?: string | null;
 
   type?: PublicationType;
@@ -405,6 +403,16 @@ function nullableString(
   return result || null;
 }
 
+function requiredString(
+  value: unknown,
+  fallback = ""
+): string {
+  const result =
+    nullableString(value);
+
+  return result ?? fallback;
+}
+
 function limitValue(
   value?: number
 ): number {
@@ -441,10 +449,12 @@ function offsetValue(
 function datePlusDays(
   days: number
 ): string {
-  const date = new Date();
+  const date =
+    new Date();
 
   date.setUTCDate(
-    date.getUTCDate() + days
+    date.getUTCDate() +
+      days
   );
 
   return date.toISOString();
@@ -466,19 +476,29 @@ function mapPublication(
 ): Publication {
   return {
     id:
-      String(row.id ?? ""),
+      requiredString(
+        row.id
+      ),
 
     public_number:
-      row.public_number === null ||
-      row.public_number === undefined
+      row.public_number ===
+        null ||
+      row.public_number ===
+        undefined
         ? ""
-        : String(row.public_number),
+        : String(
+            row.public_number
+          ),
 
     author_id:
-      nullableString(row.author_id),
+      nullableString(
+        row.author_id
+      ),
 
     author_name:
-      nullableString(row.author_name),
+      nullableString(
+        row.author_name
+      ),
 
     author_username:
       nullableString(
@@ -530,10 +550,14 @@ function mapPublication(
       ) as PublicationPriority,
 
     featured:
-      bool(row.featured),
+      bool(
+        row.featured
+      ),
 
     pinned:
-      bool(row.pinned),
+      bool(
+        row.pinned
+      ),
 
     auto_delete_enabled:
       bool(
@@ -676,54 +700,77 @@ function mapPublication(
       ),
 
     created_at:
-      String(
-        row.created_at || ""
+      requiredString(
+        row.created_at
       ),
 
     updated_at:
-      String(
-        row.updated_at || ""
+      requiredString(
+        row.updated_at
       ),
   };
 }
 
+
+// ============================================================
+// SAFE PUBLIC URL
+// ============================================================
+
 function safePublicationUrl(
   publicNumber: number | string
 ): string {
+  const input =
+    String(publicNumber).trim();
+
+  if (!input) {
+    return "/";
+  }
+
   try {
     const result =
       publicationUrl(
-        String(publicNumber),
+        input,
         ""
       );
 
     if (
-      typeof result === "string" &&
-      result.trim()
+      result !== null &&
+      result !== undefined
     ) {
-      return result;
+      const normalized =
+        String(
+          result
+        ).trim();
+
+      if (normalized) {
+        return normalized;
+      }
     }
   } catch {
-    // Fallback ниже.
+    // Используем относительный fallback.
   }
-
-  let normalized =
-    String(
-      publicNumber
-    ).trim();
 
   try {
-    normalized =
-      String(
-        normalizePublicationNumber(
-          String(publicNumber)
-        )
+    const normalizedNumber =
+      normalizePublicationNumber(
+        input
       );
+
+    if (
+      Number.isFinite(
+        normalizedNumber
+      ) &&
+      normalizedNumber >= 1
+    ) {
+      return `/${Math.floor(
+        normalizedNumber
+      )}`;
+    }
   } catch {
-    // Оставляем исходное значение.
+    // Финальный fallback ниже.
   }
 
-  return `/${normalized}`;
+  return `/${input}`;
 }
 
 
@@ -755,13 +802,15 @@ export class PublicationService {
           LIMIT 1
         `)
         .first<{
-          public_number?: number | string;
+          public_number?:
+            number | string;
         }>();
 
     if (
       row?.public_number ===
         undefined ||
-      row?.public_number === null ||
+      row?.public_number ===
+        null ||
       String(
         row.public_number
       ).trim() === ""
@@ -775,7 +824,9 @@ export class PublicationService {
       );
 
     if (
-      !Number.isFinite(current) ||
+      !Number.isFinite(
+        current
+      ) ||
       current < 0
     ) {
       return 1;
@@ -794,14 +845,15 @@ export class PublicationService {
   async create(
     input: CreatePublicationInput
   ): Promise<Publication> {
-    const id =
-      generatePublicationId() ??
-      generateId();
+    const generatedId =
+      generatePublicationId();
 
-    if (
-      typeof id !== "string" ||
-      !id.trim()
-    ) {
+    const id =
+      requiredString(
+        generatedId
+      );
+
+    if (!id) {
       throw new Error(
         "Не удалось сгенерировать ID публикации"
       );
@@ -860,43 +912,33 @@ export class PublicationService {
           INSERT INTO publications (
             id,
             public_number,
-
             author_id,
             author_name,
             author_username,
             author_avatar_url,
-
             category_id,
-
             title,
             text,
-
             type,
             status,
             visibility,
             priority,
-
             featured,
             pinned,
-
             auto_delete_enabled,
             delete_at,
             publish_at,
-
             background,
             font,
             color,
-
             tag,
             tag_icon,
             tag_color,
-
             comments_enabled,
             reactions_enabled,
             reviews_enabled,
             sharing_enabled,
             bookmarks_enabled,
-
             views_count,
             unique_views_count,
             likes_count,
@@ -905,73 +947,28 @@ export class PublicationService {
             bookmarks_count,
             shares_count,
             reports_count,
-
             contacts_count,
             applications_count,
             downloads_count,
             clicks_count,
             external_clicks_count,
-
             created_at,
             updated_at
           )
           VALUES (
+            ?, ?,
+            ?, ?, ?, ?,
             ?,
-            ?,
-
-            ?,
-            ?,
-            ?,
-            ?,
-
-            ?,
-
-            ?,
-            ?,
-
-            ?,
-            ?,
-            ?,
-            ?,
-
-            0,
-            0,
-
-            ?,
-            ?,
-            ?,
-
-            ?,
-            ?,
-            ?,
-
-            ?,
-            ?,
-            ?,
-
-            ?,
-            ?,
-            ?,
-            ?,
-            ?,
-
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-
-            0,
-            0,
-            0,
-            0,
-            0,
-
-            ?,
-            ?
+            ?, ?,
+            ?, ?, ?, ?,
+            0, 0,
+            ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            0, 0, 0, 0, 0, 0, 0, 0,
+            0, 0, 0, 0, 0,
+            ?, ?
           )
         `)
         .bind(
@@ -997,27 +994,37 @@ export class PublicationService {
 
           type,
           status,
+
           input.visibility ||
             DEFAULT_VISIBILITY,
+
           input.priority ||
             DEFAULT_PRIORITY,
 
-          autoDelete ? 1 : 0,
+          autoDelete
+            ? 1
+            : 0,
+
           deleteAt,
+
           input.publish_at ??
             null,
 
           input.background ??
             null,
+
           input.font ??
             null,
+
           input.color ??
             null,
 
           input.tag ??
             null,
+
           input.tag_icon ??
             null,
+
           input.tag_color ??
             null,
 
@@ -1099,7 +1106,9 @@ export class PublicationService {
     id: string
   ): Promise<Publication | null> {
     const normalized =
-      normalizePublicationId(id);
+      normalizePublicationId(
+        id
+      );
 
     if (!normalized) {
       return null;
@@ -1120,7 +1129,9 @@ export class PublicationService {
       return null;
     }
 
-    return mapPublication(row);
+    return mapPublication(
+      row
+    );
   }
 
 
@@ -1143,7 +1154,9 @@ export class PublicationService {
     }
 
     if (
-      !Number.isFinite(number) ||
+      !Number.isFinite(
+        number
+      ) ||
       number < 1
     ) {
       return null;
@@ -1164,12 +1177,14 @@ export class PublicationService {
       return null;
     }
 
-    return mapPublication(row);
+    return mapPublication(
+      row
+    );
   }
 
 
   // ==========================================================
-  // GET PUBLICATION + MEDIA
+  // DETAILS
   // ==========================================================
 
   async getDetails(
@@ -1210,10 +1225,14 @@ export class PublicationService {
     filter: PublicationFilter = {}
   ): Promise<PublicationListResult> {
     const limit =
-      limitValue(filter.limit);
+      limitValue(
+        filter.limit
+      );
 
     const offset =
-      offsetValue(filter.offset);
+      offsetValue(
+        filter.offset
+      );
 
     const conditions:
       string[] = [];
@@ -1225,6 +1244,7 @@ export class PublicationService {
       conditions.push(
         "p.status = ?"
       );
+
       values.push(
         filter.status
       );
@@ -1234,6 +1254,7 @@ export class PublicationService {
       conditions.push(
         "p.type = ?"
       );
+
       values.push(
         filter.type
       );
@@ -1243,6 +1264,7 @@ export class PublicationService {
       conditions.push(
         "p.category_id = ?"
       );
+
       values.push(
         filter.category_id
       );
@@ -1252,6 +1274,7 @@ export class PublicationService {
       conditions.push(
         "p.author_id = ?"
       );
+
       values.push(
         filter.author_id
       );
@@ -1261,6 +1284,7 @@ export class PublicationService {
       conditions.push(
         "p.visibility = ?"
       );
+
       values.push(
         filter.visibility
       );
@@ -1347,7 +1371,9 @@ export class PublicationService {
 
     const where =
       conditions.length
-        ? `WHERE ${conditions.join(" AND ")}`
+        ? `WHERE ${conditions.join(
+            " AND "
+          )}`
         : "";
 
     let orderBy =
@@ -1407,9 +1433,12 @@ export class PublicationService {
           FROM publications p
           ${where}
         `)
-        .bind(...values)
+        .bind(
+          ...values
+        )
         .first<{
-          total?: number | string;
+          total?:
+            number | string;
         }>();
 
     const rows =
@@ -1430,7 +1459,8 @@ export class PublicationService {
 
     const items =
       (
-        rows.results || []
+        rows.results ||
+        []
       ).map(
         mapPublication
       );
@@ -1438,7 +1468,7 @@ export class PublicationService {
     const total =
       String(
         countRow?.total ??
-        0
+          0
       );
 
     const numericTotal =
@@ -1493,20 +1523,24 @@ export class PublicationService {
         `${field} = ?`
       );
 
-      values.push(value);
+      values.push(
+        value
+      );
     };
 
     if ("title" in input) {
       add(
         "title",
-        input.title ?? null
+        input.title ??
+          null
       );
     }
 
     if ("text" in input) {
       add(
         "text",
-        input.text ?? null
+        input.text ??
+          null
       );
     }
 
@@ -1543,7 +1577,9 @@ export class PublicationService {
       );
     }
 
-    if ("priority" in input) {
+    if (
+      "priority" in input
+    ) {
       add(
         "priority",
         input.priority
@@ -1563,21 +1599,24 @@ export class PublicationService {
     if ("font" in input) {
       add(
         "font",
-        input.font ?? null
+        input.font ??
+          null
       );
     }
 
     if ("color" in input) {
       add(
         "color",
-        input.color ?? null
+        input.color ??
+          null
       );
     }
 
     if ("tag" in input) {
       add(
         "tag",
-        input.tag ?? null
+        input.tag ??
+          null
       );
     }
 
@@ -1586,7 +1625,8 @@ export class PublicationService {
     ) {
       add(
         "tag_icon",
-        input.tag_icon ?? null
+        input.tag_icon ??
+          null
       );
     }
 
@@ -1595,12 +1635,14 @@ export class PublicationService {
     ) {
       add(
         "tag_color",
-        input.tag_color ?? null
+        input.tag_color ??
+          null
       );
     }
 
     if (
-      "comments_enabled" in input
+      "comments_enabled" in
+      input
     ) {
       add(
         "comments_enabled",
@@ -1611,7 +1653,8 @@ export class PublicationService {
     }
 
     if (
-      "reactions_enabled" in input
+      "reactions_enabled" in
+      input
     ) {
       add(
         "reactions_enabled",
@@ -1622,7 +1665,8 @@ export class PublicationService {
     }
 
     if (
-      "reviews_enabled" in input
+      "reviews_enabled" in
+      input
     ) {
       add(
         "reviews_enabled",
@@ -1633,7 +1677,8 @@ export class PublicationService {
     }
 
     if (
-      "sharing_enabled" in input
+      "sharing_enabled" in
+      input
     ) {
       add(
         "sharing_enabled",
@@ -1644,7 +1689,8 @@ export class PublicationService {
     }
 
     if (
-      "bookmarks_enabled" in input
+      "bookmarks_enabled" in
+      input
     ) {
       add(
         "bookmarks_enabled",
@@ -1666,10 +1712,13 @@ export class PublicationService {
       );
     }
 
-    if ("delete_at" in input) {
+    if (
+      "delete_at" in input
+    ) {
       add(
         "delete_at",
-        input.delete_at ?? null
+        input.delete_at ??
+          null
       );
     }
 
@@ -1678,7 +1727,8 @@ export class PublicationService {
     ) {
       add(
         "publish_at",
-        input.publish_at ?? null
+        input.publish_at ??
+          null
       );
     }
 
@@ -1687,7 +1737,8 @@ export class PublicationService {
     ) {
       add(
         "author_name",
-        input.author_name ?? null
+        input.author_name ??
+          null
       );
     }
 
@@ -1696,12 +1747,14 @@ export class PublicationService {
     ) {
       add(
         "author_username",
-        input.author_username ?? null
+        input.author_username ??
+          null
       );
     }
 
     if (
-      "author_avatar_url" in input
+      "author_avatar_url" in
+      input
     ) {
       add(
         "author_avatar_url",
@@ -1722,20 +1775,28 @@ export class PublicationService {
       now()
     );
 
-    values.push(id);
+    values.push(
+      id
+    );
 
     await this.db
       .prepare(`
         UPDATE publications
-        SET ${fields.join(", ")}
+        SET ${fields.join(
+          ", "
+        )}
         WHERE id = ?
       `)
-      .bind(...values)
+      .bind(
+        ...values
+      )
       .run();
 
     await this.addHistory(
       id,
-      JSON.stringify(current),
+      JSON.stringify(
+        current
+      ),
       "UPDATE",
       changedBy
     );
@@ -1913,40 +1974,30 @@ export class PublicationService {
       .prepare(`
         INSERT INTO publication_admin_overrides (
           publication_id,
-
           forced_type,
           forced_status,
           forced_visibility,
           forced_priority,
-
           pinned,
           featured,
-
           auto_delete_enabled,
-
           custom_delete_at,
           custom_publish_at,
-
           custom_author_name,
           custom_author_username,
           custom_author_avatar_url,
-
           custom_background,
           custom_font,
           custom_color,
-
           custom_tag,
           custom_tag_icon,
           custom_tag_color,
-
           comments_enabled,
           reactions_enabled,
           reviews_enabled,
           sharing_enabled,
           bookmarks_enabled,
-
           admin_note,
-
           updated_by,
           created_at,
           updated_at
@@ -2063,7 +2114,9 @@ export class PublicationService {
 
     await this.addHistory(
       publicationId,
-      JSON.stringify(input),
+      JSON.stringify(
+        input
+      ),
       "ADMIN_OVERRIDE",
       adminId
     );
@@ -2118,18 +2171,14 @@ export class PublicationService {
         ) as PublicationStatus;
     }
 
-    if (
-      override.forced_visibility
-    ) {
+    if (override.forced_visibility) {
       update.visibility =
         String(
           override.forced_visibility
         ) as PublicationVisibility;
     }
 
-    if (
-      override.forced_priority
-    ) {
+    if (override.forced_priority) {
       update.priority =
         String(
           override.forced_priority
@@ -2433,7 +2482,9 @@ export class PublicationService {
 
     await this.addHistory(
       id,
-      JSON.stringify(publication),
+      JSON.stringify(
+        publication
+      ),
       "DELETE",
       deletedBy
     );
@@ -2473,7 +2524,9 @@ export class PublicationService {
 
     await this.addHistory(
       id,
-      JSON.stringify(publication),
+      JSON.stringify(
+        publication
+      ),
       "RESTORE",
       restoredBy
     );
@@ -2507,7 +2560,9 @@ export class PublicationService {
         WHERE id = ?
       `)
       .bind(
-        pinned ? 1 : 0,
+        pinned
+          ? 1
+          : 0,
         now(),
         id
       )
@@ -2553,7 +2608,9 @@ export class PublicationService {
         WHERE id = ?
       `)
       .bind(
-        featured ? 1 : 0,
+        featured
+          ? 1
+          : 0,
         now(),
         id
       )
@@ -2585,8 +2642,10 @@ export class PublicationService {
     return this.update(
       id,
       {
-        status: "PUBLISHED",
-        publish_at: now(),
+        status:
+          "PUBLISHED",
+        publish_at:
+          now(),
       },
       publishedBy
     );
@@ -2606,7 +2665,8 @@ export class PublicationService {
       await this.update(
         id,
         {
-          status: "REJECTED",
+          status:
+            "REJECTED",
         },
         adminId
       );
@@ -2616,7 +2676,8 @@ export class PublicationService {
         id,
         JSON.stringify({
           reason:
-            reason || null,
+            reason ??
+            null,
         }),
         "REJECT",
         adminId
@@ -2638,7 +2699,8 @@ export class PublicationService {
     return this.update(
       id,
       {
-        status: "HIDDEN",
+        status:
+          "HIDDEN",
       },
       adminId
     );
@@ -2656,7 +2718,8 @@ export class PublicationService {
     return this.update(
       id,
       {
-        status: "ARCHIVED",
+        status:
+          "ARCHIVED",
       },
       adminId
     );
@@ -2822,7 +2885,7 @@ export class PublicationService {
 
 
   // ==========================================================
-  // INCREMENT HUGE METRIC
+  // HUGE METRIC
   // ==========================================================
 
   async incrementMetric(
@@ -2854,7 +2917,9 @@ export class PublicationService {
     );
 
     const increment =
-      normalizeMetric(amount);
+      normalizeMetric(
+        amount
+      );
 
     const current =
       await this.db
@@ -2996,14 +3061,16 @@ export class PublicationService {
         .all<Record<string, unknown>>();
 
     return (
-      result.results || []
+      result.results ||
+      []
     ).map(
       (
         row
       ): PublicationMedia => ({
         id:
           String(
-            row.id ?? ""
+            row.id ??
+              ""
           ),
 
         publication_id:
@@ -3044,26 +3111,39 @@ export class PublicationService {
           ),
 
         width:
-          row.width === null ||
-          row.width === undefined
+          row.width ===
+            null ||
+          row.width ===
+            undefined
             ? null
-            : Number(row.width),
+            : Number(
+                row.width
+              ),
 
         height:
-          row.height === null ||
-          row.height === undefined
+          row.height ===
+            null ||
+          row.height ===
+            undefined
             ? null
-            : Number(row.height),
+            : Number(
+                row.height
+              ),
 
         duration:
-          row.duration === null ||
-          row.duration === undefined
+          row.duration ===
+            null ||
+          row.duration ===
+            undefined
             ? null
-            : Number(row.duration),
+            : Number(
+                row.duration
+              ),
 
         position:
           Number(
-            row.position || 0
+            row.position ||
+              0
           ),
 
         status:
@@ -3083,7 +3163,7 @@ export class PublicationService {
 
 
   // ==========================================================
-  // DELETE MEDIA
+  // REMOVE MEDIA
   // ==========================================================
 
   async removeMedia(
@@ -3181,7 +3261,6 @@ export class PublicationService {
       .run();
   }
 
-
   async getHistory(
     publicationId: string
   ): Promise<Record<string, unknown>[]> {
@@ -3197,7 +3276,8 @@ export class PublicationService {
         .all<Record<string, unknown>>();
 
     return (
-      result.results || []
+      result.results ||
+      []
     );
   }
 
@@ -3333,13 +3413,13 @@ export class PublicationService {
   ): Promise<number> {
     let changed = 0;
 
-    for (const id of ids) {
+    for (
+      const id of ids
+    ) {
       const result =
         await this.update(
           id,
-          {
-            status,
-          },
+          { status },
           adminId
         );
 
@@ -3397,7 +3477,8 @@ export class PublicationService {
 
     for (
       const row of
-      result.results || []
+        result.results ||
+      []
     ) {
       await this.db
         .prepare(`
@@ -3428,7 +3509,7 @@ export class PublicationService {
 
 
   // ==========================================================
-  // DELETE PUBLICATION AND SHIFT NUMBERS
+  // RENUMBER
   // ==========================================================
 
   async renumberPublications(
@@ -3456,7 +3537,8 @@ export class PublicationService {
 
     for (
       const row of
-      result.results || []
+        result.results ||
+      []
     ) {
       const oldNumber =
         String(
@@ -3576,7 +3658,7 @@ export class PublicationService {
       "PERMANENT_DELETE",
       adminId
     ).catch(() => {
-      // FK после hard delete может блокировать историю.
+      // FK после hard delete.
     });
 
     return true;
@@ -3643,14 +3725,13 @@ export class PublicationService {
     search: string,
     limit = 50
   ): Promise<Publication[]> {
-    const normalizedSearch =
-      search.trim();
-
     const value =
-      `%${normalizedSearch}%`;
+      `%${search.trim()}%`;
 
     const safeLimit =
-      Number.isFinite(limit)
+      Number.isFinite(
+        limit
+      )
         ? Math.min(
             Math.max(
               1,
@@ -3691,7 +3772,8 @@ export class PublicationService {
         .all<Record<string, unknown>>();
 
     return (
-      result.results || []
+      result.results ||
+      []
     ).map(
       mapPublication
     );
@@ -3738,5 +3820,7 @@ export async function getPublicationByNumber(
 ): Promise<Publication | null> {
   return createPublicationService(
     env
-  ).getByPublicNumber(number);
+  ).getByPublicNumber(
+    number
+  );
 }
