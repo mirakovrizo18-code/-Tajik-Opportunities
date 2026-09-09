@@ -1,5 +1,5 @@
 /* ============================================================
-   TAJIK OPPORTUNITIES
+   🇹🇯 TAJIK OPPORTUNITIES
    SLUG UTILITY
    ============================================================ */
 
@@ -45,7 +45,6 @@ function transliterate(value: string): string {
     ҷ: "j",
     ӯ: "u",
     ӣ: "i",
-    э: "e",
   };
 
   return value
@@ -69,7 +68,10 @@ export function slugify(
   value: unknown,
   maxLength = 120,
 ): string {
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return "";
   }
 
@@ -81,6 +83,14 @@ export function slugify(
 
   const transliterated =
     transliterate(source);
+
+  const safeMaxLength =
+    Number.isFinite(maxLength)
+      ? Math.max(
+          1,
+          Math.floor(maxLength),
+        )
+      : 120;
 
   return transliterated
     .normalize("NFKD")
@@ -97,7 +107,7 @@ export function slugify(
       /^-+|-+$/g,
       "",
     )
-    .slice(0, maxLength)
+    .slice(0, safeMaxLength)
     .replace(
       /-+$/g,
       "",
@@ -108,7 +118,10 @@ export function createSlug(
   value: unknown,
   maxLength = 120,
 ): string {
-  return slugify(value, maxLength);
+  return slugify(
+    value,
+    maxLength,
+  );
 }
 
 export function normalizeSlug(
@@ -158,13 +171,23 @@ export function uniqueSlug(
 ): string {
   const used = new Set(
     Array.from(existing).map(
-      normalizeSlug,
+      (item) => normalizeSlug(item),
     ),
   );
 
+  const safeMaxLength =
+    Number.isFinite(maxLength)
+      ? Math.max(
+          1,
+          Math.floor(maxLength),
+        )
+      : 120;
+
   const base =
-    slugify(value, maxLength) ||
-    "item";
+    slugify(
+      value,
+      safeMaxLength,
+    ) || "item";
 
   if (!used.has(base)) {
     return base;
@@ -173,17 +196,25 @@ export function uniqueSlug(
   let counter = 2;
 
   while (true) {
-    const suffix = `-${counter}`;
+    const suffix =
+      `-${counter}`;
 
-    const allowedLength = Math.max(
-      1,
-      maxLength - suffix.length,
-    );
+    const allowedLength =
+      Math.max(
+        1,
+        safeMaxLength -
+          suffix.length,
+      );
 
     const candidate =
-      `${base.slice(0, allowedLength)}${suffix}`;
+      `${base.slice(
+        0,
+        allowedLength,
+      )}${suffix}`;
 
-    if (!used.has(candidate)) {
+    if (
+      !used.has(candidate)
+    ) {
       return candidate;
     }
 
