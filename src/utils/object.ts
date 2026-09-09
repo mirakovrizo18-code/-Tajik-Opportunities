@@ -1002,11 +1002,18 @@ export function mapObject<
   for (
     const key of Object.keys(object)
   ) {
-    result[key] = callback(
-      object[key],
-      key as keyof T,
-      object,
-    );
+    const typedKey =
+      key as keyof T;
+
+    const value =
+      object[typedKey] as T[keyof T];
+
+    result[key] =
+      callback(
+        value,
+        typedKey,
+        object,
+      );
   }
 
   return result;
@@ -1251,7 +1258,10 @@ export function containsKey(
   object: object,
   key: PropertyKey,
 ): boolean {
-  return hasOwn(object, key);
+  return hasOwn(
+    object,
+    key,
+  );
 }
 
 /* ============================================================================
@@ -2067,7 +2077,8 @@ export function flattenObject(
         ),
       );
     } else {
-      result[path] = value;
+      result[path] =
+        value;
     }
   }
 
@@ -2432,7 +2443,8 @@ export function keyBy<T>(
           ),
         );
 
-      result[key] = item;
+      result[key] =
+        item;
     },
   );
 
