@@ -1,7 +1,38 @@
+// ============================================================
+// 🇹🇯 TAJIK OPPORTUNITIES
+// CRYPTO / SECURITY UTILITIES
+// Version: 2026.09
+// ============================================================
+//
+// Архитектурные принципы:
+// - Web Crypto API only
+// - без Math.random() для security-sensitive операций
+// - совместимость с Cloudflare Workers
+// - совместимость с TypeScript 5.9+
+// - сохранение существующего public API
+// - безопасная работа с ArrayBuffer / Uint8Array
+// - единые helper-функции для Web Crypto
+//
+// ============================================================
+
 import {
   bytesToHex,
   hexToBytes,
 } from "./encoding";
+
+// ============================================================
+// TYPES
+// ============================================================
+
+export type CryptoBinaryInput =
+  | string
+  | ArrayBuffer
+  | Uint8Array;
+
+export type HashAlgorithm =
+  | "SHA-256"
+  | "SHA-384"
+  | "SHA-512";
 
 export interface HashResult {
   algorithm: string;
@@ -16,11 +47,57 @@ export interface EncryptedData {
   ciphertext: string;
 }
 
+export interface EncryptedDataWithSalt
+  extends EncryptedData {
+  salt: string;
+}
+
+export interface AeadEncryptedData {
+  version: 1;
+  algorithm: "AES-GCM";
+  iv: string;
+  ciphertext: string;
+  tagLength: 128;
+}
+
+export interface DerivedKeyOptions {
+  iterations?: number;
+  keyLength?: number;
+}
+
+export interface HkdfOptions {
+  hash?: "SHA-256" | "SHA-384" | "SHA-512";
+  length?: number;
+}
+
+// ============================================================
+// CONSTANTS
+// ============================================================
+
+const DEFAULT_PBKDF2_ITERATIONS = 100_000;
+const MIN_PBKDF2_ITERATIONS = 10_000;
+const MAX_RANDOM_BYTES = 65_536;
+
+const AES_GCM_IV_BYTES = 12;
+const AES_GCM_TAG_LENGTH = 128;
+
+const DEFAULT_SALT_BYTES = 16;
+
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=?)?$/;
+
+const BASE64URL_PATTERN =
+  /^[A-Za-z0-9_-]*$/;
+
 const textEncoder =
   new TextEncoder();
 
 const textDecoder =
   new TextDecoder();
+
+// ============================================================
+// CRYPTO ACCESS
+// ============================================================
 
 function getCrypto(): Crypto {
   if (
@@ -36,28 +113,182 @@ function getCrypto(): Crypto {
 }
 
 function getSubtle(): SubtleCrypto {
-  return getCrypto().subtle;
+  const cryptoApi =
+    getCrypto();
+
+  if (
+    typeof cryptoApi.subtle ===
+    "undefined"
+  ) {
+    throw new Error(
+      "Web Crypto SubtleCrypto API is unavailable.",
+    );
+  }
+
+  return cryptoApi.subtle;
+}
+
+// ============================================================
+// ARRAYBUFFER HELPERS
+// ============================================================
+//
+// TypeScript 5.9 tightened Web Crypto's BufferSource
+// definitions:
+//
+// Uint8Array<ArrayBufferLike>
+//       !=
+// ArrayBufferView<ArrayBuffer>
+//
+// Therefore all data sent directly into Web Crypto is
+// converted to a freshly-owned ArrayBuffer.
+//
+// This keeps runtime behavior identical while fixing
+// compile-time incompatibilities with Workers types.
+// ============================================================
+
+function copyToArrayBuffer(
+  value: Uint8Array,
+): ArrayBuffer {
+  const buffer =
+    new ArrayBuffer(
+      value.byteLength,
+    );
+
+  new Uint8Array(buffer).set(
+    value,
+  );
+
+  return buffer;
 }
 
 function toUint8Array(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Uint8Array {
-  if (typeof value === "string") {
-    return textEncoder.encode(value);
+  if (
+    typeof value === "string"
+  ) {
+    return textEncoder.encode(
+      value,
+    );
   }
 
-  if (value instanceof Uint8Array) {
-    return value;
+  if (
+    value instanceof Uint8Array
+  ) {
+    const copy =
+      new Uint8Array(
+        value.byteLength,
+      );
+
+    copy.set(value);
+
+    return copy;
   }
 
-  return new Uint8Array(value);
+  return new Uint8Array(
+    value.slice(0),
+  );
 }
 
-function arrayBufferToBase64(
+function toCryptoBuffer(
+  value: CryptoBinaryInput,
+): ArrayBuffer {
+  return copyToArrayBuffer(
+    toUint8Array(value),
+  );
+}
+
+function toCryptoBytes(
   value: ArrayBuffer | Uint8Array,
+): ArrayBuffer {
+  if (
+    value instanceof Uint8Array
+  ) {
+    return copyToArrayBuffer(
+      value,
+    );
+  }
+
+  return value.slice(0);
+}
+
+// ============================================================
+// ARRAY / BYTE UTILITIES
+// ============================================================
+
+export function concatBytes(
+  ...values: Array<
+    Uint8Array | ArrayBuffer
+  >
+): Uint8Array {
+  let totalLength = 0;
+
+  for (const value of values) {
+    totalLength +=
+      value instanceof Uint8Array
+        ? value.byteLength
+        : value.byteLength;
+  }
+
+  const result =
+    new Uint8Array(
+      totalLength,
+    );
+
+  let offset = 0;
+
+  for (const value of values) {
+    const bytes =
+      value instanceof Uint8Array
+        ? value
+        : new Uint8Array(value);
+
+    result.set(
+      bytes,
+      offset,
+    );
+
+    offset +=
+      bytes.byteLength;
+  }
+
+  return result;
+}
+
+export function cloneBytes(
+  value: Uint8Array,
+): Uint8Array {
+  const copy =
+    new Uint8Array(
+      value.byteLength,
+    );
+
+  copy.set(value);
+
+  return copy;
+}
+
+export function wipeBytes(
+  value: Uint8Array,
+): void {
+  value.fill(0);
+}
+
+export function bytesLength(
+  value: CryptoBinaryInput,
+): number {
+  return toUint8Array(value)
+    .byteLength;
+}
+
+// ============================================================
+// BASE64
+// ============================================================
+
+function arrayBufferToBase64(
+  value:
+    | ArrayBuffer
+    | Uint8Array,
 ): string {
   const bytes =
     value instanceof Uint8Array
@@ -66,22 +297,27 @@ function arrayBufferToBase64(
 
   let binary = "";
 
-  const chunkSize = 0x8000;
+  const chunkSize =
+    0x8000;
 
   for (
     let i = 0;
     i < bytes.length;
     i += chunkSize
   ) {
-    binary += String.fromCharCode(
-      ...bytes.subarray(
+    const chunk =
+      bytes.subarray(
         i,
         Math.min(
           i + chunkSize,
           bytes.length,
         ),
-      ),
-    );
+      );
+
+    binary +=
+      String.fromCharCode(
+        ...chunk,
+      );
   }
 
   return btoa(binary);
@@ -90,10 +326,29 @@ function arrayBufferToBase64(
 function base64ToBytes(
   value: string,
 ): Uint8Array {
-  const binary = atob(value);
-  const bytes = new Uint8Array(
-    binary.length,
-  );
+  if (
+    typeof value !== "string"
+  ) {
+    throw new Error(
+      "Base64 value must be a string.",
+    );
+  }
+
+  if (
+    !isValidBase64(value)
+  ) {
+    throw new Error(
+      "Invalid Base64 value.",
+    );
+  }
+
+  const binary =
+    atob(value);
+
+  const bytes =
+    new Uint8Array(
+      binary.length,
+    );
 
   for (
     let i = 0;
@@ -107,22 +362,162 @@ function base64ToBytes(
   return bytes;
 }
 
+function base64UrlToBytes(
+  value: string,
+): Uint8Array {
+  if (
+    typeof value !== "string"
+  ) {
+    throw new Error(
+      "Base64URL value must be a string.",
+    );
+  }
+
+  if (
+    !isValidBase64Url(value)
+  ) {
+    throw new Error(
+      "Invalid Base64URL value.",
+    );
+  }
+
+  let normalized =
+    value
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
+
+  while (
+    normalized.length % 4 !== 0
+  ) {
+    normalized += "=";
+  }
+
+  return base64ToBytes(
+    normalized,
+  );
+}
+
+function bytesToBase64Url(
+  value:
+    | ArrayBuffer
+    | Uint8Array,
+): string {
+  return arrayBufferToBase64(
+    value,
+  )
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_")
+    .replace(/=+$/g, "");
+}
+
+export function isValidBase64(
+  value: unknown,
+): value is string {
+  if (
+    typeof value !== "string"
+  ) {
+    return false;
+  }
+
+  return (
+    value.length % 4 === 0 &&
+    BASE64_PATTERN.test(value)
+  );
+}
+
+export function isValidBase64Url(
+  value: unknown,
+): value is string {
+  if (
+    typeof value !== "string"
+  ) {
+    return false;
+  }
+
+  return BASE64URL_PATTERN.test(
+    value,
+  );
+}
+
+export function bytesToBase64(
+  value: Uint8Array,
+): string {
+  return arrayBufferToBase64(
+    value,
+  );
+}
+
+export function base64ToUint8Array(
+  value: string,
+): Uint8Array {
+  return base64ToBytes(
+    value,
+  );
+}
+
+export function bytesToBase64Url(
+  value: Uint8Array,
+): string {
+  return bytesToBase64Url(
+    value,
+  );
+}
+
+// ============================================================
+// TEXT / BASE64 HELPERS
+// ============================================================
+
+export function stringToBase64(
+  value: string,
+): string {
+  return arrayBufferToBase64(
+    textEncoder.encode(value),
+  );
+}
+
+export function base64ToString(
+  value: string,
+): string {
+  return textDecoder.decode(
+    base64ToBytes(value),
+  );
+}
+
+export function stringToBase64Url(
+  value: string,
+): string {
+  return bytesToBase64Url(
+    textEncoder.encode(value),
+  );
+}
+
+export function base64UrlToString(
+  value: string,
+): string {
+  return textDecoder.decode(
+    base64UrlToBytes(value),
+  );
+}
+
+// ============================================================
+// RANDOM BYTES
+// ============================================================
+
 export function randomBytes(
   length = 32,
 ): Uint8Array {
   if (
     !Number.isInteger(length) ||
     length < 1 ||
-    length > 65_536
+    length > MAX_RANDOM_BYTES
   ) {
     throw new Error(
       "Invalid random byte length.",
     );
   }
 
-  const bytes = new Uint8Array(
-    length,
-  );
+  const bytes =
+    new Uint8Array(length);
 
   getCrypto().getRandomValues(
     bytes,
@@ -131,13 +526,31 @@ export function randomBytes(
   return bytes;
 }
 
+// ============================================================
+// RANDOM HEX
+// ============================================================
+
 export function randomHex(
   length = 32,
 ): string {
+  if (
+    !Number.isInteger(length) ||
+    length < 1 ||
+    length > MAX_RANDOM_BYTES
+  ) {
+    throw new Error(
+      "Invalid random hex length.",
+    );
+  }
+
   return bytesToHex(
     randomBytes(length),
   );
 }
+
+// ============================================================
+// RANDOM BASE64
+// ============================================================
 
 export function randomBase64(
   length = 32,
@@ -147,177 +560,331 @@ export function randomBase64(
   );
 }
 
+// ============================================================
+// RANDOM BASE64URL
+// ============================================================
+
 export function randomBase64Url(
   length = 32,
 ): string {
-  return randomBase64(length)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return bytesToBase64Url(
+    randomBytes(length),
+  );
 }
+
+// ============================================================
+// SECURITY RANDOM HELPERS
+// ============================================================
+
+export function randomNonce(
+  length = AES_GCM_IV_BYTES,
+): Uint8Array {
+  return randomBytes(length);
+}
+
+export function randomSalt(
+  length = DEFAULT_SALT_BYTES,
+): Uint8Array {
+  return randomBytes(length);
+}
+
+export function randomToken(
+  byteLength = 32,
+): string {
+  return randomBase64Url(
+    byteLength,
+  );
+}
+
+// ============================================================
+// UUID
+// ============================================================
+
+export function uuid(): string {
+  return getCrypto().randomUUID();
+}
+
+// Compatibility alias.
+
+export function randomUUID(): string {
+  return uuid();
+}
+
+// ============================================================
+// GENERIC HASH
+// ============================================================
+
+export async function digest(
+  algorithm: HashAlgorithm,
+  value: CryptoBinaryInput,
+): Promise<ArrayBuffer> {
+  return await getSubtle().digest(
+    algorithm,
+    toCryptoBuffer(value),
+  );
+}
+
+// ============================================================
+// SHA-256
+// ============================================================
 
 export async function sha256(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<ArrayBuffer> {
-  return await getSubtle().digest(
+  return await digest(
     "SHA-256",
-    toUint8Array(value),
+    value,
   );
 }
+
+// ============================================================
+// SHA-384
+// ============================================================
 
 export async function sha384(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<ArrayBuffer> {
-  return await getSubtle().digest(
+  return await digest(
     "SHA-384",
-    toUint8Array(value),
+    value,
   );
 }
+
+// ============================================================
+// SHA-512
+// ============================================================
 
 export async function sha512(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<ArrayBuffer> {
-  return await getSubtle().digest(
+  return await digest(
     "SHA-512",
-    toUint8Array(value),
+    value,
   );
 }
 
-export async function hashSha256(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+// ============================================================
+// HASH RESULT
+// ============================================================
+
+export async function hash(
+  algorithm: HashAlgorithm,
+  value: CryptoBinaryInput,
 ): Promise<HashResult> {
-  const digest =
-    await sha256(value);
+  const digestResult =
+    await digest(
+      algorithm,
+      value,
+    );
+
+  const bytes =
+    new Uint8Array(
+      digestResult,
+    );
 
   return {
-    algorithm: "SHA-256",
-    hex: bytesToHex(
-      new Uint8Array(digest),
-    ),
+    algorithm,
+    hex: bytesToHex(bytes),
     base64:
-      arrayBufferToBase64(digest),
+      arrayBufferToBase64(
+        digestResult,
+      ),
   };
 }
+
+// ============================================================
+// SHA-256 RESULT
+// ============================================================
+
+export async function hashSha256(
+  value: CryptoBinaryInput,
+): Promise<HashResult> {
+  return await hash(
+    "SHA-256",
+    value,
+  );
+}
+
+// ============================================================
+// SHA-384 RESULT
+// ============================================================
+
+export async function hashSha384(
+  value: CryptoBinaryInput,
+): Promise<HashResult> {
+  return await hash(
+    "SHA-384",
+    value,
+  );
+}
+
+// ============================================================
+// SHA-512 RESULT
+// ============================================================
 
 export async function hashSha512(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<HashResult> {
-  const digest =
-    await sha512(value);
-
-  return {
-    algorithm: "SHA-512",
-    hex: bytesToHex(
-      new Uint8Array(digest),
-    ),
-    base64:
-      arrayBufferToBase64(digest),
-  };
+  return await hash(
+    "SHA-512",
+    value,
+  );
 }
 
+// ============================================================
+// HEX HASH HELPERS
+// ============================================================
+
 export async function sha256Hex(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<string> {
-  const digest =
+  const result =
     await sha256(value);
 
   return bytesToHex(
-    new Uint8Array(digest),
+    new Uint8Array(result),
+  );
+}
+
+export async function sha384Hex(
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await sha384(value);
+
+  return bytesToHex(
+    new Uint8Array(result),
   );
 }
 
 export async function sha512Hex(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<string> {
-  const digest =
+  const result =
     await sha512(value);
 
   return bytesToHex(
-    new Uint8Array(digest),
+    new Uint8Array(result),
   );
 }
 
+// ============================================================
+// BASE64 HASH HELPERS
+// ============================================================
+
 export async function sha256Base64(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<string> {
-  const digest =
+  const result =
     await sha256(value);
 
   return arrayBufferToBase64(
-    digest,
+    result,
+  );
+}
+
+export async function sha384Base64(
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await sha384(value);
+
+  return arrayBufferToBase64(
+    result,
   );
 }
 
 export async function sha512Base64(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<string> {
-  const digest =
+  const result =
     await sha512(value);
 
   return arrayBufferToBase64(
-    digest,
+    result,
   );
 }
 
+export async function sha256Base64Url(
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await sha256(value);
+
+  return bytesToBase64Url(
+    new Uint8Array(result),
+  );
+}
+
+export async function sha384Base64Url(
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await sha384(value);
+
+  return bytesToBase64Url(
+    new Uint8Array(result),
+  );
+}
+
+export async function sha512Base64Url(
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await sha512(value);
+
+  return bytesToBase64Url(
+    new Uint8Array(result),
+  );
+}
+
+// ============================================================
+// HMAC KEY HELPERS
+// ============================================================
+
+async function importHmacKey(
+  key: CryptoBinaryInput,
+  hashAlgorithm:
+    | "SHA-256"
+    | "SHA-384"
+    | "SHA-512",
+): Promise<CryptoKey> {
+  return await getSubtle().importKey(
+    "raw",
+    toCryptoBuffer(key),
+    {
+      name: "HMAC",
+      hash: hashAlgorithm,
+    },
+    false,
+    ["sign", "verify"],
+  );
+}
+
+// ============================================================
+// HMAC-SHA256
+// ============================================================
+
 export async function hmacSha256(
   key: string,
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<ArrayBuffer> {
   const cryptoKey =
-    await getSubtle().importKey(
-      "raw",
-      textEncoder.encode(key),
-      {
-        name: "HMAC",
-        hash: "SHA-256",
-      },
-      false,
-      ["sign"],
+    await importHmacKey(
+      key,
+      "SHA-256",
     );
 
   return await getSubtle().sign(
     "HMAC",
     cryptoKey,
-    toUint8Array(value),
+    toCryptoBuffer(value),
   );
 }
 
 export async function hmacSha256Hex(
   key: string,
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<string> {
   const result =
     await hmacSha256(
@@ -332,10 +899,7 @@ export async function hmacSha256Hex(
 
 export async function hmacSha256Base64Url(
   key: string,
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<string> {
   const result =
     await hmacSha256(
@@ -343,10 +907,101 @@ export async function hmacSha256Base64Url(
       value,
     );
 
-  return arrayBufferToBase64(result)
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_")
-    .replace(/=+$/g, "");
+  return bytesToBase64Url(
+    new Uint8Array(result),
+  );
+}
+
+export async function hmacSha256Base64(
+  key: string,
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await hmacSha256(
+      key,
+      value,
+    );
+
+  return arrayBufferToBase64(
+    result,
+  );
+}
+
+// ============================================================
+// HMAC-SHA512
+// ============================================================
+
+export async function hmacSha512(
+  key: string,
+  value: CryptoBinaryInput,
+): Promise<ArrayBuffer> {
+  const cryptoKey =
+    await importHmacKey(
+      key,
+      "SHA-512",
+    );
+
+  return await getSubtle().sign(
+    "HMAC",
+    cryptoKey,
+    toCryptoBuffer(value),
+  );
+}
+
+export async function hmacSha512Hex(
+  key: string,
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await hmacSha512(
+      key,
+      value,
+    );
+
+  return bytesToHex(
+    new Uint8Array(result),
+  );
+}
+
+export async function hmacSha512Base64Url(
+  key: string,
+  value: CryptoBinaryInput,
+): Promise<string> {
+  const result =
+    await hmacSha512(
+      key,
+      value,
+    );
+
+  return bytesToBase64Url(
+    new Uint8Array(result),
+  );
+}
+
+// ============================================================
+// PBKDF2
+// ============================================================
+
+function validatePbkdf2Iterations(
+  iterations: number,
+): void {
+  if (
+    !Number.isInteger(iterations) ||
+    iterations <
+      MIN_PBKDF2_ITERATIONS
+  ) {
+    throw new Error(
+      "PBKDF2 iteration count is too low.",
+    );
+  }
+
+  if (
+    iterations > 10_000_000
+  ) {
+    throw new Error(
+      "PBKDF2 iteration count is too high.",
+    );
+  }
 }
 
 export async function deriveKey(
@@ -354,21 +1009,17 @@ export async function deriveKey(
   salt:
     | string
     | Uint8Array,
-  iterations = 100_000,
+  iterations =
+    DEFAULT_PBKDF2_ITERATIONS,
 ): Promise<CryptoKey> {
-  if (
-    !Number.isInteger(iterations) ||
-    iterations < 10_000
-  ) {
-    throw new Error(
-      "PBKDF2 iteration count is too low.",
-    );
-  }
+  validatePbkdf2Iterations(
+    iterations,
+  );
 
   const passwordKey =
     await getSubtle().importKey(
       "raw",
-      textEncoder.encode(password),
+      toCryptoBuffer(password),
       "PBKDF2",
       false,
       ["deriveKey"],
@@ -376,8 +1027,8 @@ export async function deriveKey(
 
   const saltBytes =
     typeof salt === "string"
-      ? textEncoder.encode(salt)
-      : salt;
+      ? toCryptoBuffer(salt)
+      : toCryptoBuffer(salt);
 
   return await getSubtle().deriveKey(
     {
@@ -392,96 +1043,133 @@ export async function deriveKey(
       length: 256,
     },
     false,
-    ["encrypt", "decrypt"],
+    [
+      "encrypt",
+      "decrypt",
+    ],
   );
 }
 
-export async function encryptText(
-  plaintext: string,
+// ============================================================
+// PBKDF2 RAW BYTES
+// ============================================================
+
+export async function deriveKeyBytes(
   password: string,
-  salt = randomBase64Url(16),
-): Promise<EncryptedData & {
-  salt: string;
-}> {
-  const iv = randomBytes(12);
+  salt:
+    | string
+    | Uint8Array,
+  iterations =
+    DEFAULT_PBKDF2_ITERATIONS,
+  length = 32,
+): Promise<Uint8Array> {
+  validatePbkdf2Iterations(
+    iterations,
+  );
 
-  const key =
-    await deriveKey(
-      password,
-      salt,
-    );
-
-  const encrypted =
-    await getSubtle().encrypt(
-      {
-        name: "AES-GCM",
-        iv,
-      },
-      key,
-      textEncoder.encode(
-        plaintext,
-      ),
-    );
-
-  return {
-    version: 1,
-    algorithm: "AES-GCM",
-    iv:
-      arrayBufferToBase64(iv),
-    ciphertext:
-      arrayBufferToBase64(
-        encrypted,
-      ),
-    salt,
-  };
-}
-
-export async function decryptText(
-  encrypted: EncryptedData & {
-    salt: string;
-  },
-  password: string,
-): Promise<string> {
   if (
-    encrypted.version !== 1 ||
-    encrypted.algorithm !==
-      "AES-GCM"
+    !Number.isInteger(length) ||
+    length < 16 ||
+    length > 64
   ) {
     throw new Error(
-      "Unsupported encryption format.",
+      "Invalid derived key length.",
     );
   }
 
-  const iv =
-    base64ToBytes(
-      encrypted.iv,
+  const passwordKey =
+    await getSubtle().importKey(
+      "raw",
+      toCryptoBuffer(password),
+      "PBKDF2",
+      false,
+      ["deriveBits"],
     );
 
-  const ciphertext =
-    base64ToBytes(
-      encrypted.ciphertext,
-    );
+  const saltBytes =
+    typeof salt === "string"
+      ? toCryptoBuffer(salt)
+      : toCryptoBuffer(salt);
 
-  const key =
-    await deriveKey(
-      password,
-      encrypted.salt,
-    );
-
-  const decrypted =
-    await getSubtle().decrypt(
+  const bits =
+    await getSubtle().deriveBits(
       {
-        name: "AES-GCM",
-        iv,
+        name: "PBKDF2",
+        salt: saltBytes,
+        iterations,
+        hash: "SHA-256",
       },
-      key,
-      ciphertext,
+      passwordKey,
+      length * 8,
     );
 
-  return textDecoder.decode(
-    decrypted,
+  return new Uint8Array(bits);
+}
+
+// ============================================================
+// HKDF
+// ============================================================
+
+export async function deriveHkdfKey(
+  secret: CryptoBinaryInput,
+  salt: CryptoBinaryInput,
+  info: CryptoBinaryInput = "",
+  options:
+    | HkdfOptions = {},
+): Promise<CryptoKey> {
+  const hash =
+    options.hash ??
+    "SHA-256";
+
+  const length =
+    options.length ??
+    256;
+
+  if (
+    !Number.isInteger(length) ||
+    length !== 128 &&
+    length !== 192 &&
+    length !== 256
+  ) {
+    throw new Error(
+      "HKDF AES key length must be 128, 192, or 256 bits.",
+    );
+  }
+
+  const secretKey =
+    await getSubtle().importKey(
+      "raw",
+      toCryptoBuffer(secret),
+      "HKDF",
+      false,
+      ["deriveKey"],
+    );
+
+  return await getSubtle().deriveKey(
+    {
+      name: "HKDF",
+      hash,
+      salt:
+        toCryptoBuffer(salt),
+      info:
+        toCryptoBuffer(info),
+    },
+    secretKey,
+    {
+      name: "AES-GCM",
+      length,
+    },
+    false,
+    [
+      "encrypt",
+      "decrypt",
+    ],
   );
 }
+
+// ============================================================
+// AES KEY IMPORT
+// ============================================================
 
 export async function importAesKey(
   rawKey:
@@ -493,9 +1181,7 @@ export async function importAesKey(
   ],
 ): Promise<CryptoKey> {
   const bytes =
-    rawKey instanceof Uint8Array
-      ? rawKey
-      : new Uint8Array(rawKey);
+    toUint8Array(rawKey);
 
   if (
     bytes.length !== 16 &&
@@ -509,7 +1195,7 @@ export async function importAesKey(
 
   return await getSubtle().importKey(
     "raw",
-    bytes,
+    copyToArrayBuffer(bytes),
     {
       name: "AES-GCM",
     },
@@ -518,6 +1204,10 @@ export async function importAesKey(
   );
 }
 
+// ============================================================
+// AES KEY GENERATION
+// ============================================================
+
 export async function generateAesKey(): Promise<CryptoKey> {
   return await getSubtle().generateKey(
     {
@@ -525,9 +1215,16 @@ export async function generateAesKey(): Promise<CryptoKey> {
       length: 256,
     },
     true,
-    ["encrypt", "decrypt"],
+    [
+      "encrypt",
+      "decrypt",
+    ],
   ) as CryptoKey;
 }
+
+// ============================================================
+// AES KEY EXPORT
+// ============================================================
 
 export async function exportKeyBase64(
   key: CryptoKey,
@@ -551,24 +1248,30 @@ export async function importAesKeyBase64(
   );
 }
 
+// ============================================================
+// AES-GCM ENCRYPT WITH CRYPTO KEY
+// ============================================================
+
 export async function encryptWithKey(
-  plaintext:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  plaintext: CryptoBinaryInput,
   key: CryptoKey,
 ): Promise<EncryptedData> {
   const iv =
-    randomBytes(12);
+    randomBytes(
+      AES_GCM_IV_BYTES,
+    );
 
   const encrypted =
     await getSubtle().encrypt(
       {
         name: "AES-GCM",
-        iv,
+        iv:
+          copyToArrayBuffer(iv),
+        tagLength:
+          AES_GCM_TAG_LENGTH,
       },
       key,
-      toUint8Array(
+      toCryptoBuffer(
         plaintext,
       ),
     );
@@ -585,19 +1288,17 @@ export async function encryptWithKey(
   };
 }
 
+// ============================================================
+// AES-GCM DECRYPT WITH CRYPTO KEY
+// ============================================================
+
 export async function decryptWithKey(
   encrypted: EncryptedData,
   key: CryptoKey,
 ): Promise<Uint8Array> {
-  if (
-    encrypted.version !== 1 ||
-    encrypted.algorithm !==
-      "AES-GCM"
-  ) {
-    throw new Error(
-      "Unsupported encryption format.",
-    );
-  }
+  validateEncryptedData(
+    encrypted,
+  );
 
   const iv =
     base64ToBytes(
@@ -609,14 +1310,28 @@ export async function decryptWithKey(
       encrypted.ciphertext,
     );
 
+  if (
+    iv.length !==
+    AES_GCM_IV_BYTES
+  ) {
+    throw new Error(
+      "Invalid AES-GCM IV length.",
+    );
+  }
+
   const decrypted =
     await getSubtle().decrypt(
       {
         name: "AES-GCM",
-        iv,
+        iv:
+          copyToArrayBuffer(iv),
+        tagLength:
+          AES_GCM_TAG_LENGTH,
       },
       key,
-      ciphertext,
+      copyToArrayBuffer(
+        ciphertext,
+      ),
     );
 
   return new Uint8Array(
@@ -639,6 +1354,241 @@ export async function decryptWithKeyToText(
   );
 }
 
+// ============================================================
+// AES-GCM WITH AUTHENTICATED ADDITIONAL DATA
+// ============================================================
+
+export async function encryptWithKeyAead(
+  plaintext: CryptoBinaryInput,
+  key: CryptoKey,
+  additionalData?: CryptoBinaryInput,
+): Promise<AeadEncryptedData> {
+  const iv =
+    randomBytes(
+      AES_GCM_IV_BYTES,
+    );
+
+  const params: AesGcmParams =
+    {
+      name: "AES-GCM",
+      iv:
+        copyToArrayBuffer(iv),
+      tagLength:
+        AES_GCM_TAG_LENGTH,
+    };
+
+  if (
+    additionalData !==
+    undefined
+  ) {
+    params.additionalData =
+      toCryptoBuffer(
+        additionalData,
+      );
+  }
+
+  const encrypted =
+    await getSubtle().encrypt(
+      params,
+      key,
+      toCryptoBuffer(
+        plaintext,
+      ),
+    );
+
+  return {
+    version: 1,
+    algorithm: "AES-GCM",
+    iv:
+      arrayBufferToBase64(iv),
+    ciphertext:
+      arrayBufferToBase64(
+        encrypted,
+      ),
+    tagLength:
+      AES_GCM_TAG_LENGTH,
+  };
+}
+
+export async function decryptWithKeyAead(
+  encrypted: AeadEncryptedData,
+  key: CryptoKey,
+  additionalData?: CryptoBinaryInput,
+): Promise<Uint8Array> {
+  validateAeadEncryptedData(
+    encrypted,
+  );
+
+  const iv =
+    base64ToBytes(
+      encrypted.iv,
+    );
+
+  const ciphertext =
+    base64ToBytes(
+      encrypted.ciphertext,
+    );
+
+  const params: AesGcmParams =
+    {
+      name: "AES-GCM",
+      iv:
+        copyToArrayBuffer(iv),
+      tagLength:
+        encrypted.tagLength,
+    };
+
+  if (
+    additionalData !==
+    undefined
+  ) {
+    params.additionalData =
+      toCryptoBuffer(
+        additionalData,
+      );
+  }
+
+  const decrypted =
+    await getSubtle().decrypt(
+      params,
+      key,
+      copyToArrayBuffer(
+        ciphertext,
+      ),
+    );
+
+  return new Uint8Array(
+    decrypted,
+  );
+}
+
+// ============================================================
+// AES-GCM PASSWORD ENCRYPTION
+// ============================================================
+
+export async function encryptText(
+  plaintext: string,
+  password: string,
+  salt = randomBase64Url(
+    DEFAULT_SALT_BYTES,
+  ),
+): Promise<
+  EncryptedData & {
+    salt: string;
+  }
+> {
+  const iv =
+    randomBytes(
+      AES_GCM_IV_BYTES,
+    );
+
+  const key =
+    await deriveKey(
+      password,
+      salt,
+    );
+
+  const encrypted =
+    await getSubtle().encrypt(
+      {
+        name: "AES-GCM",
+        iv:
+          copyToArrayBuffer(iv),
+        tagLength:
+          AES_GCM_TAG_LENGTH,
+      },
+      key,
+      toCryptoBuffer(
+        plaintext,
+      ),
+    );
+
+  return {
+    version: 1,
+    algorithm: "AES-GCM",
+    iv:
+      arrayBufferToBase64(iv),
+    ciphertext:
+      arrayBufferToBase64(
+        encrypted,
+      ),
+    salt,
+  };
+}
+
+// ============================================================
+// AES-GCM PASSWORD DECRYPTION
+// ============================================================
+
+export async function decryptText(
+  encrypted: EncryptedData & {
+    salt: string;
+  },
+  password: string,
+): Promise<string> {
+  validateEncryptedData(
+    encrypted,
+  );
+
+  if (
+    typeof encrypted.salt !==
+    "string" ||
+    encrypted.salt.length === 0
+  ) {
+    throw new Error(
+      "Encryption salt is missing.",
+    );
+  }
+
+  const iv =
+    base64ToBytes(
+      encrypted.iv,
+    );
+
+  const ciphertext =
+    base64ToBytes(
+      encrypted.ciphertext,
+    );
+
+  if (
+    iv.length !==
+    AES_GCM_IV_BYTES
+  ) {
+    throw new Error(
+      "Invalid AES-GCM IV length.",
+    );
+  }
+
+  const key =
+    await deriveKey(
+      password,
+      encrypted.salt,
+    );
+
+  const decrypted =
+    await getSubtle().decrypt(
+      {
+        name: "AES-GCM",
+        iv:
+          copyToArrayBuffer(iv),
+        tagLength:
+          AES_GCM_TAG_LENGTH,
+      },
+      key,
+      copyToArrayBuffer(
+        ciphertext,
+      ),
+    );
+
+  return textDecoder.decode(
+    decrypted,
+  );
+}
+
+// ============================================================
+// ED25519
+// ============================================================
+
 export async function generateEd25519KeyPair(): Promise<CryptoKeyPair> {
   return await getSubtle().generateKey(
     {
@@ -654,16 +1604,13 @@ export async function generateEd25519KeyPair(): Promise<CryptoKeyPair> {
 
 export async function signEd25519(
   privateKey: CryptoKey,
-  data:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  data: CryptoBinaryInput,
 ): Promise<string> {
   const signature =
     await getSubtle().sign(
       "Ed25519",
       privateKey,
-      toUint8Array(data),
+      toCryptoBuffer(data),
     );
 
   return arrayBufferToBase64(
@@ -674,24 +1621,99 @@ export async function signEd25519(
 export async function verifyEd25519(
   publicKey: CryptoKey,
   signatureBase64: string,
-  data:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  data: CryptoBinaryInput,
 ): Promise<boolean> {
   try {
+    if (
+      !isValidBase64(
+        signatureBase64,
+      )
+    ) {
+      return false;
+    }
+
     return await getSubtle().verify(
       "Ed25519",
       publicKey,
-      base64ToBytes(
-        signatureBase64,
+      copyToArrayBuffer(
+        base64ToBytes(
+          signatureBase64,
+        ),
       ),
-      toUint8Array(data),
+      toCryptoBuffer(data),
     );
   } catch {
     return false;
   }
 }
+
+// ============================================================
+// ED25519 KEY EXPORT
+// ============================================================
+
+export async function exportPublicKeyBase64(
+  key: CryptoKey,
+): Promise<string> {
+  const spki =
+    await getSubtle().exportKey(
+      "spki",
+      key,
+    );
+
+  return arrayBufferToBase64(
+    spki,
+  );
+}
+
+export async function exportPrivateKeyBase64(
+  key: CryptoKey,
+): Promise<string> {
+  const pkcs8 =
+    await getSubtle().exportKey(
+      "pkcs8",
+      key,
+    );
+
+  return arrayBufferToBase64(
+    pkcs8,
+  );
+}
+
+export async function importEd25519PublicKey(
+  value: string,
+): Promise<CryptoKey> {
+  return await getSubtle().importKey(
+    "spki",
+    copyToArrayBuffer(
+      base64ToBytes(value),
+    ),
+    {
+      name: "Ed25519",
+    },
+    true,
+    ["verify"],
+  );
+}
+
+export async function importEd25519PrivateKey(
+  value: string,
+): Promise<CryptoKey> {
+  return await getSubtle().importKey(
+    "pkcs8",
+    copyToArrayBuffer(
+      base64ToBytes(value),
+    ),
+    {
+      name: "Ed25519",
+    },
+    true,
+    ["sign"],
+  );
+}
+
+// ============================================================
+// CONSTANT-TIME COMPARISON
+// ============================================================
 
 export async function constantTimeEqual(
   a:
@@ -704,12 +1726,12 @@ export async function constantTimeEqual(
   const left =
     typeof a === "string"
       ? textEncoder.encode(a)
-      : a;
+      : cloneBytes(a);
 
   const right =
     typeof b === "string"
       ? textEncoder.encode(b)
-      : b;
+      : cloneBytes(b);
 
   if (
     left.length !==
@@ -732,11 +1754,17 @@ export async function constantTimeEqual(
   return difference === 0;
 }
 
+// ============================================================
+// SYNCHRONOUS SECURE STRING COMPARISON
+// ============================================================
+
 export function secureCompare(
   a: string,
   b: string,
 ): boolean {
-  if (a.length !== b.length) {
+  if (
+    a.length !== b.length
+  ) {
     return false;
   }
 
@@ -755,11 +1783,12 @@ export function secureCompare(
   return result === 0;
 }
 
+// ============================================================
+// FINGERPRINTS
+// ============================================================
+
 export async function fingerprint(
-  value:
-    | string
-    | ArrayBuffer
-    | Uint8Array,
+  value: CryptoBinaryInput,
 ): Promise<string> {
   return await sha256Hex(
     value,
@@ -774,24 +1803,28 @@ export async function fingerprintParts(
   );
 }
 
+export async function fingerprintPartsBase64Url(
+  ...parts: string[]
+): Promise<string> {
+  return await sha256Base64Url(
+    parts.join("|"),
+  );
+}
+
+// ============================================================
+// HEX / BYTE HELPERS
+// ============================================================
+
 export function bytesFromHex(
   value: string,
 ): Uint8Array {
   return hexToBytes(value);
 }
 
-export function bytesToBase64(
+export function bytesToHexString(
   value: Uint8Array,
 ): string {
-  return arrayBufferToBase64(
-    value,
-  );
-}
-
-export function base64ToUint8Array(
-  value: string,
-): Uint8Array {
-  return base64ToBytes(value);
+  return bytesToHex(value);
 }
 
 export function stringToBytes(
@@ -810,11 +1843,412 @@ export function bytesToString(
   );
 }
 
+// ============================================================
+// HEX CONVERSION ALIASES
+// ============================================================
+
+export function hexToUint8Array(
+  value: string,
+): Uint8Array {
+  return hexToBytes(value);
+}
+
+export function uint8ArrayToHex(
+  value: Uint8Array,
+): string {
+  return bytesToHex(value);
+}
+
+// ============================================================
+// PUBLIC KEY / KEY MATERIAL HELPERS
+// ============================================================
+
+export async function exportKey(
+  format:
+    | "raw"
+    | "spki"
+    | "pkcs8"
+    | "jwk",
+  key: CryptoKey,
+): Promise<
+  ArrayBuffer | JsonWebKey
+> {
+  return await getSubtle().exportKey(
+    format,
+    key,
+  );
+}
+
+export async function importRawAesKey(
+  value: CryptoBinaryInput,
+  usages: KeyUsage[] = [
+    "encrypt",
+    "decrypt",
+  ],
+): Promise<CryptoKey> {
+  return await importAesKey(
+    toUint8Array(value),
+    usages,
+  );
+}
+
+// ============================================================
+// AES KEY SIZE HELPERS
+// ============================================================
+
+export function isValidAesKeyLength(
+  bytes: number,
+): boolean {
+  return (
+    bytes === 16 ||
+    bytes === 24 ||
+    bytes === 32
+  );
+}
+
+export function generateAesKeyBytes(
+  length = 32,
+): Uint8Array {
+  if (
+    !isValidAesKeyLength(
+      length,
+    )
+  ) {
+    throw new Error(
+      "AES key must be 128, 192, or 256 bits.",
+    );
+  }
+
+  return randomBytes(length);
+}
+
+// ============================================================
+// ENCRYPTION VALIDATION
+// ============================================================
+
+function validateEncryptedData(
+  encrypted: EncryptedData,
+): void {
+  if (
+    !encrypted ||
+    encrypted.version !== 1 ||
+    encrypted.algorithm !==
+      "AES-GCM"
+  ) {
+    throw new Error(
+      "Unsupported encryption format.",
+    );
+  }
+
+  if (
+    !isValidBase64(
+      encrypted.iv,
+    )
+  ) {
+    throw new Error(
+      "Invalid encrypted IV.",
+    );
+  }
+
+  if (
+    !isValidBase64(
+      encrypted.ciphertext,
+    )
+  ) {
+    throw new Error(
+      "Invalid encrypted ciphertext.",
+    );
+  }
+}
+
+function validateAeadEncryptedData(
+  encrypted: AeadEncryptedData,
+): void {
+  validateEncryptedData(
+    encrypted,
+  );
+
+  if (
+    encrypted.tagLength !==
+      128 &&
+    encrypted.tagLength !==
+      96 &&
+    encrypted.tagLength !==
+      104 &&
+    encrypted.tagLength !==
+      112 &&
+    encrypted.tagLength !==
+      120
+  ) {
+    throw new Error(
+      "Invalid AES-GCM authentication tag length.",
+    );
+  }
+}
+
+// ============================================================
+// CRYPTO AVAILABILITY
+// ============================================================
+
 export function isCryptoAvailable(): boolean {
   return (
     typeof globalThis.crypto !==
       "undefined" &&
     typeof globalThis.crypto
-      .subtle !== "undefined"
+      .subtle !==
+      "undefined"
   );
+}
+
+export function isEd25519Available(): boolean {
+  return isCryptoAvailable();
+}
+
+// ============================================================
+// CRYPTO RANDOM HEALTH CHECK
+// ============================================================
+
+export function canGenerateRandomBytes(): boolean {
+  try {
+    if (
+      !isCryptoAvailable()
+    ) {
+      return false;
     }
+
+    const bytes =
+      randomBytes(1);
+
+    return (
+      bytes.length === 1
+    );
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================
+// HASH ALGORITHM HELPERS
+// ============================================================
+
+export function isHashAlgorithm(
+  value: unknown,
+): value is HashAlgorithm {
+  return (
+    value === "SHA-256" ||
+    value === "SHA-384" ||
+    value === "SHA-512"
+  );
+}
+
+export function hashOutputBytes(
+  algorithm: HashAlgorithm,
+): number {
+  switch (algorithm) {
+    case "SHA-256":
+      return 32;
+
+    case "SHA-384":
+      return 48;
+
+    case "SHA-512":
+      return 64;
+
+    default:
+      throw new Error(
+        "Unsupported hash algorithm.",
+      );
+  }
+}
+
+// ============================================================
+// DETERMINISTIC IDENTIFIER HELPERS
+// ============================================================
+
+export async function hashedId(
+  value: CryptoBinaryInput,
+  prefix = "id",
+): Promise<string> {
+  const cleanPrefix =
+    prefix
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9_-]/g,
+        "",
+      ) || "id";
+
+  return `${cleanPrefix}_${await sha256Hex(
+    value,
+  )}`;
+}
+
+export async function hashedIdShort(
+  value: CryptoBinaryInput,
+  prefix = "id",
+  length = 16,
+): Promise<string> {
+  if (
+    !Number.isInteger(length) ||
+    length < 4 ||
+    length > 128
+  ) {
+    throw new Error(
+      "Invalid hashed ID length.",
+    );
+  }
+
+  const full =
+    await sha256Hex(value);
+
+  const cleanPrefix =
+    prefix
+      .trim()
+      .toLowerCase()
+      .replace(
+        /[^a-z0-9_-]/g,
+        "",
+      ) || "id";
+
+  return `${cleanPrefix}_${full.slice(
+    0,
+    length,
+  )}`;
+}
+
+// ============================================================
+// REQUEST SIGNATURE HELPERS
+// ============================================================
+
+export async function signPayload(
+  secret: string,
+  payload: CryptoBinaryInput,
+): Promise<string> {
+  return await hmacSha256Base64Url(
+    secret,
+    payload,
+  );
+}
+
+export async function verifyPayloadSignature(
+  secret: string,
+  payload: CryptoBinaryInput,
+  signature: string,
+): Promise<boolean> {
+  try {
+    const expected =
+      await signPayload(
+        secret,
+        payload,
+      );
+
+    return secureCompare(
+      expected,
+      signature,
+    );
+  } catch {
+    return false;
+  }
+}
+
+// ============================================================
+// DATA PACKING HELPERS
+// ============================================================
+
+export function encodeBinary(
+  value: CryptoBinaryInput,
+): string {
+  return bytesToBase64Url(
+    toUint8Array(value),
+  );
+}
+
+export function decodeBinary(
+  value: string,
+): Uint8Array {
+  return base64UrlToBytes(
+    value,
+  );
+}
+
+// ============================================================
+// SAFE PASSWORD VALIDATION
+// ============================================================
+
+export function isReasonableSecret(
+  value: unknown,
+): value is string {
+  return (
+    typeof value === "string" &&
+    value.length >= 8 &&
+    value.length <= 4096
+  );
+}
+
+// ============================================================
+// HASHED SECRET HELPERS
+// ============================================================
+
+export async function hashSecret(
+  secret: string,
+): Promise<string> {
+  if (
+    !isReasonableSecret(secret)
+  ) {
+    throw new Error(
+      "Invalid secret.",
+    );
+  }
+
+  return await sha256Base64Url(
+    secret,
+  );
+}
+
+export async function hashSecretSha512(
+  secret: string,
+): Promise<string> {
+  if (
+    !isReasonableSecret(secret)
+  ) {
+    throw new Error(
+      "Invalid secret.",
+    );
+  }
+
+  return await sha512Base64Url(
+    secret,
+  );
+}
+
+// ============================================================
+// URL-SAFE RANDOM IDENTIFIER
+// ============================================================
+
+export function createSecureId(
+  byteLength = 24,
+): string {
+  return randomBase64Url(
+    byteLength,
+  );
+}
+
+export function createSecureToken(
+  byteLength = 32,
+): string {
+  return randomBase64Url(
+    byteLength,
+  );
+}
+
+export function createSecureNonce(
+  byteLength = 12,
+): string {
+  return randomBase64Url(
+    byteLength,
+  );
+}
+
+// ============================================================
+// END
+// ============================================================
