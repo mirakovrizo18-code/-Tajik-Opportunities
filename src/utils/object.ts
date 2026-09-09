@@ -1,8 +1,9 @@
 /**
- * Object Utilities
+ * Object Utilities v2
  * Tajik Opportunities
  *
- * Расширенный набор безопасных утилит для работы с объектами.
+ * Универсальный, безопасный и расширенный набор утилит
+ * для работы с объектами, массивами, значениями и путями.
  *
  * Совместимо:
  * - TypeScript strict mode
@@ -10,19 +11,29 @@
  * - D1 / KV / R2
  * - ES2022+
  *
- * Особенности:
- * - безопасная работа с PropertyKey
- * - поддержка string / number / symbol ключей
- * - deep clone / deep merge / deep equal
- * - безопасный JSON
- * - pick / omit
- * - map / filter / reduce
- * - flatten / unflatten
- * - группировка и индексация
- * - очистка объектов
- * - immutable helpers
+ * Возможности:
  * - type guards
- * - защита от prototype pollution
+ * - PropertyKey utilities
+ * - безопасное чтение / запись
+ * - pick / omit / pickBy / omitBy
+ * - map / filter / reduce
+ * - deep map / deep filter
+ * - shallow / deep clone
+ * - deep merge
+ * - merge with customizer
+ * - equality / diff
+ * - JSON helpers
+ * - flatten / unflatten
+ * - path access
+ * - immutable updates
+ * - grouping / indexing
+ * - sorting
+ * - object conversion
+ * - cleaning / sanitizing
+ * - freeze / deepFreeze
+ * - numeric helpers
+ * - debug / inspection
+ * - prototype pollution protection
  */
 
 /* ============================================================================
@@ -42,9 +53,7 @@ export type AnyObject = Record<string, unknown>;
 
 export type UnknownRecord = Record<PropertyKey, unknown>;
 
-export type Mutable<T> = {
-  -readonly [P in keyof T]: T[P];
-};
+export type Dictionary<T = unknown> = Record<string, T>;
 
 export type Nullable<T> = T | null;
 
@@ -52,20 +61,9 @@ export type Optional<T> = T | undefined;
 
 export type Nullish<T> = T | null | undefined;
 
-export type Dictionary<T = unknown> = Record<string, T>;
-
-export type KeyValue<
-  K extends PropertyKey = PropertyKey,
-  V = unknown,
-> = {
-  key: K;
-  value: V;
+export type Mutable<T> = {
+  -readonly [P in keyof T]: T[P];
 };
-
-export type ObjectEntry<
-  K extends PropertyKey = PropertyKey,
-  V = unknown,
-> = readonly [K, V];
 
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object
@@ -103,6 +101,19 @@ export type WritableKeys<T> = {
   : never;
 }[keyof T];
 
+export type KeyValue<
+  K extends PropertyKey = PropertyKey,
+  V = unknown,
+> = {
+  key: K;
+  value: V;
+};
+
+export type ObjectEntry<
+  K extends PropertyKey = PropertyKey,
+  V = unknown,
+> = readonly [K, V];
+
 export type ObjectPath =
   | string
   | readonly PropertyKey[];
@@ -120,6 +131,39 @@ export type ObjectPathValue<
       : ObjectPathValue<T[K], Rest>
     : never;
 
+export type Predicate<T = unknown> = (
+  value: T,
+  key: PropertyKey,
+  object: unknown,
+) => boolean;
+
+export type Comparator<T> = (
+  a: T,
+  b: T,
+) => number;
+
+export type ObjectCustomizer = (
+  targetValue: unknown,
+  sourceValue: unknown,
+  key: PropertyKey,
+  target: UnknownRecord,
+  source: UnknownRecord,
+) => unknown;
+
+export type CloneCustomizer = (
+  value: unknown,
+) => unknown;
+
+export type DiffEntry = {
+  path: string;
+  type:
+    | "added"
+    | "removed"
+    | "changed";
+  before?: unknown;
+  after?: unknown;
+};
+
 /* ============================================================================
  * CONSTANTS
  * ========================================================================== */
@@ -130,15 +174,63 @@ const DANGEROUS_KEYS = new Set<PropertyKey>([
   "constructor",
 ]);
 
-const EMPTY_OBJECT:
-  Readonly<Record<string, never>> =
-  Object.freeze({});
+const EMPTY_OBJECT: Readonly<
+  Record<string, never>
+> = Object.freeze({});
+
+const EMPTY_ARRAY: readonly never[] =
+  Object.freeze([]);
+
+const hasOwnProperty =
+  Object.prototype.hasOwnProperty;
+
+const objectToString =
+  Object.prototype.toString;
 
 /* ============================================================================
- * TYPE GUARDS
+ * INTERNAL HELPERS
  * ========================================================================== */
 
-export function isObject(
+function defineSafeProperty(
+  object: object,
+  key: PropertyKey,
+  value: unknown,
+): boolean {
+  if (!safeKey(key)) {
+    return false;
+  }
+
+  try {
+    Object.defineProperty(
+      object,
+      key,
+      {
+        value,
+        enumerable: true,
+        configurable: true,
+        writable: true,
+      },
+    );
+
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function createResultObject(): UnknownRecord {
+  return {};
+}
+
+function createDictionary<T = unknown>():
+  Record<string, T> {
+  return Object.create(null) as Record<
+    string,
+    T
+  >;
+}
+
+function isObjectLike(
   value: unknown,
 ): value is object {
   return (
@@ -147,10 +239,57 @@ export function isObject(
   );
 }
 
+function isIndexable(
+  value: unknown,
+): value is UnknownRecord {
+  return isObjectLike(value);
+}
+
+/* ============================================================================
+ * TYPE GUARDS
+ * ========================================================================== */
+
+export function isObject(
+  value: unknown,
+): value is object {
+  return isObjectLike(value);
+}
+
+export function isRecord(
+  value: unknown,
+): value is UnknownRecord {
+  return (
+    isObjectLike(value) &&
+    !Array.isArray(value)
+  );
+}
+
 export function isFunction(
   value: unknown,
-): value is (...args: never[]) => unknown {
+): value is (
+  ...args: never[]
+) => unknown {
   return typeof value === "function";
+}
+
+export function isAsyncFunction(
+  value: unknown,
+): boolean {
+  return (
+    typeof value === "function" &&
+    objectToString.call(value) ===
+      "[object AsyncFunction]"
+  );
+}
+
+export function isGeneratorFunction(
+  value: unknown,
+): boolean {
+  return (
+    typeof value === "function" &&
+    objectToString.call(value) ===
+      "[object GeneratorFunction]"
+  );
 }
 
 export function isArray(
@@ -197,6 +336,27 @@ export function isFiniteNumber(
   );
 }
 
+export function isInteger(
+  value: unknown,
+): value is number {
+  return Number.isInteger(value);
+}
+
+export function isSafeInteger(
+  value: unknown,
+): value is number {
+  return Number.isSafeInteger(value);
+}
+
+export function isNaNValue(
+  value: unknown,
+): boolean {
+  return (
+    typeof value === "number" &&
+    Number.isNaN(value)
+  );
+}
+
 export function isBoolean(
   value: unknown,
 ): value is boolean {
@@ -236,10 +396,22 @@ export function isNullish(
   );
 }
 
+export function isTruthy(
+  value: unknown,
+): boolean {
+  return Boolean(value);
+}
+
+export function isFalsy(
+  value: unknown,
+): boolean {
+  return !value;
+}
+
 export function isPlainObject(
   value: unknown,
 ): value is Record<string, unknown> {
-  if (!isObject(value)) {
+  if (!isObjectLike(value)) {
     return false;
   }
 
@@ -255,7 +427,19 @@ export function isPlainObject(
 export function isDate(
   value: unknown,
 ): value is Date {
-  return value instanceof Date;
+  return (
+    value instanceof Date &&
+    !Number.isNaN(value.getTime())
+  );
+}
+
+export function isInvalidDate(
+  value: unknown,
+): boolean {
+  return (
+    value instanceof Date &&
+    Number.isNaN(value.getTime())
+  );
 }
 
 export function isRegExp(
@@ -276,13 +460,40 @@ export function isSet(
   return value instanceof Set;
 }
 
+export function isWeakMap(
+  value: unknown,
+): value is WeakMap<object, unknown> {
+  return value instanceof WeakMap;
+}
+
+export function isWeakSet(
+  value: unknown,
+): value is WeakSet<object> {
+  return value instanceof WeakSet;
+}
+
 export function isPromiseLike(
   value: unknown,
 ): value is PromiseLike<unknown> {
   return (
-    isObject(value) &&
+    isObjectLike(value) &&
     "then" in value &&
     typeof value.then === "function"
+  );
+}
+
+export function isError(
+  value: unknown,
+): value is Error {
+  return value instanceof Error;
+}
+
+export function isURL(
+  value: unknown,
+): value is URL {
+  return (
+    typeof URL !== "undefined" &&
+    value instanceof URL
   );
 }
 
@@ -303,11 +514,9 @@ export function isPropertyKey(
 export function normalizeKey(
   key: PropertyKey,
 ): PropertyKey {
-  if (typeof key === "number") {
-    return String(key);
-  }
-
-  return key;
+  return typeof key === "number"
+    ? String(key)
+    : key;
 }
 
 export function isDangerousKey(
@@ -325,6 +534,18 @@ export function safeKey(
   return !isDangerousKey(key);
 }
 
+export function safeKeys(
+  keys: readonly PropertyKey[],
+): PropertyKey[] {
+  return keys.filter(safeKey);
+}
+
+export function unsafeKeys(
+  keys: readonly PropertyKey[],
+): PropertyKey[] {
+  return keys.filter(isDangerousKey);
+}
+
 /* ============================================================================
  * OWN PROPERTY HELPERS
  * ========================================================================== */
@@ -333,7 +554,7 @@ export function hasOwn(
   object: object,
   key: PropertyKey,
 ): boolean {
-  return Object.prototype.hasOwnProperty.call(
+  return hasOwnProperty.call(
     object,
     key,
   );
@@ -344,7 +565,7 @@ export function hasProperty(
   key: PropertyKey,
 ): boolean {
   return (
-    isObject(object) &&
+    isObjectLike(object) &&
     hasOwn(object, key)
   );
 }
@@ -353,7 +574,7 @@ export function hasAnyProperty(
   object: unknown,
   keys: readonly PropertyKey[],
 ): boolean {
-  if (!isObject(object)) {
+  if (!isObjectLike(object)) {
     return false;
   }
 
@@ -366,7 +587,7 @@ export function hasAllProperties(
   object: unknown,
   keys: readonly PropertyKey[],
 ): boolean {
-  if (!isObject(object)) {
+  if (!isObjectLike(object)) {
     return false;
   }
 
@@ -384,7 +605,7 @@ export function getProperty<T = unknown>(
   key: PropertyKey,
   fallback?: T,
 ): T | undefined {
-  if (!isObject(object)) {
+  if (!isObjectLike(object)) {
     return fallback;
   }
 
@@ -392,10 +613,30 @@ export function getProperty<T = unknown>(
     return fallback;
   }
 
-  return Reflect.get(
-    object,
-    key,
-  ) as T;
+  try {
+    return Reflect.get(object, key) as T;
+  } catch {
+    return fallback;
+  }
+}
+
+export function getOwnProperty<T = unknown>(
+  object: unknown,
+  key: PropertyKey,
+  fallback?: T,
+): T | undefined {
+  if (
+    !isObjectLike(object) ||
+    !hasOwn(object, key)
+  ) {
+    return fallback;
+  }
+
+  try {
+    return Reflect.get(object, key) as T;
+  } catch {
+    return fallback;
+  }
 }
 
 export function getObjectValue<T>(
@@ -403,8 +644,10 @@ export function getObjectValue<T>(
   key: PropertyKey,
   fallback?: T,
 ): T | undefined {
-  const value =
-    Reflect.get(object, key);
+  const value = getProperty<unknown>(
+    object,
+    key,
+  );
 
   return value === undefined
     ? fallback
@@ -438,10 +681,7 @@ export function getNumber(
       key,
     );
 
-  return (
-    typeof value === "number" &&
-    Number.isFinite(value)
-  )
+  return isFiniteNumber(value)
     ? value
     : fallback;
 }
@@ -462,10 +702,26 @@ export function getBoolean(
     : fallback;
 }
 
+export function getBigInt(
+  object: unknown,
+  key: PropertyKey,
+  fallback?: bigint,
+): bigint | undefined {
+  const value =
+    getProperty<unknown>(
+      object,
+      key,
+    );
+
+  return typeof value === "bigint"
+    ? value
+    : fallback;
+}
+
 export function getArray<T = unknown>(
   object: unknown,
   key: PropertyKey,
-  fallback: readonly T[] = [],
+  fallback: readonly T[] = EMPTY_ARRAY,
 ): readonly T[] {
   const value =
     getProperty<unknown>(
@@ -476,6 +732,61 @@ export function getArray<T = unknown>(
   return Array.isArray(value)
     ? (value as T[])
     : fallback;
+}
+
+export function getObject(
+  object: unknown,
+  key: PropertyKey,
+): UnknownRecord | undefined {
+  const value =
+    getProperty<unknown>(
+      object,
+      key,
+    );
+
+  return isPlainObject(value)
+    ? value
+    : undefined;
+}
+
+export function getOr<T>(
+  object: unknown,
+  key: PropertyKey,
+  fallback: T,
+): T {
+  const value =
+    getProperty<unknown>(
+      object,
+      key,
+    );
+
+  return value === undefined
+    ? fallback
+    : (value as T);
+}
+
+export function getStringOr(
+  object: unknown,
+  key: PropertyKey,
+  fallback: string,
+): string {
+  return getString(
+    object,
+    key,
+    fallback,
+  );
+}
+
+export function getNumberOr(
+  object: unknown,
+  key: PropertyKey,
+  fallback: number,
+): number {
+  return getNumber(
+    object,
+    key,
+    fallback,
+  );
 }
 
 /* ============================================================================
@@ -491,7 +802,7 @@ export function setProperty<T extends object>(
     return object;
   }
 
-  Reflect.set(
+  defineSafeProperty(
     object,
     key,
     value,
@@ -511,13 +822,30 @@ export function setProperties<T extends object>(
       continue;
     }
 
-    Reflect.set(
+    defineSafeProperty(
       object,
       key,
-      Reflect.get(
-        values,
-        key,
-      ),
+      Reflect.get(values, key),
+    );
+  }
+
+  return object;
+}
+
+export function assignSafe<T extends object>(
+  object: T,
+  ...sources: Array<
+    UnknownRecord | null | undefined
+  >
+): T {
+  for (const source of sources) {
+    if (!source) {
+      continue;
+    }
+
+    setProperties(
+      object,
+      source,
     );
   }
 
@@ -528,10 +856,18 @@ export function deleteProperty<T extends object>(
   object: T,
   key: PropertyKey,
 ): boolean {
-  return Reflect.deleteProperty(
-    object,
-    key,
-  );
+  if (!safeKey(key)) {
+    return false;
+  }
+
+  try {
+    return Reflect.deleteProperty(
+      object,
+      key,
+    );
+  } catch {
+    return false;
+  }
 }
 
 export function deleteProperties<T extends object>(
@@ -539,10 +875,26 @@ export function deleteProperties<T extends object>(
   keys: readonly PropertyKey[],
 ): T {
   for (const key of keys) {
-    Reflect.deleteProperty(
-      object,
-      key,
-    );
+    deleteProperty(object, key);
+  }
+
+  return object;
+}
+
+export function clearObject<T extends object>(
+  object: T,
+): T {
+  for (
+    const key of Reflect.ownKeys(object)
+  ) {
+    try {
+      Reflect.deleteProperty(
+        object,
+        key,
+      );
+    } catch {
+      // Ignore non-configurable properties.
+    }
   }
 
   return object;
@@ -560,23 +912,20 @@ export function pick<
   keys: readonly K[],
 ): Pick<T, K> {
   const result =
-    {} as Pick<T, K>;
+    createResultObject() as Pick<T, K>;
 
   for (const key of keys) {
-    if (!hasOwn(object, key)) {
+    if (
+      !safeKey(key) ||
+      !hasOwn(object, key)
+    ) {
       continue;
     }
 
-    const value =
-      Reflect.get(
-        object,
-        key,
-      ) as T[K];
-
-    Reflect.set(
+    defineSafeProperty(
       result,
       key,
-      value,
+      Reflect.get(object, key),
     );
   }
 
@@ -594,29 +943,84 @@ export function omit<
     new Set<PropertyKey>(keys);
 
   const result =
-    {} as Omit<T, K>;
+    createResultObject() as Omit<T, K>;
 
   for (
     const key of Reflect.ownKeys(object)
   ) {
-    if (excluded.has(key)) {
+    if (
+      excluded.has(key) ||
+      !safeKey(key)
+    ) {
       continue;
     }
 
-    const value =
-      Reflect.get(
-        object,
-        key,
-      );
-
-    Reflect.set(
+    defineSafeProperty(
       result,
       key,
-      value,
+      Reflect.get(object, key),
     );
   }
 
   return result;
+}
+
+export function pickBy<
+  T extends UnknownRecord,
+>(
+  object: T,
+  predicate: Predicate,
+): Partial<T> {
+  const result =
+    createResultObject() as Partial<T>;
+
+  for (
+    const key of Reflect.ownKeys(object)
+  ) {
+    if (!safeKey(key)) {
+      continue;
+    }
+
+    const value =
+      Reflect.get(object, key);
+
+    if (
+      predicate(
+        value,
+        key,
+        object,
+      )
+    ) {
+      defineSafeProperty(
+        result,
+        key,
+        value,
+      );
+    }
+  }
+
+  return result;
+}
+
+export function omitBy<
+  T extends UnknownRecord,
+>(
+  object: T,
+  predicate: Predicate,
+): Partial<T> {
+  return pickBy(
+    object,
+    (
+      value,
+      key,
+      source,
+    ) =>
+      !predicate(
+        value,
+        key,
+        source,
+      ),
+  );
 }
 
 export function pickDefined<
@@ -644,25 +1048,11 @@ export function removeUndefined<
 >(
   object: T,
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of Object.keys(object)
-  ) {
-    const value =
-      object[key];
-
-    if (value !== undefined) {
-      Reflect.set(
-        result,
-        key,
-        value,
-      );
-    }
-  }
-
-  return result;
+  return pickBy(
+    object as UnknownRecord,
+    (value) =>
+      value !== undefined,
+  ) as Partial<T>;
 }
 
 export function removeNull<
@@ -670,25 +1060,11 @@ export function removeNull<
 >(
   object: T,
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of Object.keys(object)
-  ) {
-    const value =
-      object[key];
-
-    if (value !== null) {
-      Reflect.set(
-        result,
-        key,
-        value,
-      );
-    }
-  }
-
-  return result;
+  return pickBy(
+    object as UnknownRecord,
+    (value) =>
+      value !== null,
+  ) as Partial<T>;
 }
 
 export function sanitizeObject<
@@ -696,28 +1072,12 @@ export function sanitizeObject<
 >(
   object: T,
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of Object.keys(object)
-  ) {
-    const value =
-      object[key];
-
-    if (
+  return pickBy(
+    object as UnknownRecord,
+    (value) =>
       value !== null &&
-      value !== undefined
-    ) {
-      Reflect.set(
-        result,
-        key,
-        value,
-      );
-    }
-  }
-
-  return result;
+      value !== undefined,
+  ) as Partial<T>;
 }
 
 export function compactObject<
@@ -725,25 +1085,11 @@ export function compactObject<
 >(
   object: T,
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of Object.keys(object)
-  ) {
-    const value =
-      object[key];
-
-    if (Boolean(value)) {
-      Reflect.set(
-        result,
-        key,
-        value,
-      );
-    }
-  }
-
-  return result;
+  return pickBy(
+    object as UnknownRecord,
+    (value) =>
+      Boolean(value),
+  ) as Partial<T>;
 }
 
 export function removeEmptyStrings<
@@ -751,28 +1097,12 @@ export function removeEmptyStrings<
 >(
   object: T,
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of Object.keys(object)
-  ) {
-    const value =
-      object[key];
-
-    if (
+  return pickBy(
+    object as UnknownRecord,
+    (value) =>
       typeof value !== "string" ||
-      value.trim() !== ""
-    ) {
-      Reflect.set(
-        result,
-        key,
-        value,
-      );
-    }
-  }
-
-  return result;
+      value.trim() !== "",
+  ) as Partial<T>;
 }
 
 export function trimStrings<
@@ -780,25 +1110,13 @@ export function trimStrings<
 >(
   object: T,
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of Object.keys(object)
-  ) {
-    const value =
-      object[key];
-
-    Reflect.set(
-      result,
-      key,
+  return mapObject(
+    object,
+    (value) =>
       typeof value === "string"
         ? value.trim()
         : value,
-    );
-  }
-
-  return result;
+  ) as Partial<T>;
 }
 
 export function removeKeys(
@@ -808,28 +1126,64 @@ export function removeKeys(
     value: unknown,
   ) => boolean,
 ): UnknownRecord {
-  const result:
-    UnknownRecord = {};
-
-  for (
-    const key of Reflect.ownKeys(object)
-  ) {
-    const value =
-      Reflect.get(
-        object,
-        key,
-      );
-
-    if (!predicate(key, value)) {
-      Reflect.set(
-        result,
+  return omitBy(
+    object,
+    (
+      value,
+      key,
+    ) =>
+      predicate(
         key,
         value,
-      );
-    }
-  }
+      ),
+  ) as UnknownRecord;
+}
 
-  return result;
+export function removeEmptyObjects<
+  T extends UnknownRecord,
+>(
+  object: T,
+): Partial<T> {
+  return pickBy(
+    object,
+    (value) =>
+      !isPlainObject(value) ||
+      Object.keys(value).length > 0,
+  );
+}
+
+export function deepClean<T>(
+  value: T,
+): T {
+  return deepTransform(
+    value,
+    (current) => {
+      if (
+        current === null ||
+        current === undefined
+      ) {
+        return {
+          keep: false,
+          value: current,
+        };
+      }
+
+      if (
+        typeof current === "string" &&
+        current.trim() === ""
+      ) {
+        return {
+          keep: false,
+          value: current,
+        };
+      }
+
+      return {
+        keep: true,
+        value: current,
+      };
+    },
+  );
 }
 
 /* ============================================================================
@@ -887,15 +1241,13 @@ export function symbolKeys(
 export function objectSize(
   object: object,
 ): number {
-  return Reflect.ownKeys(object)
-    .length;
+  return Reflect.ownKeys(object).length;
 }
 
 export function enumerableObjectSize(
   object: object,
 ): number {
-  return Object.keys(object)
-    .length;
+  return Object.keys(object).length;
 }
 
 export function isEmptyObject(
@@ -920,11 +1272,9 @@ export function isEnumerableEmpty(
 export function toRecord(
   value: unknown,
 ): UnknownRecord {
-  if (isPlainObject(value)) {
-    return value;
-  }
-
-  return {};
+  return isPlainObject(value)
+    ? value
+    : createResultObject();
 }
 
 export function toObject<
@@ -946,9 +1296,24 @@ export function fromEntries<
     readonly [K, V]
   >,
 ): Record<K, V> {
-  return Object.fromEntries(
-    entries,
-  ) as Record<K, V>;
+  const result =
+    createResultObject();
+
+  for (
+    const [key, value] of entries
+  ) {
+    if (!safeKey(key)) {
+      continue;
+    }
+
+    defineSafeProperty(
+      result,
+      key,
+      value,
+    );
+  }
+
+  return result as Record<K, V>;
 }
 
 export function toEntries(
@@ -959,10 +1324,7 @@ export function toEntries(
   return Reflect.ownKeys(object).map(
     (key) => [
       key,
-      Reflect.get(
-        object,
-        key,
-      ),
+      Reflect.get(object, key),
     ],
   );
 }
@@ -981,6 +1343,41 @@ export function toKeyValueArray(
   );
 }
 
+export function objectToArray<
+  T = unknown,
+>(
+  object: object,
+): T[] {
+  return objectValues(
+    object,
+  ) as T[];
+}
+
+export function objectToPairs(
+  object: object,
+): Array<
+  [string, unknown]
+> {
+  return Object.entries(object);
+}
+
+export function objectToMap(
+  object: object,
+): Map<PropertyKey, unknown> {
+  return new Map(
+    toEntries(object),
+  );
+}
+
+export function mapToObject<
+  K extends PropertyKey,
+  V,
+>(
+  map: Map<K, V>,
+): Record<K, V> {
+  return fromEntries(map);
+}
+
 /* ============================================================================
  * MAP / FILTER / REDUCE
  * ========================================================================== */
@@ -997,7 +1394,8 @@ export function mapObject<
   ) => R,
 ): Record<string, R> {
   const result:
-    Record<string, R> = {};
+    Record<string, R> =
+    createDictionary<R>();
 
   for (
     const key of Object.keys(object)
@@ -1005,18 +1403,35 @@ export function mapObject<
     const typedKey =
       key as keyof T;
 
-    const value =
-      object[typedKey] as T[keyof T];
-
     result[key] =
       callback(
-        value,
+        object[typedKey] as T[keyof T],
         typedKey,
         object,
       );
   }
 
   return result;
+}
+
+export function mapValues<
+  T extends AnyObject,
+  R,
+>(
+  object: T,
+  callback: (
+    value: T[keyof T],
+    key: keyof T,
+  ) => R,
+): Record<string, R> {
+  return mapObject(
+    object,
+    (value, key) =>
+      callback(
+        value,
+        key,
+      ),
+  );
 }
 
 export function mapEntries<
@@ -1045,9 +1460,7 @@ export function mapEntries<
     );
   }
 
-  return Object.fromEntries(
-    entries,
-  ) as Record<string, R>;
+  return fromEntries(entries);
 }
 
 export function filterObject<
@@ -1060,34 +1473,15 @@ export function filterObject<
     object: T,
   ) => boolean,
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
-
-  for (
-    const key of Object.keys(object)
-  ) {
-    const typedKey =
-      key as keyof T;
-
-    const value =
-      object[typedKey];
-
-    if (
+  return pickBy(
+    object as UnknownRecord,
+    (value, key) =>
       predicate(
-        value,
-        typedKey,
+        value as T[keyof T],
+        key as keyof T,
         object,
-      )
-    ) {
-      Reflect.set(
-        result,
-        key,
-        value,
-      );
-    }
-  }
-
-  return result;
+      ),
+  ) as Partial<T>;
 }
 
 export function findObjectValue<
@@ -1189,6 +1583,79 @@ export function reduceObject<
   return accumulator;
 }
 
+export function someObject<
+  T extends AnyObject,
+>(
+  object: T,
+  predicate: Predicate,
+): boolean {
+  return Reflect.ownKeys(object).some(
+    (key) =>
+      predicate(
+        Reflect.get(object, key),
+        key,
+        object,
+      ),
+  );
+}
+
+export function everyObject<
+  T extends AnyObject,
+>(
+  object: T,
+  predicate: Predicate,
+): boolean {
+  return Reflect.ownKeys(object).every(
+    (key) =>
+      predicate(
+        Reflect.get(object, key),
+        key,
+        object,
+      ),
+  );
+}
+
+export function partitionObject<
+  T extends AnyObject,
+>(
+  object: T,
+  predicate: Predicate,
+): [
+  Partial<T>,
+  Partial<T>,
+] {
+  const passed =
+    createResultObject() as Partial<T>;
+
+  const failed =
+    createResultObject() as Partial<T>;
+
+  for (
+    const key of Reflect.ownKeys(object)
+  ) {
+    if (!safeKey(key)) {
+      continue;
+    }
+
+    const value =
+      Reflect.get(object, key);
+
+    defineSafeProperty(
+      predicate(
+        value,
+        key,
+        object,
+      )
+        ? passed
+        : failed,
+      key,
+      value,
+    );
+  }
+
+  return [passed, failed];
+}
+
 /* ============================================================================
  * SEARCH / QUERY
  * ========================================================================== */
@@ -1204,10 +1671,7 @@ export function findKey<T extends object>(
     const key of Reflect.ownKeys(object)
   ) {
     const value =
-      Reflect.get(
-        object,
-        key,
-      );
+      Reflect.get(object, key);
 
     if (predicate(value, key)) {
       return key;
@@ -1245,13 +1709,23 @@ export function containsValue(
   return Reflect.ownKeys(object).some(
     (key) =>
       Object.is(
-        Reflect.get(
-          object,
-          key,
-        ),
+        Reflect.get(object, key),
         expected,
       ),
   );
+}
+
+export function hasValue(
+  object: object,
+  predicate: (
+    value: unknown,
+    key: PropertyKey,
+  ) => boolean,
+): boolean {
+  return findKey(
+    object,
+    predicate,
+  ) !== undefined;
 }
 
 export function containsKey(
@@ -1314,8 +1788,8 @@ export function shallowClone<T>(
   }
 
   if (isPlainObject(value)) {
-    const result:
-      UnknownRecord = {};
+    const result =
+      createResultObject();
 
     for (
       const key of Reflect.ownKeys(value)
@@ -1324,13 +1798,10 @@ export function shallowClone<T>(
         continue;
       }
 
-      Reflect.set(
+      defineSafeProperty(
         result,
         key,
-        Reflect.get(
-          value,
-          key,
-        ),
+        Reflect.get(value, key),
       );
     }
 
@@ -1363,6 +1834,27 @@ export function deepClone<T>(
   ) as T;
 }
 
+export function deepCloneWith<T>(
+  value: T,
+  customizer: CloneCustomizer,
+): T {
+  const custom =
+    customizer(value);
+
+  if (custom !== value) {
+    return custom as T;
+  }
+
+  return deepCloneCustom(
+    value,
+    customizer,
+    new WeakMap<
+      object,
+      unknown
+    >(),
+  ) as T;
+}
+
 function deepCloneFallback(
   value: unknown,
   seen: WeakMap<
@@ -1370,7 +1862,7 @@ function deepCloneFallback(
     unknown
   >,
 ): unknown {
-  if (!isObject(value)) {
+  if (!isObjectLike(value)) {
     return value;
   }
 
@@ -1404,7 +1896,7 @@ function deepCloneFallback(
       const [
         key,
         nested,
-      ] of value.entries()
+      ] of value
     ) {
       result.set(
         deepCloneFallback(
@@ -1431,7 +1923,7 @@ function deepCloneFallback(
     );
 
     for (
-      const item of value.values()
+      const item of value
     ) {
       result.add(
         deepCloneFallback(
@@ -1467,8 +1959,8 @@ function deepCloneFallback(
     return result;
   }
 
-  const result:
-    UnknownRecord = {};
+  const result =
+    createResultObject();
 
   seen.set(
     value,
@@ -1482,14 +1974,141 @@ function deepCloneFallback(
       continue;
     }
 
-    Reflect.set(
+    defineSafeProperty(
       result,
       key,
       deepCloneFallback(
-        Reflect.get(
-          value,
+        Reflect.get(value, key),
+        seen,
+      ),
+    );
+  }
+
+  return result;
+}
+
+function deepCloneCustom(
+  value: unknown,
+  customizer: CloneCustomizer,
+  seen: WeakMap<
+    object,
+    unknown
+  >,
+): unknown {
+  const custom =
+    customizer(value);
+
+  if (custom !== value) {
+    return custom;
+  }
+
+  if (!isObjectLike(value)) {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return seen.get(value);
+  }
+
+  if (isDate(value)) {
+    return new Date(
+      value.getTime(),
+    );
+  }
+
+  if (isRegExp(value)) {
+    return new RegExp(
+      value.source,
+      value.flags,
+    );
+  }
+
+  if (isMap(value)) {
+    const result =
+      new Map();
+
+    seen.set(value, result);
+
+    for (
+      const [key, nested] of value
+    ) {
+      result.set(
+        deepCloneCustom(
           key,
+          customizer,
+          seen,
         ),
+        deepCloneCustom(
+          nested,
+          customizer,
+          seen,
+        ),
+      );
+    }
+
+    return result;
+  }
+
+  if (isSet(value)) {
+    const result =
+      new Set();
+
+    seen.set(value, result);
+
+    for (
+      const item of value
+    ) {
+      result.add(
+        deepCloneCustom(
+          item,
+          customizer,
+          seen,
+        ),
+      );
+    }
+
+    return result;
+  }
+
+  if (Array.isArray(value)) {
+    const result:
+      unknown[] = [];
+
+    seen.set(value, result);
+
+    for (
+      const item of value
+    ) {
+      result.push(
+        deepCloneCustom(
+          item,
+          customizer,
+          seen,
+        ),
+      );
+    }
+
+    return result;
+  }
+
+  const result =
+    createResultObject();
+
+  seen.set(value, result);
+
+  for (
+    const key of Reflect.ownKeys(value)
+  ) {
+    if (!safeKey(key)) {
+      continue;
+    }
+
+    defineSafeProperty(
+      result,
+      key,
+      deepCloneCustom(
+        Reflect.get(value, key),
+        customizer,
         seen,
       ),
     );
@@ -1503,22 +2122,17 @@ function deepCloneFallback(
  * ========================================================================== */
 
 export function merge<
-  T extends Record<
-    string,
-    unknown
-  >,
-  U extends Record<
-    string,
-    unknown
-  >,
+  T extends Record<string, unknown>,
+  U extends Record<string, unknown>,
 >(
   first: T,
   second: U,
 ): T & U {
-  return {
-    ...first,
-    ...second,
-  } as T & U;
+  return Object.assign(
+    createResultObject(),
+    first,
+    second,
+  ) as T & U;
 }
 
 export function mergeMany<
@@ -1526,22 +2140,16 @@ export function mergeMany<
 >(
   ...objects: AnyObject[]
 ): T {
-  const result:
-    UnknownRecord = {};
+  const result =
+    createResultObject();
 
   for (
     const object of objects
   ) {
-    for (
-      const key of Object.keys(object)
-    ) {
-      if (!safeKey(key)) {
-        continue;
-      }
-
-      result[key] =
-        object[key];
-    }
+    setProperties(
+      result,
+      object,
+    );
   }
 
   return result as T;
@@ -1559,9 +2167,36 @@ export function deepMerge<
   for (
     const source of sources
   ) {
+    if (!isPlainObject(source)) {
+      continue;
+    }
+
     mergeInto(
       result as UnknownRecord,
       source,
+    );
+  }
+
+  return result;
+}
+
+export function deepMergeWith<
+  T extends AnyObject,
+>(
+  target: T,
+  sources: readonly AnyObject[],
+  customizer: ObjectCustomizer,
+): T {
+  const result =
+    deepClone(target);
+
+  for (
+    const source of sources
+  ) {
+    mergeIntoCustom(
+      result as UnknownRecord,
+      source,
+      customizer,
     );
   }
 
@@ -1580,24 +2215,14 @@ function mergeInto(
     }
 
     const sourceValue =
-      Reflect.get(
-        source,
-        key,
-      );
+      Reflect.get(source, key);
 
     const targetValue =
-      Reflect.get(
-        target,
-        key,
-      );
+      Reflect.get(target, key);
 
     if (
-      isPlainObject(
-        targetValue,
-      ) &&
-      isPlainObject(
-        sourceValue,
-      )
+      isPlainObject(targetValue) &&
+      isPlainObject(sourceValue)
     ) {
       mergeInto(
         targetValue,
@@ -1607,12 +2232,68 @@ function mergeInto(
       continue;
     }
 
-    Reflect.set(
+    defineSafeProperty(
       target,
       key,
-      deepClone(
+      deepClone(sourceValue),
+    );
+  }
+}
+
+function mergeIntoCustom(
+  target: UnknownRecord,
+  source: UnknownRecord,
+  customizer: ObjectCustomizer,
+): void {
+  for (
+    const key of Reflect.ownKeys(source)
+  ) {
+    if (!safeKey(key)) {
+      continue;
+    }
+
+    const sourceValue =
+      Reflect.get(source, key);
+
+    const targetValue =
+      Reflect.get(target, key);
+
+    const customized =
+      customizer(
+        targetValue,
         sourceValue,
-      ),
+        key,
+        target,
+        source,
+      );
+
+    if (customized !== undefined) {
+      defineSafeProperty(
+        target,
+        key,
+        deepClone(customized),
+      );
+
+      continue;
+    }
+
+    if (
+      isPlainObject(targetValue) &&
+      isPlainObject(sourceValue)
+    ) {
+      mergeIntoCustom(
+        targetValue,
+        sourceValue,
+        customizer,
+      );
+
+      continue;
+    }
+
+    defineSafeProperty(
+      target,
+      key,
+      deepClone(sourceValue),
     );
   }
 }
@@ -1626,8 +2307,8 @@ export function mergeDefined<
     null
   >
 ): Partial<T> {
-  const result:
-    Partial<T> = {};
+  const result =
+    createResultObject() as Partial<T>;
 
   for (
     const object of objects
@@ -1642,10 +2323,8 @@ export function mergeDefined<
       const value =
         object[key];
 
-      if (
-        value !== undefined
-      ) {
-        Reflect.set(
+      if (value !== undefined) {
+        defineSafeProperty(
           result,
           key,
           value,
@@ -1673,7 +2352,7 @@ export function withProperty<
   const result =
     shallowClone(object);
 
-  Reflect.set(
+  setProperty(
     result as object,
     key,
     value,
@@ -1714,6 +2393,27 @@ export function updateObject<
   return result;
 }
 
+export function updateObjectSafe<
+  T extends AnyObject,
+>(
+  object: T,
+  updater: (
+    draft: Mutable<T>,
+  ) => void,
+): T {
+  const result =
+    deepClone(
+      object,
+    ) as Mutable<T>;
+
+  try {
+    updater(result);
+    return result;
+  } catch {
+    return deepClone(object);
+  }
+}
+
 /* ============================================================================
  * FREEZE
  * ========================================================================== */
@@ -1727,7 +2427,7 @@ export function freeze<T>(
 export function deepFreeze<T>(
   value: T,
 ): DeepReadonly<T> {
-  if (!isObject(value)) {
+  if (!isObjectLike(value)) {
     return value as DeepReadonly<T>;
   }
 
@@ -1735,13 +2435,10 @@ export function deepFreeze<T>(
     const key of Reflect.ownKeys(value)
   ) {
     const nested =
-      Reflect.get(
-        value,
-        key,
-      );
+      Reflect.get(value, key);
 
     if (
-      isObject(nested) &&
+      isObjectLike(nested) &&
       !Object.isFrozen(nested)
     ) {
       deepFreeze(nested);
@@ -1756,7 +2453,7 @@ export function deepFreeze<T>(
 export function isFrozen(
   value: unknown,
 ): boolean {
-  return isObject(value)
+  return isObjectLike(value)
     ? Object.isFrozen(value)
     : true;
 }
@@ -1768,6 +2465,24 @@ export function isFrozen(
 export function equals(
   first: unknown,
   second: unknown,
+): boolean {
+  return equalsInternal(
+    first,
+    second,
+    new WeakMap<
+      object,
+      WeakSet<object>
+    >(),
+  );
+}
+
+function equalsInternal(
+  first: unknown,
+  second: unknown,
+  seen: WeakMap<
+    object,
+    WeakSet<object>
+  >,
 ): boolean {
   if (Object.is(first, second)) {
     return true;
@@ -1794,56 +2509,25 @@ export function equals(
   }
 
   if (
-    Array.isArray(first) &&
-    Array.isArray(second)
-  ) {
-    if (
-      first.length !==
-      second.length
-    ) {
-      return false;
-    }
-
-    for (
-      let i = 0;
-      i < first.length;
-      i += 1
-    ) {
-      if (
-        !equals(
-          first[i],
-          second[i],
-        )
-      ) {
-        return false;
-      }
-    }
-
-    return true;
-  }
-
-  if (
     isMap(first) &&
     isMap(second)
   ) {
-    if (
-      first.size !==
-      second.size
-    ) {
+    if (first.size !== second.size) {
       return false;
     }
 
     for (
-      const [
-        key,
-        value,
-      ] of first
+      const [key, value] of first
     ) {
+      if (!second.has(key)) {
+        return false;
+      }
+
       if (
-        !second.has(key) ||
-        !equals(
+        !equalsInternal(
           value,
           second.get(key),
+          seen,
         )
       ) {
         return false;
@@ -1857,10 +2541,7 @@ export function equals(
     isSet(first) &&
     isSet(second)
   ) {
-    if (
-      first.size !==
-      second.size
-    ) {
+    if (first.size !== second.size) {
       return false;
     }
 
@@ -1876,11 +2557,52 @@ export function equals(
   }
 
   if (
+    Array.isArray(first) &&
+    Array.isArray(second)
+  ) {
+    if (first.length !== second.length) {
+      return false;
+    }
+
+    for (
+      let index = 0;
+      index < first.length;
+      index += 1
+    ) {
+      if (
+        !equalsInternal(
+          first[index],
+          second[index],
+          seen,
+        )
+      ) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  if (
     !isPlainObject(first) ||
     !isPlainObject(second)
   ) {
     return false;
   }
+
+  let pairs =
+    seen.get(first);
+
+  if (!pairs) {
+    pairs = new WeakSet();
+    seen.set(first, pairs);
+  }
+
+  if (pairs.has(second)) {
+    return true;
+  }
+
+  pairs.add(second);
 
   const firstKeys =
     Reflect.ownKeys(first);
@@ -1899,24 +2621,16 @@ export function equals(
     const key of firstKeys
   ) {
     if (
-      !Reflect.has(
-        second,
-        key,
-      )
+      !hasOwn(second, key)
     ) {
       return false;
     }
 
     if (
-      !equals(
-        Reflect.get(
-          first,
-          key,
-        ),
-        Reflect.get(
-          second,
-          key,
-        ),
+      !equalsInternal(
+        Reflect.get(first, key),
+        Reflect.get(second, key),
+        seen,
       )
     ) {
       return false;
@@ -1925,6 +2639,8 @@ export function equals(
 
   return true;
 }
+
+export const isEqual = equals;
 
 export function shallowEquals(
   first: object,
@@ -1947,19 +2663,10 @@ export function shallowEquals(
     const key of firstKeys
   ) {
     if (
-      !Reflect.has(
-        second,
-        key,
-      ) ||
+      !hasOwn(second, key) ||
       !Object.is(
-        Reflect.get(
-          first,
-          key,
-        ),
-        Reflect.get(
-          second,
-          key,
-        ),
+        Reflect.get(first, key),
+        Reflect.get(second, key),
       )
     ) {
       return false;
@@ -1994,10 +2701,7 @@ export function parseJson<
   value: unknown,
   fallback?: T,
 ): T | undefined {
-  if (
-    typeof value !==
-    "string"
-  ) {
+  if (typeof value !== "string") {
     return fallback;
   }
 
@@ -2034,12 +2738,46 @@ export function jsonStringify<T>(
   }
 }
 
+export function jsonPretty<
+  T = unknown,
+>(
+  value: T,
+  spaces = 2,
+): string | undefined {
+  try {
+    return JSON.stringify(
+      value,
+      bigintReplacer,
+      Math.max(
+        0,
+        Math.min(10, spaces),
+      ),
+    );
+  } catch {
+    return undefined;
+  }
+}
+
+export function isValidJson(
+  value: unknown,
+): boolean {
+  if (typeof value !== "string") {
+    return false;
+  }
+
+  try {
+    JSON.parse(value);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function bigintReplacer(
   _key: string,
   value: unknown,
 ): unknown {
-  return typeof value ===
-    "bigint"
+  return typeof value === "bigint"
     ? value.toString()
     : value;
 }
@@ -2053,11 +2791,16 @@ export function flattenObject(
   prefix = "",
 ): Record<string, unknown> {
   const result:
-    Record<string, unknown> = {};
+    Record<string, unknown> =
+    createDictionary();
 
   for (
     const key of Object.keys(object)
   ) {
+    if (!safeKey(key)) {
+      continue;
+    }
+
     const value =
       object[key];
 
@@ -2086,13 +2829,10 @@ export function flattenObject(
 }
 
 export function unflattenObject(
-  object: Record<
-    string,
-    unknown
-  >,
+  object: Record<string, unknown>,
 ): UnknownRecord {
-  const result:
-    UnknownRecord = {};
+  const result =
+    createResultObject();
 
   for (
     const [
@@ -2101,10 +2841,16 @@ export function unflattenObject(
     ] of Object.entries(object)
   ) {
     const parts =
-      path.split(".");
+      parsePath(path);
+
+    if (parts.length === 0) {
+      continue;
+    }
 
     let current:
       UnknownRecord = result;
+
+    let valid = true;
 
     for (
       let index = 0;
@@ -2115,6 +2861,7 @@ export function unflattenObject(
         parts[index];
 
       if (!safeKey(part)) {
+        valid = false;
         break;
       }
 
@@ -2123,7 +2870,7 @@ export function unflattenObject(
         parts.length - 1;
 
       if (last) {
-        Reflect.set(
+        defineSafeProperty(
           current,
           part,
           value,
@@ -2141,10 +2888,10 @@ export function unflattenObject(
       if (
         !isPlainObject(existing)
       ) {
-        const next:
-          UnknownRecord = {};
+        const next =
+          createResultObject();
 
-        Reflect.set(
+        defineSafeProperty(
           current,
           part,
           next,
@@ -2154,6 +2901,10 @@ export function unflattenObject(
       } else {
         current = existing;
       }
+    }
+
+    if (!valid) {
+      continue;
     }
   }
 
@@ -2167,10 +2918,7 @@ export function unflattenObject(
 export function parsePath(
   path: ObjectPath,
 ): PropertyKey[] {
-  if (
-    typeof path !==
-    "string"
-  ) {
+  if (typeof path !== "string") {
     return [...path];
   }
 
@@ -2183,6 +2931,14 @@ export function parsePath(
     .filter(Boolean);
 }
 
+export function pathToString(
+  path: ObjectPath,
+): string {
+  return parsePath(path)
+    .map(String)
+    .join(".");
+}
+
 export function getPath<T = unknown>(
   object: unknown,
   path: ObjectPath,
@@ -2191,30 +2947,36 @@ export function getPath<T = unknown>(
   const keys =
     parsePath(path);
 
+  if (keys.length === 0) {
+    return fallback;
+  }
+
   let current:
     unknown = object;
 
   for (
     const key of keys
   ) {
-    if (!isObject(current)) {
-      return fallback;
-    }
-
     if (
-      !Reflect.has(
-        current,
-        key,
-      )
+      !safeKey(key) ||
+      !isObjectLike(current)
     ) {
       return fallback;
     }
 
-    current =
-      Reflect.get(
-        current,
-        key,
-      );
+    if (!Reflect.has(current, key)) {
+      return fallback;
+    }
+
+    try {
+      current =
+        Reflect.get(
+          current,
+          key,
+        );
+    } catch {
+      return fallback;
+    }
   }
 
   return current === undefined
@@ -2240,11 +3002,9 @@ export function hasPath(
     const key of keys
   ) {
     if (
-      !isObject(current) ||
-      !Reflect.has(
-        current,
-        key,
-      )
+      !safeKey(key) ||
+      !isObjectLike(current) ||
+      !Reflect.has(current, key)
     ) {
       return false;
     }
@@ -2275,7 +3035,7 @@ export function setPath<
 
   let current:
     UnknownRecord =
-      object as UnknownRecord;
+    object as UnknownRecord;
 
   for (
     let index = 0;
@@ -2294,7 +3054,7 @@ export function setPath<
       keys.length - 1;
 
     if (last) {
-      Reflect.set(
+      defineSafeProperty(
         current,
         key,
         value,
@@ -2309,11 +3069,11 @@ export function setPath<
         key,
       );
 
-    if (!isObject(existing)) {
-      const next:
-        UnknownRecord = {};
+    if (!isPlainObject(existing)) {
+      const next =
+        createResultObject();
 
-      Reflect.set(
+      defineSafeProperty(
         current,
         key,
         next,
@@ -2322,11 +3082,28 @@ export function setPath<
       current = next;
     } else {
       current =
-        existing as UnknownRecord;
+        existing;
     }
   }
 
   return object;
+}
+
+export function setPathImmutable<
+  T extends object,
+>(
+  object: T,
+  path: ObjectPath,
+  value: unknown,
+): T {
+  const result =
+    deepClone(object) as T;
+
+  return setPath(
+    result,
+    path,
+    value,
+  );
 }
 
 export function deletePath<
@@ -2354,11 +3131,9 @@ export function deletePath<
       keys[index];
 
     if (
-      !isObject(current) ||
-      !Reflect.has(
-        current,
-        key,
-      )
+      !safeKey(key) ||
+      !isObjectLike(current) ||
+      !Reflect.has(current, key)
     ) {
       return false;
     }
@@ -2370,16 +3145,44 @@ export function deletePath<
       );
   }
 
-  if (!isObject(current)) {
+  if (
+    !isObjectLike(current)
+  ) {
     return false;
   }
 
-  return Reflect.deleteProperty(
-    current,
-    keys[
-      keys.length - 1
-    ],
+  const finalKey =
+    keys[keys.length - 1];
+
+  if (!safeKey(finalKey)) {
+    return false;
+  }
+
+  try {
+    return Reflect.deleteProperty(
+      current,
+      finalKey,
+    );
+  } catch {
+    return false;
+  }
+}
+
+export function deletePathImmutable<
+  T extends object,
+>(
+  object: T,
+  path: ObjectPath,
+): T {
+  const result =
+    deepClone(object) as T;
+
+  deletePath(
+    result,
+    path,
   );
+
+  return result;
 }
 
 /* ============================================================================
@@ -2394,7 +3197,8 @@ export function groupBy<T>(
   ) => PropertyKey,
 ): Record<string, T[]> {
   const result:
-    Record<string, T[]> = {};
+    Record<string, T[]> =
+    createDictionary<T[]>();
 
   items.forEach(
     (
@@ -2420,6 +3224,46 @@ export function groupBy<T>(
   return result;
 }
 
+export function groupByMulti<T>(
+  items: readonly T[],
+  getKeys: (
+    item: T,
+    index: number,
+  ) => readonly PropertyKey[],
+): Record<string, T[]> {
+  const result:
+    Record<string, T[]> =
+    createDictionary<T[]>();
+
+  items.forEach(
+    (
+      item,
+      index,
+    ) => {
+      const keys =
+        getKeys(
+          item,
+          index,
+        );
+
+      for (
+        const rawKey of keys
+      ) {
+        const key =
+          String(rawKey);
+
+        if (!result[key]) {
+          result[key] = [];
+        }
+
+        result[key].push(item);
+      }
+    },
+  );
+
+  return result;
+}
+
 export function keyBy<T>(
   items: readonly T[],
   getKey: (
@@ -2428,7 +3272,8 @@ export function keyBy<T>(
   ) => PropertyKey,
 ): Record<string, T> {
   const result:
-    Record<string, T> = {};
+    Record<string, T> =
+    createDictionary<T>();
 
   items.forEach(
     (
@@ -2443,13 +3288,17 @@ export function keyBy<T>(
           ),
         );
 
-      result[key] =
-        item;
+      if (safeKey(key)) {
+        result[key] =
+          item;
+      }
     },
   );
 
   return result;
 }
+
+export const keyByLast = keyBy;
 
 export function countBy<T>(
   items: readonly T[],
@@ -2459,7 +3308,8 @@ export function countBy<T>(
   ) => PropertyKey,
 ): Record<string, number> {
   const result:
-    Record<string, number> = {};
+    Record<string, number> =
+    createDictionary<number>();
 
   items.forEach(
     (
@@ -2475,8 +3325,7 @@ export function countBy<T>(
         );
 
       result[key] =
-        (result[key] ?? 0) +
-        1;
+        (result[key] ?? 0) + 1;
     },
   );
 
@@ -2514,6 +3363,43 @@ export function indexBy<T>(
   return result;
 }
 
+export function partition<T>(
+  items: readonly T[],
+  predicate: (
+    item: T,
+    index: number,
+  ) => boolean,
+): [
+  T[],
+  T[],
+] {
+  const passed: T[] = [];
+  const failed: T[] = [];
+
+  items.forEach(
+    (
+      item,
+      index,
+    ) => {
+      if (
+        predicate(
+          item,
+          index,
+        )
+      ) {
+        passed.push(item);
+      } else {
+        failed.push(item);
+      }
+    },
+  );
+
+  return [
+    passed,
+    failed,
+  ];
+}
+
 /* ============================================================================
  * TRANSFORMATIONS
  * ========================================================================== */
@@ -2522,7 +3408,8 @@ export function invertObject(
   object: Record<string, string>,
 ): Record<string, string> {
   const result:
-    Record<string, string> = {};
+    Record<string, string> =
+    createDictionary<string>();
 
   for (
     const [
@@ -2543,7 +3430,8 @@ export function invertObjectMulti(
   object: Record<string, string>,
 ): Record<string, string[]> {
   const result:
-    Record<string, string[]> = {};
+    Record<string, string[]> =
+    createDictionary<string[]>();
 
   for (
     const [
@@ -2571,8 +3459,8 @@ export function renameKeys<
   object: T,
   mapping: Record<string, string>,
 ): Record<string, unknown> {
-  const result:
-    Record<string, unknown> = {};
+  const result =
+    createResultObject();
 
   for (
     const key of Object.keys(object)
@@ -2584,8 +3472,11 @@ export function renameKeys<
       continue;
     }
 
-    result[nextKey] =
-      object[key];
+    defineSafeProperty(
+      result,
+      nextKey,
+      object[key],
+    );
   }
 
   return result;
@@ -2607,7 +3498,10 @@ export function mapKeys<
     Record<
       string,
       T[string]
-    > = {};
+    > =
+    createDictionary<
+      T[string]
+    >();
 
   for (
     const key of Object.keys(object)
@@ -2632,6 +3526,41 @@ export function mapKeys<
   return result;
 }
 
+export function mapKeysSafe<
+  T extends UnknownRecord,
+>(
+  object: T,
+  callback: (
+    key: PropertyKey,
+    value: unknown,
+  ) => PropertyKey,
+): UnknownRecord {
+  const result =
+    createResultObject();
+
+  for (
+    const key of Reflect.ownKeys(object)
+  ) {
+    const nextKey =
+      callback(
+        key,
+        Reflect.get(object, key),
+      );
+
+    if (!safeKey(nextKey)) {
+      continue;
+    }
+
+    defineSafeProperty(
+      result,
+      nextKey,
+      Reflect.get(object, key),
+    );
+  }
+
+  return result;
+}
+
 /* ============================================================================
  * DEFAULTS / FALLBACKS
  * ========================================================================== */
@@ -2642,9 +3571,8 @@ export function defaults<
   object: T,
   ...sources: AnyObject[]
 ): T {
-  const result = {
-    ...object,
-  } as T;
+  const result =
+    deepClone(object) as T;
 
   for (
     const source of sources
@@ -2653,14 +3581,10 @@ export function defaults<
       const key of Object.keys(source)
     ) {
       if (
-        !hasOwn(
-          result,
-          key,
-        ) ||
-        result[key] ===
-          undefined
+        !hasOwn(result, key) ||
+        result[key] === undefined
       ) {
-        Reflect.set(
+        defineSafeProperty(
           result,
           key,
           source[key],
@@ -2681,7 +3605,7 @@ export function withDefaults<
     | undefined,
   fallback: T,
 ): T {
-  if (!object) {
+  if (object == null) {
     return deepClone(fallback);
   }
 
@@ -2700,10 +3624,13 @@ export function firstDefined<T>(
     T | undefined
   >
 ): T | undefined {
-  return values.find(
-    (value) =>
-      value !== undefined,
-  );
+  for (const value of values) {
+    if (value !== undefined) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 export function firstNonNullish<T>(
@@ -2711,11 +3638,16 @@ export function firstNonNullish<T>(
     T | null | undefined
   >
 ): T | undefined {
-  return values.find(
-    (value) =>
+  for (const value of values) {
+    if (
       value !== null &&
-      value !== undefined,
-  );
+      value !== undefined
+    ) {
+      return value;
+    }
+  }
+
+  return undefined;
 }
 
 export function valueOr<T>(
@@ -2738,24 +3670,71 @@ export function valueOrNull<T>(
     : value;
 }
 
+export function valueOrUndefined<T>(
+  value: T | null,
+): T | undefined {
+  return value === null
+    ? undefined
+    : value;
+}
+
 /* ============================================================================
  * SORTING
  * ========================================================================== */
 
 export function sortObjectKeys(
   object: UnknownRecord,
-  compare?: (
-    a: string,
-    b: string,
-  ) => number,
+  compare?: Comparator<string>,
 ): UnknownRecord {
   const keys =
-    Object.keys(
-      object,
-    ).sort(compare);
+    Object.keys(object).sort(compare);
+
+  const result =
+    createResultObject();
+
+  for (
+    const key of keys
+  ) {
+    defineSafeProperty(
+      result,
+      key,
+      object[key],
+    );
+  }
+
+  return result;
+}
+
+export function sortObjectByValue<T>(
+  object: Record<string, T>,
+  compare: Comparator<T>,
+): Record<string, T> {
+  const entries =
+    Object.entries(object);
+
+  entries.sort(
+    (
+      [, a],
+      [, b],
+    ) =>
+      compare(a, b),
+  );
+
+  return fromEntries(entries);
+}
+
+export function sortObjectByKey<
+  T,
+>(
+  object: Record<string, T>,
+  compare?: Comparator<string>,
+): Record<string, T> {
+  const keys =
+    Object.keys(object).sort(compare);
 
   const result:
-    UnknownRecord = {};
+    Record<string, T> =
+    createDictionary<T>();
 
   for (
     const key of keys
@@ -2767,98 +3746,9 @@ export function sortObjectKeys(
   return result;
 }
 
-export function sortObjectByValue<T>(
-  object: Record<string, T>,
-  compare: (
-    a: T,
-    b: T,
-  ) => number,
-): Record<string, T> {
-  const entries =
-    Object.entries(object);
-
-  entries.sort(
-    (
-      [, a],
-      [, b],
-    ) => compare(a, b),
-  );
-
-  return Object.fromEntries(
-    entries,
-  ) as Record<
-    string,
-    T
-  >;
-}
-
-/* ============================================================================
- * SAFE OBJECT CREATION
- * ========================================================================== */
-
-export function createNullObject():
-  UnknownRecord {
-  return Object.create(
-    null,
-  ) as UnknownRecord;
-}
-
-export function createSafeObject(
-  entries?: Iterable<
-    readonly [
-      PropertyKey,
-      unknown,
-    ]
-  >,
-): UnknownRecord {
-  const result:
-    UnknownRecord = {};
-
-  if (!entries) {
-    return result;
-  }
-
-  for (
-    const [
-      key,
-      value,
-    ] of entries
-  ) {
-    if (!safeKey(key)) {
-      continue;
-    }
-
-    Reflect.set(
-      result,
-      key,
-      value,
-    );
-  }
-
-  return result;
-}
-
 /* ============================================================================
  * ARRAY / OBJECT HELPERS
  * ========================================================================== */
-
-export function objectToArray<
-  T = unknown,
->(
-  object: object,
-): T[] {
-  return objectValues(
-    object,
-  ) as T[];
-}
-
-export function objectToPairs(
-  object: object,
-): Array<
-  [string, unknown]
-> {
-  return Object.entries(object);
-}
 
 export function arrayToObject<T>(
   items: readonly T[],
@@ -2881,7 +3771,8 @@ export function arrayToDictionary<T>(
   ) => string,
 ): Dictionary<T> {
   const result:
-    Dictionary<T> = {};
+    Dictionary<T> =
+    createDictionary<T>();
 
   items.forEach(
     (
@@ -2904,6 +3795,57 @@ export function arrayToDictionary<T>(
   return result;
 }
 
+export function compactArray<T>(
+  items: readonly T[],
+): T[] {
+  return items.filter(
+    Boolean,
+  );
+}
+
+export function unique<T>(
+  items: readonly T[],
+): T[] {
+  return [
+    ...new Set(items),
+  ];
+}
+
+export function uniqueBy<T, K>(
+  items: readonly T[],
+  getKey: (
+    item: T,
+    index: number,
+  ) => K,
+): T[] {
+  const seen =
+    new Set<K>();
+
+  const result: T[] = [];
+
+  items.forEach(
+    (
+      item,
+      index,
+    ) => {
+      const key =
+        getKey(
+          item,
+          index,
+        );
+
+      if (seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+      result.push(item);
+    },
+  );
+
+  return result;
+}
+
 /* ============================================================================
  * SIZE / VALIDATION
  * ========================================================================== */
@@ -2912,7 +3854,7 @@ export function assertObject(
   value: unknown,
   message = "Expected an object",
 ): asserts value is UnknownRecord {
-  if (!isObject(value)) {
+  if (!isObjectLike(value)) {
     throw new TypeError(message);
   }
 }
@@ -2937,8 +3879,7 @@ export function isNonEmptyObject(
 > {
   return (
     isPlainObject(value) &&
-    Object.keys(value).length >
-      0
+    Object.keys(value).length > 0
   );
 }
 
@@ -2946,39 +3887,74 @@ export function objectHasValues(
   object: object,
 ): boolean {
   return (
-    Object.keys(object).length >
-    0
+    Object.keys(object).length > 0
   );
 }
 
+export function isEmpty(
+  value: unknown,
+): boolean {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    return true;
+  }
+
+  if (typeof value === "string") {
+    return value.length === 0;
+  }
+
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+
+  if (isMap(value) || isSet(value)) {
+    return value.size === 0;
+  }
+
+  if (isPlainObject(value)) {
+    return Object.keys(value).length === 0;
+  }
+
+  return false;
+}
+
 /* ============================================================================
- * CLAMP / NUMBER-LIKE OBJECT HELPERS
+ * NUMERIC HELPERS
  * ========================================================================== */
 
 export function numericValue(
   value: unknown,
   fallback = 0,
 ): number {
-  if (
-    typeof value === "number" &&
-    Number.isFinite(value)
-  ) {
+  if (isFiniteNumber(value)) {
     return value;
   }
 
   if (typeof value === "string") {
-    const parsed =
-      Number(value);
+    const trimmed =
+      value.trim();
 
-    return Number.isFinite(
-      parsed,
-    )
+    if (!trimmed) {
+      return fallback;
+    }
+
+    const parsed =
+      Number(trimmed);
+
+    return Number.isFinite(parsed)
       ? parsed
       : fallback;
   }
 
   if (typeof value === "bigint") {
-    return Number(value);
+    const number =
+      Number(value);
+
+    return Number.isFinite(number)
+      ? number
+      : fallback;
   }
 
   return fallback;
@@ -2998,6 +3974,545 @@ export function numericProperty(
   );
 }
 
+export function clamp(
+  value: number,
+  min: number,
+  max: number,
+): number {
+  if (min > max) {
+    return clamp(
+      value,
+      max,
+      min,
+    );
+  }
+
+  return Math.min(
+    Math.max(value, min),
+    max,
+  );
+}
+
+export function percentage(
+  value: number,
+  min = 0,
+  max = 100,
+): number {
+  if (max === min) {
+    return 0;
+  }
+
+  return clamp(
+    ((value - min) /
+      (max - min)) *
+      100,
+    0,
+    100,
+  );
+}
+
+/* ============================================================================
+ * SAFE OBJECT CREATION
+ * ========================================================================== */
+
+export function createNullObject():
+  UnknownRecord {
+  return Object.create(
+    null,
+  ) as UnknownRecord;
+}
+
+export function createSafeObject(
+  entries?: Iterable<
+    readonly [
+      PropertyKey,
+      unknown,
+    ]
+  >,
+): UnknownRecord {
+  const result =
+    createResultObject();
+
+  if (!entries) {
+    return result;
+  }
+
+  for (
+    const [
+      key,
+      value,
+    ] of entries
+  ) {
+    if (!safeKey(key)) {
+      continue;
+    }
+
+    defineSafeProperty(
+      result,
+      key,
+      value,
+    );
+  }
+
+  return result;
+}
+
+/* ============================================================================
+ * DEEP TRANSFORM
+ * ========================================================================== */
+
+export function deepMap<T>(
+  value: T,
+  mapper: (
+    value: unknown,
+    path: readonly PropertyKey[],
+  ) => unknown,
+): T {
+  return deepMapInternal(
+    value,
+    mapper,
+    [],
+    new WeakMap<
+      object,
+      unknown
+    >(),
+  ) as T;
+}
+
+function deepMapInternal(
+  value: unknown,
+  mapper: (
+    value: unknown,
+    path: readonly PropertyKey[],
+  ) => unknown,
+  path: PropertyKey[],
+  seen: WeakMap<
+    object,
+    unknown
+  >,
+): unknown {
+  const mapped =
+    mapper(value, path);
+
+  if (
+    mapped !== value
+  ) {
+    return mapped;
+  }
+
+  if (!isObjectLike(value)) {
+    return value;
+  }
+
+  if (seen.has(value)) {
+    return seen.get(value);
+  }
+
+  if (Array.isArray(value)) {
+    const result:
+      unknown[] = [];
+
+    seen.set(value, result);
+
+    value.forEach(
+      (item, index) => {
+        result[index] =
+          deepMapInternal(
+            item,
+            mapper,
+            [
+              ...path,
+              index,
+            ],
+            seen,
+          );
+      },
+    );
+
+    return result;
+  }
+
+  if (isDate(value)) {
+    return new Date(
+      value.getTime(),
+    );
+  }
+
+  if (isRegExp(value)) {
+    return new RegExp(
+      value.source,
+      value.flags,
+    );
+  }
+
+  if (isPlainObject(value)) {
+    const result =
+      createResultObject();
+
+    seen.set(value, result);
+
+    for (
+      const key of Reflect.ownKeys(value)
+    ) {
+      if (!safeKey(key)) {
+        continue;
+      }
+
+      defineSafeProperty(
+        result,
+        key,
+        deepMapInternal(
+          Reflect.get(value, key),
+          mapper,
+          [
+            ...path,
+            key,
+          ],
+          seen,
+        ),
+      );
+    }
+
+    return result;
+  }
+
+  return value;
+}
+
+export function deepTransform<T>(
+  value: T,
+  transformer: (
+    value: unknown,
+    path?: readonly PropertyKey[],
+  ) =>
+    | {
+        keep: boolean;
+        value: unknown;
+      }
+    | undefined,
+): T {
+  return deepTransformInternal(
+    value,
+    transformer,
+    [],
+    new WeakMap<
+      object,
+      unknown
+    >(),
+  ) as T;
+}
+
+function deepTransformInternal(
+  value: unknown,
+  transformer: (
+    value: unknown,
+    path?: readonly PropertyKey[],
+  ) =>
+    | {
+        keep: boolean;
+        value: unknown;
+      }
+    | undefined,
+  path: PropertyKey[],
+  seen: WeakMap<
+    object,
+    unknown
+  >,
+): unknown {
+  const transformed =
+    transformer(
+      value,
+      path,
+    );
+
+  if (
+    transformed &&
+    !transformed.keep
+  ) {
+    return undefined;
+  }
+
+  const current =
+    transformed?.value ?? value;
+
+  if (!isObjectLike(current)) {
+    return current;
+  }
+
+  if (seen.has(current)) {
+    return seen.get(current);
+  }
+
+  if (Array.isArray(current)) {
+    const result:
+      unknown[] = [];
+
+    seen.set(current, result);
+
+    for (
+      let index = 0;
+      index < current.length;
+      index += 1
+    ) {
+      const nested =
+        deepTransformInternal(
+          current[index],
+          transformer,
+          [
+            ...path,
+            index,
+          ],
+          seen,
+        );
+
+      if (nested !== undefined) {
+        result.push(nested);
+      }
+    }
+
+    return result;
+  }
+
+  if (isPlainObject(current)) {
+    const result =
+      createResultObject();
+
+    seen.set(current, result);
+
+    for (
+      const key of Reflect.ownKeys(current)
+    ) {
+      if (!safeKey(key)) {
+        continue;
+      }
+
+      const nested =
+        deepTransformInternal(
+          Reflect.get(current, key),
+          transformer,
+          [
+            ...path,
+            key,
+          ],
+          seen,
+        );
+
+      if (nested !== undefined) {
+        defineSafeProperty(
+          result,
+          key,
+          nested,
+        );
+      }
+    }
+
+    return result;
+  }
+
+  return current;
+}
+
+/* ============================================================================
+ * DIFF
+ * ========================================================================== */
+
+export function diff(
+  before: unknown,
+  after: unknown,
+): DiffEntry[] {
+  const changes: DiffEntry[] = [];
+
+  diffInternal(
+    before,
+    after,
+    [],
+    changes,
+    new WeakMap<
+      object,
+      WeakSet<object>
+    >(),
+  );
+
+  return changes;
+}
+
+function diffInternal(
+  before: unknown,
+  after: unknown,
+  path: PropertyKey[],
+  changes: DiffEntry[],
+  seen: WeakMap<
+    object,
+    WeakSet<object>
+  >,
+): void {
+  if (equals(before, after)) {
+    return;
+  }
+
+  if (
+    isPlainObject(before) &&
+    isPlainObject(after)
+  ) {
+    let pairs =
+      seen.get(before);
+
+    if (!pairs) {
+      pairs = new WeakSet();
+      seen.set(before, pairs);
+    }
+
+    if (pairs.has(after)) {
+      return;
+    }
+
+    pairs.add(after);
+
+    const keys = new Set(
+      Reflect.ownKeys(before).concat(
+        Reflect.ownKeys(after),
+      ),
+    );
+
+    for (
+      const key of keys
+    ) {
+      if (!safeKey(key)) {
+        continue;
+      }
+
+      const beforeHas =
+        hasOwn(before, key);
+
+      const afterHas =
+        hasOwn(after, key);
+
+      const nextPath = [
+        ...path,
+        key,
+      ];
+
+      if (
+        !beforeHas &&
+        afterHas
+      ) {
+        changes.push({
+          path: nextPath
+            .map(String)
+            .join("."),
+          type: "added",
+          after: Reflect.get(
+            after,
+            key,
+          ),
+        });
+
+        continue;
+      }
+
+      if (
+        beforeHas &&
+        !afterHas
+      ) {
+        changes.push({
+          path: nextPath
+            .map(String)
+            .join("."),
+          type: "removed",
+          before: Reflect.get(
+            before,
+            key,
+          ),
+        });
+
+        continue;
+      }
+
+      diffInternal(
+        Reflect.get(
+          before,
+          key,
+        ),
+        Reflect.get(
+          after,
+          key,
+        ),
+        nextPath,
+        changes,
+        seen,
+      );
+    }
+
+    return;
+  }
+
+  changes.push({
+    path: path.map(String).join("."),
+    type: "changed",
+    before,
+    after,
+  });
+}
+
+export function changedKeys(
+  before: UnknownRecord,
+  after: UnknownRecord,
+): PropertyKey[] {
+  const keys =
+    new Set<PropertyKey>([
+      ...Reflect.ownKeys(before),
+      ...Reflect.ownKeys(after),
+    ]);
+
+  const changed: PropertyKey[] = [];
+
+  for (
+    const key of keys
+  ) {
+    if (
+      !equals(
+        Reflect.get(before, key),
+        Reflect.get(after, key),
+      )
+    ) {
+      changed.push(key);
+    }
+  }
+
+  return changed;
+}
+
+/* ============================================================================
+ * ASSERTIONS
+ * ========================================================================== */
+
+export function assertString(
+  value: unknown,
+  message = "Expected a string",
+): asserts value is string {
+  if (!isString(value)) {
+    throw new TypeError(message);
+  }
+}
+
+export function assertNumber(
+  value: unknown,
+  message = "Expected a number",
+): asserts value is number {
+  if (!isFiniteNumber(value)) {
+    throw new TypeError(message);
+  }
+}
+
+export function assertArray(
+  value: unknown,
+  message = "Expected an array",
+): asserts value is unknown[] {
+  if (!Array.isArray(value)) {
+    throw new TypeError(message);
+  }
+}
+
 /* ============================================================================
  * EMPTY / CONSTANT HELPERS
  * ========================================================================== */
@@ -3005,7 +4520,7 @@ export function numericProperty(
 export function emptyObject<
   T extends AnyObject = AnyObject,
 >(): T {
-  return {} as T;
+  return createResultObject() as T;
 }
 
 export function readonlyEmptyObject():
@@ -3013,6 +4528,12 @@ export function readonlyEmptyObject():
     Record<string, never>
   > {
   return EMPTY_OBJECT;
+}
+
+export function emptyArray<
+  T = never,
+>(): readonly T[] {
+  return EMPTY_ARRAY as readonly T[];
 }
 
 /* ============================================================================
@@ -3038,6 +4559,10 @@ export function describeValue(
     return "date";
   }
 
+  if (isInvalidDate(value)) {
+    return "invalid-date";
+  }
+
   if (isRegExp(value)) {
     return "regexp";
   }
@@ -3050,6 +4575,30 @@ export function describeValue(
     return "set";
   }
 
+  if (isWeakMap(value)) {
+    return "weakmap";
+  }
+
+  if (isWeakSet(value)) {
+    return "weakset";
+  }
+
+  if (isPromiseLike(value)) {
+    return "promise";
+  }
+
+  if (isError(value)) {
+    return "error";
+  }
+
+  if (isURL(value)) {
+    return "url";
+  }
+
+  if (isPlainObject(value)) {
+    return "object";
+  }
+
   return typeof value;
 }
 
@@ -3060,18 +4609,36 @@ export function inspectObject(
   isObject: boolean;
   isPlainObject: boolean;
   isArray: boolean;
+  isFunction: boolean;
+  isNullish: boolean;
+  isFrozen: boolean;
   keys: number;
+  enumerableKeys: number;
 } {
   return {
     type: describeValue(object),
-    isObject: isObject(object),
+    isObject:
+      isObjectLike(object),
     isPlainObject:
       isPlainObject(object),
-    isArray: isArray(object),
-    keys: isObject(object)
-      ? Reflect.ownKeys(object)
-          .length
-      : 0,
+    isArray:
+      Array.isArray(object),
+    isFunction:
+      typeof object === "function",
+    isNullish:
+      object == null,
+    isFrozen:
+      isFrozen(object),
+    keys:
+      isObjectLike(object)
+        ? Reflect.ownKeys(object)
+            .length
+        : 0,
+    enumerableKeys:
+      isObjectLike(object)
+        ? Object.keys(object)
+            .length
+        : 0,
   };
 }
 
@@ -3080,53 +4647,85 @@ export function inspectObject(
  * ========================================================================== */
 
 export default {
+  // Type guards
   isObject,
+  isRecord,
   isFunction,
+  isAsyncFunction,
+  isGeneratorFunction,
   isArray,
   isPrimitive,
   isString,
   isNumber,
   isFiniteNumber,
+  isInteger,
+  isSafeInteger,
+  isNaNValue,
   isBoolean,
   isBigInt,
   isSymbol,
   isNull,
   isUndefined,
   isNullish,
+  isTruthy,
+  isFalsy,
   isPlainObject,
   isDate,
+  isInvalidDate,
   isRegExp,
   isMap,
   isSet,
+  isWeakMap,
+  isWeakSet,
   isPromiseLike,
+  isError,
+  isURL,
 
+  // Keys
   isPropertyKey,
   normalizeKey,
   isDangerousKey,
   safeKey,
+  safeKeys,
+  unsafeKeys,
 
+  // Properties
   hasOwn,
   hasProperty,
   hasAnyProperty,
   hasAllProperties,
 
+  // Getters
   getProperty,
+  getOwnProperty,
   getObjectValue,
   getString,
   getNumber,
   getBoolean,
+  getBigInt,
   getArray,
+  getObject,
+  getOr,
+  getStringOr,
+  getNumberOr,
 
+  // Mutation
   setProperty,
   setProperties,
+  assignSafe,
   deleteProperty,
   deleteProperties,
+  clearObject,
 
+  // Pick / omit
   pick,
   omit,
+  pickBy,
+  omitBy,
   pickDefined,
   pickNonNull,
 
+  // Cleaning
   removeUndefined,
   removeNull,
   sanitizeObject,
@@ -3134,7 +4733,10 @@ export default {
   removeEmptyStrings,
   trimStrings,
   removeKeys,
+  removeEmptyObjects,
+  deepClean,
 
+  // Keys / values / entries
   objectKeys,
   objectValues,
   objectEntries,
@@ -3146,98 +4748,160 @@ export default {
   isEmptyObject,
   isEnumerableEmpty,
 
+  // Conversion
   toRecord,
   toObject,
   fromEntries,
   toEntries,
   toKeyValueArray,
+  objectToArray,
+  objectToPairs,
+  objectToMap,
+  mapToObject,
 
+  // Iteration
   mapObject,
+  mapValues,
   mapEntries,
   filterObject,
   findObjectValue,
   findObjectEntry,
   reduceObject,
+  someObject,
+  everyObject,
+  partitionObject,
 
+  // Search
   findKey,
   findValue,
   containsValue,
+  hasValue,
   containsKey,
 
+  // Clone
   clone,
   shallowClone,
   deepClone,
+  deepCloneWith,
 
+  // Merge
   merge,
   mergeMany,
   deepMerge,
+  deepMergeWith,
   mergeDefined,
 
+  // Immutable
   withProperty,
   withoutProperty,
   updateObject,
+  updateObjectSafe,
 
+  // Freeze
   freeze,
   deepFreeze,
   isFrozen,
 
+  // Equality
   equals,
+  isEqual,
   shallowEquals,
 
+  // JSON
   safeJsonParse,
   parseJson,
   safeJsonStringify,
   jsonStringify,
+  jsonPretty,
+  isValidJson,
 
+  // Flatten
   flattenObject,
   unflattenObject,
 
+  // Paths
   parsePath,
+  pathToString,
   getPath,
   hasPath,
   setPath,
+  setPathImmutable,
   deletePath,
+  deletePathImmutable,
 
+  // Grouping
   groupBy,
+  groupByMulti,
   keyBy,
+  keyByLast,
   countBy,
   indexBy,
+  partition,
 
+  // Transformations
   invertObject,
   invertObjectMulti,
   renameKeys,
   mapKeys,
+  mapKeysSafe,
 
+  // Defaults
   defaults,
   withDefaults,
 
+  // Values
   firstDefined,
   firstNonNullish,
   valueOr,
   valueOrNull,
+  valueOrUndefined,
 
+  // Sorting
   sortObjectKeys,
   sortObjectByValue,
+  sortObjectByKey,
 
+  // Array helpers
+  arrayToObject,
+  arrayToDictionary,
+  compactArray,
+  unique,
+  uniqueBy,
+
+  // Validation
+  assertObject,
+  assertPlainObject,
+  assertString,
+  assertNumber,
+  assertArray,
+  isNonEmptyObject,
+  objectHasValues,
+  isEmpty,
+
+  // Numbers
+  numericValue,
+  numericProperty,
+  clamp,
+  percentage,
+
+  // Creation
   createNullObject,
   createSafeObject,
 
-  objectToArray,
-  objectToPairs,
-  arrayToObject,
-  arrayToDictionary,
+  // Deep transformations
+  deepMap,
+  deepTransform,
 
-  assertObject,
-  assertPlainObject,
-  isNonEmptyObject,
-  objectHasValues,
+  // Diff
+  diff,
+  changedKeys,
 
-  numericValue,
-  numericProperty,
-
+  // Empty
   emptyObject,
   readonlyEmptyObject,
+  emptyArray,
 
+  // Debug
   describeValue,
   inspectObject,
 };
