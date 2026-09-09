@@ -12,12 +12,12 @@ async registerShare(
 ): Promise<string> {
   const generatedIdValue = generateId();
 
-  const id =
+  const id: string =
     generatedIdValue == null
       ? ""
       : String(generatedIdValue).trim();
 
-  if (!id) {
+  if (id.length === 0) {
     throw new Error(
       "Не удалось сгенерировать ID события share",
     );
