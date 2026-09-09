@@ -1,155 +1,454 @@
 import {
   ALLOWED_DOCUMENT_TYPES,
   ALLOWED_IMAGE_TYPES,
+  CONTENT_LIMITS,
   FILE_LIMITS,
 } from "../constants/app";
 
-import {
-  getMimeDefinition,
-  normalizeMimeType,
-  validateFileName,
-  validateFileMime,
-  isDangerousMimeType,
-  getMimeCategory,
-  type MimeCategory,
-} from "./mime";
-
-export interface FileValidationOptions {
-  maxSize?: number;
-  allowedMimeTypes?: readonly string[];
-  allowedExtensions?: readonly string[];
-  categories?: readonly MimeCategory[];
-  requireKnownMime?: boolean;
-  rejectDangerous?: boolean;
-}
+export type FileKind =
+  | "image"
+  | "video"
+  | "audio"
+  | "voice"
+  | "document"
+  | "unknown";
 
 export interface FileValidationResult {
   valid: boolean;
-  errors: string[];
-  warnings: string[];
-  fileName: string;
+  kind: FileKind;
+  error?: string;
+  size: number;
+  mimeType: string;
+  extension: string;
+}
+
+export interface FileMetadata {
+  name: string;
+  originalName: string;
   mimeType: string;
   extension: string;
   size: number;
-  category: MimeCategory | "unknown";
+  kind: FileKind;
 }
 
-export interface FileInfo {
-  name: string;
-  size: number;
-  type: string;
-  extension: string;
-  category: MimeCategory | "unknown";
-  lastModified?: number;
-}
+const VIDEO_TYPES = [
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+  "video/x-matroska",
+  "video/ogg",
+];
 
-export interface FileUploadLimits {
-  maxFileSize: number;
-  maxImageSize: number;
-  maxDocumentSize: number;
-  maxTotalSize: number;
-  maxFiles: number;
-}
+const AUDIO_TYPES = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/wav",
+  "audio/x-wav",
+  "audio/ogg",
+  "audio/opus",
+  "audio/webm",
+  "audio/mp4",
+  "audio/aac",
+  "audio/flac",
+  "audio/x-m4a",
+];
 
-export const DEFAULT_FILE_UPLOAD_LIMITS: FileUploadLimits = {
-  maxFileSize:
-    Number(FILE_LIMITS.MAX_FILE_SIZE ?? 25 * 1024 * 1024),
+const VOICE_TYPES = [
+  "audio/ogg",
+  "audio/opus",
+  "audio/webm",
+];
 
-  maxImageSize:
-    Number(FILE_LIMITS.MAX_IMAGE_SIZE ?? 10 * 1024 * 1024),
+const EXTENSION_TO_MIME: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  avif: "image/avif",
 
-  maxDocumentSize:
-    Number(FILE_LIMITS.MAX_DOCUMENT_SIZE ?? 25 * 1024 * 1024),
+  mp4: "video/mp4",
+  webm: "video/webm",
+  mov: "video/quicktime",
+  mkv: "video/x-matroska",
+  ogv: "video/ogg",
 
-  maxTotalSize:
-    Number(FILE_LIMITS.MAX_TOTAL_SIZE ?? 50 * 1024 * 1024),
+  mp3: "audio/mpeg",
+  wav: "audio/wav",
+  ogg: "audio/ogg",
+  opus: "audio/opus",
+  weba: "audio/webm",
+  m4a: "audio/mp4",
+  aac: "audio/aac",
+  flac: "audio/flac",
 
-  maxFiles:
-    Number(FILE_LIMITS.MAX_FILES ?? 10),
+  pdf: "application/pdf",
+  txt: "text/plain",
+  csv: "text/csv",
+  json: "application/json",
+
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+
+  ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+
+  zip: "application/zip",
+  rar: "application/vnd.rar",
+  "7z": "application/x-7z-compressed",
 };
 
-export const IMAGE_MIME_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "image/svg+xml",
-  "image/avif",
-] as const;
+function getExtension(name: string): string {
+  const clean = name.split("?")[0].split("#")[0];
+  const parts = clean.toLowerCase().split(".");
 
-export const DOCUMENT_MIME_TYPES = [
-  "application/pdf",
-  "application/msword",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-  "application/vnd.ms-excel",
-  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  "application/vnd.ms-powerpoint",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-  "text/plain",
-  "text/csv",
-] as const;
-
-export const ARCHIVE_MIME_TYPES = [
-  "application/zip",
-  "application/x-7z-compressed",
-  "application/x-rar-compressed",
-  "application/gzip",
-  "application/x-tar",
-] as const;
-
-function safeNumber(value: unknown): number {
-  if (typeof value !== "number") return 0;
-  if (!Number.isFinite(value)) return 0;
-  return Math.max(0, value);
-}
-
-function getExtension(fileName: string): string {
-  const clean = fileName.split(/[\\/]/).pop() ?? "";
-  const index = clean.lastIndexOf(".");
-
-  if (index <= 0 || index === clean.length - 1) {
+  if (parts.length < 2) {
     return "";
   }
 
-  return clean.slice(index + 1).toLowerCase();
+  return parts.pop() ?? "";
 }
 
-function getFileName(file: File): string {
-  return typeof file.name === "string"
-    ? file.name.trim()
-    : "";
+function normalizeMimeType(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .split(";")[0];
 }
 
-function getFileType(file: File): string {
-  return normalizeMimeType(file.type || "");
+function fileNameSafe(name: string): string {
+  return name
+    .normalize("NFKC")
+    .replace(/[\/\\:*?"<>|]/g, "_")
+    .replace(/[\u0000-\u001F]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 255);
 }
 
-export function getFileInfo(file: File): FileInfo {
-  const name = getFileName(file);
-  const type = getFileType(file);
-  const extension = getExtension(name);
-  const definition = getMimeDefinition(type);
+function getLimit(
+  source: unknown,
+  fallback: number
+): number {
+  return typeof source === "number" && source > 0
+    ? source
+    : fallback;
+}
+
+function getImageLimit(): number {
+  const limits = FILE_LIMITS as Record<string, unknown>;
+
+  return getLimit(
+    limits["IMAGE_MAX_SIZE"] ??
+      limits["MAX_IMAGE_SIZE"] ??
+      limits["MAX_IMAGE_BYTES"] ??
+      limits["image"],
+    10 * 1024 * 1024
+  );
+}
+
+function getVideoLimit(): number {
+  const limits = FILE_LIMITS as Record<string, unknown>;
+
+  return getLimit(
+    limits["VIDEO_MAX_SIZE"] ??
+      limits["MAX_VIDEO_SIZE"] ??
+      limits["MAX_VIDEO_BYTES"] ??
+      limits["video"],
+    100 * 1024 * 1024
+  );
+}
+
+function getAudioLimit(): number {
+  const limits = FILE_LIMITS as Record<string, unknown>;
+
+  return getLimit(
+    limits["AUDIO_MAX_SIZE"] ??
+      limits["MAX_AUDIO_SIZE"] ??
+      limits["MAX_AUDIO_BYTES"] ??
+      limits["audio"],
+    50 * 1024 * 1024
+  );
+}
+
+function getDocumentLimit(): number {
+  const limits = FILE_LIMITS as Record<string, unknown>;
+
+  return getLimit(
+    limits["DOCUMENT_MAX_SIZE"] ??
+      limits["MAX_DOCUMENT_SIZE"] ??
+      limits["MAX_DOCUMENT_BYTES"] ??
+      limits["document"],
+    50 * 1024 * 1024
+  );
+}
+
+function allowedDocumentTypes(): readonly string[] {
+  return Array.isArray(ALLOWED_DOCUMENT_TYPES)
+    ? ALLOWED_DOCUMENT_TYPES.map(String).map(normalizeMimeType)
+    : [];
+}
+
+function allowedImageTypes(): readonly string[] {
+  return Array.isArray(ALLOWED_IMAGE_TYPES)
+    ? ALLOWED_IMAGE_TYPES.map(String).map(normalizeMimeType)
+    : [];
+}
+
+export function detectFileKind(
+  mimeType: string,
+  extension = ""
+): FileKind {
+
+  const mime = normalizeMimeType(mimeType);
+  const ext = extension.toLowerCase().replace(/^\./, "");
+
+  if (
+    mime.startsWith("image/") ||
+    allowedImageTypes().includes(mime)
+  ) {
+    return "image";
+  }
+
+  if (
+    mime.startsWith("video/") ||
+    VIDEO_TYPES.includes(mime)
+  ) {
+    return "video";
+  }
+
+  if (
+    mime.startsWith("audio/") ||
+    AUDIO_TYPES.includes(mime)
+  ) {
+    if (VOICE_TYPES.includes(mime)) {
+      return "voice";
+    }
+
+    return "audio";
+  }
+
+  if (
+    allowedDocumentTypes().includes(mime) ||
+    Boolean(EXTENSION_TO_MIME[ext])
+  ) {
+    if (
+      mime.startsWith("application/") ||
+      mime.startsWith("text/")
+    ) {
+      return "document";
+    }
+  }
+
+  return "unknown";
+}
+
+export function extensionFromMime(
+  mimeType: string
+): string {
+
+  const mime = normalizeMimeType(mimeType);
+
+  const entry = Object.entries(EXTENSION_TO_MIME)
+    .find(([, value]) => value === mime);
+
+  return entry?.[0] ?? "";
+}
+
+export function mimeFromExtension(
+  extension: string
+): string {
+
+  const ext = extension
+    .toLowerCase()
+    .replace(/^\./, "");
+
+  return EXTENSION_TO_MIME[ext] ?? "application/octet-stream";
+}
+
+export function isAllowedMimeType(
+  mimeType: string,
+  kind?: FileKind
+): boolean {
+
+  const mime = normalizeMimeType(mimeType);
+
+  const detected = kind ?? detectFileKind(mime);
+
+  if (detected === "image") {
+    return (
+      mime.startsWith("image/") ||
+      allowedImageTypes().includes(mime)
+    );
+  }
+
+  if (detected === "video") {
+    return (
+      mime.startsWith("video/") ||
+      VIDEO_TYPES.includes(mime)
+    );
+  }
+
+  if (
+    detected === "audio" ||
+    detected === "voice"
+  ) {
+    return (
+      mime.startsWith("audio/") ||
+      AUDIO_TYPES.includes(mime)
+    );
+  }
+
+  if (detected === "document") {
+    return (
+      allowedDocumentTypes().includes(mime) ||
+      mime.startsWith("application/") ||
+      mime.startsWith("text/")
+    );
+  }
+
+  return false;
+}
+
+export function getMaximumFileSize(
+  kind: FileKind
+): number {
+
+  switch (kind) {
+    case "image":
+      return getImageLimit();
+
+    case "video":
+      return getVideoLimit();
+
+    case "audio":
+    case "voice":
+      return getAudioLimit();
+
+    case "document":
+      return getDocumentLimit();
+
+    default:
+      return getDocumentLimit();
+  }
+}
+
+export function validateFile(
+  file: File
+): FileValidationResult {
+
+  const originalName = file.name || "file";
+  const extension = getExtension(originalName);
+  const mimeType = normalizeMimeType(
+    file.type || mimeFromExtension(extension)
+  );
+
+  const kind = detectFileKind(
+    mimeType,
+    extension
+  );
+
+  const size = file.size;
+
+  if (!size || size <= 0) {
+    return {
+      valid: false,
+      kind,
+      error: "Файл пустой или имеет некорректный размер.",
+      size,
+      mimeType,
+      extension,
+    };
+  }
+
+  if (kind === "unknown") {
+    return {
+      valid: false,
+      kind,
+      error: "Тип файла не поддерживается.",
+      size,
+      mimeType,
+      extension,
+    };
+  }
+
+  if (!isAllowedMimeType(mimeType, kind)) {
+    return {
+      valid: false,
+      kind,
+      error: "Этот тип файла запрещён.",
+      size,
+      mimeType,
+      extension,
+    };
+  }
+
+  const maximum = getMaximumFileSize(kind);
+
+  if (size > maximum) {
+    return {
+      valid: false,
+      kind,
+      error: `Файл слишком большой. Максимальный размер: ${formatBytes(maximum)}.`,
+      size,
+      mimeType,
+      extension,
+    };
+  }
 
   return {
-    name,
-    size: safeNumber(file.size),
-    type,
+    valid: true,
+    kind,
+    size,
+    mimeType,
     extension,
-    category: definition?.category ?? "unknown",
-    lastModified:
-      typeof file.lastModified === "number"
-        ? file.lastModified
-        : undefined,
   };
 }
 
-export function formatFileSize(
-  bytes: number,
-  decimals = 2,
-): string {
-  const size = safeNumber(bytes);
+export function assertValidFile(
+  file: File
+): FileValidationResult {
 
-  if (size === 0) {
+  const result = validateFile(file);
+
+  if (!result.valid) {
+    throw new Error(
+      result.error ?? "Недопустимый файл."
+    );
+  }
+
+  return result;
+}
+
+export function createFileMetadata(
+  file: File
+): FileMetadata {
+
+  const validation = assertValidFile(file);
+
+  const originalName = fileNameSafe(
+    file.name || "file"
+  );
+
+  return {
+    name: originalName,
+    originalName,
+    mimeType: validation.mimeType,
+    extension: validation.extension,
+    size: validation.size,
+    kind: validation.kind,
+  };
+}
+
+export function formatBytes(
+  bytes: number,
+  decimals = 2
+): string {
+
+  if (!Number.isFinite(bytes) || bytes <= 0) {
     return "0 B";
   }
 
@@ -163,512 +462,309 @@ export function formatFileSize(
   ];
 
   const index = Math.min(
-    Math.floor(Math.log(size) / Math.log(1024)),
-    units.length - 1,
+    Math.floor(
+      Math.log(bytes) / Math.log(1024)
+    ),
+    units.length - 1
   );
 
-  const value = size / Math.pow(1024, index);
+  const value =
+    bytes / Math.pow(1024, index);
 
   return `${value.toFixed(
-    index === 0 ? 0 : decimals,
+    Math.max(0, decimals)
   )} ${units[index]}`;
 }
 
-export function isFileLike(
-  value: unknown,
-): value is File {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    typeof (value as File).name === "string" &&
-    typeof (value as File).size === "number" &&
-    typeof (value as File).type === "string"
-  );
+export function sanitizeFileName(
+  name: string
+): string {
+
+  const safe = fileNameSafe(name);
+
+  if (safe.length > 0) {
+    return safe;
+  }
+
+  return "file";
 }
 
-export function isImageFile(file: File): boolean {
-  const type = getFileType(file);
-
-  return (
-    type.startsWith("image/") &&
-    !isDangerousMimeType(type)
-  );
-}
-
-export function isDocumentFile(file: File): boolean {
-  const type = getFileType(file);
-
-  return DOCUMENT_MIME_TYPES.includes(
-    type as (typeof DOCUMENT_MIME_TYPES)[number],
-  );
-}
-
-export function isArchiveFile(file: File): boolean {
-  const type = getFileType(file);
-
-  return ARCHIVE_MIME_TYPES.includes(
-    type as (typeof ARCHIVE_MIME_TYPES)[number],
-  );
-}
-
-export function getFileCategory(
+export function generateStorageName(
   file: File,
-): MimeCategory | "unknown" {
-  const type = getFileType(file);
+  prefix = "uploads"
+): string {
 
-  return getMimeCategory(type) ?? "unknown";
+  const extension =
+    getExtension(file.name) ||
+    extensionFromMime(file.type);
+
+  const timestamp =
+    Date.now().toString(36);
+
+  const random =
+    crypto.randomUUID()
+      .replace(/-/g, "")
+      .slice(0, 20);
+
+  const safePrefix =
+    prefix
+      .replace(/[^a-zA-Z0-9/_-]/g, "")
+      .replace(/^\/+|\/+$/g, "");
+
+  const suffix = extension
+    ? `.${extension}`
+    : "";
+
+  return `${safePrefix}/${timestamp}-${random}${suffix}`;
 }
 
-export function isAllowedImageFile(
-  file: File,
+export function getContentDisposition(
+  fileName: string,
+  disposition: "inline" | "attachment" = "inline"
+): string {
+
+  const safe = sanitizeFileName(fileName);
+
+  return `${disposition}; filename="${safe}"`;
+}
+
+export function isImage(
+  file: File | FileValidationResult
 ): boolean {
-  const type = getFileType(file);
 
-  return (
-    (ALLOWED_IMAGE_TYPES as readonly string[]).includes(type) ||
-    IMAGE_MIME_TYPES.includes(
-      type as (typeof IMAGE_MIME_TYPES)[number],
-    )
-  );
+  const kind =
+    "kind" in file
+      ? file.kind
+      : detectFileKind(file.type);
+
+  return kind === "image";
 }
 
-export function isAllowedDocumentFile(
-  file: File,
+export function isVideo(
+  file: File | FileValidationResult
 ): boolean {
-  const type = getFileType(file);
+
+  const kind =
+    "kind" in file
+      ? file.kind
+      : detectFileKind(file.type);
+
+  return kind === "video";
+}
+
+export function isAudio(
+  file: File | FileValidationResult
+): boolean {
+
+  const kind =
+    "kind" in file
+      ? file.kind
+      : detectFileKind(file.type);
 
   return (
-    (ALLOWED_DOCUMENT_TYPES as readonly string[]).includes(type) ||
-    DOCUMENT_MIME_TYPES.includes(
-      type as (typeof DOCUMENT_MIME_TYPES)[number],
-    )
+    kind === "audio" ||
+    kind === "voice"
   );
 }
 
-export function getDefaultMaxSize(
-  file: File,
-): number {
-  if (isImageFile(file)) {
-    return DEFAULT_FILE_UPLOAD_LIMITS.maxImageSize;
-  }
+export function isDocument(
+  file: File | FileValidationResult
+): boolean {
 
-  if (isDocumentFile(file)) {
-    return DEFAULT_FILE_UPLOAD_LIMITS.maxDocumentSize;
-  }
+  const kind =
+    "kind" in file
+      ? file.kind
+      : detectFileKind(file.type);
 
-  return DEFAULT_FILE_UPLOAD_LIMITS.maxFileSize;
+  return kind === "document";
 }
 
-export function validateUploadedFile(
-  file: File,
-  options: FileValidationOptions = {},
-): FileValidationResult {
-  const name = getFileName(file);
-  const type = getFileType(file);
-  const size = safeNumber(file.size);
-  const extension = getExtension(name);
-  const category = getFileCategory(file);
+export function isVoice(
+  file: File | FileValidationResult
+): boolean {
 
-  const errors: string[] = [];
-  const warnings: string[] = [];
+  const kind =
+    "kind" in file
+      ? file.kind
+      : detectFileKind(file.type);
 
-  const maxSize =
-    options.maxSize ??
-    getDefaultMaxSize(file);
-
-  if (!name) {
-    errors.push("Имя файла отсутствует.");
-  } else {
-    const nameResult = validateFileName(name);
-
-    if (!nameResult.valid) {
-      errors.push(
-        ...(nameResult.errors ?? [
-          "Недопустимое имя файла.",
-        ]),
-      );
-    }
-  }
-
-  if (size <= 0) {
-    errors.push("Файл пустой.");
-  }
-
-  if (size > maxSize) {
-    errors.push(
-      `Размер файла превышает допустимый предел ${formatFileSize(
-        maxSize,
-      )}.`,
-    );
-  }
-
-  if (size > DEFAULT_FILE_UPLOAD_LIMITS.maxFileSize) {
-    errors.push(
-      `Размер файла превышает общий предел ${formatFileSize(
-        DEFAULT_FILE_UPLOAD_LIMITS.maxFileSize,
-      )}.`,
-    );
-  }
-
-  if (!type) {
-    if (options.requireKnownMime !== false) {
-      errors.push("Не удалось определить MIME-тип файла.");
-    } else {
-      warnings.push(
-        "MIME-тип файла не указан.",
-      );
-    }
-  }
-
-  if (
-    options.rejectDangerous !== false &&
-    type &&
-    isDangerousMimeType(type)
-  ) {
-    errors.push(
-      "Этот тип файла запрещён по соображениям безопасности.",
-    );
-  }
-
-  if (
-    options.allowedMimeTypes &&
-    type &&
-    !options.allowedMimeTypes
-      .map(normalizeMimeType)
-      .includes(type)
-  ) {
-    errors.push(
-      "MIME-тип файла не входит в список разрешённых.",
-    );
-  }
-
-  if (
-    options.allowedExtensions &&
-    extension &&
-    !options.allowedExtensions
-      .map((item) =>
-        item
-          .toLowerCase()
-          .replace(/^\./, ""),
-      )
-      .includes(extension)
-  ) {
-    errors.push(
-      "Расширение файла не входит в список разрешённых.",
-    );
-  }
-
-  if (
-    options.categories &&
-    category !== "unknown" &&
-    !options.categories.includes(category)
-  ) {
-    errors.push(
-      "Категория файла не разрешена.",
-    );
-  }
-
-  if (
-    options.requireKnownMime !== false &&
-    type &&
-    extension
-  ) {
-    const mimeValidation = validateFileMime(
-      name,
-      type,
-    );
-
-    if (!mimeValidation.valid) {
-      errors.push(
-        ...(mimeValidation.errors ?? [
-          "MIME-тип и расширение файла не совпадают.",
-        ]),
-      );
-    }
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    fileName: name,
-    mimeType: type,
-    extension,
-    size,
-    category,
-  };
+  return kind === "voice";
 }
 
-export function validateImageUpload(
-  file: File,
-): FileValidationResult {
-  return validateUploadedFile(file, {
-    maxSize:
-      DEFAULT_FILE_UPLOAD_LIMITS.maxImageSize,
-    allowedMimeTypes:
-      Array.from(IMAGE_MIME_TYPES),
-    categories: ["image"],
-    requireKnownMime: true,
-    rejectDangerous: true,
-  });
+export function isSupportedFile(
+  file: File
+): boolean {
+
+  return validateFile(file).valid;
 }
 
-export function validateDocumentUpload(
-  file: File,
-): FileValidationResult {
-  return validateUploadedFile(file, {
-    maxSize:
-      DEFAULT_FILE_UPLOAD_LIMITS.maxDocumentSize,
-    allowedMimeTypes:
-      Array.from(DOCUMENT_MIME_TYPES),
-    categories: ["document", "text"],
-    requireKnownMime: true,
-    rejectDangerous: true,
-  });
+export function getUploadCategory(
+  file: File
+): "media" | "document" | "unknown" {
+
+  const kind =
+    detectFileKind(
+      file.type,
+      getExtension(file.name)
+    );
+
+  if (
+    kind === "image" ||
+    kind === "video" ||
+    kind === "audio" ||
+    kind === "voice"
+  ) {
+    return "media";
+  }
+
+  if (kind === "document") {
+    return "document";
+  }
+
+  return "unknown";
 }
 
-export function validateFileList(
+export function validateFileCollection(
   files: readonly File[],
-  options: FileValidationOptions = {},
-  limits: FileUploadLimits =
-    DEFAULT_FILE_UPLOAD_LIMITS,
+  maximumCount = 20
 ): {
   valid: boolean;
-  errors: string[];
   files: FileValidationResult[];
-  totalSize: number;
+  errors: string[];
 } {
+
   const errors: string[] = [];
 
-  if (files.length > limits.maxFiles) {
+  if (files.length > maximumCount) {
     errors.push(
-      `Можно загрузить не более ${limits.maxFiles} файлов.`,
+      `Можно загрузить максимум ${maximumCount} файлов.`
     );
   }
 
-  let totalSize = 0;
-
-  const results = files.map((file) => {
-    totalSize += safeNumber(file.size);
-
-    return validateUploadedFile(
-      file,
-      options,
-    );
-  });
-
-  if (totalSize > limits.maxTotalSize) {
-    errors.push(
-      `Общий размер файлов превышает допустимый предел ${formatFileSize(
-        limits.maxTotalSize,
-      )}.`,
-    );
-  }
+  const results = files.map(validateFile);
 
   for (const result of results) {
-    if (!result.valid) {
-      errors.push(
-        `${result.fileName || "Файл"}: ${result.errors.join(
-          " ",
-        )}`,
-      );
+    if (!result.valid && result.error) {
+      errors.push(result.error);
     }
   }
 
   return {
-    valid: errors.length === 0,
-    errors,
+    valid:
+      errors.length === 0 &&
+      files.length <= maximumCount,
     files: results,
-    totalSize,
+    errors,
   };
 }
 
-export function sanitizeUploadedFileName(
-  fileName: string,
-): string {
-  let name = String(fileName ?? "");
 
-  name = name
-    .replace(/[\\/]/g, "_")
-    .replace(/[\u0000-\u001f\u007f]/g, "")
-    .replace(/\.\./g, "_")
-    .replace(/[<>:"|?*]/g, "_")
-    .trim();
+// ============================================================
+// CONTENT LIMIT HELPERS
+// ============================================================
 
-  if (!name) {
-    return "file";
-  }
+export function getPublicationMediaLimit(): number {
+  const limits = CONTENT_LIMITS as Record<string, unknown>;
 
-  const extension = getExtension(name);
-  const base = extension
-    ? name.slice(
-        0,
-        -(extension.length + 1),
-      )
-    : name;
-
-  const safeBase = base
-    .replace(/\s+/g, "_")
-    .replace(/[^a-zA-Z0-9а-яА-ЯёЁ_\-]/g, "_")
-    .replace(/_+/g, "_")
-    .replace(/^[_\-.]+|[_\-.]+$/g, "");
-
-  const safeExtension = extension
-    .replace(/[^a-zA-Z0-9]/g, "")
-    .toLowerCase();
-
-  if (!safeBase) {
-    return safeExtension
-      ? `file.${safeExtension}`
-      : "file";
-  }
-
-  return safeExtension
-    ? `${safeBase}.${safeExtension}`
-    : safeBase;
-}
-
-export function getSafeStorageFileName(
-  file: File,
-  generatedId: string,
-): string {
-  const extension = getExtension(
-    getFileName(file),
-  );
-
-  const safeId = String(generatedId)
-    .replace(/[^a-zA-Z0-9_-]/g, "");
-
-  if (!safeId) {
-    throw new Error(
-      "Invalid generated file identifier.",
-    );
-  }
-
-  return extension
-    ? `${safeId}.${extension}`
-    : safeId;
-}
-
-export function getFileExtension(
-  fileName: string,
-): string {
-  return getExtension(fileName);
-}
-
-export function hasExtension(
-  fileName: string,
-): boolean {
-  return Boolean(getExtension(fileName));
-}
-
-export function extensionEquals(
-  fileName: string,
-  extension: string,
-): boolean {
-  const actual = getExtension(fileName);
-  const expected = extension
-    .toLowerCase()
-    .replace(/^\./, "");
-
-  return actual === expected;
-}
-
-export function mimeEquals(
-  file: File,
-  mimeType: string,
-): boolean {
-  return (
-    getFileType(file) ===
-    normalizeMimeType(mimeType)
+  return getLimit(
+    limits["MAX_PUBLICATION_MEDIA"] ??
+      limits["PUBLICATION_MEDIA_MAX"] ??
+      limits["MAX_MEDIA_PER_PUBLICATION"],
+    20
   );
 }
 
-export function isWithinSizeLimit(
-  file: File,
-  maxSize: number,
-): boolean {
-  return (
-    safeNumber(file.size) <=
-    safeNumber(maxSize)
+export function getChatAttachmentLimit(): number {
+  const limits = CONTENT_LIMITS as Record<string, unknown>;
+
+  return getLimit(
+    limits["MAX_CHAT_ATTACHMENTS"] ??
+      limits["CHAT_ATTACHMENTS_MAX"],
+    20
   );
 }
 
-export function calculateTotalFileSize(
-  files: readonly File[],
-): number {
-  return files.reduce(
-    (total, file) =>
-      total + safeNumber(file.size),
-    0,
-  );
-}
 
-export function countFilesByCategory(
-  files: readonly File[],
-): Record<string, number> {
-  const result: Record<string, number> = {};
+// ============================================================
+// MAGIC BYTE VALIDATION
+// ============================================================
 
-  for (const file of files) {
-    const category = getFileCategory(file);
+export function detectMagicType(
+  bytes: Uint8Array
+): string | null {
 
-    result[category] =
-      (result[category] ?? 0) + 1;
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return "image/png";
   }
 
-  return result;
-}
-
-export function findDuplicateFileNames(
-  files: readonly File[],
-): string[] {
-  const counts = new Map<string, number>();
-
-  for (const file of files) {
-    const name = getFileName(file).toLowerCase();
-
-    counts.set(
-      name,
-      (counts.get(name) ?? 0) + 1,
-    );
+  if (
+    bytes.length >= 3 &&
+    bytes[0] === 0xff &&
+    bytes[1] === 0xd8 &&
+    bytes[2] === 0xff
+  ) {
+    return "image/jpeg";
   }
 
-  return Array.from(counts.entries())
-    .filter(([, count]) => count > 1)
-    .map(([name]) => name);
+  if (
+    bytes.length >= 6 &&
+    bytes[0] === 0x47 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46
+  ) {
+    return "image/gif";
+  }
+
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x52 &&
+    bytes[1] === 0x49 &&
+    bytes[2] === 0x46 &&
+    bytes[3] === 0x46
+  ) {
+    return "image/webp";
+  }
+
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x25 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x44 &&
+    bytes[3] === 0x46
+  ) {
+    return "application/pdf";
+  }
+
+  if (
+    bytes.length >= 8 &&
+    bytes[0] === 0x89 &&
+    bytes[1] === 0x50 &&
+    bytes[2] === 0x4e &&
+    bytes[3] === 0x47
+  ) {
+    return "image/png";
+  }
+
+  if (
+    bytes.length >= 4 &&
+    bytes[0] === 0x50 &&
+    bytes[1] === 0x4b &&
+    bytes[2] === 0x03 &&
+    bytes[3] === 0x04
+  ) {
+    return "application/zip";
+  }
+
+  return null;
 }
 
-export function isProbablySafeUpload(
-  file: File,
-): boolean {
-  const result = validateUploadedFile(file, {
-    requireKnownMime: true,
-    rejectDangerous: true,
-  });
 
-  return result.valid;
-}
-
-export function getUploadSummary(
-  files: readonly File[],
-): {
-  count: number;
-  totalSize: number;
-  totalSizeFormatted: string;
-  categories: Record<string, number>;
-  valid: boolean;
-} {
-  const validation = validateFileList(
-    files,
-  );
-
-  return {
-    count: files.length,
-    totalSize: validation.totalSize,
-    totalSizeFormatted:
-      formatFileSize(validation.totalSize),
-    categories:
-      countFilesByCategory(files),
-    valid: validation.valid,
-  };
-}
+// ============================================================
+// END
+// ============================================================
