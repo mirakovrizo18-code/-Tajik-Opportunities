@@ -88,7 +88,9 @@ export function toNumber(
   fallback = 0,
 ): number {
   if (typeof value === "number") {
-    return Number.isFinite(value) ? value : fallback;
+    return Number.isFinite(value)
+      ? value
+      : fallback;
   }
 
   if (typeof value === "boolean") {
@@ -97,35 +99,42 @@ export function toNumber(
 
   if (typeof value === "bigint") {
     const result = Number(value);
-    return Number.isFinite(result) ? result : fallback;
+
+    return Number.isFinite(result)
+      ? result
+      : fallback;
   }
 
-  if (value === null || value === undefined) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
     return fallback;
   }
 
   if (typeof value === "string") {
-    const normalized = value.trim();
+    const normalized =
+      value.trim();
 
     if (normalized.length === 0) {
       return fallback;
     }
 
-    const parsed = Number(normalized);
+    const parsed =
+      Number(normalized);
 
     return Number.isFinite(parsed)
       ? parsed
       : fallback;
   }
 
-  /*
-   * Поддержка объектов с valueOf(), например некоторых
-   * database/runtime values.
-   */
   try {
-    const primitive = (value as {
-      valueOf?: () => unknown;
-    }).valueOf?.();
+    const primitive =
+      (
+        value as {
+          valueOf?: () => unknown;
+        }
+      ).valueOf?.();
 
     if (
       primitive !== value &&
@@ -135,7 +144,10 @@ export function toNumber(
         typeof primitive === "boolean"
       )
     ) {
-      return toNumber(primitive, fallback);
+      return toNumber(
+        primitive,
+        fallback,
+      );
     }
   } catch {
     // Игнорируем небезопасные valueOf().
@@ -154,7 +166,10 @@ export function toNonNegativeNumber(
 ): number {
   return Math.max(
     0,
-    toNumber(value, fallback),
+    toNumber(
+      value,
+      fallback,
+    ),
   );
 }
 
@@ -162,7 +177,11 @@ export function toInteger(
   value: unknown,
   fallback = 0,
 ): number {
-  const parsed = toNumber(value, fallback);
+  const parsed =
+    toNumber(
+      value,
+      fallback,
+    );
 
   if (!Number.isFinite(parsed)) {
     return fallback;
@@ -177,7 +196,10 @@ export function toNonNegativeInteger(
 ): number {
   return Math.max(
     0,
-    toInteger(value, fallback),
+    toInteger(
+      value,
+      fallback,
+    ),
   );
 }
 
@@ -189,59 +211,82 @@ export function round(
   value: unknown,
   decimals = 2,
 ): number {
-  const number = toNumber(value);
+  const number =
+    toNumber(value);
 
-  const safeDecimals = Math.max(
-    0,
-    Math.min(
-      20,
-      Math.trunc(
-        toNumber(decimals, 2),
+  const safeDecimals =
+    Math.max(
+      0,
+      Math.min(
+        20,
+        Math.trunc(
+          toNumber(
+            decimals,
+            2,
+          ),
+        ),
       ),
-    ),
+    );
+
+  const factor =
+    10 ** safeDecimals;
+
+  return (
+    Math.round(
+      (number + Number.EPSILON) *
+        factor,
+    ) / factor
   );
-
-  const factor = 10 ** safeDecimals;
-
-  return Math.round(
-    (number + Number.EPSILON) * factor,
-  ) / factor;
 }
 
 export function floor(
   value: unknown,
   decimals = 0,
 ): number {
-  const number = toNumber(value);
+  const number =
+    toNumber(value);
 
-  const safeDecimals = Math.max(
-    0,
-    Math.trunc(toNumber(decimals)),
+  const safeDecimals =
+    Math.max(
+      0,
+      Math.trunc(
+        toNumber(decimals),
+      ),
+    );
+
+  const factor =
+    10 ** safeDecimals;
+
+  return (
+    Math.floor(
+      number * factor,
+    ) / factor
   );
-
-  const factor = 10 ** safeDecimals;
-
-  return Math.floor(
-    number * factor,
-  ) / factor;
 }
 
 export function ceil(
   value: unknown,
   decimals = 0,
 ): number {
-  const number = toNumber(value);
+  const number =
+    toNumber(value);
 
-  const safeDecimals = Math.max(
-    0,
-    Math.trunc(toNumber(decimals)),
+  const safeDecimals =
+    Math.max(
+      0,
+      Math.trunc(
+        toNumber(decimals),
+      ),
+    );
+
+  const factor =
+    10 ** safeDecimals;
+
+  return (
+    Math.ceil(
+      number * factor,
+    ) / factor
   );
-
-  const factor = 10 ** safeDecimals;
-
-  return Math.ceil(
-    number * factor,
-  ) / factor;
 }
 
 /* ============================================================
@@ -253,27 +298,37 @@ export function percentage(
   total: unknown,
   options: RateOptions = {},
 ): number {
-  const numerator = toNumber(value);
-  const denominator = toNumber(total);
+  const numerator =
+    toNumber(value);
 
-  const multiplier = Number.isFinite(
-    options.multiplier,
-  )
-    ? Number(options.multiplier)
-    : 100;
+  const denominator =
+    toNumber(total);
 
-  const fallback = Number.isFinite(
-    options.fallback,
-  )
-    ? Number(options.fallback)
-    : 0;
+  const multiplier =
+    Number.isFinite(
+      options.multiplier,
+    )
+      ? Number(
+          options.multiplier,
+        )
+      : 100;
+
+  const fallback =
+    Number.isFinite(
+      options.fallback,
+    )
+      ? Number(
+          options.fallback,
+        )
+      : 0;
 
   if (denominator === 0) {
     return fallback;
   }
 
   const result =
-    (numerator / denominator) * multiplier;
+    (numerator / denominator) *
+    multiplier;
 
   return round(
     Number.isFinite(result)
@@ -287,20 +342,27 @@ export function ratio(
   value: unknown,
   total: unknown,
 ): number {
-  const numerator = toNumber(value);
-  const denominator = toNumber(total);
+  const numerator =
+    toNumber(value);
+
+  const denominator =
+    toNumber(total);
 
   if (denominator === 0) {
     return 0;
   }
 
-  const result = numerator / denominator;
+  const result =
+    numerator / denominator;
 
   if (!Number.isFinite(result)) {
     return 0;
   }
 
-  return Math.max(0, result);
+  return Math.max(
+    0,
+    result,
+  );
 }
 
 export function percentageClamped(
@@ -315,7 +377,9 @@ export function percentageClamped(
       percentage(
         value,
         total,
-        { decimals },
+        {
+          decimals,
+        },
       ),
     ),
   );
@@ -328,9 +392,13 @@ export function percentageClamped(
 export function sum(
   values: readonly unknown[],
 ): number {
-  return values.reduce(
-    (total, value) =>
-      total + toNumber(value),
+  return values.reduce<number>(
+    (
+      total,
+      value,
+    ) =>
+      total +
+      toNumber(value),
     0,
   );
 }
@@ -343,7 +411,8 @@ export function average(
   }
 
   return round(
-    sum(values) / values.length,
+    sum(values) /
+      values.length,
     2,
   );
 }
@@ -356,8 +425,9 @@ export function min(
   }
 
   return Math.min(
-    ...values.map((value) =>
-      toNumber(value),
+    ...values.map(
+      (value) =>
+        toNumber(value),
     ),
   );
 }
@@ -370,8 +440,9 @@ export function max(
   }
 
   return Math.max(
-    ...values.map((value) =>
-      toNumber(value),
+    ...values.map(
+      (value) =>
+        toNumber(value),
     ),
   );
 }
@@ -380,7 +451,8 @@ export function max(
  * DEFAULT METRICS
  * ============================================================ */
 
-export const DEFAULT_METRICS: Metrics = {
+export const DEFAULT_METRICS:
+  Metrics = {
   users: 0,
   activeUsers: 0,
   newUsers: 0,
@@ -412,26 +484,33 @@ export const DEFAULT_METRICS: Metrics = {
  * ============================================================ */
 
 export function normalizeMetrics(
-  input?: Partial<Metrics> | null,
+  input?:
+    | Partial<Metrics>
+    | null,
 ): Metrics {
-  const source = input ?? {};
+  const source =
+    input ?? {};
 
   return {
-    users: toNonNegativeInteger(
-      source.users,
-    ),
+    users:
+      toNonNegativeInteger(
+        source.users,
+      ),
 
-    activeUsers: toNonNegativeInteger(
-      source.activeUsers,
-    ),
+    activeUsers:
+      toNonNegativeInteger(
+        source.activeUsers,
+      ),
 
-    newUsers: toNonNegativeInteger(
-      source.newUsers,
-    ),
+    newUsers:
+      toNonNegativeInteger(
+        source.newUsers,
+      ),
 
-    publications: toNonNegativeInteger(
-      source.publications,
-    ),
+    publications:
+      toNonNegativeInteger(
+        source.publications,
+      ),
 
     publishedPublications:
       toNonNegativeInteger(
@@ -443,62 +522,75 @@ export function normalizeMetrics(
         source.draftPublications,
       ),
 
-    comments: toNonNegativeInteger(
-      source.comments,
-    ),
+    comments:
+      toNonNegativeInteger(
+        source.comments,
+      ),
 
-    reactions: toNonNegativeInteger(
-      source.reactions,
-    ),
+    reactions:
+      toNonNegativeInteger(
+        source.reactions,
+      ),
 
-    reviews: toNonNegativeInteger(
-      source.reviews,
-    ),
+    reviews:
+      toNonNegativeInteger(
+        source.reviews,
+      ),
 
-    views: toNonNegativeInteger(
-      source.views,
-    ),
+    views:
+      toNonNegativeInteger(
+        source.views,
+      ),
 
-    shares: toNonNegativeInteger(
-      source.shares,
-    ),
+    shares:
+      toNonNegativeInteger(
+        source.shares,
+      ),
 
-    likes: toNonNegativeInteger(
-      source.likes,
-    ),
+    likes:
+      toNonNegativeInteger(
+        source.likes,
+      ),
 
-    dislikes: toNonNegativeInteger(
-      source.dislikes,
-    ),
+    dislikes:
+      toNonNegativeInteger(
+        source.dislikes,
+      ),
 
-    reports: toNonNegativeInteger(
-      source.reports,
-    ),
+    reports:
+      toNonNegativeInteger(
+        source.reports,
+      ),
 
     notifications:
       toNonNegativeInteger(
         source.notifications,
       ),
 
-    jobs: toNonNegativeInteger(
-      source.jobs,
-    ),
+    jobs:
+      toNonNegativeInteger(
+        source.jobs,
+      ),
 
-    employers: toNonNegativeInteger(
-      source.employers,
-    ),
+    employers:
+      toNonNegativeInteger(
+        source.employers,
+      ),
 
-    applicants: toNonNegativeInteger(
-      source.applicants,
-    ),
+    applicants:
+      toNonNegativeInteger(
+        source.applicants,
+      ),
 
     createdAt:
-      typeof source.createdAt === "string"
+      typeof source.createdAt ===
+      "string"
         ? source.createdAt
         : undefined,
 
     updatedAt:
-      typeof source.updatedAt === "string"
+      typeof source.updatedAt ===
+      "string"
         ? source.updatedAt
         : undefined,
   };
@@ -512,7 +604,9 @@ export function calculateEngagementRate(
   metrics: Partial<Metrics>,
 ): number {
   const normalized =
-    normalizeMetrics(metrics);
+    normalizeMetrics(
+      metrics,
+    );
 
   const interactions =
     normalized.likes +
@@ -531,7 +625,9 @@ export function calculateActivityRate(
   metrics: Partial<Metrics>,
 ): number {
   const normalized =
-    normalizeMetrics(metrics);
+    normalizeMetrics(
+      metrics,
+    );
 
   return percentageClamped(
     normalized.activeUsers,
@@ -543,7 +639,9 @@ export function calculateReactionRate(
   metrics: Partial<Metrics>,
 ): number {
   const normalized =
-    normalizeMetrics(metrics);
+    normalizeMetrics(
+      metrics,
+    );
 
   return percentageClamped(
     normalized.reactions,
@@ -555,7 +653,9 @@ export function calculateCommentRate(
   metrics: Partial<Metrics>,
 ): number {
   const normalized =
-    normalizeMetrics(metrics);
+    normalizeMetrics(
+      metrics,
+    );
 
   return percentageClamped(
     normalized.comments,
@@ -567,7 +667,9 @@ export function calculateReviewRate(
   metrics: Partial<Metrics>,
 ): number {
   const normalized =
-    normalizeMetrics(metrics);
+    normalizeMetrics(
+      metrics,
+    );
 
   return percentageClamped(
     normalized.reviews,
@@ -579,7 +681,9 @@ export function calculateShareRate(
   metrics: Partial<Metrics>,
 ): number {
   const normalized =
-    normalizeMetrics(metrics);
+    normalizeMetrics(
+      metrics,
+    );
 
   return percentageClamped(
     normalized.shares,
@@ -591,7 +695,9 @@ export function calculatePublicationRate(
   metrics: Partial<Metrics>,
 ): number {
   const normalized =
-    normalizeMetrics(metrics);
+    normalizeMetrics(
+      metrics,
+    );
 
   return percentageClamped(
     normalized.publishedPublications,
@@ -604,34 +710,52 @@ export function calculatePublicationRate(
  * ============================================================ */
 
 export function buildNormalizedMetrics(
-  input?: Partial<Metrics> | null,
+  input?:
+    | Partial<Metrics>
+    | null,
 ): NormalizedMetrics {
   const metrics =
-    normalizeMetrics(input);
+    normalizeMetrics(
+      input,
+    );
 
   return {
     ...metrics,
 
     engagementRate:
-      calculateEngagementRate(metrics),
+      calculateEngagementRate(
+        metrics,
+      ),
 
     activityRate:
-      calculateActivityRate(metrics),
+      calculateActivityRate(
+        metrics,
+      ),
 
     reactionRate:
-      calculateReactionRate(metrics),
+      calculateReactionRate(
+        metrics,
+      ),
 
     commentRate:
-      calculateCommentRate(metrics),
+      calculateCommentRate(
+        metrics,
+      ),
 
     reviewRate:
-      calculateReviewRate(metrics),
+      calculateReviewRate(
+        metrics,
+      ),
 
     shareRate:
-      calculateShareRate(metrics),
+      calculateShareRate(
+        metrics,
+      ),
 
     publicationRate:
-      calculatePublicationRate(metrics),
+      calculatePublicationRate(
+        metrics,
+      ),
   };
 }
 
@@ -645,7 +769,10 @@ export function increment(
 ): number {
   return (
     toNumber(value) +
-    toNumber(amount, 1)
+    toNumber(
+      amount,
+      1,
+    )
   );
 }
 
@@ -656,7 +783,10 @@ export function decrement(
   return Math.max(
     0,
     toNumber(value) -
-      toNumber(amount, 1),
+      toNumber(
+        amount,
+        1,
+      ),
   );
 }
 
@@ -668,22 +798,35 @@ export function updateMetrics(
   current: Partial<Metrics>,
   changes: Partial<Metrics>,
 ): Metrics {
-  const result: Metrics =
-    normalizeMetrics(current);
+  const result:
+    Metrics =
+    normalizeMetrics(
+      current,
+    );
 
-  const keys = Object.keys(changes) as Array<
-    keyof Metrics
-  >;
+  const keys =
+    Object.keys(
+      changes,
+    ) as Array<
+      keyof Metrics
+    >;
 
-  for (const key of keys) {
-    const value = changes[key];
+  for (
+    const key of keys
+  ) {
+    const value =
+      changes[key];
 
     if (
       key === "createdAt" ||
       key === "updatedAt"
     ) {
-      if (typeof value === "string") {
-        result[key] = value;
+      if (
+        typeof value ===
+        "string"
+      ) {
+        result[key] =
+          value;
       }
 
       continue;
@@ -693,7 +836,9 @@ export function updateMetrics(
       toNumber(value);
   }
 
-  return normalizeMetrics(result);
+  return normalizeMetrics(
+    result,
+  );
 }
 
 /* ============================================================
@@ -720,7 +865,9 @@ export function calculateGrowthRate(
   const previousValue =
     toNumber(previous);
 
-  if (previousValue === 0) {
+  if (
+    previousValue === 0
+  ) {
     return currentValue > 0
       ? 100
       : 0;
@@ -728,9 +875,15 @@ export function calculateGrowthRate(
 
   return round(
     (
-      (currentValue - previousValue) /
-      Math.abs(previousValue)
-    ) * 100,
+      (
+        currentValue -
+        previousValue
+      ) /
+      Math.abs(
+        previousValue,
+      )
+    ) *
+      100,
     2,
   );
 }
@@ -756,11 +909,16 @@ export function compareMetrics(
     toNumber(previous);
 
   const change =
-    currentValue - previousValue;
+    currentValue -
+    previousValue;
 
   return {
-    current: currentValue,
-    previous: previousValue,
+    current:
+      currentValue,
+
+    previous:
+      previousValue,
+
     change,
 
     growthRate:
@@ -769,9 +927,14 @@ export function compareMetrics(
         previousValue,
       ),
 
-    increased: change > 0,
-    decreased: change < 0,
-    unchanged: change === 0,
+    increased:
+      change > 0,
+
+    decreased:
+      change < 0,
+
+    unchanged:
+      change === 0,
   };
 }
 
@@ -783,8 +946,11 @@ export function isValidMetric(
   value: unknown,
 ): value is number {
   return (
-    typeof value === "number" &&
-    Number.isFinite(value) &&
+    typeof value ===
+      "number" &&
+    Number.isFinite(
+      value,
+    ) &&
     value >= 0
   );
 }
@@ -800,10 +966,14 @@ export function isValidMetricInput(
   }
 
   return (
-    typeof value === "number" ||
-    typeof value === "string" ||
-    typeof value === "boolean" ||
-    typeof value === "bigint"
+    typeof value ===
+      "number" ||
+    typeof value ===
+      "string" ||
+    typeof value ===
+      "boolean" ||
+    typeof value ===
+      "bigint"
   );
 }
 
@@ -815,7 +985,9 @@ export function metricsToJSON(
   metrics: Partial<Metrics>,
 ): string {
   return JSON.stringify(
-    normalizeMetrics(metrics),
+    normalizeMetrics(
+      metrics,
+    ),
   );
 }
 
@@ -823,19 +995,23 @@ export function metricsFromJSON(
   value: unknown,
 ): Metrics {
   if (
-    typeof value !== "string" ||
-    value.trim().length === 0
+    typeof value !==
+      "string" ||
+    value.trim().length ===
+      0
   ) {
     return normalizeMetrics();
   }
 
   try {
-    const parsed: unknown =
+    const parsed:
+      unknown =
       JSON.parse(value);
 
     if (
       parsed === null ||
-      typeof parsed !== "object" ||
+      typeof parsed !==
+        "object" ||
       Array.isArray(parsed)
     ) {
       return normalizeMetrics();
@@ -870,13 +1046,17 @@ export function createMetricSeries(
   return {
     name: String(name),
 
-    points: values.map(
-      (value, index) =>
-        createMetricPoint(
-          index + 1,
+    points:
+      values.map(
+        (
           value,
-        ),
-    ),
+          index,
+        ) =>
+          createMetricPoint(
+            index + 1,
+            value,
+          ),
+      ),
   };
 }
 
@@ -901,14 +1081,21 @@ export interface DashboardMetrics {
 }
 
 export function createDashboardMetrics(
-  input?: Partial<Metrics> | null,
+  input?:
+    | Partial<Metrics>
+    | null,
 ): DashboardMetrics {
   const metrics =
-    buildNormalizedMetrics(input);
+    buildNormalizedMetrics(
+      input,
+    );
 
   return {
-    totalUsers: metrics.users,
-    activeUsers: metrics.activeUsers,
+    totalUsers:
+      metrics.users,
+
+    activeUsers:
+      metrics.activeUsers,
 
     totalPublications:
       metrics.publications,
@@ -944,18 +1131,26 @@ export function createDashboardMetrics(
  * ============================================================ */
 
 export function aggregateMetrics(
-  items: readonly Partial<Metrics>[],
+  items:
+    readonly Partial<Metrics>[],
 ): Metrics {
   const result =
     normalizeMetrics();
 
-  for (const item of items) {
+  for (
+    const item of items
+  ) {
     const metrics =
-      normalizeMetrics(item);
+      normalizeMetrics(
+        item,
+      );
 
-    result.users += metrics.users;
+    result.users +=
+      metrics.users;
+
     result.activeUsers +=
       metrics.activeUsers;
+
     result.newUsers +=
       metrics.newUsers;
 
@@ -1051,9 +1246,13 @@ export function averageViewsPerPublication(
   publications: unknown,
 ): number {
   const publicationCount =
-    toNumber(publications);
+    toNumber(
+      publications,
+    );
 
-  if (publicationCount === 0) {
+  if (
+    publicationCount === 0
+  ) {
     return 0;
   }
 
@@ -1069,9 +1268,13 @@ export function averageCommentsPerPublication(
   publications: unknown,
 ): number {
   const publicationCount =
-    toNumber(publications);
+    toNumber(
+      publications,
+    );
 
-  if (publicationCount === 0) {
+  if (
+    publicationCount === 0
+  ) {
     return 0;
   }
 
@@ -1116,14 +1319,17 @@ export function likeDislikeRatio(
   const dislikeValue =
     toNumber(dislikes);
 
-  if (dislikeValue === 0) {
+  if (
+    dislikeValue === 0
+  ) {
     return likeValue > 0
       ? likeValue
       : 0;
   }
 
   return round(
-    likeValue / dislikeValue,
+    likeValue /
+      dislikeValue,
     2,
   );
 }
@@ -1149,7 +1355,9 @@ export function applicantEmployerRatio(
   const employerCount =
     toNumber(employers);
 
-  if (employerCount === 0) {
+  if (
+    employerCount === 0
+  ) {
     return 0;
   }
 
@@ -1168,8 +1376,9 @@ export function formatNumber(
   value: unknown,
   locale = "ru-RU",
 ): string {
-  return toNumber(value)
-    .toLocaleString(locale);
+  return toNumber(
+    value,
+  ).toLocaleString(locale);
 }
 
 export function formatPercentage(
@@ -1189,7 +1398,8 @@ export function formatCompactNumber(
     toNumber(value);
 
   if (
-    Math.abs(number) < 1_000
+    Math.abs(number) <
+    1_000
   ) {
     return String(
       Math.round(number),
@@ -1197,7 +1407,8 @@ export function formatCompactNumber(
   }
 
   if (
-    Math.abs(number) < 1_000_000
+    Math.abs(number) <
+    1_000_000
   ) {
     return `${round(
       number / 1_000,
@@ -1206,7 +1417,8 @@ export function formatCompactNumber(
   }
 
   if (
-    Math.abs(number) < 1_000_000_000
+    Math.abs(number) <
+    1_000_000_000
   ) {
     return `${round(
       number / 1_000_000,
@@ -1227,7 +1439,8 @@ export function formatCompactNumber(
 export function clampMetric(
   value: unknown,
   minValue = 0,
-  maxValue = Number.MAX_SAFE_INTEGER,
+  maxValue =
+    Number.MAX_SAFE_INTEGER,
 ): number {
   const number =
     toNumber(value);
