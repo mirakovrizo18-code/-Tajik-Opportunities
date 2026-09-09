@@ -1,7 +1,9 @@
+```ts
 /* ============================================================
-   TAJIK OPPORTUNITIES
+   🇹🇯 TAJIK OPPORTUNITIES
    RESPONSE UTILITY
    Cloudflare Workers / D1 compatible
+   Version: 2026.09.09
    ============================================================ */
 
 export interface RequestContext {
@@ -38,20 +40,31 @@ export interface ApiResponseBody<T = unknown> {
   requestId?: string;
 }
 
-export const corsHeaders: Record<string, string> = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Methods":
-    "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-  "Access-Control-Allow-Headers":
-    "Content-Type, Authorization, X-Requested-With, X-Request-ID",
-  "Access-Control-Max-Age": "86400",
-};
+/* ============================================================
+   CORS
+   ============================================================ */
+
+export function corsHeaders(
+  _request?: Request,
+): Record<string, string> {
+  return {
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods":
+      "GET,POST,PUT,PATCH,DELETE,OPTIONS",
+    "Access-Control-Allow-Headers":
+      "Content-Type, Authorization, X-Requested-With, X-Request-ID, X-CSRF-Token, X-Visitor-ID, X-Session-ID, X-Client-Version, X-Admin-Session",
+    "Access-Control-Max-Age": "86400",
+  };
+}
+
+/* ============================================================
+   HEADERS
+   ============================================================ */
 
 function createHeaders(
   extra?: HeadersInit,
 ): Headers {
-  const headers =
-    new Headers();
+  const headers = new Headers();
 
   headers.set(
     "Content-Type",
@@ -63,25 +76,26 @@ function createHeaders(
     "no-store",
   );
 
-  for (const [key, value] of Object.entries(
-    corsHeaders,
-  )) {
+  const cors = corsHeaders();
+
+  for (const [key, value] of Object.entries(cors)) {
     headers.set(key, value);
   }
 
   if (extra) {
-    const extraHeaders =
-      new Headers(extra);
+    const extraHeaders = new Headers(extra);
 
-    extraHeaders.forEach(
-      (value, key) => {
-        headers.set(key, value);
-      },
-    );
+    extraHeaders.forEach((value, key) => {
+      headers.set(key, value);
+    });
   }
 
   return headers;
 }
+
+/* ============================================================
+   SERIALIZATION
+   ============================================================ */
 
 function serialize(
   body: unknown,
@@ -89,9 +103,7 @@ function serialize(
   return JSON.stringify(
     body,
     (_key, value) => {
-      if (
-        typeof value === "bigint"
-      ) {
+      if (typeof value === "bigint") {
         return value.toString();
       }
 
@@ -100,17 +112,23 @@ function serialize(
   );
 }
 
+/* ============================================================
+   SUCCESS RESPONSE
+   ============================================================ */
+
 export function jsonResponse<T = unknown>(
   data: T,
   status = 200,
-  headers?: HeadersInit,
-  requestId?: string,
+  options?: {
+    requestId?: string;
+    headers?: HeadersInit;
+  },
 ): Response {
   const body: ApiResponseBody<T> = {
     success: true,
     data,
-    ...(requestId
-      ? { requestId }
+    ...(options?.requestId
+      ? { requestId: options.requestId }
       : {}),
   };
 
@@ -118,7 +136,7 @@ export function jsonResponse<T = unknown>(
     serialize(body),
     {
       status,
-      headers: createHeaders(headers),
+      headers: createHeaders(options?.headers),
     },
   );
 }
@@ -132,30 +150,44 @@ export function successResponse<T = unknown>(
   return jsonResponse(
     data,
     status,
-    headers,
-    requestId,
+    {
+      headers,
+      requestId,
+    },
   );
 }
 
+/* ============================================================
+   ERROR RESPONSE
+   ============================================================ */
+
 export function errorResponse(
-  status: number,
-  code: string,
   message: string,
-  details?: unknown,
-  headers?: HeadersInit,
-  requestId?: string,
+  status = 500,
+  options?: {
+    requestId?: string;
+    details?: unknown;
+    code?: string;
+    headers?: HeadersInit;
+  },
 ): Response {
   const body: ApiResponseBody = {
     success: false,
     error: {
-      code,
+      code:
+        options?.code ??
+        defaultErrorCode(status),
       message,
-      ...(details !== undefined
-        ? { details }
+      ...(options?.details !== undefined
+        ? {
+            details: options.details,
+          }
         : {}),
     },
-    ...(requestId
-      ? { requestId }
+    ...(options?.requestId
+      ? {
+          requestId: options.requestId,
+        }
       : {}),
   };
 
@@ -163,10 +195,53 @@ export function errorResponse(
     serialize(body),
     {
       status,
-      headers: createHeaders(headers),
+      headers: createHeaders(options?.headers),
     },
   );
 }
+
+function defaultErrorCode(
+  status: number,
+): string {
+  switch (status) {
+    case 400:
+      return "BAD_REQUEST";
+
+    case 401:
+      return "UNAUTHORIZED";
+
+    case 403:
+      return "FORBIDDEN";
+
+    case 404:
+      return "NOT_FOUND";
+
+    case 405:
+      return "METHOD_NOT_ALLOWED";
+
+    case 409:
+      return "CONFLICT";
+
+    case 429:
+      return "RATE_LIMITED";
+
+    case 500:
+      return "INTERNAL_ERROR";
+
+    case 502:
+      return "BAD_GATEWAY";
+
+    case 503:
+      return "SERVICE_UNAVAILABLE";
+
+    default:
+      return `HTTP_${status}`;
+  }
+}
+
+/* ============================================================
+   COMMON ERROR HELPERS
+   ============================================================ */
 
 export function badRequestResponse(
   message = "Некорректный запрос",
@@ -174,12 +249,13 @@ export function badRequestResponse(
   requestId?: string,
 ): Response {
   return errorResponse(
-    400,
-    "BAD_REQUEST",
     message,
-    details,
-    undefined,
-    requestId,
+    400,
+    {
+      code: "BAD_REQUEST",
+      details,
+      requestId,
+    },
   );
 }
 
@@ -188,12 +264,12 @@ export function unauthorizedResponse(
   requestId?: string,
 ): Response {
   return errorResponse(
-    401,
-    "UNAUTHORIZED",
     message,
-    undefined,
-    undefined,
-    requestId,
+    401,
+    {
+      code: "UNAUTHORIZED",
+      requestId,
+    },
   );
 }
 
@@ -202,12 +278,12 @@ export function forbiddenResponse(
   requestId?: string,
 ): Response {
   return errorResponse(
-    403,
-    "FORBIDDEN",
     message,
-    undefined,
-    undefined,
-    requestId,
+    403,
+    {
+      code: "FORBIDDEN",
+      requestId,
+    },
   );
 }
 
@@ -216,12 +292,12 @@ export function notFoundResponse(
   requestId?: string,
 ): Response {
   return errorResponse(
-    404,
-    "NOT_FOUND",
     message,
-    undefined,
-    undefined,
-    requestId,
+    404,
+    {
+      code: "NOT_FOUND",
+      requestId,
+    },
   );
 }
 
@@ -231,12 +307,13 @@ export function conflictResponse(
   requestId?: string,
 ): Response {
   return errorResponse(
-    409,
-    "CONFLICT",
     message,
-    details,
-    undefined,
-    requestId,
+    409,
+    {
+      code: "CONFLICT",
+      details,
+      requestId,
+    },
   );
 }
 
@@ -245,12 +322,12 @@ export function tooManyRequestsResponse(
   requestId?: string,
 ): Response {
   return errorResponse(
-    429,
-    "RATE_LIMITED",
     message,
-    undefined,
-    undefined,
-    requestId,
+    429,
+    {
+      code: "RATE_LIMITED",
+      requestId,
+    },
   );
 }
 
@@ -260,133 +337,142 @@ export function serverErrorResponse(
   requestId?: string,
 ): Response {
   return errorResponse(
-    500,
-    "INTERNAL_ERROR",
     message,
-    details,
-    undefined,
-    requestId,
+    500,
+    {
+      code: "INTERNAL_ERROR",
+      details,
+      requestId,
+    },
   );
 }
 
 export function methodNotAllowedResponse(
-  allowedMethods: string[] = [
-    "GET",
-  ],
+  allowedMethods: string[] = ["GET"],
   requestId?: string,
 ): Response {
   return errorResponse(
-    405,
-    "METHOD_NOT_ALLOWED",
     "Метод запроса не поддерживается",
+    405,
     {
-      allowedMethods,
+      code: "METHOD_NOT_ALLOWED",
+      details: {
+        allowedMethods,
+      },
+      headers: {
+        Allow: allowedMethods.join(", "),
+      },
+      requestId,
     },
-    {
-      Allow:
-        allowedMethods.join(", "),
-    },
-    requestId,
   );
 }
+
+/* ============================================================
+   REQUEST CONTEXT
+   ============================================================ */
 
 export function getRequestContext(
   request: Request,
 ): RequestContext {
-  const url =
-    new URL(request.url);
+  const url = new URL(request.url);
 
-  const cf =
-    (
-      request as Request & {
-        cf?: Record<string, unknown>;
-      }
-    ).cf;
+  const cf = (
+    request as Request & {
+      cf?: Record<string, unknown>;
+    }
+  ).cf;
 
   const requestId =
-    request.headers.get(
-      "X-Request-ID",
-    ) ||
+    request.headers.get("X-Request-ID") ??
     crypto.randomUUID();
 
   return {
     requestId,
+
     ip:
       request.headers.get(
         "CF-Connecting-IP",
-      ) ||
+      ) ??
       request.headers.get(
         "X-Forwarded-For",
       ),
+
     userAgent:
       request.headers.get(
         "User-Agent",
       ),
+
     country:
       typeof cf?.country === "string"
         ? cf.country
         : null,
+
     city:
       typeof cf?.city === "string"
         ? cf.city
         : null,
+
     colo:
       typeof cf?.colo === "string"
         ? cf.colo
         : null,
+
     method:
       request.method.toUpperCase(),
+
     url: request.url,
+
     path: url.pathname,
   };
 }
+
+/* ============================================================
+   RESPONSE HEADER MERGING
+   ============================================================ */
 
 export function responseWithHeaders(
   response: Response,
   headers?: HeadersInit,
 ): Response {
-  const merged =
-    new Headers(
-      response.headers,
-    );
+  const merged = new Headers(
+    response.headers,
+  );
 
-  for (const [key, value] of Object.entries(
-    corsHeaders,
-  )) {
+  const cors = corsHeaders();
+
+  for (const [key, value] of Object.entries(cors)) {
     if (!merged.has(key)) {
       merged.set(key, value);
     }
   }
 
   if (headers) {
-    const extra =
-      new Headers(headers);
+    const extra = new Headers(headers);
 
-    extra.forEach(
-      (value, key) => {
-        merged.set(key, value);
-      },
-    );
+    extra.forEach((value, key) => {
+      merged.set(key, value);
+    });
   }
 
   return new Response(
     response.body,
     {
       status: response.status,
-      statusText:
-        response.statusText,
+      statusText: response.statusText,
       headers: merged,
     },
   );
 }
 
+/* ============================================================
+   JSON REQUEST
+   ============================================================ */
+
 export async function readJson<T = unknown>(
   request: Request,
 ): Promise<T> {
   const contentType =
-    request.headers.get(
-      "Content-Type",
-    ) || "";
+    request.headers.get("Content-Type") ?? "";
 
   if (
     contentType &&
@@ -399,23 +485,39 @@ export async function readJson<T = unknown>(
     );
   }
 
-  return (
-    (await request.json()) as T
-  );
+  const text = await request.text();
+
+  if (!text.trim()) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error(
+      "Invalid JSON body",
+    );
+  }
 }
+
+/* ============================================================
+   JSON REQUEST DETECTION
+   ============================================================ */
 
 export function isJsonRequest(
   request: Request,
 ): boolean {
   const contentType =
-    request.headers.get(
-      "Content-Type",
-    ) || "";
+    request.headers.get("Content-Type") ?? "";
 
   return contentType
     .toLowerCase()
     .includes("application/json");
 }
+
+/* ============================================================
+   REQUEST ID
+   ============================================================ */
 
 export function withRequestId(
   response: Response,
@@ -424,27 +526,31 @@ export function withRequestId(
   return responseWithHeaders(
     response,
     {
-      "X-Request-ID":
-        requestId,
+      "X-Request-ID": requestId,
     },
   );
 }
 
+/* ============================================================
+   NO CONTENT
+   ============================================================ */
+
 export function noContentResponse(
   headers?: HeadersInit,
 ): Response {
-  const merged =
-    createHeaders(headers);
+  const merged = createHeaders(headers);
 
-  merged.delete(
-    "Content-Type",
-  );
+  merged.delete("Content-Type");
 
   return new Response(null, {
     status: 204,
     headers: merged,
   });
 }
+
+/* ============================================================
+   REDIRECT
+   ============================================================ */
 
 export function redirectResponse(
   location: string,
@@ -455,8 +561,9 @@ export function redirectResponse(
     | 307
     | 308 = 302,
 ): Response {
-  const headers =
-    createHeaders();
+  const headers = createHeaders();
+
+  headers.delete("Content-Type");
 
   headers.set(
     "Location",
@@ -467,4 +574,9 @@ export function redirectResponse(
     status,
     headers,
   });
-    }
+}
+
+/* ============================================================
+   END
+   ============================================================ */
+```
