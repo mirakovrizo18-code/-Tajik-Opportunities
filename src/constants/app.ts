@@ -1,8 +1,19 @@
 // ============================================================
 // 🇹🇯 TAJIK OPPORTUNITIES
 // APPLICATION CONSTANTS
-// Version: 2026.09
+// Version: 2026.09 PRODUCTION
 // ============================================================
+
+/**
+ * Главный файл констант приложения.
+ *
+ * ВАЖНО:
+ * - не использовать "магические" значения по проекту;
+ * - все публичные значения находятся здесь;
+ * - поддерживаются RU / TJ / EN / FA;
+ * - значения совместимы с backend, frontend, admin и services;
+ * - файл не содержит зависимостей от других файлов.
+ */
 
 // ============================================================
 // APP
@@ -24,6 +35,7 @@ export const APP = {
   ] as const,
 
   DEFAULT_COUNTRY: "Tajikistan",
+
   TIMEZONE: "Asia/Dushanbe",
 
   DEFAULT_PAGE_SIZE: 20,
@@ -58,82 +70,9 @@ export const APP = {
     "стажировки",
     "конкурсы",
     "возможности",
+    "Tajikistan",
+    "Opportunities",
   ],
-} as const;
-
-// ============================================================
-// INTERNATIONALIZATION
-// ============================================================
-
-export const LANGUAGES = {
-  RU: "ru",
-  TJ: "tj",
-  EN: "en",
-  FA: "fa",
-} as const;
-
-export type Language =
-  typeof LANGUAGES[keyof typeof LANGUAGES];
-
-export const LANGUAGE_METADATA = {
-  ru: {
-    code: "ru",
-    name: "Русский",
-    nativeName: "Русский",
-    direction: "ltr",
-  },
-
-  tj: {
-    code: "tj",
-    name: "Таджикский",
-    nativeName: "Тоҷикӣ",
-    direction: "ltr",
-  },
-
-  en: {
-    code: "en",
-    name: "Английский",
-    nativeName: "English",
-    direction: "ltr",
-  },
-
-  fa: {
-    code: "fa",
-    name: "Персидский",
-    nativeName: "فارسی",
-    direction: "rtl",
-  },
-} as const;
-
-export const I18N = {
-  DEFAULT_LANGUAGE: "ru",
-
-  FALLBACK_LANGUAGE: "ru",
-
-  SUPPORTED_LANGUAGES: [
-    "ru",
-    "tj",
-    "en",
-    "fa",
-  ] as const,
-
-  RTL_LANGUAGES: [
-    "fa",
-  ] as const,
-
-  LTR_LANGUAGES: [
-    "ru",
-    "tj",
-    "en",
-  ] as const,
-
-  COOKIE_NAME: "to_language",
-
-  STORAGE_KEY: "to_language",
-
-  HTML_LANG_ATTRIBUTE: true,
-
-  HTML_DIR_ATTRIBUTE: true,
 } as const;
 
 // ============================================================
@@ -165,9 +104,20 @@ export const API = {
 
   NOTIFICATIONS: "/api/notifications",
   NOTIFICATION_SETTINGS: "/api/notifications/settings",
+  NOTIFICATION_UNREAD: "/api/notifications/unread",
+
+  REVIEWS: "/api/reviews",
+  REVIEW_REPLIES: "/api/reviews/replies",
+  REVIEW_REACTIONS: "/api/reviews/reactions",
+  REVIEW_REPORTS: "/api/reviews/reports",
 
   SEARCH: "/api/search",
   ACTIVITY: "/api/activity",
+
+  SETTINGS: "/api/settings",
+  FEATURES: "/api/features",
+
+  MEDIA: "/api/media",
 
   ADMIN: "/api/admin",
   ADMIN_LOGIN: "/api/admin/login",
@@ -179,15 +129,18 @@ export const API = {
   ADMIN_PUBLICATIONS: "/api/admin/publications",
   ADMIN_COMMENTS: "/api/admin/comments",
   ADMIN_REVIEWS: "/api/admin/reviews",
-  ADMIN_REPORTS: "/api/admin/reports",
   ADMIN_CHATS: "/api/admin/chats",
   ADMIN_NOTIFICATIONS: "/api/admin/notifications",
+  ADMIN_REPORTS: "/api/admin/reports",
   ADMIN_PAYMENTS: "/api/admin/payments",
-  ADMIN_SETTINGS: "/api/admin/settings",
+  ADMIN_LEVELS: "/api/admin/levels",
+  ADMIN_BADGES: "/api/admin/badges",
   ADMIN_PERMISSIONS: "/api/admin/permissions",
+  ADMIN_SETTINGS: "/api/admin/settings",
+  ADMIN_FEATURES: "/api/admin/features",
   ADMIN_ACTIVITY: "/api/admin/activity",
   ADMIN_AUDIT: "/api/admin/audit",
-  ADMIN_FEATURES: "/api/admin/features",
+  ADMIN_SEARCH: "/api/admin/search",
 } as const;
 
 // ============================================================
@@ -225,56 +178,18 @@ export const HTTP = {
     BAD_GATEWAY: 502,
     SERVICE_UNAVAILABLE: 503,
   },
-} as const;
 
-export type HttpMethod =
-  typeof HTTP.METHODS[keyof typeof HTTP.METHODS];
-
-// ============================================================
-// HTTP HEADERS
-// ============================================================
-
-export const HEADERS = {
-  REQUEST_ID: "X-Request-ID",
-  CONTENT_TYPE: "Content-Type",
-  CONTENT_LENGTH: "Content-Length",
-  ACCEPT: "Accept",
-  AUTHORIZATION: "Authorization",
-  COOKIE: "Cookie",
-  SET_COOKIE: "Set-Cookie",
-  CACHE_CONTROL: "Cache-Control",
-  ETAG: "ETag",
-  IF_NONE_MATCH: "If-None-Match",
-  ORIGIN: "Origin",
-  REFERER: "Referer",
-  USER_AGENT: "User-Agent",
-  X_FORWARDED_FOR: "X-Forwarded-For",
-  CF_CONNECTING_IP: "CF-Connecting-IP",
-  CF_RAY: "CF-Ray",
-  CF_COUNTRY: "CF-IPCountry",
-} as const;
-
-// ============================================================
-// CONTENT TYPES
-// ============================================================
-
-export const CONTENT_TYPES = {
-  JSON: "application/json",
-  TEXT: "text/plain; charset=utf-8",
-  HTML: "text/html; charset=utf-8",
-  FORM: "application/x-www-form-urlencoded",
-  MULTIPART: "multipart/form-data",
-  OCTET_STREAM: "application/octet-stream",
-
-  JPEG: "image/jpeg",
-  PNG: "image/png",
-  WEBP: "image/webp",
-  GIF: "image/gif",
-
-  PDF: "application/pdf",
-  DOC: "application/msword",
-  DOCX:
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  CONTENT_TYPE: {
+    JSON: "application/json; charset=utf-8",
+    TEXT: "text/plain; charset=utf-8",
+    HTML: "text/html; charset=utf-8",
+    FORM_URLENCODED:
+      "application/x-www-form-urlencoded",
+    MULTIPART:
+      "multipart/form-data",
+    OCTET_STREAM:
+      "application/octet-stream",
+  },
 } as const;
 
 // ============================================================
@@ -286,57 +201,40 @@ export const SECURITY = {
 
   VISITOR_ID_LENGTH: 64,
   SESSION_ID_LENGTH: 128,
-
   ADMIN_SESSION_ID_LENGTH: 128,
 
   MIN_ADMIN_PASSWORD_LENGTH: 12,
 
   MAX_LOGIN_ATTEMPTS: 10,
-
   LOGIN_WINDOW_MINUTES: 15,
 
   SESSION_DURATION_DAYS: 30,
-
   ADMIN_SESSION_DURATION_HOURS: 12,
 
   PASSWORD_RESET_MINUTES: 30,
-
   EMAIL_VERIFICATION_MINUTES: 30,
 
   RATE_LIMIT_WINDOW_SECONDS: 60,
 
   MAX_REQUESTS_PER_WINDOW: 120,
-
   MAX_AUTH_REQUESTS_PER_WINDOW: 20,
-
   MAX_ADMIN_REQUESTS_PER_WINDOW: 300,
-
   MAX_MESSAGE_REQUESTS_PER_WINDOW: 60,
-
   MAX_PUBLICATION_REQUESTS_PER_WINDOW: 30,
-
   MAX_COMMENT_REQUESTS_PER_WINDOW: 60,
-
   MAX_REACTION_REQUESTS_PER_WINDOW: 120,
-
   MAX_REPORT_REQUESTS_PER_WINDOW: 20,
-
+  MAX_REVIEW_REQUESTS_PER_WINDOW: 30,
   MAX_SEARCH_REQUESTS_PER_WINDOW: 60,
 
-  MAX_UPLOAD_REQUESTS_PER_WINDOW: 30,
-
-  MAX_NOTIFICATION_REQUESTS_PER_WINDOW: 120,
-
   CSRF_TOKEN_LENGTH: 64,
-
   API_TOKEN_LENGTH: 128,
-
-  PASSWORD_HASH_ITERATIONS: 310000,
-
-  PBKDF2_HASH_LENGTH: 32,
 
   MAX_SESSION_AGE_SECONDS:
     60 * 60 * 24 * 30,
+
+  MAX_VISITOR_AGE_SECONDS:
+    60 * 60 * 24 * 365 * 2,
 
   MAX_ADMIN_SESSION_AGE_SECONDS:
     60 * 60 * 12,
@@ -371,15 +269,6 @@ export const COOKIES = {
     HTTP_ONLY: true,
     SECURE: true,
     SAME_SITE: "Strict",
-    PATH: "/admin",
-  },
-
-  LANGUAGE: {
-    NAME: "to_language",
-    MAX_AGE: 60 * 60 * 24 * 365,
-    HTTP_ONLY: false,
-    SECURE: true,
-    SAME_SITE: "Lax",
     PATH: "/",
   },
 } as const;
@@ -401,6 +290,8 @@ export const CACHE = {
 
   NOTIFICATIONS_SECONDS: 5,
 
+  REVIEWS_SECONDS: 15,
+
   NO_CACHE: 0,
 } as const;
 
@@ -410,40 +301,47 @@ export const CACHE = {
 
 export const FILE_LIMITS = {
   MAX_UPLOAD_SIZE_MB: 20,
-  MAX_UPLOAD_SIZE_BYTES: 20 * 1024 * 1024,
-
   MAX_IMAGE_SIZE_MB: 10,
-  MAX_IMAGE_SIZE_BYTES: 10 * 1024 * 1024,
-
-  MAX_VIDEO_SIZE_MB: 200,
-  MAX_VIDEO_SIZE_BYTES: 200 * 1024 * 1024,
-
-  MAX_AUDIO_SIZE_MB: 50,
-  MAX_AUDIO_SIZE_BYTES: 50 * 1024 * 1024,
-
-  MAX_VOICE_SIZE_MB: 25,
-  MAX_VOICE_SIZE_BYTES: 25 * 1024 * 1024,
-
   MAX_AVATAR_SIZE_MB: 5,
-  MAX_AVATAR_SIZE_BYTES: 5 * 1024 * 1024,
-
   MAX_DOCUMENT_SIZE_MB: 20,
-  MAX_DOCUMENT_SIZE_BYTES: 20 * 1024 * 1024,
+
+  MAX_VIDEO_SIZE_MB: 100,
+  MAX_AUDIO_SIZE_MB: 50,
+  MAX_VOICE_SIZE_MB: 30,
 
   MAX_FILES_PER_PUBLICATION: 50,
-
   MAX_FILES_PER_MESSAGE: 10,
-
   MAX_PROFILE_IMAGES: 10,
 
-  MAX_PHOTOS_PER_PUBLICATION: 50,
-
-  MAX_VIDEOS_PER_PUBLICATION: 10,
-
-  MAX_DOCUMENTS_PER_PUBLICATION: 20,
-
   MAX_ATTACHMENTS_PER_MESSAGE: 10,
+  MAX_MEDIA_PER_PUBLICATION: 50,
+
+  // Совместимость с кодом, который работает в байтах.
+  MAX_UPLOAD_SIZE_BYTES:
+    20 * 1024 * 1024,
+
+  MAX_IMAGE_SIZE_BYTES:
+    10 * 1024 * 1024,
+
+  MAX_AVATAR_SIZE_BYTES:
+    5 * 1024 * 1024,
+
+  MAX_DOCUMENT_SIZE_BYTES:
+    20 * 1024 * 1024,
+
+  MAX_VIDEO_SIZE_BYTES:
+    100 * 1024 * 1024,
+
+  MAX_AUDIO_SIZE_BYTES:
+    50 * 1024 * 1024,
+
+  MAX_VOICE_SIZE_BYTES:
+    30 * 1024 * 1024,
 } as const;
+
+// ============================================================
+// MIME / FILE TYPES
+// ============================================================
 
 export const ALLOWED_IMAGE_TYPES = [
   "image/jpeg",
@@ -472,7 +370,19 @@ export const ALLOWED_DOCUMENT_TYPES = [
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.ms-powerpoint",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "text/plain",
+  "text/csv",
+] as const;
+
+export const ALLOWED_MEDIA_TYPES = [
+  ...ALLOWED_IMAGE_TYPES,
+  ...ALLOWED_VIDEO_TYPES,
+  ...ALLOWED_AUDIO_TYPES,
+  ...ALLOWED_DOCUMENT_TYPES,
 ] as const;
 
 // ============================================================
@@ -490,6 +400,11 @@ export const CONTENT_LIMITS = {
 
   BIO_MAX: 2000,
 
+  TITLE_MIN: 1,
+  TITLE_MAX: 300,
+
+  DESCRIPTION_MAX: 30000,
+
   COMMENT_MIN: 1,
   COMMENT_MAX: 5000,
 
@@ -499,6 +414,10 @@ export const CONTENT_LIMITS = {
   REPORT_REASON_MIN: 1,
   REPORT_REASON_MAX: 5000,
 
+  REVIEW_TITLE_MAX: 300,
+  REVIEW_TEXT_MIN: 1,
+  REVIEW_TEXT_MAX: 10000,
+
   SEARCH_QUERY_MIN: 1,
   SEARCH_QUERY_MAX: 300,
 
@@ -507,23 +426,13 @@ export const CONTENT_LIMITS = {
   NOTIFICATION_TITLE_MAX: 300,
   NOTIFICATION_BODY_MAX: 5000,
 
-  PUBLICATION_TITLE_MIN: 1,
-  PUBLICATION_TITLE_MAX: 300,
-
-  PUBLICATION_TEXT_MIN: 1,
-  PUBLICATION_TEXT_MAX: 50000,
-
-  LINK_MAX: 5000,
-
   TAG_MAX: 100,
+  TAGS_PER_OBJECT_MAX: 30,
 
-  TAGS_PER_PUBLICATION: 30,
+  URL_MAX: 4096,
 
-  POLL_QUESTION_MAX: 1000,
-
-  POLL_OPTIONS_MAX: 50,
-
-  PROFILE_LINKS_MAX: 20,
+  LINK_PREVIEW_TITLE_MAX: 300,
+  LINK_PREVIEW_DESCRIPTION_MAX: 1000,
 } as const;
 
 // ============================================================
@@ -542,11 +451,14 @@ export const PAGINATION = {
   CHAT_DEFAULT_LIMIT: 50,
   CHAT_MAX_LIMIT: 100,
 
-  COMMENT_DEFAULT_LIMIT: 50,
+  COMMENT_DEFAULT_LIMIT: 30,
   COMMENT_MAX_LIMIT: 100,
 
-  NOTIFICATION_DEFAULT_LIMIT: 50,
-  NOTIFICATION_MAX_LIMIT: 100,
+  REVIEW_DEFAULT_LIMIT: 20,
+  REVIEW_MAX_LIMIT: 100,
+
+  SEARCH_DEFAULT_LIMIT: 20,
+  SEARCH_MAX_LIMIT: 100,
 } as const;
 
 // ============================================================
@@ -564,6 +476,76 @@ export type SortDirection =
   ];
 
 // ============================================================
+// LANGUAGES
+// ============================================================
+
+export const LANGUAGES = {
+  RU: "ru",
+  TJ: "tj",
+  EN: "en",
+  FA: "fa",
+} as const;
+
+export type Language =
+  typeof LANGUAGES[
+    keyof typeof LANGUAGES
+  ];
+
+// Алиасы для мест, где язык может называться иначе.
+export const LANGUAGE_CODES = LANGUAGES;
+
+// ============================================================
+// LANGUAGE METADATA
+// ============================================================
+
+export const LANGUAGE_INFO = {
+  ru: {
+    code: "ru",
+    name: "Русский",
+    nativeName: "Русский",
+    direction: "ltr",
+  },
+
+  tj: {
+    code: "tj",
+    name: "Таджикский",
+    nativeName: "Тоҷикӣ",
+    direction: "ltr",
+  },
+
+  en: {
+    code: "en",
+    name: "English",
+    nativeName: "English",
+    direction: "ltr",
+  },
+
+  fa: {
+    code: "fa",
+    name: "Persian",
+    nativeName: "فارسی",
+    direction: "rtl",
+  },
+} as const;
+
+export type LanguageDirection =
+  "ltr" | "rtl";
+
+// ============================================================
+// RTL
+// ============================================================
+
+export const RTL_LANGUAGES = [
+  "fa",
+] as const;
+
+export const LTR_LANGUAGES = [
+  "ru",
+  "tj",
+  "en",
+] as const;
+
+// ============================================================
 // USER INTERFACE
 // ============================================================
 
@@ -577,20 +559,25 @@ export const UI = {
   DEFAULT_THEME: "system",
 
   MOBILE_BREAKPOINT: 768,
-
   TABLET_BREAKPOINT: 1024,
-
   DESKTOP_BREAKPOINT: 1280,
 
-  RTL_LANGUAGES: [
-    "fa",
-  ] as const,
+  MOBILE_MAX_WIDTH: 767,
+  TABLET_MIN_WIDTH: 768,
+  TABLET_MAX_WIDTH: 1023,
+  DESKTOP_MIN_WIDTH: 1024,
 
-  LTR_LANGUAGES: [
-    "ru",
-    "tj",
-    "en",
-  ] as const,
+  ANIMATION_FAST_MS: 150,
+  ANIMATION_NORMAL_MS: 250,
+  ANIMATION_SLOW_MS: 400,
+
+  TOAST_DURATION_MS: 4000,
+
+  MODAL_Z_INDEX: 1000,
+  DROPDOWN_Z_INDEX: 1100,
+  NOTIFICATION_Z_INDEX: 1200,
+  CHAT_Z_INDEX: 1300,
+  SYSTEM_Z_INDEX: 2000,
 } as const;
 
 // ============================================================
@@ -614,6 +601,8 @@ export const SEARCH = {
     "country",
     "region",
     "city",
+    "category",
+    "tags",
   ],
 
   SEARCHABLE_PROFILE_FIELDS: [
@@ -623,20 +612,37 @@ export const SEARCH = {
     "username",
     "city",
     "country",
+    "bio",
   ],
 
   SEARCHABLE_COMMENT_FIELDS: [
     "text",
+    "author_name",
+    "username",
   ],
 
   SEARCHABLE_REVIEW_FIELDS: [
     "title",
     "text",
+    "author_name",
+    "username",
   ],
 
   SEARCHABLE_CHAT_FIELDS: [
     "text",
+    "sender_name",
+    "username",
   ],
+
+  TYPES: {
+    ALL: "all",
+    PUBLICATIONS: "publications",
+    USERS: "users",
+    COMMENTS: "comments",
+    REVIEWS: "reviews",
+    CHATS: "chats",
+    CATEGORIES: "categories",
+  },
 } as const;
 
 // ============================================================
@@ -647,40 +653,40 @@ export const CHAT = {
   MAX_MESSAGE_LENGTH: 10000,
 
   MAX_MESSAGES_PER_PAGE: 100,
-
   DEFAULT_MESSAGES_PER_PAGE: 50,
 
   MAX_CONVERSATIONS_PER_PAGE: 50,
-
   DEFAULT_CONVERSATIONS_PER_PAGE: 20,
 
   MAX_ATTACHMENTS_PER_MESSAGE: 10,
 
-  MAX_MESSAGE_EDIT_MINUTES: 60,
-
-  MAX_MESSAGE_DELETE_MINUTES: 60,
+  MAX_MESSAGE_EDIT_MINUTES: 60 * 24,
 
   MAX_FORWARD_COUNT: 100,
 
-  MAX_REPLY_DEPTH: 50,
-
-  MAX_SEARCH_RESULTS: 100,
+  MAX_PINNED_MESSAGES: 100,
 
   TYPING_TIMEOUT_SECONDS: 10,
 
-  ONLINE_TIMEOUT_SECONDS: 60,
+  PRESENCE_TIMEOUT_SECONDS: 60,
 
-  LAST_SEEN_UPDATE_SECONDS: 30,
+  MESSAGE_SEARCH_LIMIT: 100,
 
-  MAX_PINNED_MESSAGES: 100,
+  MAX_REACTIONS_PER_MESSAGE: 100,
 
-  MAX_ADMIN_NOTES_PER_CONVERSATION: 100,
+  MAX_REPLY_DEPTH: 20,
 
-  SYSTEM_CHAT_ENABLED: true,
+  SYSTEM_CHAT_ID: "system",
 
-  ADMIN_CHAT_ENABLED: true,
+  ADMIN_CHAT_TYPE: "admin_private",
 
-  USER_TO_USER_CHAT_ENABLED: false,
+  SYSTEM_CHAT_TYPE: "system_only",
+
+  PRIVATE_CHAT_TYPE: "private",
+
+  GROUP_CHAT_TYPE: "group",
+
+  CHANNEL_CHAT_TYPE: "channel",
 } as const;
 
 // ============================================================
@@ -688,26 +694,20 @@ export const CHAT = {
 // ============================================================
 
 export const NOTIFICATIONS = {
-  DEFAULT_PAGE_SIZE: 50,
+  DEFAULT_LIMIT: 20,
+  MAX_LIMIT: 100,
 
-  MAX_PAGE_SIZE: 100,
-
-  MAX_TITLE_LENGTH: 300,
-
-  MAX_BODY_LENGTH: 5000,
-
-  MAX_UNREAD_BADGE: 999,
+  TITLE_MAX_LENGTH: 300,
+  BODY_MAX_LENGTH: 5000,
 
   RETENTION_DAYS: 365,
-
-  ADMIN_RETENTION_DAYS: 730,
 
   CHANNELS: {
     IN_APP: "in_app",
     PUSH: "push",
-    EMAIL: "email",
     SOUND: "sound",
     VIBRATION: "vibration",
+    EMAIL: "email",
     SYSTEM_CHAT: "system_chat",
     BADGE: "badge",
   },
@@ -717,7 +717,13 @@ export const NOTIFICATIONS = {
     NORMAL: "normal",
     HIGH: "high",
     URGENT: "urgent",
-    CRITICAL: "critical",
+  },
+
+  STATUS: {
+    UNREAD: "unread",
+    READ: "read",
+    ARCHIVED: "archived",
+    DELETED: "deleted",
   },
 
   CATEGORIES: {
@@ -739,47 +745,45 @@ export const NOTIFICATIONS = {
     STATISTICS: "statistics",
     ACTIVITY: "activity",
     SECURITY: "security",
+    ALL: "all",
   },
 
-  EVENTS: {
-    NEW_REPORT: "new_report",
-    REPORT_UPDATED: "report_updated",
+  DELIVERY: {
+    INSTANT: "instant",
+    GROUPED: "grouped",
+    SILENT: "silent",
+  },
+} as const;
 
-    NEW_PARTICIPANT: "new_participant",
-    PARTICIPANT_UPDATED: "participant_updated",
-    PARTICIPANT_BLOCKED: "participant_blocked",
-    PARTICIPANT_UNBLOCKED: "participant_unblocked",
+// ============================================================
+// REVIEWS
+// ============================================================
 
-    NEW_COMMENT: "new_comment",
-    COMMENT_REPLY: "comment_reply",
-    COMMENT_REACTION: "comment_reaction",
+export const REVIEWS = {
+  MIN_RATING: 1,
+  MAX_RATING: 5,
 
-    NEW_PUBLICATION: "new_publication",
-    PUBLICATION_APPROVED: "publication_approved",
-    PUBLICATION_REJECTED: "publication_rejected",
-    PUBLICATION_EDITED: "publication_edited",
+  DEFAULT_RATING: 5,
 
-    NEW_MESSAGE: "new_message",
-    MESSAGE_REPLY: "message_reply",
+  MAX_TITLE_LENGTH: 300,
+  MAX_TEXT_LENGTH: 10000,
 
-    NEW_REACTION: "new_reaction",
-    NEW_REVIEW: "new_review",
+  MAX_REPLIES_PER_REVIEW: 1000,
 
-    NEW_SHARE: "new_share",
+  MAX_REACTIONS_PER_REVIEW: 100,
 
-    PAYMENT_RECEIVED: "payment_received",
-    PAYMENT_CONFIRMED: "payment_confirmed",
+  MAX_REPORTS_PER_REVIEW: 100,
 
-    PREMIUM_REQUEST: "premium_request",
-    VIP_REQUEST: "vip_request",
-    PRO_REQUEST: "pro_request",
-    TOP_REQUEST: "top_request",
+  DEFAULT_LIMIT: 20,
+  MAX_LIMIT: 100,
 
-    LEVEL_CHANGED: "level_changed",
-    BADGE_GRANTED: "badge_granted",
-
-    SYSTEM_MESSAGE: "system_message",
-    SECURITY_ALERT: "security_alert",
+  SORT: {
+    NEWEST: "newest",
+    OLDEST: "oldest",
+    HIGHEST_RATING: "highest_rating",
+    LOWEST_RATING: "lowest_rating",
+    MOST_HELPFUL: "most_helpful",
+    MOST_REACTIONS: "most_reactions",
   },
 } as const;
 
@@ -791,24 +795,12 @@ export const COMMENTS = {
   MIN_LENGTH: 1,
   MAX_LENGTH: 5000,
 
-  MAX_REPLY_DEPTH: 50,
+  MAX_REPLY_DEPTH: 20,
 
-  DEFAULT_PAGE_SIZE: 50,
-  MAX_PAGE_SIZE: 100,
+  DEFAULT_LIMIT: 30,
+  MAX_LIMIT: 100,
 
   MAX_REACTIONS_PER_COMMENT: 100,
-
-  EDIT_WINDOW_MINUTES: 60,
-
-  MAX_MENTIONS: 20,
-
-  ALLOW_GUEST_COMMENTS: true,
-
-  ALLOW_REPLIES: true,
-
-  ALLOW_REACTIONS: true,
-
-  ALLOW_REPORTS: true,
 } as const;
 
 // ============================================================
@@ -818,19 +810,9 @@ export const COMMENTS = {
 export const REACTIONS = {
   DEFAULT: "like",
 
-  MAX_PER_USER_PER_TARGET: 1,
+  MAX_PER_TARGET: 1,
 
-  MAX_CUSTOM_TYPES: 100,
-
-  PUBLICATION_ENABLED: true,
-
-  COMMENT_ENABLED: true,
-
-  REVIEW_ENABLED: true,
-
-  MESSAGE_ENABLED: true,
-
-  ALLOWED_TYPES: [
+  TYPES: [
     "like",
     "love",
     "useful",
@@ -842,27 +824,7 @@ export const REACTIONS = {
     "wow",
     "celebrate",
     "thanks",
-  ] as const,
-} as const;
-
-// ============================================================
-// VIEWS
-// ============================================================
-
-export const VIEWS = {
-  UNIQUE_SESSION_WINDOW_MINUTES: 30,
-
-  UNIQUE_VISITOR_WINDOW_MINUTES: 30,
-
-  MAX_EVENTS_PER_MINUTE: 60,
-
-  TRACK_PUBLICATIONS: true,
-
-  TRACK_PROFILES: true,
-
-  TRACK_MEDIA: true,
-
-  TRACK_LINKS: true,
+  ],
 } as const;
 
 // ============================================================
@@ -871,102 +833,43 @@ export const VIEWS = {
 
 export const PUBLICATIONS = {
   DEFAULT_PAGE_SIZE: 20,
-
   MAX_PAGE_SIZE: 100,
+
+  TITLE_MAX_LENGTH: 300,
+
+  TEXT_MAX_LENGTH: 30000,
 
   MAX_MEDIA: 50,
 
-  MAX_IMAGES: 50,
-
-  MAX_VIDEOS: 10,
-
-  MAX_DOCUMENTS: 20,
-
-  MAX_LINKS: 20,
-
-  MAX_TAGS: 30,
-
   FREE_AUTO_DELETE_DAYS: 10,
 
-  PREMIUM_AUTO_DELETE: false,
+  TYPES: {
+    FREE: "FREE",
+    PREMIUM: "PREMIUM",
+    VIP: "VIP",
+    CUSTOM: "CUSTOM",
+  },
 
-  VIP_AUTO_DELETE: false,
+  PRIORITIES: {
+    LOW: 0,
+    NORMAL: 10,
+    HIGH: 50,
+    TOP: 100,
+    VIP: 1000,
+  },
 
-  DEFAULT_TYPE: "free",
+  VISIBILITY: {
+    PUBLIC: "public",
+    PRIVATE: "private",
+    UNLISTED: "unlisted",
+    ADMIN_ONLY: "admin_only",
+  },
 
-  DEFAULT_VISIBILITY: "public",
-
-  DEFAULT_PRIORITY: 0,
-
-  MAX_TITLE_LENGTH: 300,
-
-  MAX_TEXT_LENGTH: 50000,
-
-  MAX_COMPANY_LENGTH: 300,
-
-  MAX_LOCATION_LENGTH: 300,
-
-  MAX_SALARY_LENGTH: 200,
-
-  MAX_CONTACT_LENGTH: 1000,
-
-  MAX_APPLICATION_TEXT_LENGTH: 10000,
-
-  ALLOW_EDIT_BEFORE_MODERATION: true,
-
-  ALLOW_ADMIN_OVERRIDE: true,
-
-  ALLOW_ADMIN_PIN: true,
-
-  ALLOW_ADMIN_FEATURED: true,
-
-  ALLOW_ADMIN_CUSTOM_TYPE: true,
-} as const;
-
-// ============================================================
-// ADMIN
-// ============================================================
-
-export const ADMIN = {
-  SESSION_DURATION_HOURS: 12,
-
-  MAX_SESSIONS_PER_ADMIN: 10,
-
-  DEFAULT_PAGE_SIZE: 50,
-
-  MAX_PAGE_SIZE: 200,
-
-  SEARCH_MIN_LENGTH: 1,
-
-  SEARCH_MAX_LENGTH: 300,
-
-  MAX_BULK_ACTION_ITEMS: 500,
-
-  ACTING_MODE_ENABLED: true,
-
-  INTERNAL_NOTES_ENABLED: true,
-
-  AUDIT_LOG_ENABLED: true,
-
-  CONFIRM_DANGEROUS_ACTIONS: true,
-
-  REQUIRE_STRONG_CONFIRMATION_FOR_DELETE: true,
-
-  ALLOW_IMPERSONATION: true,
-
-  ALLOW_ADMIN_ACTING_MODE: true,
-
-  ALLOW_ADMIN_INITIATE_CHAT: true,
-
-  ALLOW_ADMIN_MANAGE_NOTIFICATIONS: true,
-
-  ALLOW_ADMIN_MANAGE_PERMISSIONS: true,
-
-  ALLOW_ADMIN_MANAGE_LEVELS: true,
-
-  ALLOW_ADMIN_MANAGE_PRICES: true,
-
-  ALLOW_ADMIN_MANAGE_FEATURE_FLAGS: true,
+  AUTHOR_VISIBILITY: {
+    PUBLIC: "public",
+    ANONYMOUS: "anonymous",
+    ADMIN_ONLY: "admin_only",
+  },
 } as const;
 
 // ============================================================
@@ -975,231 +878,159 @@ export const ADMIN = {
 
 export const LEVELS = {
   MIN: 0,
-
   MAX: 12,
 
-  DISPLAY_MIN: 1,
+  PUBLIC_MIN: 1,
+  PUBLIC_MAX: 12,
 
   HIDDEN_LEVEL: 0,
 
-  DEFAULT_LEVEL: 0,
+  DEFAULT: 0,
 
-  MAX_DISPLAY_LEVEL: 12,
+  NAMES: {
+    1: "Новичок",
+    2: "Участник",
+    3: "Активный",
+    4: "Продвинутый",
+    5: "Доверенный",
+    6: "Опытный",
+    7: "Проверенный участник",
+    8: "Авторитетный",
+    9: "Профессионал",
+    10: "Лидер",
+    11: "Элита",
+    12: "Global",
+  },
 
-  NAMES: [
-    "Новичок",
-    "Участник",
-    "Активный",
-    "Продвинутый",
-    "Доверенный",
-    "Опытный",
-    "Проверенный участник",
-    "Авторитетный",
-    "Профессионал",
-    "Лидер",
-    "Элита",
-    "Global",
-  ] as const,
+  BADGE_PREFIX: "Lv.",
 } as const;
 
 // ============================================================
-// SERVICES / MONETIZATION
+// SERVICES / SUBSCRIPTIONS
 // ============================================================
 
 export const SERVICES = {
-  PREMIUM: {
-    CODE: "premium",
-    DEFAULT_PRICE: "10",
-    CURRENCY: "TJS",
-  },
+  FREE: "free",
 
-  VIP: {
-    CODE: "vip",
-    DEFAULT_PRICE: "20",
-    CURRENCY: "TJS",
-  },
+  TOP: "top",
+  TOP_3_MONTHS: "top_3_months",
+  TOP_1_YEAR: "top_1_year",
 
-  TOP: {
-    CODE: "top",
-    DEFAULT_PRICE_3_MONTHS: "30",
-    DEFAULT_PRICE_1_YEAR: "100",
-    CURRENCY: "TJS",
-  },
+  PREMIUM: "premium",
 
-  PRO: {
-    CODE: "pro",
-    DEFAULT_PRICE_3_MONTHS: "50",
-    DEFAULT_PRICE_1_YEAR: "120",
-    CURRENCY: "TJS",
-  },
+  PRO: "pro",
+  PRO_3_MONTHS: "pro_3_months",
+  PRO_1_YEAR: "pro_1_year",
+
+  VIP_PUBLICATION: "vip_publication",
+  PREMIUM_PUBLICATION: "premium_publication",
+} as const;
+
+export const SERVICE_PRICES = {
+  TOP_3_MONTHS: 30,
+  TOP_1_YEAR: 100,
+
+  PREMIUM_PUBLICATION: 10,
+
+  PRO_3_MONTHS: 50,
+  PRO_1_YEAR: 120,
+
+  VIP_PUBLICATION: 20,
 } as const;
 
 // ============================================================
-// RATINGS
+// ADMIN
 // ============================================================
 
-export const RATINGS = {
-  MIN: 1,
-
-  MAX: 5,
-
-  DEFAULT: 5,
-
-  ALLOWED: [
-    1,
-    2,
-    3,
-    4,
-    5,
-  ] as const,
-} as const;
-
-// ============================================================
-// REPORTS
-// ============================================================
-
-export const REPORTS = {
-  MAX_REASON_LENGTH: 5000,
-
+export const ADMIN = {
   DEFAULT_PAGE_SIZE: 50,
-
   MAX_PAGE_SIZE: 200,
 
-  PRIVATE: true,
+  SESSION_HOURS: 12,
 
-  SHOW_PUBLIC_REPORT_MARKER: false,
+  SEARCH_LIMIT: 100,
 
-  NOTIFY_ADMIN: true,
+  MAX_BULK_ACTION_SIZE: 500,
 
-  ALLOW_REPORTER_STATUS: true,
+  CONFIRMATION_REQUIRED_ACTIONS: [
+    "delete",
+    "hard_delete",
+    "block",
+    "unblock",
+    "restore",
+    "change_permissions",
+    "change_level",
+    "change_service",
+    "change_price",
+    "impersonate",
+  ],
+
+  SECTIONS: [
+    "dashboard",
+    "participants",
+    "publications",
+    "comments",
+    "reviews",
+    "chats",
+    "notifications",
+    "reports",
+    "moderation",
+    "payments",
+    "premium",
+    "pro",
+    "top",
+    "vip",
+    "levels",
+    "badges",
+    "categories",
+    "analytics",
+    "activity",
+    "audit",
+    "security",
+    "permissions",
+    "feature_flags",
+    "settings",
+    "system",
+  ],
 } as const;
 
 // ============================================================
-// SHARING
-// ============================================================
-
-export const SHARES = {
-  ENABLED: true,
-
-  COPY_LINK_ENABLED: true,
-
-  SYSTEM_SHARE_ENABLED: true,
-
-  CHAT_SHARE_ENABLED: true,
-
-  IMAGE_SHARE_ENABLED: true,
-
-  TRACK_SOURCE: true,
-
-  TRACK_USER: true,
-
-  TRACK_TIME: true,
-} as const;
-
-// ============================================================
-// DATABASE
-// ============================================================
-
-export const DATABASE = {
-  NAME: "tajik-opportunities-db",
-
-  DEFAULT_BATCH_SIZE: 100,
-
-  MAX_BATCH_SIZE: 1000,
-
-  QUERY_TIMEOUT_MS: 10000,
-
-  TRANSACTION_RETRY_COUNT: 3,
-
-  MIGRATION_TABLE: "schema_migrations",
-} as const;
-
-// ============================================================
-// FEATURES
+// FEATURE FLAGS
 // ============================================================
 
 export const FEATURES = {
-  REGISTRATION: true,
-
-  USERNAME_SYSTEM: true,
-
-  PROFILES: true,
-
-  PUBLICATIONS: true,
-
-  COMMENTS: true,
-
-  REPLIES: true,
-
-  REACTIONS: true,
-
-  REVIEWS: true,
-
-  RATINGS: true,
-
-  BOOKMARKS: true,
-
-  SHARES: true,
-
-  VIEWS: true,
-
-  SEARCH: true,
-
-  PRIVATE_CHAT: true,
-
-  SYSTEM_CHAT: true,
-
-  ADMIN_CHAT: true,
-
-  MEDIA_UPLOADS: true,
-
-  VIDEO: true,
-
-  AUDIO: true,
-
-  VOICE: true,
-
-  DOCUMENTS: true,
-
-  NOTIFICATIONS: true,
-
-  PUSH_NOTIFICATIONS: true,
-
-  EMAIL_NOTIFICATIONS: true,
-
-  PREMIUM: true,
-
-  PRO: true,
-
-  TOP: true,
-
-  VIP: true,
-
-  LEVELS: true,
-
-  BADGES: true,
-
-  ACTIVITY_MONITOR: true,
-
-  ADMIN_ACTING_MODE: true,
-
-  SMART_FEED: true,
-
-  SMART_SEARCH: true,
-
-  RECOMMENDATIONS: true,
-
-  POLLS: true,
-
-  FOLLOWING: true,
-
-  SAVED_FOLDERS: true,
-
-  AI_CENTER: false,
-
-  LIVE: false,
-
-  INTERNATIONAL_MODE: true,
+  PUBLICATIONS: "publications",
+  COMMENTS: "comments",
+  REACTIONS: "reactions",
+  REVIEWS: "reviews",
+  CHAT: "chat",
+  PRIVATE_CHAT: "private_chat",
+  SYSTEM_CHAT: "system_chat",
+  MEDIA: "media",
+  IMAGE_UPLOAD: "image_upload",
+  VIDEO_UPLOAD: "video_upload",
+  AUDIO_UPLOAD: "audio_upload",
+  DOCUMENT_UPLOAD: "document_upload",
+  SEARCH: "search",
+  NOTIFICATIONS: "notifications",
+  PUSH_NOTIFICATIONS: "push_notifications",
+  EMAIL_NOTIFICATIONS: "email_notifications",
+  SHARES: "shares",
+  BOOKMARKS: "bookmarks",
+  REPORTS: "reports",
+  LEVELS: "levels",
+  BADGES: "badges",
+  PREMIUM: "premium",
+  PRO: "pro",
+  TOP: "top",
+  VIP: "vip",
+  PAYMENTS: "payments",
+  AI: "ai",
+  RECOMMENDATIONS: "recommendations",
+  LIVE: "live",
+  EVENTS: "events",
+  INTERNATIONAL: "international",
+  MAINTENANCE: "maintenance",
 } as const;
 
 // ============================================================
@@ -1215,21 +1046,21 @@ export const SYSTEM_SETTINGS = {
 
   COMMENTS_ENABLED: "comments_enabled",
 
-  REACTIONS_ENABLED: "reactions_enabled",
-
   REVIEWS_ENABLED: "reviews_enabled",
 
   CHAT_ENABLED: "chat_enabled",
 
-  MEDIA_UPLOADS_ENABLED: "media_uploads_enabled",
+  MEDIA_ENABLED: "media_enabled",
+
+  SEARCH_ENABLED: "search_enabled",
 
   NOTIFICATIONS_ENABLED: "notifications_enabled",
 
-  PUSH_NOTIFICATIONS_ENABLED: "push_notifications_enabled",
+  PUSH_NOTIFICATIONS_ENABLED:
+    "push_notifications_enabled",
 
-  EMAIL_NOTIFICATIONS_ENABLED: "email_notifications_enabled",
-
-  SEARCH_ENABLED: "search_enabled",
+  EMAIL_NOTIFICATIONS_ENABLED:
+    "email_notifications_enabled",
 
   PAYMENTS_ENABLED: "payments_enabled",
 
@@ -1243,13 +1074,73 @@ export const SYSTEM_SETTINGS = {
 
   LEVELS_ENABLED: "levels_enabled",
 
-  BADGES_ENABLED: "badges_enabled",
+  AI_ENABLED: "ai_enabled",
 
-  SHARING_ENABLED: "sharing_enabled",
+  INTERNATIONAL_ENABLED:
+    "international_enabled",
 
-  REPORTS_ENABLED: "reports_enabled",
+  DEFAULT_LANGUAGE: "default_language",
 
-  ADMIN_ACTING_MODE_ENABLED: "admin_acting_mode_enabled",
+  SUPPORTED_LANGUAGES:
+    "supported_languages",
+
+  DEFAULT_COUNTRY: "default_country",
+
+  TIMEZONE: "timezone",
+} as const;
+
+// ============================================================
+// MEDIA
+// ============================================================
+
+export const MEDIA = {
+  TYPES: {
+    IMAGE: "image",
+    VIDEO: "video",
+    AUDIO: "audio",
+    VOICE: "voice",
+    DOCUMENT: "document",
+  },
+
+  IMAGE_FORMATS: [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/gif",
+  ],
+
+  VIDEO_FORMATS: [
+    "video/mp4",
+    "video/webm",
+    "video/quicktime",
+  ],
+
+  AUDIO_FORMATS: [
+    "audio/mpeg",
+    "audio/mp3",
+    "audio/wav",
+    "audio/ogg",
+    "audio/webm",
+    "audio/mp4",
+    "audio/aac",
+  ],
+} as const;
+
+// ============================================================
+// DATABASE
+// ============================================================
+
+export const DATABASE = {
+  DEFAULT_LIMIT: 100,
+  MAX_LIMIT: 1000,
+
+  BUSY_TIMEOUT_MS: 5000,
+
+  MAX_RETRIES: 3,
+
+  RETRY_DELAY_MS: 100,
+
+  MIGRATION_TABLE: "schema_migrations",
 } as const;
 
 // ============================================================
@@ -1257,18 +1148,13 @@ export const SYSTEM_SETTINGS = {
 // ============================================================
 
 export const ERROR_CODES = {
-  UNKNOWN: "UNKNOWN_ERROR",
-
   BAD_REQUEST: "BAD_REQUEST",
-
   VALIDATION_ERROR: "VALIDATION_ERROR",
 
   UNAUTHORIZED: "UNAUTHORIZED",
-
   FORBIDDEN: "FORBIDDEN",
 
   NOT_FOUND: "NOT_FOUND",
-
   CONFLICT: "CONFLICT",
 
   RATE_LIMITED: "RATE_LIMITED",
@@ -1277,27 +1163,21 @@ export const ERROR_CODES = {
 
   DATABASE_ERROR: "DATABASE_ERROR",
 
-  NETWORK_ERROR: "NETWORK_ERROR",
-
   MEDIA_ERROR: "MEDIA_ERROR",
 
   PUBLICATION_ERROR: "PUBLICATION_ERROR",
-
   COMMENT_ERROR: "COMMENT_ERROR",
-
-  REACTION_ERROR: "REACTION_ERROR",
-
   REVIEW_ERROR: "REVIEW_ERROR",
 
   CHAT_ERROR: "CHAT_ERROR",
+  MESSAGE_ERROR: "MESSAGE_ERROR",
 
-  NOTIFICATION_ERROR: "NOTIFICATION_ERROR",
+  NOTIFICATION_ERROR:
+    "NOTIFICATION_ERROR",
 
   PERMISSION_ERROR: "PERMISSION_ERROR",
 
   ADMIN_ERROR: "ADMIN_ERROR",
-
-  SECURITY_ERROR: "SECURITY_ERROR",
 
   MAINTENANCE: "MAINTENANCE",
 } as const;
@@ -1307,67 +1187,233 @@ export const ERROR_CODES = {
 // ============================================================
 
 export const RESPONSE = {
-  SUCCESS: "success",
+  SUCCESS: true,
+  ERROR: false,
 
-  ERROR: "error",
+  DEFAULT_ERROR_MESSAGE:
+    "Произошла внутренняя ошибка сервера.",
 
-  DATA: "data",
+  DEFAULT_NOT_FOUND_MESSAGE:
+    "Запрашиваемый ресурс не найден.",
 
-  MESSAGE: "message",
+  DEFAULT_UNAUTHORIZED_MESSAGE:
+    "Требуется авторизация.",
 
-  CODE: "code",
+  DEFAULT_FORBIDDEN_MESSAGE:
+    "Недостаточно прав.",
 
-  DETAILS: "details",
-
-  FIELDS: "fields",
-
-  REQUEST_ID: "requestId",
-
-  META: "meta",
-
-  PAGINATION: "pagination",
-
-  TOTAL: "total",
-
-  LIMIT: "limit",
-
-  OFFSET: "offset",
-
-  HAS_MORE: "hasMore",
+  DEFAULT_VALIDATION_MESSAGE:
+    "Проверьте правильность введённых данных.",
 } as const;
 
 // ============================================================
-// AUDIT
+// HEADERS
 // ============================================================
 
-export const AUDIT = {
-  ENABLED: true,
+export const HEADERS = {
+  REQUEST_ID: "X-Request-ID",
 
-  RETENTION_DAYS: 730,
+  CONTENT_TYPE: "Content-Type",
 
-  TRACK_IP: true,
+  AUTHORIZATION: "Authorization",
 
-  TRACK_USER_AGENT: true,
+  ACCEPT: "Accept",
 
-  TRACK_REQUEST_ID: true,
+  USER_AGENT: "User-Agent",
 
-  TRACK_ADMIN_ACTIONS: true,
+  REFERER: "Referer",
 
-  TRACK_PERMISSION_CHANGES: true,
+  ORIGIN: "Origin",
 
-  TRACK_PROFILE_CHANGES: true,
+  COOKIE: "Cookie",
 
-  TRACK_PUBLICATION_CHANGES: true,
+  SET_COOKIE: "Set-Cookie",
 
-  TRACK_COMMENT_ACTIONS: true,
+  CACHE_CONTROL: "Cache-Control",
 
-  TRACK_REVIEW_ACTIONS: true,
+  ETAG: "ETag",
 
-  TRACK_CHAT_ACTIONS: true,
+  IF_NONE_MATCH: "If-None-Match",
 
-  TRACK_NOTIFICATION_ACTIONS: true,
+  LOCATION: "Location",
 
-  TRACK_ACTING_MODE: true,
+  X_FORWARDED_FOR: "X-Forwarded-For",
+
+  CF_CONNECTING_IP: "CF-Connecting-IP",
+
+  CF_COUNTRY: "CF-IPCountry",
+
+  CF_RAY: "CF-Ray",
+} as const;
+
+// ============================================================
+// CONTENT TYPES
+// ============================================================
+
+export const CONTENT_TYPES = {
+  JSON: "application/json",
+  JSON_UTF8:
+    "application/json; charset=utf-8",
+
+  TEXT: "text/plain",
+  TEXT_UTF8:
+    "text/plain; charset=utf-8",
+
+  HTML: "text/html",
+  HTML_UTF8:
+    "text/html; charset=utf-8",
+
+  FORM:
+    "application/x-www-form-urlencoded",
+
+  MULTIPART:
+    "multipart/form-data",
+
+  OCTET_STREAM:
+    "application/octet-stream",
+} as const;
+
+// ============================================================
+// PUBLICATION COUNTERS
+// ============================================================
+
+export const PUBLICATION_COUNTERS = {
+  VIEWS: "views_count",
+  UNIQUE_VIEWS: "unique_views_count",
+
+  LIKES: "likes_count",
+  REACTIONS: "reactions_count",
+
+  COMMENTS: "comments_count",
+  REVIEWS: "reviews_count",
+
+  BOOKMARKS: "bookmarks_count",
+
+  SHARES: "shares_count",
+  SENDS: "sends_count",
+
+  REPORTS: "reports_count",
+
+  CONTACTS: "contacts_count",
+
+  APPLICATIONS: "applications_count",
+
+  DOWNLOADS: "downloads_count",
+
+  CLICKS: "clicks_count",
+  EXTERNAL_CLICKS: "external_clicks_count",
+} as const;
+
+// ============================================================
+// USER ACTIVITY
+// ============================================================
+
+export const ACTIVITY = {
+  ONLINE_TIMEOUT_SECONDS: 60,
+
+  RECENT_ACTIVITY_DAYS: 30,
+
+  MAX_HISTORY_ITEMS: 1000,
+
+  EVENTS: {
+    LOGIN: "login",
+    LOGOUT: "logout",
+
+    PROFILE_VIEW: "profile_view",
+    PROFILE_UPDATE: "profile_update",
+
+    PUBLICATION_CREATE: "publication_create",
+    PUBLICATION_VIEW: "publication_view",
+    PUBLICATION_EDIT: "publication_edit",
+    PUBLICATION_DELETE: "publication_delete",
+
+    COMMENT_CREATE: "comment_create",
+    COMMENT_EDIT: "comment_edit",
+    COMMENT_DELETE: "comment_delete",
+
+    REACTION_ADD: "reaction_add",
+    REACTION_REMOVE: "reaction_remove",
+
+    REVIEW_CREATE: "review_create",
+    REVIEW_EDIT: "review_edit",
+
+    SHARE: "share",
+    BOOKMARK: "bookmark",
+
+    CHAT_OPEN: "chat_open",
+    MESSAGE_SEND: "message_send",
+
+    REPORT_CREATE: "report_create",
+
+    SEARCH: "search",
+
+    ADMIN_ACTION: "admin_action",
+  },
+} as const;
+
+// ============================================================
+// DEFAULT VALUES
+// ============================================================
+
+export const DEFAULTS = {
+  LANGUAGE: APP.DEFAULT_LANGUAGE,
+
+  COUNTRY: APP.DEFAULT_COUNTRY,
+
+  TIMEZONE: APP.TIMEZONE,
+
+  PAGE_SIZE: PAGINATION.DEFAULT_LIMIT,
+
+  ADMIN_PAGE_SIZE:
+    PAGINATION.ADMIN_DEFAULT_LIMIT,
+
+  CHAT_PAGE_SIZE:
+    PAGINATION.CHAT_DEFAULT_LIMIT,
+
+  REVIEW_PAGE_SIZE:
+    PAGINATION.REVIEW_DEFAULT_LIMIT,
+
+  COMMENT_PAGE_SIZE:
+    PAGINATION.COMMENT_DEFAULT_LIMIT,
+
+  LEVEL: LEVELS.DEFAULT,
+
+  RATING: REVIEWS.DEFAULT_RATING,
+
+  PUBLICATION_TYPE:
+    PUBLICATIONS.TYPES.FREE,
+
+  PUBLICATION_PRIORITY:
+    PUBLICATIONS.PRIORITIES.NORMAL,
+
+  PUBLICATION_VISIBILITY:
+    PUBLICATIONS.VISIBILITY.PUBLIC,
+} as const;
+
+// ============================================================
+// TAJIKISTAN
+// ============================================================
+
+export const TAJIKISTAN = {
+  COUNTRY_CODE: "TJ",
+
+  COUNTRY_NAME: "Tajikistan",
+
+  CAPITAL: "Dushanbe",
+
+  CURRENCY: "TJS",
+
+  CURRENCY_SYMBOL: "SM",
+
+  TIMEZONE: "Asia/Dushanbe",
+
+  REGIONS: [
+    "Dushanbe",
+    "Sughd",
+    "Khatlon",
+    "Gorno-Badakhshan",
+    "Districts of Republican Subordination",
+  ],
 } as const;
 
 // ============================================================
@@ -1383,163 +1429,228 @@ export const ROUTES = {
 
   PUBLICATION: "/publication",
 
-  COMMENTS: "/comments",
-
   PROFILE: "/profile",
-
-  SEARCH: "/search",
 
   CHAT: "/chat",
 
-  NOTIFICATIONS: "/notifications",
+  SEARCH: "/search",
 
   SETTINGS: "/settings",
 
-  HEALTH: "/health",
+  NOTIFICATIONS: "/notifications",
 } as const;
 
 // ============================================================
-// TAJIKISTAN
+// TYPE HELPERS
 // ============================================================
 
-export const TAJIKISTAN = {
-  COUNTRY_CODE: "TJ",
+export type SupportedLanguage =
+  typeof APP.SUPPORTED_LANGUAGES[number];
 
-  COUNTRY_NAME: "Tajikistan",
+export type HttpMethod =
+  typeof HTTP.METHODS[
+    keyof typeof HTTP.METHODS
+  ];
 
-  COUNTRY_NAME_RU: "Таджикистан",
+export type PublicationType =
+  typeof PUBLICATIONS.TYPES[
+    keyof typeof PUBLICATIONS.TYPES
+  ];
 
-  COUNTRY_NAME_TJ: "Тоҷикистон",
+export type PublicationVisibility =
+  typeof PUBLICATIONS.VISIBILITY[
+    keyof typeof PUBLICATIONS.VISIBILITY
+  ];
 
-  COUNTRY_NAME_EN: "Tajikistan",
+export type NotificationPriority =
+  typeof NOTIFICATIONS.PRIORITIES[
+    keyof typeof NOTIFICATIONS.PRIORITIES
+  ];
 
-  COUNTRY_NAME_FA: "تاجیکستان",
+export type NotificationStatus =
+  typeof NOTIFICATIONS.STATUS[
+    keyof typeof NOTIFICATIONS.STATUS
+  ];
 
-  CURRENCY: "TJS",
-
-  CURRENCY_SYMBOL: "SM",
-
-  TIMEZONE: "Asia/Dushanbe",
-
-  PHONE_CODE: "+992",
-
-  DEFAULT_LANGUAGE: "ru",
-
-  LANGUAGES: [
-    "ru",
-    "tj",
-    "en",
-    "fa",
-  ] as const,
-} as const;
-
-// ============================================================
-// ENVIRONMENTS
-// ============================================================
-
-export const ENVIRONMENTS = {
-  DEVELOPMENT: "development",
-  STAGING: "staging",
-  PRODUCTION: "production",
-  TEST: "test",
-} as const;
-
-export type Environment =
-  typeof ENVIRONMENTS[
-    keyof typeof ENVIRONMENTS
+export type ServiceType =
+  typeof SERVICES[
+    keyof typeof SERVICES
   ];
 
 // ============================================================
-// DEFAULTS
-// ============================================================
-
-export const DEFAULTS = {
-  LANGUAGE: "ru",
-
-  COUNTRY: "Tajikistan",
-
-  TIMEZONE: "Asia/Dushanbe",
-
-  PAGE_SIZE: 20,
-
-  ADMIN_PAGE_SIZE: 50,
-
-  LEVEL: 0,
-
-  PUBLICATION_TYPE: "free",
-
-  PUBLICATION_VISIBILITY: "public",
-
-  PUBLICATION_PRIORITY: 0,
-
-  REACTION: "like",
-
-  RATING: 5,
-
-  NOTIFICATION_PRIORITY: "normal",
-
-  CHAT_PAGE_SIZE: 50,
-} as const;
-
-// ============================================================
-// VALIDATION HELPERS
+// LANGUAGE HELPERS
 // ============================================================
 
 export function isSupportedLanguage(
   value: unknown,
-): value is Language {
+): value is SupportedLanguage {
   return (
     typeof value === "string" &&
     (
-      value === "ru" ||
-      value === "tj" ||
-      value === "en" ||
-      value === "fa"
+      APP.SUPPORTED_LANGUAGES as readonly string[]
+    ).includes(value)
+  );
+}
+
+export function normalizeLanguage(
+  value: unknown,
+): SupportedLanguage {
+  if (isSupportedLanguage(value)) {
+    return value;
+  }
+
+  return APP.DEFAULT_LANGUAGE;
+}
+
+export function isRtlLanguage(
+  value: unknown,
+): boolean {
+  return (
+    value === "fa"
+  );
+}
+
+export function getLanguageDirection(
+  value: unknown,
+): LanguageDirection {
+  return isRtlLanguage(value)
+    ? "rtl"
+    : "ltr";
+}
+
+// ============================================================
+// NUMBER HELPERS
+// ============================================================
+
+export function isValidLevel(
+  value: unknown,
+): boolean {
+  if (
+    typeof value !== "number" ||
+    !Number.isInteger(value)
+  ) {
+    return false;
+  }
+
+  return (
+    value >= LEVELS.MIN &&
+    value <= LEVELS.MAX
+  );
+}
+
+export function isPublicLevel(
+  value: unknown,
+): boolean {
+  if (!isValidLevel(value)) {
+    return false;
+  }
+
+  return (
+    (value as number) >= LEVELS.PUBLIC_MIN
+  );
+}
+
+// ============================================================
+// PUBLICATION HELPERS
+// ============================================================
+
+export function isPublicationType(
+  value: unknown,
+): value is PublicationType {
+  return (
+    typeof value === "string" &&
+    Object.values(PUBLICATIONS.TYPES)
+      .includes(
+        value as PublicationType,
+      )
+  );
+}
+
+export function isPublicationVisibility(
+  value: unknown,
+): value is PublicationVisibility {
+  return (
+    typeof value === "string" &&
+    Object.values(
+      PUBLICATIONS.VISIBILITY,
+    ).includes(
+      value as PublicationVisibility,
     )
   );
 }
 
-export function isRTL(
-  language: string,
-): boolean {
-  return language === "fa";
-}
-
-export function getLanguageDirection(
-  language: string,
-): "ltr" | "rtl" {
-  return isRTL(language) ? "rtl" : "ltr";
-}
-
-export function getLanguageMetadata(
-  language: string,
-) {
-  if (isSupportedLanguage(language)) {
-    return LANGUAGE_METADATA[language];
-  }
-
-  return LANGUAGE_METADATA.ru;
-}
-
-export function normalizeLanguage(
-  language: unknown,
-): Language {
-  if (typeof language !== "string") {
-    return LANGUAGES.RU;
-  }
-
-  const normalized = language
-    .trim()
-    .toLowerCase()
-    .split("-")[0];
-
-  if (isSupportedLanguage(normalized)) {
-    return normalized;
-  }
-
-  return LANGUAGES.RU;
-}
-
 // ============================================================
-// END
+// EXPORT DEFAULT
 // ============================================================
+
+export default {
+  APP,
+  API,
+  HTTP,
+  SECURITY,
+  COOKIES,
+  CACHE,
+
+  FILE_LIMITS,
+  ALLOWED_IMAGE_TYPES,
+  ALLOWED_VIDEO_TYPES,
+  ALLOWED_AUDIO_TYPES,
+  ALLOWED_DOCUMENT_TYPES,
+  ALLOWED_MEDIA_TYPES,
+
+  CONTENT_LIMITS,
+  PAGINATION,
+
+  SORT_DIRECTION,
+  LANGUAGES,
+  LANGUAGE_INFO,
+  LANGUAGE_CODES,
+
+  RTL_LANGUAGES,
+  LTR_LANGUAGES,
+
+  UI,
+  SEARCH,
+  CHAT,
+  NOTIFICATIONS,
+
+  REVIEWS,
+  COMMENTS,
+  REACTIONS,
+  PUBLICATIONS,
+
+  LEVELS,
+
+  SERVICES,
+  SERVICE_PRICES,
+
+  ADMIN,
+  FEATURES,
+  SYSTEM_SETTINGS,
+
+  MEDIA,
+  DATABASE,
+
+  ERROR_CODES,
+  RESPONSE,
+  HEADERS,
+  CONTENT_TYPES,
+
+  PUBLICATION_COUNTERS,
+  ACTIVITY,
+
+  DEFAULTS,
+  TAJIKISTAN,
+  ROUTES,
+
+  isSupportedLanguage,
+  normalizeLanguage,
+  isRtlLanguage,
+  getLanguageDirection,
+
+  isValidLevel,
+  isPublicLevel,
+
+  isPublicationType,
+  isPublicationVisibility,
+};
