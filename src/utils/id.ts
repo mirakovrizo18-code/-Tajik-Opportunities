@@ -17,6 +17,7 @@
  * - comment_id
  * - notification_id
  * - activity_id
+ * - review_id
  * - admin session ID
  * - других внутренних идентификаторов.
  *
@@ -28,6 +29,10 @@
 // ============================================================
 
 function randomBytes(length: number): Uint8Array {
+  if (!Number.isInteger(length) || length <= 0) {
+    throw new Error("Invalid random byte length");
+  }
+
   const bytes = new Uint8Array(length);
 
   crypto.getRandomValues(bytes);
@@ -47,9 +52,7 @@ export function randomHex(length = 16): string {
   const bytes = randomBytes(length);
 
   return Array.from(bytes)
-    .map((byte) =>
-      byte.toString(16).padStart(2, "0")
-    )
+    .map((byte) => byte.toString(16).padStart(2, "0"))
     .join("");
 }
 
@@ -57,13 +60,8 @@ export function randomHex(length = 16): string {
 // BASE64URL
 // ============================================================
 
-export function randomBase64Url(
-  byteLength = 32
-): string {
-  if (
-    !Number.isInteger(byteLength) ||
-    byteLength <= 0
-  ) {
+export function randomBase64Url(byteLength = 32): string {
+  if (!Number.isInteger(byteLength) || byteLength <= 0) {
     throw new Error("Invalid random byte length");
   }
 
@@ -94,6 +92,10 @@ export function uuid(): string {
 // ============================================================
 
 export function shortId(length = 16): string {
+  if (!Number.isInteger(length) || length <= 0) {
+    throw new Error("Invalid short ID length");
+  }
+
   const alphabet =
     "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
@@ -102,9 +104,7 @@ export function shortId(length = 16): string {
   let result = "";
 
   for (let i = 0; i < length; i++) {
-    result += alphabet[
-      bytes[i] % alphabet.length
-    ];
+    result += alphabet[bytes[i] % alphabet.length];
   }
 
   return result;
@@ -114,15 +114,27 @@ export function shortId(length = 16): string {
 // PUBLIC ID
 // ============================================================
 
-export function publicId(
-  prefix = "to"
-): string {
+export function publicId(prefix = "to"): string {
   const cleanPrefix = prefix
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9_-]/g, "");
 
-  return `${cleanPrefix}_${shortId(20)}`;
+  const finalPrefix = cleanPrefix || "to";
+
+  return `${finalPrefix}_${shortId(20)}`;
+}
+
+// ============================================================
+// GENERIC ID — BACKWARD COMPATIBILITY
+// ============================================================
+
+export function generateId(prefix = "to"): string {
+  return publicId(prefix);
+}
+
+export function createId(prefix = "to"): string {
+  return publicId(prefix);
 }
 
 // ============================================================
@@ -163,6 +175,10 @@ export function createRequestId(): string {
 
 export function createPublicationId(): string {
   return publicId("pub");
+}
+
+export function generatePublicationId(): string {
+  return createPublicationId();
 }
 
 export function createCommentId(): string {
@@ -214,12 +230,66 @@ export function createAdminActivityId(): string {
 }
 
 // ============================================================
+// REVIEW IDS
+// ============================================================
+
+export function createReviewId(): string {
+  return publicId("review");
+}
+
+export function createReviewReplyId(): string {
+  return publicId("review_reply");
+}
+
+export function createReviewReportId(): string {
+  return publicId("review_report");
+}
+
+export function createReviewHistoryId(): string {
+  return publicId("review_history");
+}
+
+// ============================================================
+// PUBLICATION NUMBER
+// ============================================================
+
+/**
+ * Generates an internal/public publication number.
+ *
+ * Example:
+ *  m8x4k2p1_aB7cD9eF3gH
+ *
+ * Uses cryptographically secure random bytes.
+ */
+export function generatePublicationNumber(): string {
+  const timestamp = Date.now().toString(36).toLowerCase();
+
+  return `${timestamp}_${shortId(12)}`;
+}
+
+// ============================================================
+// TIMESTAMP ID
+// ============================================================
+
+export function timestampId(prefix = "to"): string {
+  const cleanPrefix =
+    prefix
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]/g, "") || "to";
+
+  const timestamp = Date.now()
+    .toString(36)
+    .toLowerCase();
+
+  return `${cleanPrefix}_${timestamp}_${shortId(12)}`;
+}
+
+// ============================================================
 // TOKEN
 // ============================================================
 
-export function createToken(
-  byteLength = 32
-): string {
+export function createToken(byteLength = 32): string {
   return randomBase64Url(byteLength);
 }
 
@@ -374,20 +444,6 @@ export function normalizeId(
   }
 
   return normalized;
-}
-
-// ============================================================
-// TIMESTAMP ID
-// ============================================================
-
-export function timestampId(
-  prefix = "to"
-): string {
-  const timestamp = Date.now()
-    .toString(36)
-    .toLowerCase();
-
-  return `${prefix}_${timestamp}_${shortId(12)}`;
 }
 
 // ============================================================
