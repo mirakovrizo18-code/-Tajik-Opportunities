@@ -1,455 +1,168 @@
+```toml
 # ============================================================
-
 # 🇹🇯 TAJIK OPPORTUNITIES
-
 # CLOUDFLARE WORKERS CONFIGURATION
-
 # Version: 2026.09.09 FREE PRODUCTION
-
 # ============================================================
 
-#
-
-# Конфигурация без Cloudflare R2.
-
-#
-
-# ВАЖНО:
-
-# • R2 НЕ используется
-
-# • Платная R2-подписка НЕ требуется
-
-# • D1 остаётся подключённой
-
-# • Static Assets остаются подключёнными
-
-# • Медиафайлы работают через URL-ссылки
-
-# • Существующие feature flags сохраняются
-
-# • Существующие переменные окружения сохраняются
-
-#
-
-# ============================================================
-
-# ============================================================
-
+# ------------------------------------------------------------
 # WORKER
-
-# ============================================================
+# ------------------------------------------------------------
 
 name = "tajik-opportunities"
-
 main = "src/index.ts"
-
 compatibility_date = "2026-09-09"
-
 workers_dev = true
 
-# ============================================================
-
+# ------------------------------------------------------------
 # ENVIRONMENT VARIABLES
-
-# ============================================================
+# ------------------------------------------------------------
 
 [vars]
 
 ENVIRONMENT = "production"
-
 APP_NAME = "Tajik Opportunities"
-
 APP_VERSION = "2026.09.09"
 
 DEFAULT_LANGUAGE = "ru"
-
 SUPPORTED_LANGUAGES = "ru,tg,en,uz"
 
 API_VERSION = "1"
 
 CORS_ORIGIN = "*"
-
 CORS_METHODS = "GET,POST,PUT,PATCH,DELETE,OPTIONS"
-
 CORS_HEADERS = "Content-Type,Authorization,X-Request-ID,X-CSRF-Token,X-Visitor-ID,X-Session-ID,X-Client-Version,X-Admin-Session"
 
-# ============================================================
+# ------------------------------------------------------------
+# FEATURE FLAGS
+# ------------------------------------------------------------
 
+FEATURE_PUBLICATIONS = "true"
+FEATURE_COMMENTS = "true"
+FEATURE_REVIEWS = "true"
+FEATURE_REACTIONS = "true"
+FEATURE_SHARES = "true"
+FEATURE_BOOKMARKS = "true"
+
+FEATURE_CHAT = "true"
+FEATURE_NOTIFICATIONS = "true"
+FEATURE_ADMIN_PANEL = "true"
+FEATURE_PROFILES = "true"
+FEATURE_SEARCH = "true"
+
+FEATURE_LEVELS = "true"
+FEATURE_PREMIUM = "true"
+FEATURE_PRO = "true"
+FEATURE_TOP = "true"
+FEATURE_VIP = "true"
+
+FEATURE_REPORTS = "true"
+FEATURE_ANALYTICS = "true"
+
+FEATURE_MEDIA = "true"
+FEATURE_SHARING = "true"
+
+# Security feature flag
+SECURITY = "true"
+
+# ------------------------------------------------------------
 # STATIC ASSETS
+# ------------------------------------------------------------
 
-# ============================================================
-
-#
-
-# Файлы из ./public будут обслуживаться Cloudflare Workers.
-
-#
-
-# Это НЕ R2.
-
-#
-
-# Здесь могут находиться:
-
-# • CSS
-
-# • JavaScript
-
-# • HTML
-
-# • иконки
-
-# • логотипы
-
-# • статические изображения
-
-#
-
-# ============================================================
+# Static files are served from ./public.
+# Cloudflare R2 is NOT used.
 
 [assets]
 
 directory = "./public"
 
-# ============================================================
-
+# ------------------------------------------------------------
 # D1 DATABASE
-
-# ============================================================
-
-#
-
-# D1 используется для структурированных данных приложения.
-
-#
-
-# Например:
-
-# • пользователи
-
-# • профили
-
-# • вакансии
-
-# • публикации
-
-# • комментарии
-
-# • отзывы
-
-# • реакции
-
-# • сообщения
-
-# • уведомления
-
-# • настройки
-
-# • URL медиафайлов
-
-#
-
-# ============================================================
+# ------------------------------------------------------------
 
 [[d1_databases]]
 
 binding = "DB"
-
 database_name = "tajik-opportunities-db"
-
 database_id = "b016bf09-3048-4410-b273-5f13c2a0430e"
 
-# ============================================================
-
-# MEDIA
-
-# ============================================================
-
-#
-
-# R2 УДАЛЁН.
-
-#
-
-# Проект НЕ использует:
-
-#
-
-# env.MEDIA
-
-# R2Bucket
-
-# tajik-opportunities-media
-
-#
-
-# Фотографии и видео должны передаваться в приложение
-
-# как обычные URL-ссылки.
-
-#
-
-# Пример:
-
-#
-
-# https://example.com/photo.jpg
-
-#
-
-# https://example.com/video.mp4
-
-#
-
-# В базе данных сохраняется URL, а не сам файл.
-
-#
-
-# ============================================================
-
-# ============================================================
-
+# ------------------------------------------------------------
 # DEVELOPMENT
-
-# ============================================================
+# ------------------------------------------------------------
 
 [dev]
 
 local_protocol = "http"
-
 ip = "127.0.0.1"
-
 port = 8787
 
-# ============================================================
-
+# ------------------------------------------------------------
 # OBSERVABILITY
-
-# ============================================================
+# ------------------------------------------------------------
 
 [observability]
 
 enabled = true
 
-# ============================================================
-
-# LOGGING
-
-# ============================================================
-
 [observability.logs]
 
 enabled = true
-
 invocation_logs = true
 
-# ============================================================
-
+# ------------------------------------------------------------
 # PLACEMENT
-
-# ============================================================
+# ------------------------------------------------------------
 
 [placement]
 
 mode = "smart"
 
-# ============================================================
+# ------------------------------------------------------------
+# MEDIA
+# ------------------------------------------------------------
 
+# R2 is intentionally NOT configured.
+#
+# Media files use external URLs:
+#
+# https://example.com/photo.jpg
+# https://example.com/video.mp4
+#
+# The application stores URLs rather than binary files.
+#
+# No:
+# - R2Bucket
+# - env.MEDIA
+# - tajik-opportunities-media
+#
+# ------------------------------------------------------------
 # ROUTES
+# ------------------------------------------------------------
 
-# ============================================================
+# The project currently uses workers.dev.
+# No custom domain is configured.
 
+# Example for a future custom domain:
 #
-
-# Основной Worker работает через workers.dev.
-
-#
-
-# Собственный домен пока НЕ подключаем.
-
-#
-
-# При необходимости позднее можно добавить:
-
-#
-
 # routes = [
-
-# { pattern = "example.com/*", zone_name = "example.com" }
-
+#   { pattern = "example.com/*", zone_name = "example.com" }
 # ]
 
-#
-
 # ============================================================
-
-# ============================================================
-
-# FEATURE FLAGS
-
-# ============================================================
-
-[vars.FEATURE_PUBLICATIONS]
-
-enabled = "true"
-
-[vars.FEATURE_COMMENTS]
-
-enabled = "true"
-
-[vars.FEATURE_REVIEWS]
-
-enabled = "true"
-
-[vars.FEATURE_REACTIONS]
-
-enabled = "true"
-
-[vars.FEATURE_SHARES]
-
-enabled = "true"
-
-[vars.FEATURE_BOOKMARKS]
-
-enabled = "true"
-
-[vars.FEATURE_CHAT]
-
-enabled = "true"
-
-[vars.FEATURE_NOTIFICATIONS]
-
-enabled = "true"
-
-[vars.FEATURE_ADMIN_PANEL]
-
-enabled = "true"
-
-[vars.FEATURE_PROFILES]
-
-enabled = "true"
-
-[vars.FEATURE_SEARCH]
-
-enabled = "true"
-
-[vars.FEATURE_LEVELS]
-
-enabled = "true"
-
-[vars.FEATURE_PREMIUM]
-
-enabled = "true"
-
-[vars.FEATURE_PRO]
-
-enabled = "true"
-
-[vars.FEATURE_TOP]
-
-enabled = "true"
-
-[vars.FEATURE_VIP]
-
-enabled = "true"
-
-[vars.FEATURE_REPORTS]
-
-enabled = "true"
-
-[vars.FEATURE_ANALYTICS]
-
-enabled = "true"
-
-# ============================================================
-
-# MEDIA FEATURE
-
-# ============================================================
-
-#
-
-# Функция работы с медиа остаётся включённой.
-
-#
-
-# ВАЖНО:
-
-# FEATURE_MEDIA НЕ означает использование R2.
-
-#
-
-# Она может использоваться для:
-
-# • URL изображений
-
-# • URL видео
-
-# • URL аудио
-
-# • внешних медиа-ссылок
-
-#
-
-# Само хранение файлов выполняется за пределами Worker.
-
-#
-
-# ============================================================
-
-[vars.FEATURE_MEDIA]
-
-enabled = "true"
-
-# ============================================================
-
-# SHARING
-
-# ============================================================
-
-[vars.FEATURE_SHARING]
-
-enabled = "true"
-
-# ============================================================
-
-# SECURITY
-
-# ============================================================
-
-[vars.SECURITY]
-
-enabled = "true"
-
-# ============================================================
-
 # END
-
 # ============================================================
-
 #
-
-# R2 отсутствует намеренно.
-
+# Architecture:
 #
-
-# Требуемые ресурсы:
-
-#
-
 # Worker
-
 # ├── D1 Database
-
 # └── Static Assets
-
 #
-
-# Медиа:
-
-# └── внешние URL-ссылки
-
+# Media
+# └── External URLs
 #
-
+# R2
+# └── NOT USED
+#
 # ============================================================
+```
