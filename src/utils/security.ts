@@ -1,3 +1,4 @@
+```ts
 // ============================================================
 // 🇹🇯 TAJIK OPPORTUNITIES
 // SECURITY UTILITIES
@@ -30,6 +31,12 @@ export interface PasswordHash {
   salt: string;
   hash: string;
   iterations: number;
+}
+
+export interface RequestAdminContext {
+  authenticated: boolean;
+  adminId: string | null;
+  token: string | null;
 }
 
 const DEFAULT_HASH_ITERATIONS = 120_000;
@@ -456,10 +463,6 @@ export function validateContentType(
 
 /**
  * Простая in-memory rate limiter.
- *
- * В production для распределенного rate limiting
- * следует использовать Cloudflare Rate Limiting/WAF
- * или отдельное хранилище.
  */
 const rateLimitStore = new Map<
   string,
@@ -647,9 +650,6 @@ export function validatePasswordStrength(
 
 /**
  * Создает PBKDF2 password hash.
- *
- * Важно:
- * пароль никогда не должен храниться в открытом виде.
  */
 export async function hashPassword(
   password: string,
@@ -813,9 +813,6 @@ export async function verifySessionBinding(
 
 /**
  * Получает безопасный IP-префикс.
- *
- * IPv4: первые 3 октета.
- * IPv6: первые 4 группы.
  */
 export function getIpPrefix(
   ip: string
@@ -1030,6 +1027,18 @@ export function extractBearerToken(
 }
 
 /**
+ * Совместимое имя для существующего auth middleware.
+ *
+ * Не создаёт новую логику:
+ * использует уже существующий extractBearerToken().
+ */
+export function getBearerToken(
+  request: Request
+): string | null {
+  return extractBearerToken(request);
+}
+
+/**
  * Проверяет API token.
  */
 export function validateApiToken(
@@ -1167,10 +1176,6 @@ export function safeHeader(
 
 /**
  * Проверяет подозрительный SQL-паттерн.
- *
- * Это НЕ замена prepared statements.
- * Основная защита от SQL injection —
- * исключительно параметризованные запросы.
  */
 export function looksLikeSqlInjection(
   value: unknown
@@ -1191,7 +1196,7 @@ export function looksLikeSqlInjection(
     /delete\s+from/i,
     /insert\s+into/i,
     /update\s+.+\s+set/i,
-    /--\s*$/,
+    /--\s*$/i,
     /\/\*/,
     /\*\//,
   ];
@@ -1203,9 +1208,6 @@ export function looksLikeSqlInjection(
 
 /**
  * Проверяет очевидные XSS-паттерны.
- *
- * Это дополнительный фильтр.
- * Основная защита — HTML escaping и CSP.
  */
 export function looksLikeXss(
   value: unknown
@@ -1273,3 +1275,39 @@ export function inspectUserInput(
     allowed: true,
   };
 }
+
+// ============================================================
+// ADMIN REQUEST CONTEXT
+// ============================================================
+
+/**
+ * Извлекает минимальный контекст администратора
+ * из HTTP-запроса.
+ *
+ * Это compatibility helper для существующего
+ * auth middleware. Проверка существования
+ * администратора выполняется в auth.ts через БД.
+ */
+export function getRequestAdminContext(
+  request: Request
+): RequestAdminContext {
+  const token =
+    getBearerToken(request);
+
+  const adminId =
+    request.headers.get("X-Admin-ID")?.trim() || null;
+
+  return {
+    authenticated:
+      Boolean(token || adminId),
+
+    adminId,
+
+    token,
+  };
+}
+
+// ============================================================
+// END
+// ============================================================
+```
