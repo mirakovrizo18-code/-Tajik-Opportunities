@@ -54,13 +54,18 @@ export type Nullish<T> = T | null | undefined;
 
 export type Dictionary<T = unknown> = Record<string, T>;
 
-export type KeyValue<K extends PropertyKey = PropertyKey, V = unknown> = {
+export type KeyValue<
+  K extends PropertyKey = PropertyKey,
+  V = unknown,
+> = {
   key: K;
   value: V;
 };
 
-export type ObjectEntry<K extends PropertyKey = PropertyKey, V = unknown> =
-  readonly [K, V];
+export type ObjectEntry<
+  K extends PropertyKey = PropertyKey,
+  V = unknown,
+> = readonly [K, V];
 
 export type DeepPartial<T> = {
   [P in keyof T]?: T[P] extends object
@@ -98,9 +103,14 @@ export type WritableKeys<T> = {
   : never;
 }[keyof T];
 
-export type ObjectPath = string | readonly PropertyKey[];
+export type ObjectPath =
+  | string
+  | readonly PropertyKey[];
 
-export type ObjectPathValue<T, P extends readonly PropertyKey[]> =
+export type ObjectPathValue<
+  T,
+  P extends readonly PropertyKey[],
+> =
   P extends readonly [
     infer K extends keyof T,
     ...infer Rest extends PropertyKey[],
@@ -120,14 +130,21 @@ const DANGEROUS_KEYS = new Set<PropertyKey>([
   "constructor",
 ]);
 
-const EMPTY_OBJECT: Readonly<Record<string, never>> = Object.freeze({});
+const EMPTY_OBJECT:
+  Readonly<Record<string, never>> =
+  Object.freeze({});
 
 /* ============================================================================
  * TYPE GUARDS
  * ========================================================================== */
 
-export function isObject(value: unknown): value is object {
-  return typeof value === "object" && value !== null;
+export function isObject(
+  value: unknown,
+): value is object {
+  return (
+    typeof value === "object" &&
+    value !== null
+  );
 }
 
 export function isFunction(
@@ -136,11 +153,15 @@ export function isFunction(
   return typeof value === "function";
 }
 
-export function isArray(value: unknown): value is unknown[] {
+export function isArray(
+  value: unknown,
+): value is unknown[] {
   return Array.isArray(value);
 }
 
-export function isPrimitive(value: unknown): value is Primitive {
+export function isPrimitive(
+  value: unknown,
+): value is Primitive {
   return (
     value === null ||
     value === undefined ||
@@ -152,40 +173,67 @@ export function isPrimitive(value: unknown): value is Primitive {
   );
 }
 
-export function isString(value: unknown): value is string {
+export function isString(
+  value: unknown,
+): value is string {
   return typeof value === "string";
 }
 
-export function isNumber(value: unknown): value is number {
-  return typeof value === "number" && !Number.isNaN(value);
+export function isNumber(
+  value: unknown,
+): value is number {
+  return (
+    typeof value === "number" &&
+    !Number.isNaN(value)
+  );
 }
 
-export function isFiniteNumber(value: unknown): value is number {
-  return typeof value === "number" && Number.isFinite(value);
+export function isFiniteNumber(
+  value: unknown,
+): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value)
+  );
 }
 
-export function isBoolean(value: unknown): value is boolean {
+export function isBoolean(
+  value: unknown,
+): value is boolean {
   return typeof value === "boolean";
 }
 
-export function isBigInt(value: unknown): value is bigint {
+export function isBigInt(
+  value: unknown,
+): value is bigint {
   return typeof value === "bigint";
 }
 
-export function isSymbol(value: unknown): value is symbol {
+export function isSymbol(
+  value: unknown,
+): value is symbol {
   return typeof value === "symbol";
 }
 
-export function isNull(value: unknown): value is null {
+export function isNull(
+  value: unknown,
+): value is null {
   return value === null;
 }
 
-export function isUndefined(value: unknown): value is undefined {
+export function isUndefined(
+  value: unknown,
+): value is undefined {
   return value === undefined;
 }
 
-export function isNullish(value: unknown): value is null | undefined {
-  return value === null || value === undefined;
+export function isNullish(
+  value: unknown,
+): value is null | undefined {
+  return (
+    value === null ||
+    value === undefined
+  );
 }
 
 export function isPlainObject(
@@ -195,7 +243,8 @@ export function isPlainObject(
     return false;
   }
 
-  const prototype = Object.getPrototypeOf(value);
+  const prototype =
+    Object.getPrototypeOf(value);
 
   return (
     prototype === Object.prototype ||
@@ -203,19 +252,27 @@ export function isPlainObject(
   );
 }
 
-export function isDate(value: unknown): value is Date {
+export function isDate(
+  value: unknown,
+): value is Date {
   return value instanceof Date;
 }
 
-export function isRegExp(value: unknown): value is RegExp {
+export function isRegExp(
+  value: unknown,
+): value is RegExp {
   return value instanceof RegExp;
 }
 
-export function isMap(value: unknown): value is Map<unknown, unknown> {
+export function isMap(
+  value: unknown,
+): value is Map<unknown, unknown> {
   return value instanceof Map;
 }
 
-export function isSet(value: unknown): value is Set<unknown> {
+export function isSet(
+  value: unknown,
+): value is Set<unknown> {
   return value instanceof Set;
 }
 
@@ -233,7 +290,9 @@ export function isPromiseLike(
  * KEY HELPERS
  * ========================================================================== */
 
-export function isPropertyKey(value: unknown): value is PropertyKey {
+export function isPropertyKey(
+  value: unknown,
+): value is PropertyKey {
   return (
     typeof value === "string" ||
     typeof value === "number" ||
@@ -241,7 +300,9 @@ export function isPropertyKey(value: unknown): value is PropertyKey {
   );
 }
 
-export function normalizeKey(key: PropertyKey): PropertyKey {
+export function normalizeKey(
+  key: PropertyKey,
+): PropertyKey {
   if (typeof key === "number") {
     return String(key);
   }
@@ -249,14 +310,18 @@ export function normalizeKey(key: PropertyKey): PropertyKey {
   return key;
 }
 
-export function isDangerousKey(key: PropertyKey): boolean {
+export function isDangerousKey(
+  key: PropertyKey,
+): boolean {
   return (
     typeof key === "string" &&
     DANGEROUS_KEYS.has(key)
   );
 }
 
-export function safeKey(key: PropertyKey): boolean {
+export function safeKey(
+  key: PropertyKey,
+): boolean {
   return !isDangerousKey(key);
 }
 
@@ -268,14 +333,20 @@ export function hasOwn(
   object: object,
   key: PropertyKey,
 ): boolean {
-  return Object.prototype.hasOwnProperty.call(object, key);
+  return Object.prototype.hasOwnProperty.call(
+    object,
+    key,
+  );
 }
 
 export function hasProperty(
   object: unknown,
   key: PropertyKey,
 ): boolean {
-  return isObject(object) && hasOwn(object, key);
+  return (
+    isObject(object) &&
+    hasOwn(object, key)
+  );
 }
 
 export function hasAnyProperty(
@@ -286,7 +357,9 @@ export function hasAnyProperty(
     return false;
   }
 
-  return keys.some((key) => hasOwn(object, key));
+  return keys.some((key) =>
+    hasOwn(object, key),
+  );
 }
 
 export function hasAllProperties(
@@ -297,7 +370,9 @@ export function hasAllProperties(
     return false;
   }
 
-  return keys.every((key) => hasOwn(object, key));
+  return keys.every((key) =>
+    hasOwn(object, key),
+  );
 }
 
 /* ============================================================================
@@ -317,7 +392,10 @@ export function getProperty<T = unknown>(
     return fallback;
   }
 
-  return Reflect.get(object, key) as T;
+  return Reflect.get(
+    object,
+    key,
+  ) as T;
 }
 
 export function getObjectValue<T>(
@@ -325,7 +403,8 @@ export function getObjectValue<T>(
   key: PropertyKey,
   fallback?: T,
 ): T | undefined {
-  const value = Reflect.get(object, key);
+  const value =
+    Reflect.get(object, key);
 
   return value === undefined
     ? fallback
@@ -337,7 +416,11 @@ export function getString(
   key: PropertyKey,
   fallback = "",
 ): string {
-  const value = getProperty<unknown>(object, key);
+  const value =
+    getProperty<unknown>(
+      object,
+      key,
+    );
 
   return typeof value === "string"
     ? value
@@ -349,9 +432,16 @@ export function getNumber(
   key: PropertyKey,
   fallback = 0,
 ): number {
-  const value = getProperty<unknown>(object, key);
+  const value =
+    getProperty<unknown>(
+      object,
+      key,
+    );
 
-  return typeof value === "number" && Number.isFinite(value)
+  return (
+    typeof value === "number" &&
+    Number.isFinite(value)
+  )
     ? value
     : fallback;
 }
@@ -361,7 +451,11 @@ export function getBoolean(
   key: PropertyKey,
   fallback = false,
 ): boolean {
-  const value = getProperty<unknown>(object, key);
+  const value =
+    getProperty<unknown>(
+      object,
+      key,
+    );
 
   return typeof value === "boolean"
     ? value
@@ -373,7 +467,11 @@ export function getArray<T = unknown>(
   key: PropertyKey,
   fallback: readonly T[] = [],
 ): readonly T[] {
-  const value = getProperty<unknown>(object, key);
+  const value =
+    getProperty<unknown>(
+      object,
+      key,
+    );
 
   return Array.isArray(value)
     ? (value as T[])
@@ -393,7 +491,11 @@ export function setProperty<T extends object>(
     return object;
   }
 
-  Reflect.set(object, key, value);
+  Reflect.set(
+    object,
+    key,
+    value,
+  );
 
   return object;
 }
@@ -402,7 +504,9 @@ export function setProperties<T extends object>(
   object: T,
   values: UnknownRecord,
 ): T {
-  for (const key of Reflect.ownKeys(values)) {
+  for (
+    const key of Reflect.ownKeys(values)
+  ) {
     if (!safeKey(key)) {
       continue;
     }
@@ -410,7 +514,10 @@ export function setProperties<T extends object>(
     Reflect.set(
       object,
       key,
-      Reflect.get(values, key),
+      Reflect.get(
+        values,
+        key,
+      ),
     );
   }
 
@@ -421,7 +528,10 @@ export function deleteProperty<T extends object>(
   object: T,
   key: PropertyKey,
 ): boolean {
-  return Reflect.deleteProperty(object, key);
+  return Reflect.deleteProperty(
+    object,
+    key,
+  );
 }
 
 export function deleteProperties<T extends object>(
@@ -429,7 +539,10 @@ export function deleteProperties<T extends object>(
   keys: readonly PropertyKey[],
 ): T {
   for (const key of keys) {
-    Reflect.deleteProperty(object, key);
+    Reflect.deleteProperty(
+      object,
+      key,
+    );
   }
 
   return object;
@@ -446,16 +559,25 @@ export function pick<
   object: T,
   keys: readonly K[],
 ): Pick<T, K> {
-  const result = {} as Pick<T, K>;
+  const result =
+    {} as Pick<T, K>;
 
   for (const key of keys) {
-    if (hasOwn(object, key)) {
-      Reflect.set(
-        result,
-        key,
-        Reflect.get(object, key),
-      );
+    if (!hasOwn(object, key)) {
+      continue;
     }
+
+    const value =
+      Reflect.get(
+        object,
+        key,
+      ) as T[K];
+
+    Reflect.set(
+      result,
+      key,
+      value,
+    );
   }
 
   return result;
@@ -468,29 +590,46 @@ export function omit<
   object: T,
   keys: readonly K[],
 ): Omit<T, K> {
-  const excluded = new Set<PropertyKey>(keys);
-  const result = {} as Omit<T, K>;
+  const excluded =
+    new Set<PropertyKey>(keys);
 
-  for (const key of Reflect.ownKeys(object)) {
-    if (!excluded.has(key)) {
-      Reflect.set(
-        result,
-        key,
-        Reflect.get(object, key),
-      );
+  const result =
+    {} as Omit<T, K>;
+
+  for (
+    const key of Reflect.ownKeys(object)
+  ) {
+    if (excluded.has(key)) {
+      continue;
     }
+
+    const value =
+      Reflect.get(
+        object,
+        key,
+      );
+
+    Reflect.set(
+      result,
+      key,
+      value,
+    );
   }
 
   return result;
 }
 
-export function pickDefined<T extends UnknownRecord>(
+export function pickDefined<
+  T extends UnknownRecord,
+>(
   object: T,
 ): Partial<T> {
   return removeUndefined(object);
 }
 
-export function pickNonNull<T extends UnknownRecord>(
+export function pickNonNull<
+  T extends UnknownRecord,
+>(
   object: T,
 ): Partial<T> {
   return removeNull(object);
@@ -500,96 +639,155 @@ export function pickNonNull<T extends UnknownRecord>(
  * CLEANING
  * ========================================================================== */
 
-export function removeUndefined<T extends AnyObject>(
+export function removeUndefined<
+  T extends AnyObject,
+>(
   object: T,
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const key of Object.keys(object)) {
-    const value = object[key];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key];
 
     if (value !== undefined) {
-      Reflect.set(result, key, value);
+      Reflect.set(
+        result,
+        key,
+        value,
+      );
     }
   }
 
   return result;
 }
 
-export function removeNull<T extends AnyObject>(
+export function removeNull<
+  T extends AnyObject,
+>(
   object: T,
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const key of Object.keys(object)) {
-    const value = object[key];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key];
 
     if (value !== null) {
-      Reflect.set(result, key, value);
+      Reflect.set(
+        result,
+        key,
+        value,
+      );
     }
   }
 
   return result;
 }
 
-export function sanitizeObject<T extends AnyObject>(
+export function sanitizeObject<
+  T extends AnyObject,
+>(
   object: T,
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const key of Object.keys(object)) {
-    const value = object[key];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key];
 
-    if (value !== null && value !== undefined) {
-      Reflect.set(result, key, value);
+    if (
+      value !== null &&
+      value !== undefined
+    ) {
+      Reflect.set(
+        result,
+        key,
+        value,
+      );
     }
   }
 
   return result;
 }
 
-export function compactObject<T extends AnyObject>(
+export function compactObject<
+  T extends AnyObject,
+>(
   object: T,
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const key of Object.keys(object)) {
-    const value = object[key];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key];
 
     if (Boolean(value)) {
-      Reflect.set(result, key, value);
+      Reflect.set(
+        result,
+        key,
+        value,
+      );
     }
   }
 
   return result;
 }
 
-export function removeEmptyStrings<T extends AnyObject>(
+export function removeEmptyStrings<
+  T extends AnyObject,
+>(
   object: T,
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const key of Object.keys(object)) {
-    const value = object[key];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key];
 
     if (
       typeof value !== "string" ||
       value.trim() !== ""
     ) {
-      Reflect.set(result, key, value);
+      Reflect.set(
+        result,
+        key,
+        value,
+      );
     }
   }
 
   return result;
 }
 
-export function trimStrings<T extends AnyObject>(
+export function trimStrings<
+  T extends AnyObject,
+>(
   object: T,
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const key of Object.keys(object)) {
-    const value = object[key];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key];
 
     Reflect.set(
       result,
@@ -610,13 +808,24 @@ export function removeKeys(
     value: unknown,
   ) => boolean,
 ): UnknownRecord {
-  const result: UnknownRecord = {};
+  const result:
+    UnknownRecord = {};
 
-  for (const key of Reflect.ownKeys(object)) {
-    const value = Reflect.get(object, key);
+  for (
+    const key of Reflect.ownKeys(object)
+  ) {
+    const value =
+      Reflect.get(
+        object,
+        key,
+      );
 
     if (!predicate(key, value)) {
-      Reflect.set(result, key, value);
+      Reflect.set(
+        result,
+        key,
+        value,
+      );
     }
   }
 
@@ -630,19 +839,27 @@ export function removeKeys(
 export function objectKeys<T extends object>(
   object: T,
 ): Array<keyof T> {
-  return Object.keys(object) as Array<keyof T>;
+  return Object.keys(
+    object,
+  ) as Array<keyof T>;
 }
 
 export function objectValues<T extends object>(
   object: T,
 ): Array<T[keyof T]> {
-  return Object.values(object) as Array<T[keyof T]>;
+  return Object.values(
+    object,
+  ) as Array<T[keyof T]>;
 }
 
 export function objectEntries<T extends object>(
   object: T,
-): Array<[keyof T, T[keyof T]]> {
-  return Object.entries(object) as Array<
+): Array<
+  [keyof T, T[keyof T]]
+> {
+  return Object.entries(
+    object,
+  ) as Array<
     [keyof T, T[keyof T]]
   >;
 }
@@ -662,19 +879,23 @@ export function stringKeys(
 export function symbolKeys(
   object: object,
 ): symbol[] {
-  return Object.getOwnPropertySymbols(object);
+  return Object.getOwnPropertySymbols(
+    object,
+  );
 }
 
 export function objectSize(
   object: object,
 ): number {
-  return Reflect.ownKeys(object).length;
+  return Reflect.ownKeys(object)
+    .length;
 }
 
 export function enumerableObjectSize(
   object: object,
 ): number {
-  return Object.keys(object).length;
+  return Object.keys(object)
+    .length;
 }
 
 export function isEmptyObject(
@@ -686,7 +907,10 @@ export function isEmptyObject(
 export function isEnumerableEmpty(
   object: object,
 ): boolean {
-  return enumerableObjectSize(object) === 0;
+  return (
+    enumerableObjectSize(object) ===
+    0
+  );
 }
 
 /* ============================================================================
@@ -703,7 +927,9 @@ export function toRecord(
   return {};
 }
 
-export function toObject<T extends UnknownRecord>(
+export function toObject<
+  T extends UnknownRecord,
+>(
   value: unknown,
   fallback: T,
 ): T {
@@ -716,18 +942,27 @@ export function fromEntries<
   K extends PropertyKey,
   V,
 >(
-  entries: Iterable<readonly [K, V]>,
+  entries: Iterable<
+    readonly [K, V]
+  >,
 ): Record<K, V> {
-  return Object.fromEntries(entries) as Record<K, V>;
+  return Object.fromEntries(
+    entries,
+  ) as Record<K, V>;
 }
 
 export function toEntries(
   object: object,
-): Array<[PropertyKey, unknown]> {
+): Array<
+  [PropertyKey, unknown]
+> {
   return Reflect.ownKeys(object).map(
     (key) => [
       key,
-      Reflect.get(object, key),
+      Reflect.get(
+        object,
+        key,
+      ),
     ],
   );
 }
@@ -738,7 +973,10 @@ export function toKeyValueArray(
   return Reflect.ownKeys(object).map(
     (key) => ({
       key,
-      value: Reflect.get(object, key),
+      value: Reflect.get(
+        object,
+        key,
+      ),
     }),
   );
 }
@@ -758,9 +996,12 @@ export function mapObject<
     object: T,
   ) => R,
 ): Record<string, R> {
-  const result: Record<string, R> = {};
+  const result:
+    Record<string, R> = {};
 
-  for (const key of Object.keys(object)) {
+  for (
+    const key of Object.keys(object)
+  ) {
     result[key] = callback(
       object[key],
       key as keyof T,
@@ -782,9 +1023,12 @@ export function mapEntries<
     object: T,
   ) => readonly [string, R],
 ): Record<string, R> {
-  const entries: Array<readonly [string, R]> = [];
+  const entries:
+    Array<readonly [string, R]> = [];
 
-  for (const key of Object.keys(object)) {
+  for (
+    const key of Object.keys(object)
+  ) {
     entries.push(
       callback(
         object[key],
@@ -794,13 +1038,14 @@ export function mapEntries<
     );
   }
 
-  return Object.fromEntries(entries) as Record<
-    string,
-    R
-  >;
+  return Object.fromEntries(
+    entries,
+  ) as Record<string, R>;
 }
 
-export function filterObject<T extends AnyObject>(
+export function filterObject<
+  T extends AnyObject,
+>(
   object: T,
   predicate: (
     value: T[keyof T],
@@ -808,11 +1053,17 @@ export function filterObject<T extends AnyObject>(
     object: T,
   ) => boolean,
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const key of Object.keys(object)) {
-    const typedKey = key as keyof T;
-    const value = object[typedKey];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const typedKey =
+      key as keyof T;
+
+    const value =
+      object[typedKey];
 
     if (
       predicate(
@@ -821,23 +1072,34 @@ export function filterObject<T extends AnyObject>(
         object,
       )
     ) {
-      Reflect.set(result, key, value);
+      Reflect.set(
+        result,
+        key,
+        value,
+      );
     }
   }
 
   return result;
 }
 
-export function findObjectValue<T extends AnyObject>(
+export function findObjectValue<
+  T extends AnyObject,
+>(
   object: T,
   predicate: (
     value: T[keyof T],
     key: keyof T,
   ) => boolean,
 ): T[keyof T] | undefined {
-  for (const key of Object.keys(object)) {
-    const typedKey = key as keyof T;
-    const value = object[typedKey];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const typedKey =
+      key as keyof T;
+
+    const value =
+      object[typedKey];
 
     if (
       predicate(
@@ -852,16 +1114,23 @@ export function findObjectValue<T extends AnyObject>(
   return undefined;
 }
 
-export function findObjectEntry<T extends AnyObject>(
+export function findObjectEntry<
+  T extends AnyObject,
+>(
   object: T,
   predicate: (
     value: T[keyof T],
     key: keyof T,
   ) => boolean,
 ): [keyof T, T[keyof T]] | undefined {
-  for (const key of Object.keys(object)) {
-    const typedKey = key as keyof T;
-    const value = object[typedKey];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const typedKey =
+      key as keyof T;
+
+    const value =
+      object[typedKey];
 
     if (
       predicate(
@@ -869,7 +1138,10 @@ export function findObjectEntry<T extends AnyObject>(
         typedKey,
       )
     ) {
-      return [typedKey, value];
+      return [
+        typedKey,
+        value,
+      ];
     }
   }
 
@@ -889,17 +1161,22 @@ export function reduceObject<
   ) => R,
   initialValue: R,
 ): R {
-  let accumulator = initialValue;
+  let accumulator =
+    initialValue;
 
-  for (const key of Object.keys(object)) {
-    const typedKey = key as keyof T;
+  for (
+    const key of Object.keys(object)
+  ) {
+    const typedKey =
+      key as keyof T;
 
-    accumulator = callback(
-      accumulator,
-      object[typedKey],
-      typedKey,
-      object,
-    );
+    accumulator =
+      callback(
+        accumulator,
+        object[typedKey],
+        typedKey,
+        object,
+      );
   }
 
   return accumulator;
@@ -916,8 +1193,14 @@ export function findKey<T extends object>(
     key: PropertyKey,
   ) => boolean,
 ): PropertyKey | undefined {
-  for (const key of Reflect.ownKeys(object)) {
-    const value = Reflect.get(object, key);
+  for (
+    const key of Reflect.ownKeys(object)
+  ) {
+    const value =
+      Reflect.get(
+        object,
+        key,
+      );
 
     if (predicate(value, key)) {
       return key;
@@ -934,14 +1217,18 @@ export function findValue<T = unknown>(
     key: PropertyKey,
   ) => boolean,
 ): T | undefined {
-  const key = findKey(
-    object,
-    predicate,
-  );
+  const key =
+    findKey(
+      object,
+      predicate,
+    );
 
   return key === undefined
     ? undefined
-    : (Reflect.get(object, key) as T);
+    : (Reflect.get(
+        object,
+        key,
+      ) as T);
 }
 
 export function containsValue(
@@ -951,7 +1238,10 @@ export function containsValue(
   return Reflect.ownKeys(object).some(
     (key) =>
       Object.is(
-        Reflect.get(object, key),
+        Reflect.get(
+          object,
+          key,
+        ),
         expected,
       ),
   );
@@ -968,9 +1258,12 @@ export function containsKey(
  * CLONE
  * ========================================================================== */
 
-export function clone<T>(value: T): T {
+export function clone<T>(
+  value: T,
+): T {
   if (
-    typeof structuredClone === "function"
+    typeof structuredClone ===
+    "function"
   ) {
     try {
       return structuredClone(value);
@@ -982,13 +1275,17 @@ export function clone<T>(value: T): T {
   return shallowClone(value);
 }
 
-export function shallowClone<T>(value: T): T {
+export function shallowClone<T>(
+  value: T,
+): T {
   if (Array.isArray(value)) {
     return [...value] as T;
   }
 
   if (isDate(value)) {
-    return new Date(value.getTime()) as T;
+    return new Date(
+      value.getTime(),
+    ) as T;
   }
 
   if (isRegExp(value)) {
@@ -1007,16 +1304,24 @@ export function shallowClone<T>(value: T): T {
   }
 
   if (isPlainObject(value)) {
-    const result: UnknownRecord = {};
+    const result:
+      UnknownRecord = {};
 
-    for (const key of Reflect.ownKeys(value)) {
-      if (safeKey(key)) {
-        Reflect.set(
-          result,
-          key,
-          Reflect.get(value, key),
-        );
+    for (
+      const key of Reflect.ownKeys(value)
+    ) {
+      if (!safeKey(key)) {
+        continue;
       }
+
+      Reflect.set(
+        result,
+        key,
+        Reflect.get(
+          value,
+          key,
+        ),
+      );
     }
 
     return result as T;
@@ -1025,22 +1330,35 @@ export function shallowClone<T>(value: T): T {
   return value;
 }
 
-export function deepClone<T>(value: T): T {
+export function deepClone<T>(
+  value: T,
+): T {
   if (
-    typeof structuredClone === "function"
+    typeof structuredClone ===
+    "function"
   ) {
-    return structuredClone(value);
+    try {
+      return structuredClone(value);
+    } catch {
+      // Fallback below.
+    }
   }
 
   return deepCloneFallback(
     value,
-    new WeakMap<object, unknown>(),
+    new WeakMap<
+      object,
+      unknown
+    >(),
   ) as T;
 }
 
 function deepCloneFallback(
   value: unknown,
-  seen: WeakMap<object, unknown>,
+  seen: WeakMap<
+    object,
+    unknown
+  >,
 ): unknown {
   if (!isObject(value)) {
     return value;
@@ -1064,17 +1382,29 @@ function deepCloneFallback(
   }
 
   if (isMap(value)) {
-    const result = new Map();
+    const result =
+      new Map();
 
-    seen.set(value, result);
+    seen.set(
+      value,
+      result,
+    );
 
-    for (const [
-      key,
-      nested,
-    ] of value.entries()) {
+    for (
+      const [
+        key,
+        nested,
+      ] of value.entries()
+    ) {
       result.set(
-        deepCloneFallback(key, seen),
-        deepCloneFallback(nested, seen),
+        deepCloneFallback(
+          key,
+          seen,
+        ),
+        deepCloneFallback(
+          nested,
+          seen,
+        ),
       );
     }
 
@@ -1082,13 +1412,22 @@ function deepCloneFallback(
   }
 
   if (isSet(value)) {
-    const result = new Set();
+    const result =
+      new Set();
 
-    seen.set(value, result);
+    seen.set(
+      value,
+      result,
+    );
 
-    for (const item of value.values()) {
+    for (
+      const item of value.values()
+    ) {
       result.add(
-        deepCloneFallback(item, seen),
+        deepCloneFallback(
+          item,
+          seen,
+        ),
       );
     }
 
@@ -1096,24 +1435,39 @@ function deepCloneFallback(
   }
 
   if (Array.isArray(value)) {
-    const result: unknown[] = [];
+    const result:
+      unknown[] = [];
 
-    seen.set(value, result);
+    seen.set(
+      value,
+      result,
+    );
 
-    for (const item of value) {
+    for (
+      const item of value
+    ) {
       result.push(
-        deepCloneFallback(item, seen),
+        deepCloneFallback(
+          item,
+          seen,
+        ),
       );
     }
 
     return result;
   }
 
-  const result: UnknownRecord = {};
+  const result:
+    UnknownRecord = {};
 
-  seen.set(value, result);
+  seen.set(
+    value,
+    result,
+  );
 
-  for (const key of Reflect.ownKeys(value)) {
+  for (
+    const key of Reflect.ownKeys(value)
+  ) {
     if (!safeKey(key)) {
       continue;
     }
@@ -1122,7 +1476,10 @@ function deepCloneFallback(
       result,
       key,
       deepCloneFallback(
-        Reflect.get(value, key),
+        Reflect.get(
+          value,
+          key,
+        ),
         seen,
       ),
     );
@@ -1136,8 +1493,14 @@ function deepCloneFallback(
  * ========================================================================== */
 
 export function merge<
-  T extends Record<string, unknown>,
-  U extends Record<string, unknown>,
+  T extends Record<
+    string,
+    unknown
+  >,
+  U extends Record<
+    string,
+    unknown
+  >,
 >(
   first: T,
   second: U,
@@ -1148,32 +1511,48 @@ export function merge<
   } as T & U;
 }
 
-export function mergeMany<T extends AnyObject>(
+export function mergeMany<
+  T extends AnyObject,
+>(
   ...objects: AnyObject[]
 ): T {
-  const result: UnknownRecord = {};
+  const result:
+    UnknownRecord = {};
 
-  for (const object of objects) {
-    for (const key of Object.keys(object)) {
+  for (
+    const object of objects
+  ) {
+    for (
+      const key of Object.keys(object)
+    ) {
       if (!safeKey(key)) {
         continue;
       }
 
-      result[key] = object[key];
+      result[key] =
+        object[key];
     }
   }
 
   return result as T;
 }
 
-export function deepMerge<T extends AnyObject>(
+export function deepMerge<
+  T extends AnyObject,
+>(
   target: T,
   ...sources: AnyObject[]
 ): T {
-  const result = deepClone(target);
+  const result =
+    deepClone(target);
 
-  for (const source of sources) {
-    mergeInto(result, source);
+  for (
+    const source of sources
+  ) {
+    mergeInto(
+      result as UnknownRecord,
+      source,
+    );
   }
 
   return result;
@@ -1183,54 +1562,79 @@ function mergeInto(
   target: UnknownRecord,
   source: UnknownRecord,
 ): void {
-  for (const key of Reflect.ownKeys(source)) {
+  for (
+    const key of Reflect.ownKeys(source)
+  ) {
     if (!safeKey(key)) {
       continue;
     }
 
-    const sourceValue = Reflect.get(
-      source,
-      key,
-    );
+    const sourceValue =
+      Reflect.get(
+        source,
+        key,
+      );
 
-    const targetValue = Reflect.get(
-      target,
-      key,
-    );
+    const targetValue =
+      Reflect.get(
+        target,
+        key,
+      );
 
     if (
-      isPlainObject(targetValue) &&
-      isPlainObject(sourceValue)
+      isPlainObject(
+        targetValue,
+      ) &&
+      isPlainObject(
+        sourceValue,
+      )
     ) {
       mergeInto(
         targetValue,
         sourceValue,
       );
+
       continue;
     }
 
     Reflect.set(
       target,
       key,
-      deepClone(sourceValue),
+      deepClone(
+        sourceValue,
+      ),
     );
   }
 }
 
-export function mergeDefined<T extends AnyObject>(
-  ...objects: Array<Partial<T> | undefined | null>
+export function mergeDefined<
+  T extends AnyObject,
+>(
+  ...objects: Array<
+    Partial<T> |
+    undefined |
+    null
+  >
 ): Partial<T> {
-  const result: Partial<T> = {};
+  const result:
+    Partial<T> = {};
 
-  for (const object of objects) {
+  for (
+    const object of objects
+  ) {
     if (!object) {
       continue;
     }
 
-    for (const key of Object.keys(object)) {
-      const value = object[key];
+    for (
+      const key of Object.keys(object)
+    ) {
+      const value =
+        object[key];
 
-      if (value !== undefined) {
+      if (
+        value !== undefined
+      ) {
         Reflect.set(
           result,
           key,
@@ -1256,7 +1660,8 @@ export function withProperty<
   key: K,
   value: V,
 ): T & Record<K, V> {
-  const result = shallowClone(object);
+  const result =
+    shallowClone(object);
 
   Reflect.set(
     result as object,
@@ -1264,7 +1669,8 @@ export function withProperty<
     value,
   );
 
-  return result as T & Record<K, V>;
+  return result as T &
+    Record<K, V>;
 }
 
 export function withoutProperty<
@@ -1288,7 +1694,10 @@ export function updateObject<
     draft: Mutable<T>,
   ) => void,
 ): T {
-  const result = deepClone(object) as Mutable<T>;
+  const result =
+    deepClone(
+      object,
+    ) as Mutable<T>;
 
   updater(result);
 
@@ -1312,11 +1721,14 @@ export function deepFreeze<T>(
     return value as DeepReadonly<T>;
   }
 
-  for (const key of Reflect.ownKeys(value)) {
-    const nested = Reflect.get(
-      value,
-      key,
-    );
+  for (
+    const key of Reflect.ownKeys(value)
+  ) {
+    const nested =
+      Reflect.get(
+        value,
+        key,
+      );
 
     if (
       isObject(nested) &&
@@ -1375,12 +1787,24 @@ export function equals(
     Array.isArray(first) &&
     Array.isArray(second)
   ) {
-    if (first.length !== second.length) {
+    if (
+      first.length !==
+      second.length
+    ) {
       return false;
     }
 
-    for (let i = 0; i < first.length; i += 1) {
-      if (!equals(first[i], second[i])) {
+    for (
+      let i = 0;
+      i < first.length;
+      i += 1
+    ) {
+      if (
+        !equals(
+          first[i],
+          second[i],
+        )
+      ) {
         return false;
       }
     }
@@ -1392,11 +1816,19 @@ export function equals(
     isMap(first) &&
     isMap(second)
   ) {
-    if (first.size !== second.size) {
+    if (
+      first.size !==
+      second.size
+    ) {
       return false;
     }
 
-    for (const [key, value] of first) {
+    for (
+      const [
+        key,
+        value,
+      ] of first
+    ) {
       if (
         !second.has(key) ||
         !equals(
@@ -1415,11 +1847,16 @@ export function equals(
     isSet(first) &&
     isSet(second)
   ) {
-    if (first.size !== second.size) {
+    if (
+      first.size !==
+      second.size
+    ) {
       return false;
     }
 
-    for (const value of first) {
+    for (
+      const value of first
+    ) {
       if (!second.has(value)) {
         return false;
       }
@@ -1435,8 +1872,11 @@ export function equals(
     return false;
   }
 
-  const firstKeys = Reflect.ownKeys(first);
-  const secondKeys = Reflect.ownKeys(second);
+  const firstKeys =
+    Reflect.ownKeys(first);
+
+  const secondKeys =
+    Reflect.ownKeys(second);
 
   if (
     firstKeys.length !==
@@ -1445,15 +1885,28 @@ export function equals(
     return false;
   }
 
-  for (const key of firstKeys) {
-    if (!Reflect.has(second, key)) {
+  for (
+    const key of firstKeys
+  ) {
+    if (
+      !Reflect.has(
+        second,
+        key,
+      )
+    ) {
       return false;
     }
 
     if (
       !equals(
-        Reflect.get(first, key),
-        Reflect.get(second, key),
+        Reflect.get(
+          first,
+          key,
+        ),
+        Reflect.get(
+          second,
+          key,
+        ),
       )
     ) {
       return false;
@@ -1467,8 +1920,11 @@ export function shallowEquals(
   first: object,
   second: object,
 ): boolean {
-  const firstKeys = Reflect.ownKeys(first);
-  const secondKeys = Reflect.ownKeys(second);
+  const firstKeys =
+    Reflect.ownKeys(first);
+
+  const secondKeys =
+    Reflect.ownKeys(second);
 
   if (
     firstKeys.length !==
@@ -1477,12 +1933,23 @@ export function shallowEquals(
     return false;
   }
 
-  for (const key of firstKeys) {
+  for (
+    const key of firstKeys
+  ) {
     if (
-      !Reflect.has(second, key) ||
+      !Reflect.has(
+        second,
+        key,
+      ) ||
       !Object.is(
-        Reflect.get(first, key),
-        Reflect.get(second, key),
+        Reflect.get(
+          first,
+          key,
+        ),
+        Reflect.get(
+          second,
+          key,
+        ),
       )
     ) {
       return false;
@@ -1496,22 +1963,31 @@ export function shallowEquals(
  * JSON
  * ========================================================================== */
 
-export function safeJsonParse<T = unknown>(
+export function safeJsonParse<
+  T = unknown,
+>(
   value: string,
   fallback?: T,
 ): T | undefined {
   try {
-    return JSON.parse(value) as T;
+    return JSON.parse(
+      value,
+    ) as T;
   } catch {
     return fallback;
   }
 }
 
-export function parseJson<T = unknown>(
+export function parseJson<
+  T = unknown,
+>(
   value: unknown,
   fallback?: T,
 ): T | undefined {
-  if (typeof value !== "string") {
+  if (
+    typeof value !==
+    "string"
+  ) {
     return fallback;
   }
 
@@ -1552,7 +2028,8 @@ function bigintReplacer(
   _key: string,
   value: unknown,
 ): unknown {
-  return typeof value === "bigint"
+  return typeof value ===
+    "bigint"
     ? value.toString()
     : value;
 }
@@ -1565,10 +2042,14 @@ export function flattenObject(
   object: UnknownRecord,
   prefix = "",
 ): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
+  const result:
+    Record<string, unknown> = {};
 
-  for (const key of Object.keys(object)) {
-    const value = object[key];
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key];
 
     const path = prefix
       ? `${prefix}.${key}`
@@ -1594,28 +2075,41 @@ export function flattenObject(
 }
 
 export function unflattenObject(
-  object: Record<string, unknown>,
+  object: Record<
+    string,
+    unknown
+  >,
 ): UnknownRecord {
-  const result: UnknownRecord = {};
+  const result:
+    UnknownRecord = {};
 
-  for (const [path, value] of Object.entries(object)) {
-    const parts = path.split(".");
+  for (
+    const [
+      path,
+      value,
+    ] of Object.entries(object)
+  ) {
+    const parts =
+      path.split(".");
 
-    let current: UnknownRecord = result;
+    let current:
+      UnknownRecord = result;
 
     for (
       let index = 0;
       index < parts.length;
       index += 1
     ) {
-      const part = parts[index];
+      const part =
+        parts[index];
 
       if (!safeKey(part)) {
         break;
       }
 
       const last =
-        index === parts.length - 1;
+        index ===
+        parts.length - 1;
 
       if (last) {
         Reflect.set(
@@ -1623,16 +2117,21 @@ export function unflattenObject(
           part,
           value,
         );
+
         continue;
       }
 
       const existing =
-        Reflect.get(current, part);
+        Reflect.get(
+          current,
+          part,
+        );
 
       if (
         !isPlainObject(existing)
       ) {
-        const next: UnknownRecord = {};
+        const next:
+          UnknownRecord = {};
 
         Reflect.set(
           current,
@@ -1657,7 +2156,10 @@ export function unflattenObject(
 export function parsePath(
   path: ObjectPath,
 ): PropertyKey[] {
-  if (Array.isArray(path)) {
+  if (
+    typeof path !==
+    "string"
+  ) {
     return [...path];
   }
 
@@ -1675,23 +2177,33 @@ export function getPath<T = unknown>(
   path: ObjectPath,
   fallback?: T,
 ): T | undefined {
-  const keys = parsePath(path);
+  const keys =
+    parsePath(path);
 
-  let current: unknown = object;
+  let current:
+    unknown = object;
 
-  for (const key of keys) {
+  for (
+    const key of keys
+  ) {
     if (!isObject(current)) {
       return fallback;
     }
 
-    if (!Reflect.has(current, key)) {
+    if (
+      !Reflect.has(
+        current,
+        key,
+      )
+    ) {
       return fallback;
     }
 
-    current = Reflect.get(
-      current,
-      key,
-    );
+    current =
+      Reflect.get(
+        current,
+        key,
+      );
   }
 
   return current === undefined
@@ -1703,58 +2215,72 @@ export function hasPath(
   object: unknown,
   path: ObjectPath,
 ): boolean {
-  const keys = parsePath(path);
+  const keys =
+    parsePath(path);
 
   if (keys.length === 0) {
     return false;
   }
 
-  let current: unknown = object;
+  let current:
+    unknown = object;
 
-  for (const key of keys) {
+  for (
+    const key of keys
+  ) {
     if (
       !isObject(current) ||
-      !Reflect.has(current, key)
+      !Reflect.has(
+        current,
+        key,
+      )
     ) {
       return false;
     }
 
-    current = Reflect.get(
-      current,
-      key,
-    );
+    current =
+      Reflect.get(
+        current,
+        key,
+      );
   }
 
   return true;
 }
 
-export function setPath<T extends object>(
+export function setPath<
+  T extends object,
+>(
   object: T,
   path: ObjectPath,
   value: unknown,
 ): T {
-  const keys = parsePath(path);
+  const keys =
+    parsePath(path);
 
   if (keys.length === 0) {
     return object;
   }
 
-  let current: UnknownRecord =
-    object as UnknownRecord;
+  let current:
+    UnknownRecord =
+      object as UnknownRecord;
 
   for (
     let index = 0;
     index < keys.length;
     index += 1
   ) {
-    const key = keys[index];
+    const key =
+      keys[index];
 
     if (!safeKey(key)) {
       return object;
     }
 
     const last =
-      index === keys.length - 1;
+      index ===
+      keys.length - 1;
 
     if (last) {
       Reflect.set(
@@ -1762,14 +2288,19 @@ export function setPath<T extends object>(
         key,
         value,
       );
+
       break;
     }
 
     const existing =
-      Reflect.get(current, key);
+      Reflect.get(
+        current,
+        key,
+      );
 
     if (!isObject(existing)) {
-      const next: UnknownRecord = {};
+      const next:
+        UnknownRecord = {};
 
       Reflect.set(
         current,
@@ -1779,43 +2310,53 @@ export function setPath<T extends object>(
 
       current = next;
     } else {
-      current = existing as UnknownRecord;
+      current =
+        existing as UnknownRecord;
     }
   }
 
   return object;
 }
 
-export function deletePath<T extends object>(
+export function deletePath<
+  T extends object,
+>(
   object: T,
   path: ObjectPath,
 ): boolean {
-  const keys = parsePath(path);
+  const keys =
+    parsePath(path);
 
   if (keys.length === 0) {
     return false;
   }
 
-  let current: unknown = object;
+  let current:
+    unknown = object;
 
   for (
     let index = 0;
     index < keys.length - 1;
     index += 1
   ) {
-    const key = keys[index];
+    const key =
+      keys[index];
 
     if (
       !isObject(current) ||
-      !Reflect.has(current, key)
+      !Reflect.has(
+        current,
+        key,
+      )
     ) {
       return false;
     }
 
-    current = Reflect.get(
-      current,
-      key,
-    );
+    current =
+      Reflect.get(
+        current,
+        key,
+      );
   }
 
   if (!isObject(current)) {
@@ -1824,7 +2365,9 @@ export function deletePath<T extends object>(
 
   return Reflect.deleteProperty(
     current,
-    keys[keys.length - 1],
+    keys[
+      keys.length - 1
+    ],
   );
 }
 
@@ -1839,19 +2382,29 @@ export function groupBy<T>(
     index: number,
   ) => PropertyKey,
 ): Record<string, T[]> {
-  const result: Record<string, T[]> = {};
+  const result:
+    Record<string, T[]> = {};
 
-  items.forEach((item, index) => {
-    const key = String(
-      getKey(item, index),
-    );
+  items.forEach(
+    (
+      item,
+      index,
+    ) => {
+      const key =
+        String(
+          getKey(
+            item,
+            index,
+          ),
+        );
 
-    if (!result[key]) {
-      result[key] = [];
-    }
+      if (!result[key]) {
+        result[key] = [];
+      }
 
-    result[key].push(item);
-  });
+      result[key].push(item);
+    },
+  );
 
   return result;
 }
@@ -1863,15 +2416,25 @@ export function keyBy<T>(
     index: number,
   ) => PropertyKey,
 ): Record<string, T> {
-  const result: Record<string, T> = {};
+  const result:
+    Record<string, T> = {};
 
-  items.forEach((item, index) => {
-    const key = String(
-      getKey(item, index),
-    );
+  items.forEach(
+    (
+      item,
+      index,
+    ) => {
+      const key =
+        String(
+          getKey(
+            item,
+            index,
+          ),
+        );
 
-    result[key] = item;
-  });
+      result[key] = item;
+    },
+  );
 
   return result;
 }
@@ -1883,16 +2446,27 @@ export function countBy<T>(
     index: number,
   ) => PropertyKey,
 ): Record<string, number> {
-  const result: Record<string, number> = {};
+  const result:
+    Record<string, number> = {};
 
-  items.forEach((item, index) => {
-    const key = String(
-      getKey(item, index),
-    );
+  items.forEach(
+    (
+      item,
+      index,
+    ) => {
+      const key =
+        String(
+          getKey(
+            item,
+            index,
+          ),
+        );
 
-    result[key] =
-      (result[key] ?? 0) + 1;
-  });
+      result[key] =
+        (result[key] ?? 0) +
+        1;
+    },
+  );
 
   return result;
 }
@@ -1904,14 +2478,26 @@ export function indexBy<T>(
     index: number,
   ) => PropertyKey,
 ): Map<PropertyKey, T> {
-  const result = new Map<PropertyKey, T>();
+  const result =
+    new Map<
+      PropertyKey,
+      T
+    >();
 
-  items.forEach((item, index) => {
-    result.set(
-      getKey(item, index),
+  items.forEach(
+    (
       item,
-    );
-  });
+      index,
+    ) => {
+      result.set(
+        getKey(
+          item,
+          index,
+        ),
+        item,
+      );
+    },
+  );
 
   return result;
 }
@@ -1923,11 +2509,18 @@ export function indexBy<T>(
 export function invertObject(
   object: Record<string, string>,
 ): Record<string, string> {
-  const result: Record<string, string> = {};
+  const result:
+    Record<string, string> = {};
 
-  for (const [key, value] of Object.entries(object)) {
+  for (
+    const [
+      key,
+      value,
+    ] of Object.entries(object)
+  ) {
     if (safeKey(value)) {
-      result[value] = key;
+      result[value] =
+        key;
     }
   }
 
@@ -1937,9 +2530,15 @@ export function invertObject(
 export function invertObjectMulti(
   object: Record<string, string>,
 ): Record<string, string[]> {
-  const result: Record<string, string[]> = {};
+  const result:
+    Record<string, string[]> = {};
 
-  for (const [key, value] of Object.entries(object)) {
+  for (
+    const [
+      key,
+      value,
+    ] of Object.entries(object)
+  ) {
     if (!safeKey(value)) {
       continue;
     }
@@ -1954,13 +2553,18 @@ export function invertObjectMulti(
   return result;
 }
 
-export function renameKeys<T extends AnyObject>(
+export function renameKeys<
+  T extends AnyObject,
+>(
   object: T,
   mapping: Record<string, string>,
 ): Record<string, unknown> {
-  const result: Record<string, unknown> = {};
+  const result:
+    Record<string, unknown> = {};
 
-  for (const key of Object.keys(object)) {
+  for (
+    const key of Object.keys(object)
+  ) {
     const nextKey =
       mapping[key] ?? key;
 
@@ -1968,32 +2572,49 @@ export function renameKeys<T extends AnyObject>(
       continue;
     }
 
-    result[nextKey] = object[key];
+    result[nextKey] =
+      object[key];
   }
 
   return result;
 }
 
-export function mapKeys<T extends AnyObject>(
+export function mapKeys<
+  T extends AnyObject,
+>(
   object: T,
   callback: (
     key: string,
     value: T[string],
   ) => string,
-): Record<string, T[string]> {
-  const result: Record<string, T[string]> = {};
+): Record<
+  string,
+  T[string]
+> {
+  const result:
+    Record<
+      string,
+      T[string]
+    > = {};
 
-  for (const key of Object.keys(object)) {
-    const nextKey = callback(
-      key,
-      object[key],
-    );
+  for (
+    const key of Object.keys(object)
+  ) {
+    const value =
+      object[key] as T[string];
+
+    const nextKey =
+      callback(
+        key,
+        value,
+      );
 
     if (!safeKey(nextKey)) {
       continue;
     }
 
-    result[nextKey] = object[key];
+    result[nextKey] =
+      value;
   }
 
   return result;
@@ -2003,7 +2624,9 @@ export function mapKeys<T extends AnyObject>(
  * DEFAULTS / FALLBACKS
  * ========================================================================== */
 
-export function defaults<T extends AnyObject>(
+export function defaults<
+  T extends AnyObject,
+>(
   object: T,
   ...sources: AnyObject[]
 ): T {
@@ -2011,11 +2634,19 @@ export function defaults<T extends AnyObject>(
     ...object,
   } as T;
 
-  for (const source of sources) {
-    for (const key of Object.keys(source)) {
+  for (
+    const source of sources
+  ) {
+    for (
+      const key of Object.keys(source)
+    ) {
       if (
-        !hasOwn(result, key) ||
-        result[key] === undefined
+        !hasOwn(
+          result,
+          key,
+        ) ||
+        result[key] ===
+          undefined
       ) {
         Reflect.set(
           result,
@@ -2029,8 +2660,13 @@ export function defaults<T extends AnyObject>(
   return result;
 }
 
-export function withDefaults<T extends AnyObject>(
-  object: T | null | undefined,
+export function withDefaults<
+  T extends AnyObject,
+>(
+  object:
+    | T
+    | null
+    | undefined,
   fallback: T,
 ): T {
   if (!object) {
@@ -2048,15 +2684,20 @@ export function withDefaults<T extends AnyObject>(
  * ========================================================================== */
 
 export function firstDefined<T>(
-  ...values: Array<T | undefined>
+  ...values: Array<
+    T | undefined
+  >
 ): T | undefined {
   return values.find(
-    (value) => value !== undefined,
+    (value) =>
+      value !== undefined,
   );
 }
 
 export function firstNonNullish<T>(
-  ...values: Array<T | null | undefined>
+  ...values: Array<
+    T | null | undefined
+  >
 ): T | undefined {
   return values.find(
     (value) =>
@@ -2066,7 +2707,10 @@ export function firstNonNullish<T>(
 }
 
 export function valueOr<T>(
-  value: T | null | undefined,
+  value:
+    | T
+    | null
+    | undefined,
   fallback: T,
 ): T {
   return value == null
@@ -2093,14 +2737,19 @@ export function sortObjectKeys(
     b: string,
   ) => number,
 ): UnknownRecord {
-  const keys = Object.keys(object).sort(
-    compare,
-  );
+  const keys =
+    Object.keys(
+      object,
+    ).sort(compare);
 
-  const result: UnknownRecord = {};
+  const result:
+    UnknownRecord = {};
 
-  for (const key of keys) {
-    result[key] = object[key];
+  for (
+    const key of keys
+  ) {
+    result[key] =
+      object[key];
   }
 
   return result;
@@ -2113,36 +2762,56 @@ export function sortObjectByValue<T>(
     b: T,
   ) => number,
 ): Record<string, T> {
-  const entries = Object.entries(object);
+  const entries =
+    Object.entries(object);
 
   entries.sort(
-    ([, a], [, b]) =>
-      compare(a, b),
+    (
+      [, a],
+      [, b],
+    ) => compare(a, b),
   );
 
   return Object.fromEntries(
     entries,
-  ) as Record<string, T>;
+  ) as Record<
+    string,
+    T
+  >;
 }
 
 /* ============================================================================
  * SAFE OBJECT CREATION
  * ========================================================================== */
 
-export function createNullObject(): UnknownRecord {
-  return Object.create(null) as UnknownRecord;
+export function createNullObject():
+  UnknownRecord {
+  return Object.create(
+    null,
+  ) as UnknownRecord;
 }
 
 export function createSafeObject(
-  entries?: Iterable<readonly [PropertyKey, unknown]>,
+  entries?: Iterable<
+    readonly [
+      PropertyKey,
+      unknown,
+    ]
+  >,
 ): UnknownRecord {
-  const result: UnknownRecord = {};
+  const result:
+    UnknownRecord = {};
 
   if (!entries) {
     return result;
   }
 
-  for (const [key, value] of entries) {
+  for (
+    const [
+      key,
+      value,
+    ] of entries
+  ) {
     if (!safeKey(key)) {
       continue;
     }
@@ -2161,15 +2830,21 @@ export function createSafeObject(
  * ARRAY / OBJECT HELPERS
  * ========================================================================== */
 
-export function objectToArray<T = unknown>(
+export function objectToArray<
+  T = unknown,
+>(
   object: object,
 ): T[] {
-  return objectValues(object) as T[];
+  return objectValues(
+    object,
+  ) as T[];
 }
 
 export function objectToPairs(
   object: object,
-): Array<[string, unknown]> {
+): Array<
+  [string, unknown]
+> {
   return Object.entries(object);
 }
 
@@ -2193,18 +2868,26 @@ export function arrayToDictionary<T>(
     index: number,
   ) => string,
 ): Dictionary<T> {
-  const result: Dictionary<T> = {};
+  const result:
+    Dictionary<T> = {};
 
-  items.forEach((item, index) => {
-    const key = getKey(
+  items.forEach(
+    (
       item,
       index,
-    );
+    ) => {
+      const key =
+        getKey(
+          item,
+          index,
+        );
 
-    if (safeKey(key)) {
-      result[key] = item;
-    }
-  });
+      if (safeKey(key)) {
+        result[key] =
+          item;
+      }
+    },
+  );
 
   return result;
 }
@@ -2225,7 +2908,10 @@ export function assertObject(
 export function assertPlainObject(
   value: unknown,
   message = "Expected a plain object",
-): asserts value is Record<string, unknown> {
+): asserts value is Record<
+  string,
+  unknown
+> {
   if (!isPlainObject(value)) {
     throw new TypeError(message);
   }
@@ -2233,17 +2919,24 @@ export function assertPlainObject(
 
 export function isNonEmptyObject(
   value: unknown,
-): value is Record<string, unknown> {
+): value is Record<
+  string,
+  unknown
+> {
   return (
     isPlainObject(value) &&
-    Object.keys(value).length > 0
+    Object.keys(value).length >
+      0
   );
 }
 
 export function objectHasValues(
   object: object,
 ): boolean {
-  return Object.keys(object).length > 0;
+  return (
+    Object.keys(object).length >
+    0
+  );
 }
 
 /* ============================================================================
@@ -2262,9 +2955,12 @@ export function numericValue(
   }
 
   if (typeof value === "string") {
-    const parsed = Number(value);
+    const parsed =
+      Number(value);
 
-    return Number.isFinite(parsed)
+    return Number.isFinite(
+      parsed,
+    )
       ? parsed
       : fallback;
   }
@@ -2282,7 +2978,10 @@ export function numericProperty(
   fallback = 0,
 ): number {
   return numericValue(
-    getProperty(object, key),
+    getProperty(
+      object,
+      key,
+    ),
     fallback,
   );
 }
@@ -2298,7 +2997,9 @@ export function emptyObject<
 }
 
 export function readonlyEmptyObject():
-  Readonly<Record<string, never>> {
+  Readonly<
+    Record<string, never>
+  > {
   return EMPTY_OBJECT;
 }
 
@@ -2352,10 +3053,12 @@ export function inspectObject(
   return {
     type: describeValue(object),
     isObject: isObject(object),
-    isPlainObject: isPlainObject(object),
+    isPlainObject:
+      isPlainObject(object),
     isArray: isArray(object),
     keys: isObject(object)
-      ? Reflect.ownKeys(object).length
+      ? Reflect.ownKeys(object)
+          .length
       : 0,
   };
 }
@@ -2383,6 +3086,7 @@ export default {
   isRegExp,
   isMap,
   isSet,
+  isPromiseLike,
 
   isPropertyKey,
   normalizeKey,
