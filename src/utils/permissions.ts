@@ -1,873 +1,741 @@
+// ============================================================
+// 🇹🇯 TAJIK OPPORTUNITIES
+// METRICS UTILITY
+// Version: 2026.09
+// ============================================================
+
 import {
-  PERMISSIONS,
-  ROLE_PERMISSIONS,
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
-  type Permission,
-} from "../constants/permissions";
-import type { AdminRole } from "../types";
+  addMetric,
+  subtractMetric,
+  compareDecimalStrings,
+  metricToString,
+  formatMetric,
+  percentage,
+  ratio,
+  average,
+  sum,
+} from "./number";
 
-export interface PermissionCheck {
-  permission: Permission;
-  allowed: boolean;
+export type MetricValue = number | bigint | string;
+
+export type MetricKey =
+  | "views"
+  | "unique_views"
+  | "likes"
+  | "reactions"
+  | "comments"
+  | "reviews"
+  | "ratings"
+  | "bookmarks"
+  | "shares"
+  | "sends"
+  | "reports"
+  | "contacts"
+  | "applications"
+  | "downloads"
+  | "clicks"
+  | "external_clicks";
+
+export interface Metrics {
+  views?: MetricValue;
+  unique_views?: MetricValue;
+  likes?: MetricValue;
+  reactions?: MetricValue;
+  comments?: MetricValue;
+  reviews?: MetricValue;
+  ratings?: MetricValue;
+  bookmarks?: MetricValue;
+  shares?: MetricValue;
+  sends?: MetricValue;
+  reports?: MetricValue;
+  contacts?: MetricValue;
+  applications?: MetricValue;
+  downloads?: MetricValue;
+  clicks?: MetricValue;
+  external_clicks?: MetricValue;
 }
 
-export interface PermissionResult {
-  allowed: boolean;
-  missing: Permission[];
-  matched: Permission[];
+export type NormalizedMetrics = Record<MetricKey, string>;
+
+export interface MetricChange {
+  key: MetricKey;
+  before: string;
+  after: string;
+  delta: string;
 }
 
-export interface RolePermissionSummary {
-  role: AdminRole;
-  permissions: Permission[];
-  count: number;
+export interface MetricsUpdate {
+  changes: MetricChange[];
+  metrics: NormalizedMetrics;
 }
 
-export interface PermissionGroup {
-  key: string;
-  label: string;
-  permissions: Permission[];
+export interface RatingDistribution {
+  one: number;
+  two: number;
+  three: number;
+  four: number;
+  five: number;
 }
 
-const ALL_PERMISSIONS = Array.from(
-  new Set(
-    Object.values(
-      PERMISSIONS,
-    ) as Permission[],
-  ),
-);
-
-export function getAllPermissions(): Permission[] {
-  return [...ALL_PERMISSIONS];
+export interface RatingSummary {
+  count: string;
+  average: number;
+  distribution: RatingDistribution;
+  percentages: RatingDistribution;
 }
 
-export function getRolePermissions(
-  role: AdminRole,
-): Permission[] {
-  return [
-    ...(ROLE_PERMISSIONS[role] ??
-      []),
-  ] as Permission[];
+export const METRIC_KEYS: MetricKey[] = [
+  "views",
+  "unique_views",
+  "likes",
+  "reactions",
+  "comments",
+  "reviews",
+  "ratings",
+  "bookmarks",
+  "shares",
+  "sends",
+  "reports",
+  "contacts",
+  "applications",
+  "downloads",
+  "clicks",
+  "external_clicks",
+];
+
+export const DEFAULT_METRICS: NormalizedMetrics = {
+  views: "0",
+  unique_views: "0",
+  likes: "0",
+  reactions: "0",
+  comments: "0",
+  reviews: "0",
+  ratings: "0",
+  bookmarks: "0",
+  shares: "0",
+  sends: "0",
+  reports: "0",
+  contacts: "0",
+  applications: "0",
+  downloads: "0",
+  clicks: "0",
+  external_clicks: "0",
+};
+
+function normalizeMetricValue(
+  value: MetricValue | null | undefined,
+): string {
+  return metricToString(value ?? "0");
 }
 
-export function roleHasPermission(
-  role: AdminRole,
-  permission: Permission,
-): boolean {
-  return getRolePermissions(
-    role,
-  ).includes(permission);
+export function normalizeMetrics(
+  metrics: Metrics = {},
+): NormalizedMetrics {
+  const result: NormalizedMetrics = {
+    ...DEFAULT_METRICS,
+  };
+
+  for (const key of METRIC_KEYS) {
+    result[key] = normalizeMetricValue(metrics[key]);
+  }
+
+  return result;
 }
 
-export function roleHasAnyPermission(
-  role: AdminRole,
-  permissions: readonly Permission[],
-): boolean {
-  return permissions.some(
-    (permission) =>
-      roleHasPermission(
-        role,
-        permission,
-      ),
-  );
+export function getMetric(
+  metrics: Metrics,
+  key: MetricKey,
+): string {
+  return normalizeMetricValue(metrics[key]);
 }
 
-export function roleHasAllPermissions(
-  role: AdminRole,
-  permissions: readonly Permission[],
-): boolean {
-  return permissions.every(
-    (permission) =>
-      roleHasPermission(
-        role,
-        permission,
-      ),
-  );
+export function setMetric(
+  metrics: Metrics,
+  key: MetricKey,
+  value: MetricValue,
+): NormalizedMetrics {
+  const result = normalizeMetrics(metrics);
+  result[key] = normalizeMetricValue(value);
+  return result;
 }
 
-export function checkPermissions(
-  granted: readonly Permission[],
-  required: readonly Permission[],
-): PermissionResult {
-  const set =
-    new Set(granted);
+export function incrementMetric(
+  metrics: Metrics,
+  key: MetricKey,
+  amount: MetricValue = 1,
+): NormalizedMetrics {
+  const result = normalizeMetrics(metrics);
 
-  const missing =
-    required.filter(
-      (permission) =>
-        !set.has(permission),
+  result[key] = addMetric(
+    result[key] as never,
+    normalizeMetricValue(amount) as never,
+  ) as unknown as string;
+
+  return result;
+}
+
+export function decrementMetric(
+  metrics: Metrics,
+  key: MetricKey,
+  amount: MetricValue = 1,
+): NormalizedMetrics {
+  const result = normalizeMetrics(metrics);
+  const current = result[key];
+  const delta = normalizeMetricValue(amount);
+
+  if (compareDecimalStrings(current, delta) < 0) {
+    result[key] = "0";
+  } else {
+    result[key] = subtractMetric(
+      current as never,
+      delta as never,
+    ) as unknown as string;
+  }
+
+  return result;
+}
+
+export function applyMetricChanges(
+  metrics: Metrics,
+  changes: Partial<Record<MetricKey, MetricValue>>,
+): MetricsUpdate {
+  const result = normalizeMetrics(metrics);
+  const history: MetricChange[] = [];
+
+  for (const key of METRIC_KEYS) {
+    const value = changes[key];
+
+    if (value === undefined) {
+      continue;
+    }
+
+    const before = result[key];
+    const after = normalizeMetricValue(value);
+
+    result[key] = after;
+
+    const comparison = compareDecimalStrings(
+      after,
+      before,
     );
 
-  const matched =
-    required.filter(
-      (permission) =>
-        set.has(permission),
-    );
+    const delta =
+      comparison >= 0
+        ? subtractMetric(
+            after as never,
+            before as never,
+          ) as unknown as string
+        : `-${subtractMetric(
+            before as never,
+            after as never,
+          ) as unknown as string}`;
+
+    history.push({
+      key,
+      before,
+      after,
+      delta,
+    });
+  }
 
   return {
-    allowed:
-      missing.length === 0,
-    missing,
-    matched,
+    changes: history,
+    metrics: result,
   };
 }
 
-export function checkAnyPermissions(
-  granted: readonly Permission[],
-  required: readonly Permission[],
-): PermissionResult {
-  const set =
-    new Set(granted);
+export function incrementMetrics(
+  metrics: Metrics,
+  changes: Partial<Record<MetricKey, MetricValue>>,
+): MetricsUpdate {
+  const result = normalizeMetrics(metrics);
+  const history: MetricChange[] = [];
 
-  const matched =
-    required.filter(
-      (permission) =>
-        set.has(permission),
-    );
+  for (const key of METRIC_KEYS) {
+    const value = changes[key];
 
-  const missing =
-    required.filter(
-      (permission) =>
-        !set.has(permission),
-    );
+    if (value === undefined) {
+      continue;
+    }
+
+    const before = result[key];
+    const amount = normalizeMetricValue(value);
+
+    const after = addMetric(
+      before as never,
+      amount as never,
+    ) as unknown as string;
+
+    result[key] = after;
+
+    history.push({
+      key,
+      before,
+      after,
+      delta: amount,
+    });
+  }
 
   return {
-    allowed:
-      matched.length > 0,
-    missing,
-    matched,
+    changes: history,
+    metrics: result,
   };
 }
 
-export function assertPermission(
-  granted: readonly Permission[],
-  permission: Permission,
-): boolean {
-  return granted.includes(
-    permission,
-  );
-}
+export function decrementMetrics(
+  metrics: Metrics,
+  changes: Partial<Record<MetricKey, MetricValue>>,
+): MetricsUpdate {
+  const result = normalizeMetrics(metrics);
+  const history: MetricChange[] = [];
 
-export function assertAnyPermission(
-  granted: readonly Permission[],
-  permissions: readonly Permission[],
-): boolean {
-  return permissions.some(
-    (permission) =>
-      granted.includes(
-        permission,
-      ),
-  );
-}
+  for (const key of METRIC_KEYS) {
+    const value = changes[key];
 
-export function assertAllPermissions(
-  granted: readonly Permission[],
-  permissions: readonly Permission[],
-): boolean {
-  return permissions.every(
-    (permission) =>
-      granted.includes(
-        permission,
-      ),
-  );
-}
+    if (value === undefined) {
+      continue;
+    }
 
-export function createPermissionSet(
-  permissions: readonly Permission[],
-): Set<Permission> {
-  return new Set(
-    permissions,
-  );
-}
+    const before = result[key];
+    const amount = normalizeMetricValue(value);
 
-export function mergePermissions(
-  ...permissionLists: Array<
-    readonly Permission[]
-  >
-): Permission[] {
-  return Array.from(
-    new Set(
-      permissionLists.flat(),
-    ),
-  );
-}
+    const after =
+      compareDecimalStrings(before, amount) < 0
+        ? "0"
+        : subtractMetric(
+            before as never,
+            amount as never,
+          ) as unknown as string;
 
-export function removePermissions(
-  source: readonly Permission[],
-  ...remove: Array<
-    readonly Permission[]
-  >
-): Permission[] {
-  const blocked =
-    new Set(
-      remove.flat(),
-    );
+    result[key] = after;
 
-  return source.filter(
-    (permission) =>
-      !blocked.has(permission),
-  );
-}
-
-export function differencePermissions(
-  a: readonly Permission[],
-  b: readonly Permission[],
-): Permission[] {
-  const bSet =
-    new Set(b);
-
-  return a.filter(
-    (permission) =>
-      !bSet.has(permission),
-  );
-}
-
-export function intersectionPermissions(
-  a: readonly Permission[],
-  b: readonly Permission[],
-): Permission[] {
-  const bSet =
-    new Set(b);
-
-  return a.filter(
-    (permission) =>
-      bSet.has(permission),
-  );
-}
-
-export function permissionsEqual(
-  a: readonly Permission[],
-  b: readonly Permission[],
-): boolean {
-  if (
-    a.length !==
-    b.length
-  ) {
-    return false;
+    history.push({
+      key,
+      before,
+      after,
+      delta:
+        before === after
+          ? "0"
+          : `-${amount}`,
+    });
   }
 
-  const aSet =
-    new Set(a);
+  return {
+    changes: history,
+    metrics: result,
+  };
+}
 
-  const bSet =
-    new Set(b);
+export function mergeMetrics(
+  ...values: Metrics[]
+): NormalizedMetrics {
+  const result = normalizeMetrics();
 
-  if (
-    aSet.size !==
-    bSet.size
-  ) {
-    return false;
-  }
+  for (const metrics of values) {
+    const normalized = normalizeMetrics(metrics);
 
-  for (const permission of aSet) {
-    if (
-      !bSet.has(
-        permission,
-      )
-    ) {
-      return false;
+    for (const key of METRIC_KEYS) {
+      result[key] = addMetric(
+        result[key] as never,
+        normalized[key] as never,
+      ) as unknown as string;
     }
   }
 
-  return true;
+  return result;
 }
 
-export function countPermissions(
-  permissions: readonly Permission[],
+export function totalMetrics(
+  metrics: Metrics,
+): string {
+  const normalized = normalizeMetrics(metrics);
+
+  return sum(
+    METRIC_KEYS.map(
+      (key) => normalized[key],
+    ) as never,
+  ) as unknown as string;
+}
+
+export function engagementCount(
+  metrics: Metrics,
+): string {
+  const normalized = normalizeMetrics(metrics);
+
+  return sum([
+    normalized.likes,
+    normalized.reactions,
+    normalized.comments,
+    normalized.reviews,
+    normalized.bookmarks,
+    normalized.shares,
+    normalized.sends,
+  ] as never) as unknown as string;
+}
+
+export function interactionRate(
+  metrics: Metrics,
 ): number {
-  return new Set(
-    permissions,
-  ).size;
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    engagementCount(normalized) as never,
+    normalized.views as never,
+  ) * 100;
 }
 
-export function getPermissionChecks(
-  granted: readonly Permission[],
-  permissions: readonly Permission[] =
-    ALL_PERMISSIONS,
-): PermissionCheck[] {
-  return permissions.map(
-    (permission) => ({
-      permission,
-      allowed:
-        granted.includes(
-          permission,
-        ),
-    }),
+export function reactionRate(
+  metrics: Metrics,
+): number {
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    normalized.reactions as never,
+    normalized.views as never,
+  ) * 100;
+}
+
+export function commentRate(
+  metrics: Metrics,
+): number {
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    normalized.comments as never,
+    normalized.views as never,
+  ) * 100;
+}
+
+export function reviewRate(
+  metrics: Metrics,
+): number {
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    normalized.reviews as never,
+    normalized.views as never,
+  ) * 100;
+}
+
+export function shareRate(
+  metrics: Metrics,
+): number {
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    normalized.shares as never,
+    normalized.views as never,
+  ) * 100;
+}
+
+export function applicationRate(
+  metrics: Metrics,
+): number {
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    normalized.applications as never,
+    normalized.views as never,
+  ) * 100;
+}
+
+export function clickRate(
+  metrics: Metrics,
+): number {
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    normalized.clicks as never,
+    normalized.views as never,
+  ) * 100;
+}
+
+export function uniqueViewRate(
+  metrics: Metrics,
+): number {
+  const normalized = normalizeMetrics(metrics);
+
+  return ratio(
+    normalized.unique_views as never,
+    normalized.views as never,
+  ) * 100;
+}
+
+export function metricDifference(
+  a: MetricValue,
+  b: MetricValue,
+): string {
+  const first = normalizeMetricValue(a);
+  const second = normalizeMetricValue(b);
+
+  if (compareDecimalStrings(first, second) >= 0) {
+    return subtractMetric(
+      first as never,
+      second as never,
+    ) as unknown as string;
+  }
+
+  return `-${subtractMetric(
+    second as never,
+    first as never,
+  ) as unknown as string}`;
+}
+
+export function metricPercentageChange(
+  oldValue: MetricValue,
+  newValue: MetricValue,
+): number {
+  const oldMetric = normalizeMetricValue(oldValue);
+  const newMetric = normalizeMetricValue(newValue);
+
+  if (compareDecimalStrings(oldMetric, "0") === 0) {
+    return compareDecimalStrings(newMetric, "0") === 0
+      ? 0
+      : 100;
+  }
+
+  return (
+    ratio(
+      metricDifference(
+        newMetric,
+        oldMetric,
+      ) as never,
+      oldMetric as never,
+    ) * 100
   );
 }
 
-export function getDeniedPermissions(
-  granted: readonly Permission[],
-): Permission[] {
-  return ALL_PERMISSIONS.filter(
-    (permission) =>
-      !granted.includes(
-        permission,
-      ),
+export function metricShare(
+  value: MetricValue,
+  total: MetricValue,
+): number {
+  return (
+    ratio(
+      normalizeMetricValue(value) as never,
+      normalizeMetricValue(total) as never,
+    ) * 100
   );
 }
 
-export function getGrantedPermissions(
-  granted: readonly Permission[],
-): Permission[] {
-  return ALL_PERMISSIONS.filter(
-    (permission) =>
-      granted.includes(
-        permission,
-      ),
+export function formatMetricValue(
+  value: MetricValue,
+): string {
+  return formatMetric(
+    normalizeMetricValue(value) as never,
   );
 }
 
-export function getRoleSummary(
-  role: AdminRole,
-): RolePermissionSummary {
-  const permissions =
-    getRolePermissions(
-      role,
-    );
+export function formatMetricPercent(
+  value: MetricValue,
+): string {
+  return `${formatMetricValue(value)}%`;
+}
+
+export function calculateRatingAverage(
+  ratings: RatingDistribution,
+): number {
+  const total =
+    ratings.one +
+    ratings.two +
+    ratings.three +
+    ratings.four +
+    ratings.five;
+
+  if (total === 0) {
+    return 0;
+  }
+
+  return (
+    ratings.one +
+    ratings.two * 2 +
+    ratings.three * 3 +
+    ratings.four * 4 +
+    ratings.five * 5
+  ) / total;
+}
+
+export function createRatingSummary(
+  ratings: RatingDistribution,
+): RatingSummary {
+  const count =
+    ratings.one +
+    ratings.two +
+    ratings.three +
+    ratings.four +
+    ratings.five;
+
+  const percentages: RatingDistribution = {
+    one: percentage(ratings.one, count),
+    two: percentage(ratings.two, count),
+    three: percentage(ratings.three, count),
+    four: percentage(ratings.four, count),
+    five: percentage(ratings.five, count),
+  };
 
   return {
-    role,
-    permissions,
-    count: permissions.length,
+    count: String(count),
+    average: calculateRatingAverage(ratings),
+    distribution: { ...ratings },
+    percentages,
   };
 }
 
-export function getAllRoleSummaries(): RolePermissionSummary[] {
-  const roles =
-    Object.keys(
-      ROLE_PERMISSIONS,
-    ) as AdminRole[];
-
-  return roles.map(
-    (role) =>
-      getRoleSummary(role),
+export function roundRating(
+  value: number,
+  precision = 2,
+): number {
+  const factor = Math.pow(
+    10,
+    Math.max(0, precision),
   );
+
+  return Math.round(
+    value * factor,
+  ) / factor;
 }
 
-function permissionGroupKey(
-  permission: Permission,
-): string {
-  const value =
-    String(permission);
+export function normalizeRating(
+  value: unknown,
+): number {
+  const numeric = Number(value);
 
-  const dot =
-    value.indexOf(".");
-
-  return dot > 0
-    ? value.slice(0, dot)
-    : "other";
-}
-
-export function groupPermissions(
-  permissions: readonly Permission[] =
-    ALL_PERMISSIONS,
-): PermissionGroup[] {
-  const groups =
-    new Map<
-      string,
-      Permission[]
-    >();
-
-  for (const permission of permissions) {
-    const key =
-      permissionGroupKey(
-        permission,
-      );
-
-    const existing =
-      groups.get(key);
-
-    if (existing) {
-      existing.push(
-        permission,
-      );
-    } else {
-      groups.set(
-        key,
-        [permission],
-      );
-    }
+  if (!Number.isFinite(numeric)) {
+    return 0;
   }
 
-  return Array.from(
-    groups.entries(),
-  )
-    .sort(([a], [b]) =>
-      a.localeCompare(b),
-    )
-    .map(
-      ([key, group]) => ({
-        key,
-        label: key,
-        permissions:
-          group.sort(),
-      }),
-    );
-}
-
-export function getPermissionGroup(
-  permission: Permission,
-): string {
-  return permissionGroupKey(
-    permission,
-  );
-}
-
-export function permissionMatches(
-  permission: Permission,
-  pattern: string,
-): boolean {
-  if (
-    permission === pattern
-  ) {
-    return true;
-  }
-
-  if (
-    pattern.endsWith(
-      ".*",
-    )
-  ) {
-    const prefix =
-      pattern.slice(
-        0,
-        -2,
-      );
-
-    return (
-      permission === prefix ||
-      permission.startsWith(
-        `${prefix}.`,
-      )
-    );
-  }
-
-  return false;
-}
-
-export function hasPermissionPattern(
-  granted: readonly Permission[],
-  pattern: string,
-): boolean {
-  return granted.some(
-    (permission) =>
-      permissionMatches(
-        permission,
-        pattern,
-      ),
-  );
-}
-
-export function hasAnyPermissionPattern(
-  granted: readonly Permission[],
-  patterns: readonly string[],
-): boolean {
-  return patterns.some(
-    (pattern) =>
-      hasPermissionPattern(
-        granted,
-        pattern,
-      ),
-  );
-}
-
-export function hasAllPermissionPatterns(
-  granted: readonly Permission[],
-  patterns: readonly string[],
-): boolean {
-  return patterns.every(
-    (pattern) =>
-      hasPermissionPattern(
-        granted,
-        pattern,
-      ),
-  );
-}
-
-export function expandPermissionPatterns(
-  patterns: readonly string[],
-): Permission[] {
-  const result: Permission[] =
-    [];
-
-  for (const pattern of patterns) {
-    if (
-      pattern.endsWith(
-        ".*",
-      )
-    ) {
-      const prefix =
-        pattern.slice(
-          0,
-          -2,
-        );
-
-      for (const permission of ALL_PERMISSIONS) {
-        if (
-          permission ===
-            prefix ||
-          permission.startsWith(
-            `${prefix}.`,
-          )
-        ) {
-          result.push(
-            permission,
-          );
-        }
-      }
-    } else if (
-      ALL_PERMISSIONS.includes(
-        pattern as Permission,
-      )
-    ) {
-      result.push(
-        pattern as Permission,
-      );
-    }
-  }
-
-  return Array.from(
-    new Set(result),
-  );
-}
-
-export function validatePermissions(
-  permissions: readonly Permission[],
-): Permission[] {
-  return Array.from(
-    new Set(
-      permissions.filter(
-        (permission) =>
-          ALL_PERMISSIONS.includes(
-            permission,
-          ),
-      ),
+  return Math.min(
+    5,
+    Math.max(
+      0,
+      Math.round(numeric),
     ),
   );
 }
 
-export function getPermissionName(
-  permission: Permission,
-): string {
-  return String(permission)
-    .split(".")
-    .map(
-      (part) =>
-        part
-          .replace(
-            /[_-]+/g,
-            " ",
-          )
-          .replace(
-            /\b\w/g,
-            (letter) =>
-              letter.toUpperCase(),
-          ),
-    )
-    .join(" / ");
-}
-
-export function getPermissionAction(
-  permission: Permission,
-): string {
-  const parts =
-    String(permission).split(
-      ".",
-    );
-
+export function isValidRating(
+  value: unknown,
+): value is number {
   return (
-    parts[parts.length - 1] ??
-    permission
+    typeof value === "number" &&
+    Number.isInteger(value) &&
+    value >= 1 &&
+    value <= 5
   );
 }
 
-export function getPermissionResource(
-  permission: Permission,
-): string {
-  return (
-    String(permission).split(
-      ".",
-    )[0] ??
-    "system"
-  );
+export function createEmptyRatingDistribution(): RatingDistribution {
+  return {
+    one: 0,
+    two: 0,
+    three: 0,
+    four: 0,
+    five: 0,
+  };
 }
 
-export function getPermissionsForResource(
-  resource: string,
-): Permission[] {
-  const prefix =
-    `${resource}.`;
+export function addRatingToDistribution(
+  distribution: RatingDistribution,
+  rating: number,
+): RatingDistribution {
+  const result = { ...distribution };
 
-  return ALL_PERMISSIONS.filter(
-    (permission) =>
-      permission.startsWith(
-        prefix,
-      ),
-  );
-}
-
-export function getPermissionResources(): string[] {
-  return Array.from(
-    new Set(
-      ALL_PERMISSIONS.map(
-        getPermissionResource,
-      ),
-    ),
-  ).sort();
-}
-
-export function canManagePermission(
-  role: AdminRole,
-  permission: Permission,
-): boolean {
-  if (
-    role === "superadmin"
-  ) {
-    return true;
+  if (!isValidRating(rating)) {
+    return result;
   }
 
-  if (
-    permission ===
-    PERMISSIONS.SUPERADMIN.FULL_CONTROL
-  ) {
-    return false;
+  if (rating === 1) result.one++;
+  else if (rating === 2) result.two++;
+  else if (rating === 3) result.three++;
+  else if (rating === 4) result.four++;
+  else if (rating === 5) result.five++;
+
+  return result;
+}
+
+export function removeRatingFromDistribution(
+  distribution: RatingDistribution,
+  rating: number,
+): RatingDistribution {
+  const result = { ...distribution };
+
+  if (!isValidRating(rating)) {
+    return result;
   }
 
-  return roleHasPermission(
-    role,
-    permission,
-  );
+  if (rating === 1) result.one = Math.max(0, result.one - 1);
+  else if (rating === 2) result.two = Math.max(0, result.two - 1);
+  else if (rating === 3) result.three = Math.max(0, result.three - 1);
+  else if (rating === 4) result.four = Math.max(0, result.four - 1);
+  else if (rating === 5) result.five = Math.max(0, result.five - 1);
+
+  return result;
 }
 
-export function canManageRole(
-  actorRole: AdminRole,
-  targetRole: AdminRole,
-): boolean {
-  if (
-    actorRole === "superadmin"
-  ) {
-    return true;
+export function calculateAverage(
+  values: readonly MetricValue[],
+): number {
+  if (values.length === 0) {
+    return 0;
   }
 
-  if (
-    actorRole === "admin"
-  ) {
-    return (
-      targetRole !==
-      "superadmin"
-    );
-  }
+  const numbers = values.map((value) =>
+    Number(normalizeMetricValue(value)),
+  );
 
-  return false;
+  return average(numbers as never) as unknown as number;
 }
 
-export function isPrivilegedRole(
-  role: AdminRole,
+export function compareMetrics(
+  a: MetricValue,
+  b: MetricValue,
+): number {
+  return compareDecimalStrings(
+    normalizeMetricValue(a),
+    normalizeMetricValue(b),
+  );
+}
+
+export function isZeroMetric(
+  value: MetricValue,
 ): boolean {
   return (
-    role === "superadmin" ||
-    role === "admin"
+    compareDecimalStrings(
+      normalizeMetricValue(value),
+      "0",
+    ) === 0
   );
 }
 
-export function isModerationRole(
-  role: AdminRole,
+export function isPositiveMetric(
+  value: MetricValue,
 ): boolean {
   return (
-    role === "superadmin" ||
-    role === "admin" ||
-    role === "moderator"
+    compareDecimalStrings(
+      normalizeMetricValue(value),
+      "0",
+    ) > 0
   );
 }
 
-export function isContentRole(
-  role: AdminRole,
+export function isNegativeMetric(
+  value: MetricValue,
 ): boolean {
   return (
-    role === "superadmin" ||
-    role === "admin" ||
-    role === "editor"
+    compareDecimalStrings(
+      normalizeMetricValue(value),
+      "0",
+    ) < 0
   );
 }
 
-export function isSupportRole(
-  role: AdminRole,
-): boolean {
-  return (
-    role === "superadmin" ||
-    role === "admin" ||
-    role === "support"
+export function metricKeys(): MetricKey[] {
+  return [...METRIC_KEYS];
+}
+
+export function hasMetricKey(
+  value: string,
+): value is MetricKey {
+  return METRIC_KEYS.includes(
+    value as MetricKey,
   );
-}
-
-export function isAnalyticsRole(
-  role: AdminRole,
-): boolean {
-  return (
-    role === "superadmin" ||
-    role === "admin" ||
-    role === "analyst"
-  );
-}
-
-export function getHighestRole(
-  roles: readonly AdminRole[],
-): AdminRole | null {
-  const order: AdminRole[] = [
-    "superadmin",
-    "admin",
-    "moderator",
-    "editor",
-    "support",
-    "analyst",
-  ];
-
-  for (const role of order) {
-    if (
-      roles.includes(role)
-    ) {
-      return role;
-    }
-  }
-
-  return null;
-}
-
-/**
- * Проверка через существующие helpers
- * из constants/permissions.ts.
- */
-export function checkNamedPermission(
-  permissions: readonly Permission[],
-  permission: Permission,
-): boolean {
-  return hasPermission(
-    permissions,
-    permission,
-  );
-}
-
-export function checkNamedAnyPermission(
-  permissions: readonly Permission[],
-  required: readonly Permission[],
-): boolean {
-  return hasAnyPermission(
-    permissions,
-    required,
-  );
-}
-
-export function checkNamedAllPermissions(
-  permissions: readonly Permission[],
-  required: readonly Permission[],
-): boolean {
-  return hasAllPermissions(
-    permissions,
-    required,
-  );
-}
-
-/**
- * Централизованные разрешения для
- * контентных объектов.
- */
-export const CONTENT_PERMISSIONS = {
-  publications: {
-    view:
-      PERMISSIONS.PUBLICATIONS.VIEW,
-    create:
-      PERMISSIONS.PUBLICATIONS.CREATE,
-    edit:
-      PERMISSIONS.PUBLICATIONS.EDIT,
-    delete:
-      PERMISSIONS.PUBLICATIONS.DELETE,
-    publish:
-      PERMISSIONS.PUBLICATIONS.PUBLISH,
-    moderate:
-      PERMISSIONS.PUBLICATIONS.MODERATE,
-    feature:
-      PERMISSIONS.PUBLICATIONS.FEATURE,
-    metrics:
-      PERMISSIONS.PUBLICATIONS.METRICS,
-  },
-
-  comments: {
-    view:
-      PERMISSIONS.COMMENTS.VIEW,
-    create:
-      PERMISSIONS.COMMENTS.CREATE,
-    edit:
-      PERMISSIONS.COMMENTS.EDIT,
-    delete:
-      PERMISSIONS.COMMENTS.DELETE,
-    moderate:
-      PERMISSIONS.COMMENTS.MODERATE,
-  },
-
-  reactions: {
-    view:
-      PERMISSIONS.REACTIONS.VIEW,
-    manage:
-      PERMISSIONS.REACTIONS.MANAGE,
-    moderate:
-      PERMISSIONS.REACTIONS.MODERATE,
-  },
-
-  reviews: {
-    view:
-      PERMISSIONS.REVIEWS.VIEW,
-    create:
-      PERMISSIONS.REVIEWS.CREATE,
-    edit:
-      PERMISSIONS.REVIEWS.EDIT,
-    delete:
-      PERMISSIONS.REVIEWS.DELETE,
-    moderate:
-      PERMISSIONS.REVIEWS.MODERATE,
-    manage:
-      PERMISSIONS.REVIEWS.MANAGE,
-    metrics:
-      PERMISSIONS.REVIEWS.METRICS,
-  },
-
-  participants: {
-    view:
-      PERMISSIONS.PARTICIPANTS.VIEW,
-    manage:
-      PERMISSIONS.PARTICIPANTS.MANAGE,
-    block:
-      PERMISSIONS.PARTICIPANTS.BLOCK,
-  },
-
-  chat: {
-    view:
-      PERMISSIONS.CHAT.VIEW,
-    send:
-      PERMISSIONS.CHAT.SEND,
-    moderate:
-      PERMISSIONS.CHAT.MODERATE,
-    manage:
-      PERMISSIONS.CHAT.MANAGE,
-  },
-
-  reports: {
-    view:
-      PERMISSIONS.REPORTS.VIEW,
-    manage:
-      PERMISSIONS.REPORTS.MANAGE,
-    resolve:
-      PERMISSIONS.REPORTS.RESOLVE,
-  },
-
-  notifications: {
-    view:
-      PERMISSIONS.NOTIFICATIONS.VIEW,
-    send:
-      PERMISSIONS.NOTIFICATIONS.SEND,
-    manage:
-      PERMISSIONS.NOTIFICATIONS.MANAGE,
-  },
-} as const;
+                                       }
