@@ -24,6 +24,7 @@
 // - URL helpers
 // - safe JSON serialization
 // - response metadata
+// - Cloudflare Workers Request compatibility
 // - backward-compatible public API
 //
 // ВАЖНО:
@@ -194,15 +195,27 @@ export const DEFAULT_TIMEOUT_MS = 30_000;
 // INTERNAL FETCH COMPATIBILITY
 // ============================================================
 //
-// Cloudflare Workers и TypeScript lib.dom могут иметь разные
-// generic Request-типы.
+// Cloudflare Workers расширяет стандартный DOM Request
+// своими generic-параметрами.
 //
-// Внутренне приводим только сам Request перед fetch.
-// Публичная API-архитектура при этом не меняется.
+// Поэтому внутри utility-layer используется собственная
+// минимальная совместимая сигнатура fetch.
+//
+// Публичные типы проекта при этом не меняются.
 // ============================================================
 
 type CompatibleFetchInput =
-  Parameters<typeof fetch>[0];
+  | string
+  | URL
+  | Request;
+
+type CompatibleFetch = (
+  input: CompatibleFetchInput,
+  init?: RequestInit,
+) => Promise<Response>;
+
+const compatibleFetch =
+  fetch as unknown as CompatibleFetch;
 
 function executeFetch(
   input:
@@ -211,16 +224,7 @@ function executeFetch(
     | Request,
   init?: RequestInit,
 ): Promise<Response> {
-  if (
-    input instanceof Request
-  ) {
-    return fetch(
-      input as unknown as CompatibleFetchInput,
-      init,
-    );
-  }
-
-  return fetch(
+  return compatibleFetch(
     input,
     init,
   );
@@ -1202,7 +1206,7 @@ export async function httpRequest<
   }
 
   let request:
-    | Request;
+    Request;
 
   if (
     input instanceof Request
